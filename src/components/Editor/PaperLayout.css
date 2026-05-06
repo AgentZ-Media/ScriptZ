@@ -27,63 +27,89 @@
   scroll-padding-top: 60px;
 }
 
+/* ---- Paper stack -----------------------------------------------------
+   Word-style pagination: the stack reserves a fixed visual area for N
+   A4 pages stacked with a small parchment gap between them. The Lexical
+   editor sits *over* the stack as a single absolute overlay so writing
+   isn't interrupted by page boundaries; the page count comes from the
+   editor's measured scrollHeight divided by one page's content height
+   (see Editor.tsx pagination effect).
+
+   The hidden ruler resolves --paper-content-h to its current px value
+   so the JS pagination math stays correct under any future paper-zoom. */
 .paper-stack {
   position: relative;
   width: var(--paper-w);
-  display: flex;
-  flex-direction: column;
+  /* --page-count and --page-gap are set inline from ScriptView. */
+  height: calc(
+    var(--paper-h) * var(--page-count, 1)
+    + var(--page-gap, 18px) * (var(--page-count, 1) - 1)
+  );
 }
 
-/* The main sheet hugs its content. Only ghost placeholders enforce a
-   full A4 height — that way a short script's paper has a visible
-   bottom edge inside the viewport, while multi-page documents still
-   show the next page as a recognizable A4 placeholder. */
-.paper-sheet {
-  position: relative;
+.paper-page-bg {
+  position: absolute;
+  left: 0;
   width: var(--paper-w);
+  height: var(--paper-h);
   background: var(--paper-bg);
   color: var(--paper-fg);
   border-radius: var(--r-4);
   box-shadow: var(--shadow-paper);
-  padding: var(--paper-margin-top) var(--paper-margin-right)
-    var(--paper-margin-bottom) var(--paper-margin-left);
-  overflow: visible;
+  /* The first page sits flush at top: 0; each subsequent page is one
+     paper height + one gap below the previous. --page-index is set
+     inline per element. */
+  top: calc(var(--page-index) * (var(--paper-h) + var(--page-gap, 18px)));
 }
-
-/* Page break marker between sheets — dotted hairline + label */
-.paper-stack .page-break {
-  position: relative;
-  height: 32px;
-  margin: 14px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.paper-stack .page-break::before {
-  content: "";
+.paper-page-bg .paper-page-num {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 50%;
-  border-top: 1px dashed var(--page-break-line);
-}
-.paper-stack .page-break span {
-  position: relative;
-  background: var(--bg);
-  padding: 2px 14px;
+  top: calc(var(--paper-margin-top) * 0.45);
+  right: calc(var(--paper-margin-right) * 0.6);
   font-family: var(--font-sans);
   font-size: var(--fs-11);
   letter-spacing: 0.16em;
   color: var(--fg-subtle);
   text-transform: lowercase;
+  pointer-events: none;
 }
 
-/* Ghost sheets — visual placeholders for additional pages. They
-   intentionally stay full A4 so the document feels paginated. */
-.paper-sheet.ghost {
-  min-height: var(--paper-h);
-  opacity: 0.5;
+.paper-editor-overlay {
+  position: absolute;
+  top: var(--paper-margin-top);
+  left: 0;
+  width: var(--paper-w);
+  display: flex;
+  justify-content: center;
+}
+.paper-editor-overlay .editor-host {
+  width: var(--paper-content-w);
+}
+
+.paper-content-ruler {
+  position: absolute;
+  visibility: hidden;
   pointer-events: none;
+  width: 1px;
+  height: var(--paper-content-h);
+  top: -9999px;
+  left: -9999px;
+}
+/* Dead zone = the editor-space distance the cursor has to "skip" when
+   crossing a page boundary: bottom margin of the previous page + the
+   visible gap between sheets + top margin of the next page. Editor.tsx
+   reads the resolved px value and pushes blocks accordingly. */
+.paper-deadzone-ruler {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  width: 1px;
+  height: calc(
+    var(--paper-margin-bottom)
+    + var(--page-gap, 18px)
+    + var(--paper-margin-top)
+  );
+  top: -9999px;
+  left: -9999px;
 }
 
 /* ---- Status strip at the bottom --------------------------------------
@@ -125,4 +151,50 @@
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+/* ---- Quick-mode toggle ---------------------------------------------------
+   Floating pill, top-right of the script shell. Lit when on, greyed when
+   not enough/too many characters to make sense. */
+.quick-mode-toggle {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-5);
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev-1);
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast),
+    border-color var(--t-fast), opacity var(--t-fast);
+}
+.quick-mode-toggle:hover:not(:disabled) {
+  background: var(--bg-elev-2);
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+.quick-mode-toggle.is-on {
+  background: var(--brand-500);
+  color: #fff;
+  border-color: var(--brand-500);
+}
+.quick-mode-toggle.is-on:hover:not(:disabled) {
+  background: var(--brand-600, var(--brand-500));
+  color: #fff;
+}
+.quick-mode-toggle.is-disabled,
+.quick-mode-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The script-shell needs a positioning context for the floating toggle. */
+.script-shell {
+  position: relative;
 }

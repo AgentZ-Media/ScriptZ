@@ -4,11 +4,10 @@ import {
   $isTextNode,
   $createTextNode,
   COMMAND_PRIORITY_HIGH,
-  CONTROLLED_TEXT_INSERTION_COMMAND,
+  KEY_DOWN_COMMAND,
   type LexicalEditor,
   type LexicalNode,
 } from "lexical";
-import { mergeRegister } from "@lexical/utils";
 import {
   BaseScriptzNode,
   $createScriptzDialogNode,
@@ -27,71 +26,84 @@ function findScriptzAncestor(node: LexicalNode | null): BaseScriptzNode | null {
 }
 
 /**
- * State machine:
- *   - In a Dialog block, typing `(` splits the dialog at the cursor: text
- *     before the cursor stays, a new Parenthetical containing `(` is inserted
- *     after, and any text after the cursor moves into a fresh Dialog block
- *     following the parenthetical. The caret lands inside the parenthetical.
- *   - In a Parenthetical block, typing `)` appends the closing paren and jumps
- *     the caret to the next Dialog (creating one if missing).
+ * State machine, intercepted at keydown so the browser/Lexical default text
+ * insertion never runs (CONTROLLED_TEXT_INSERTION_COMMAND was only firing
+ * reliably on empty Dialog blocks):
+ *   - In a Dialog block, typing `(` splits the dialog at the cursor and
+ *     drops in a Parenthetical containing `(`. Any text right of the cursor
+ *     moves into a fresh Dialog after the parenthetical. Caret lands in the
+ *     parenthetical.
+ *   - In a Parenthetical block, typing `)` appends the closing paren and
+ *     jumps to the next Dialog (creating one if missing).
  */
 export function installParentheticalLive(editor: LexicalEditor): () => void {
-  return mergeRegister(
-    editor.registerCommand<InputEvent | string>(
-      CONTROLLED_TEXT_INSERTION_COMMAND,
-      (payload) => {
-        const text = typeof payload === "string" ? payload : payload.data ?? "";
-        if (text !== "(" && text !== ")") return false;
+  return editor.registerCommand<KeyboardEvent>(
+    KEY_DOWN_COMMAND,
+    (event) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return false;
+      if (event.key !== "(" && event.key !== ")") return false;
 
-        const sel = $getSelection();
-        if (!$isRangeSelection(sel) || !sel.isCollapsed()) return false;
+      const sel = $getSelection();
+      if (!$isRangeSelection(sel) || !sel.isCollapsed()) return false;
+      const block = findScriptzAncestor(sel.anchor.getNode());
+      if (!block) return false;
 
-        const block = findScriptzAncestor(sel.anchor.getNode());
-        if (!block) return false;
+      if (event.key === "(" && $isScriptzDialogNode(block)) {
+        event.preventDefault();
+        const paren = $createScriptzParentheticalNode();
+        paren.append($createTextNode("("));
 
-        if (text === "(" && $isScriptzDialogNode(block)) {
-          const trailing = collectTrailingNodes(sel.anchor.getNode(), sel.anchor.offset, block);
-
-          const paren = $createScriptzParentheticalNode();
-          paren.append($createTextNode("("));
-          block.insertAfter(paren);
-
-          if (trailing.length > 0) {
-            const trailingDialog = $createScriptzDialogNode();
-            for (const node of trailing) {
-              node.remove();
-              trailingDialog.append(node);
-            }
-            paren.insertAfter(trailingDialog);
-          }
-
+        // Empty Dialog → replace it in place. Otherwise the writer ends up
+        // with a stranded blank dialog line above the parenthetical.
+        if (block.getTextContent().length === 0) {
+          block.replace(paren);
           paren.selectEnd();
           return true;
         }
 
-        if (text === ")" && $isScriptzParentheticalNode(block)) {
-          const last = block.getLastChild();
-          if ($isTextNode(last)) {
-            last.setTextContent(last.getTextContent() + ")");
-          } else {
-            block.append($createTextNode(")"));
-          }
+        const trailing = collectTrailingNodes(
+          sel.anchor.getNode(),
+          sel.anchor.offset,
+          block,
+        );
+        block.insertAfter(paren);
 
-          const next = block.getNextSibling();
-          if (next && $isScriptzDialogNode(next)) {
-            next.selectStart();
-          } else {
-            const dialog = $createScriptzDialogNode();
-            block.insertAfter(dialog);
-            dialog.select(0, 0);
+        if (trailing.length > 0) {
+          const trailingDialog = $createScriptzDialogNode();
+          for (const node of trailing) {
+            node.remove();
+            trailingDialog.append(node);
           }
-          return true;
+          paren.insertAfter(trailingDialog);
         }
 
-        return false;
-      },
-      COMMAND_PRIORITY_HIGH,
-    ),
+        paren.selectEnd();
+        return true;
+      }
+
+      if (event.key === ")" && $isScriptzParentheticalNode(block)) {
+        event.preventDefault();
+        const last = block.getLastChild();
+        if ($isTextNode(last)) {
+          last.setTextContent(last.getTextContent() + ")");
+        } else {
+          block.append($createTextNode(")"));
+        }
+
+        const next = block.getNextSibling();
+        if (next && $isScriptzDialogNode(next)) {
+          next.selectStart();
+        } else {
+          const dialog = $createScriptzDialogNode();
+          block.insertAfter(dialog);
+          dialog.select(0, 0);
+        }
+        return true;
+      }
+
+      return false;
+    },
+    COMMAND_PRIORITY_HIGH,
   );
 }
 

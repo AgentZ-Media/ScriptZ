@@ -1,15 +1,16 @@
+<p align="center">
+  <img src="docs/scriptz-icon-400.png" alt="ScriptZ" width="160" height="160" />
+</p>
+
 <h1 align="center">ScriptZ</h1>
 
 <p align="center">
-  <strong>The script editor that gets out of your way.</strong>
+  <strong>Der schnellste Skript-Editor für TikTok-Creator und Sketch-Teams.</strong><br/>
+  <em>Lokal. Offline. Mac-first.</em>
 </p>
 
 <p align="center">
-  <em>Local. Private. Mac-first.</em>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.0-e0791f?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/version-0.3.0-e0791f?style=flat-square" alt="version" />
   <img src="https://img.shields.io/badge/platform-macOS-e0791f?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Apple_Silicon-native-e0791f?style=flat-square" alt="Apple Silicon" />
   <img src="https://img.shields.io/badge/storage-local_only-e0791f?style=flat-square" alt="local-only" />
@@ -19,181 +20,163 @@
 
 ---
 
-## The pitch in one paragraph
+## Warum ScriptZ?
 
-Final Draft is too heavy. Google Docs is too generic. Arc Studio wants a
-subscription. **ScriptZ is the middle nobody else built.** It opens
-instantly, knows seven block types instead of one, formats your dialog
-on the page like a real shooting script, and keeps everything you write
-in a single file on your Mac. No account. No cloud. No telemetry. Made
-for TikTok creators and sketch teams who need the next idea on paper
-*now*.
+> **Final Draft** ist zu schwer. **Google Docs** zu generisch. **Arc Studio** will dein Abo. **ScriptZ ist die Mitte, die niemand sonst baut.**
 
-> **The Northstar:** App auf → schreiben → ausdrucken → fertig.
+App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Telemetrie. Alles bleibt als eine SQLite-Datei auf deinem Mac.
 
 ---
 
-## What makes it different
+## Features im Überblick
 
-### Built around block types, not paragraphs
-
-Most editors give you one paragraph type and expect you to invent
-formatting on top. ScriptZ ships **seven** semantic block types —
-**Action, Charakter, Dialog, Parenthetical, Kamera, Caption, SFX** —
-each with its own indentation, weight, alignment, and behaviour. Press
-Enter in a Charakter block and you land in Dialog automatically. Press
-Enter in Dialog and you land back in Charakter. The keystroke pattern
-matches the shape of the script you're writing — one character speaks,
-then another, and Action only when it actually matters.
-
-### Smart-Enter, ALLCAPS, parentheticals — the way it works in your head
-
-Type a name in the Charakter block; press Enter; you're in Dialog. Open
-a `(` mid-dialog; the rest is auto-formatted as a Parenthetical until
-you close it with `)` and you snap back to Dialog. Type a brand-new
-name and it shows up in the script's character pillbar with its own
-colour. Characters live **only inside the script you write them in** —
-no global directory, no registry to maintain, no migration prompts.
-
-### Every word stays on your machine
-
-Everything lives in **one SQLite file** on your Mac:
-
-```
-~/Library/Application Support/de.agent-z.scriptz/scriptz.db
-```
-
-Back it up however you like. Drop the folder in iCloud Drive or Dropbox
-to sync between Macs. Move it to an external drive. Open it with any
-SQLite tool to look inside. There is no ScriptZ server. There is no
-account. The only network call ScriptZ ever makes is an hourly check
-against GitHub Releases for new versions — no body, no identifier, no
-telemetry.
-
-### Mac-first, properly
-
-Native dark mode. Real A4-paper layout in the editor with proper
-screenplay margins. The whole app is around ten megabytes because it's
-**Tauri + Rust**, not Electron.
-
----
-
-## Features
+### Editor, der wie ein Drehbuch denkt
 
 | | |
 |---|---|
-| **Seven block types** | Action, Charakter, Dialog, Parenthetical, Kamera, Caption, SFX. Each one with its own hotkey (`Cmd+1..7`), its own typography, its own Smart-Enter target. |
-| **Smart-Enter flow** | Charakter → Dialog → Charakter, automatic. Empty Charakter ↔ Action toggle on Enter. Backspace at the start of an empty block deletes it cleanly. |
-| **Per-script characters** | Characters belong to the script you write them in. Type a new name in a Charakter block and it appears in the pillbar with an auto-assigned colour. No global registry, no aliases, no overrides. |
-| **Live character autocomplete** | Type into a Charakter block and a dropdown suggests names already in this script. |
-| **Character highlighting** | Optional per-script tint behind Charakter, Dialog, and Parenthetical blocks. Helps you see who's talking at a glance. Off by default. |
-| **A4 paper layout** | Real screenplay margins (3.7 cm left, 2.5 cm everywhere else), live page numbers, page-break markers between sheets. |
-| **Spotlight-style search** | `Cmd+K` opens a full-text search over your scripts. FTS5 with snippet highlighting. |
-| **PDF + Plain Text export** | `Cmd+E`. PDF exported in Rust with widow/orphan control on Charakter–Dialog clusters. Plain Text mode strips everything except dialog for the teleprompter. |
-| **Snapshots** | Auto every 5 minutes while you're writing, manual via `Cmd+Shift+S`. Up to 50 per script. `Cmd+Shift+H` opens the history browser. |
-| **Tabs with persistence** | Multiple scripts open at once. Tab strip auto-hides when only one is open. Layout restores on next launch. |
-| **Trash with restore** | Deleted scripts go to a Papierkorb tab. Restore individually or empty. Nothing auto-purges. |
-| **Themes** | Dark (default), Light, Auto. |
+| **Sieben Block-Typen** | Action · Charakter · Dialog · Parenthetical · Kamera · Caption · SFX — jeder mit eigener Einrückung, Gewicht und Verhalten. |
+| **Smart-Enter** | Charakter → Dialog → Charakter. Der Cursor weiß, was als nächstes kommt. |
+| **Live-Klammern** | `(` mitten im Dialog springt automatisch in einen Parenthetical-Block, `)` zurück in den nächsten Dialog. |
+| **ALLCAPS via CSS** | Charakternamen werden visuell groß geschrieben, ohne dass im Datenmodell rumgetippt wird. |
+| **⌘1–7** | Block-Typ pro Tastenkürzel wechseln. |
+
+### Charaktere als First-Class Citizen
+
+- **Automatische Farbzuweisung** aus einer Palette — jeder Name bekommt seine eigene Farbe.
+- **Per-Skript Charakterliste** (kein globales Adressbuch, keine Pflege).
+- **Intelligente Autovervollständigung**: tippst du `A`, ist `AXEL` markiert — Enter akzeptiert.
+- **Bigramm-Vorhersage** für die nächste Sprecher-Zeile: Dropdown highlightet vor, wer als Nächstes laut Gesprächsverlauf dran ist.
+- **Quick-Modus** für Dialog-Sketches mit zwei Personen: Enter im Dialog → der andere Charakter wird automatisch eingefügt.
+
+### Echte A4-Pagination im Editor
+
+- Papier-Stapel im Editor zeigt **echte A4-Seiten** mit visuellen Seitenumbrüchen — nicht eine endlose Spalte.
+- **Word-Style „Keep with next"**: Charaktername wird nie vom dazugehörigen Dialog getrennt.
+- Inhalt wird über Seitengrenzen hinweg automatisch umgebrochen, kein Handarbeit nötig.
+
+### Drucken & Export 1:1 wie auf dem Papier
+
+- **PDF-Export** mit eingebetteter iA Writer Quattro Schrift, optional Titelblatt und Charakter-Highlighting.
+- **Plaintext-Export** für Teleprompter.
+- **Direkt drucken** (⌘P) → System-Druckdialog erscheint sofort, ohne PDF-Umweg über Adobe oder Preview.
+- Per-Skript-Highlight-Farben im Druck genau wie im Editor — eng am Text, nicht als Block-Bänder.
+
+### Auto-Snapshots & Versionshistorie
+
+- Alle 5 Minuten ein automatischer Snapshot, manuell per ⌘⇧S.
+- Bis zu 50 Versionen pro Skript, jederzeit per ⌘⇧H wiederherstellbar.
+
+### KI-Zusammenfassungen (Opt-in)
+
+- Optional: OpenRouter-API-Key in der Keychain, freie Modellwahl.
+- Pro Skript erscheint eine ein-Satz-Zusammenfassung in der Übersicht.
+- Komplett deaktivierbar — App funktioniert vollständig ohne KI.
+
+### Tab-Workflow wie im Browser
+
+- **Quick-Switcher** oben in der Titelleiste: Suche + zuletzt bearbeitete Skripte.
+- **⌘⌥← / ⌘⌥→** zwischen Skripten wechseln.
+- Geschlossene Tabs werden automatisch aufgeräumt, wenn das Skript gelöscht wird.
 
 ---
 
-## Keyboard
+## Vergleich
+
+| | ScriptZ | Final Draft | Google Docs | Arc Studio |
+|---|:---:|:---:|:---:|:---:|
+| Lokal & offline | ✅ | ✅ | ❌ | ❌ |
+| Kein Account / Login | ✅ | ⚠️ | ❌ | ❌ |
+| Keine Telemetrie | ✅ | ⚠️ | ❌ | ❌ |
+| App-Start unter 1s | ✅ | ❌ | — | ⚠️ |
+| Sketch-/TikTok-Layout | ✅ | ❌ | ❌ | ⚠️ |
+| Sieben Block-Typen | ✅ | ⚠️ | ❌ | ✅ |
+| Live-A4-Pagination | ✅ | ✅ | ❌ | ✅ |
+| Charakter-Farben | ✅ | ❌ | ❌ | ✅ |
+| Quick-Modus für 2-Personen | ✅ | ❌ | ❌ | ❌ |
+| Bigramm-Predict für Charaktere | ✅ | ❌ | ❌ | ❌ |
+| Kostenlos | ✅ | ❌ | ✅ | ⚠️ |
+
+---
+
+## Tastenkürzel
 
 ### Global
-
-| | |
+| Shortcut | Aktion |
 |---|---|
-| `Cmd+N` | New script |
-| `Cmd+T` | New browser tab |
-| `Cmd+W` | Close active tab |
-| `Cmd+K` | Search scripts |
-| `Cmd+E` | Export modal |
-| `Cmd+,` | Settings |
-| `Cmd+Tab` / `Cmd+Shift+Tab` | Cycle tabs |
-| `Cmd+1..9` | Jump to tab by index (in browser) |
+| `⌘N` | Neues Skript |
+| `⌘T` | Übersicht öffnen |
+| `⌘W` | Aktiven Tab schließen |
+| `⌘K` | Command-Bar |
+| `⌘,` | Einstellungen |
+| `⌘⌥←` / `⌘⌥→` | Vorheriger / nächster Tab |
 
-### Editor — block types
-
-| | |
+### Skript-Ansicht
+| Shortcut | Aktion |
 |---|---|
-| `Cmd+1` | Action |
-| `Cmd+2` | Charakter |
-| `Cmd+3` | Dialog |
-| `Cmd+4` | Parenthetical |
-| `Cmd+5` | Kamera |
-| `Cmd+6` | Caption |
-| `Cmd+7` | SFX |
-| `Tab` | Block-type picker |
+| `⌘E` | Export-Dialog |
+| `⌘P` | Drucken |
+| `⌘⇧S` | Manueller Snapshot |
+| `⌘⇧H` | Snapshot-Verlauf |
 
-### Editor — formatting
-
-| | |
+### Editor
+| Shortcut | Aktion |
 |---|---|
-| `Cmd+B` / `Cmd+I` / `Cmd+U` | Bold / Italic / Underline (in Action + Dialog) |
-| `Cmd+Z` / `Cmd+Shift+Z` | Undo / Redo |
-| `Shift+Enter` | Soft line break inside Dialog |
-
-### Snapshots
-
-| | |
-|---|---|
-| `Cmd+Shift+S` | Manual snapshot |
-| `Cmd+Shift+H` | Snapshot browser |
+| `⌘1` … `⌘7` | Block-Typ wechseln (Action … SFX) |
+| `⌘B` / `⌘I` / `⌘U` | Bold / Italic / Underline (Action & Dialog) |
+| `Tab` | Block-Typ-Picker im aktuellen Block |
+| `Enter` | Smart-Advance zum nächsten Block-Typ |
 
 ---
 
-## Install
+## Tech-Stack
 
-ScriptZ is built for **Apple Silicon Macs**.
+| Layer | Tool |
+|---|---|
+| Shell | [Tauri 2](https://tauri.app) (Rust, ~10 MB Binary, native macOS) |
+| UI | [Solid.js](https://solidjs.com) + TypeScript (kein React, kein Virtual DOM) |
+| Editor | [Lexical](https://lexical.dev) (vanilla, ohne `@lexical/react`) |
+| Storage | SQLite mit FTS5 für Volltext-Suche |
+| Schrift | iA Writer Quattro (SIL OFL 1.1) |
+| Auto-Update | `tauri-plugin-updater` mit signierten Releases |
 
-1. Drag **ScriptZ.app** into **Applications**.
-2. The app is unsigned (no Apple Developer account yet), so macOS Gatekeeper
-   blocks it on first launch. Run this once in Terminal to clear the
-   quarantine flag:
+---
 
+## Installation
+
+> **macOS Apple Silicon** — getestet auf macOS 26 Tahoe.
+
+1. Aktuelles `.dmg` von [Releases](https://github.com/ibimspumo/ScriptZ/releases/latest) laden.
+2. Installieren, in `/Applications` ziehen.
+3. Beim ersten Start einmal:
    ```bash
    xattr -cr /Applications/ScriptZ.app
    ```
+   (Apple-Quarantäne entfernen — die App ist nicht über das Apple Developer Program signiert.)
 
-3. Open ScriptZ from Applications. It launches normally from now on.
-
-If you skip step 2, you'll see *"ScriptZ is damaged and can't be opened"* or
-*"cannot be opened because the developer cannot be verified"*. That's
-macOS, not the app. The `xattr` command just removes the quarantine flag
-that Safari/Finder added to the download.
-
-### Updating
-
-ScriptZ checks GitHub Releases once an hour for newer versions. When one
-is available, a small orange **Update available** pill appears in the
-file browser, top-right. The check sends no payload, no identifier, no
-telemetry. Disconnecting from the internet just means the pill never
-appears; the app keeps working.
-
-The `xattr` step is only needed for the *first* install.
+In-App-Updates funktionieren danach automatisch und ohne weitere Hürden.
 
 ---
 
-## Promises
+## Entwicklung
 
-- **No accounts.** Ever.
-- **No cloud.** Your scripts never touch a server we control.
-- **No telemetry.** We don't watch when you write, what you write, or whether you write at all.
-- **No forced updates.** Updates are checked once an hour against GitHub Releases. Downloading happens only when you click the pill.
-- **No lock-in.** It's a SQLite file. You own it.
+```bash
+pnpm install
+pnpm tauri:dev          # Hot-Reload Frontend + Rust
+pnpm typecheck          # TypeScript prüfen
+cargo check --manifest-path src-tauri/Cargo.toml
+pnpm tauri:build        # Native .app bauen
+```
 
----
-
-## Built with
-
-Tauri 2 + Rust on the back, Solid + TypeScript on the front, Lexical for
-the editor (vanilla — no React), SQLite (FTS5) for storage and search,
-`printpdf` for PDF rendering. The whole app is around ten megabytes.
-
-For development setup, see [CLAUDE.md](CLAUDE.md).
+Eingehende Code-Konventionen siehe [CLAUDE.md](CLAUDE.md).
 
 ---
 
-## License
+## Lizenz & Credits
 
-MIT. Take it. Read it. Fork it. Ship it.
+- **MIT-Lizenz** — siehe [LICENSE](LICENSE).
+- Schrift: **iA Writer Quattro** © Information Architects Inc., SIL OFL 1.1.
+- Entwickelt von [AgentZ](https://linktr.ee/deragentz).
+
+<p align="center">
+  <sub>Kein Login. Kein Tracking. Keine Cloud. Nur du, dein Skript und dein Mac.</sub>
+</p>

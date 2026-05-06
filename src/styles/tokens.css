@@ -74,8 +74,8 @@
   --paper-h-mm: 297;
   --paper-margin-top-mm: 25;
   --paper-margin-bottom-mm: 25;
-  --paper-margin-left-mm: 32;
-  --paper-margin-right-mm: 22;
+  --paper-margin-left-mm: 27;
+  --paper-margin-right-mm: 27;
   --paper-zoom: 1;
   --mm: calc(3.7795275591px * var(--paper-zoom));
   --paper-w: calc(var(--paper-w-mm) * var(--mm));

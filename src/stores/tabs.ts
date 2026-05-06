@@ -146,6 +146,28 @@ export const tabsStore = {
       this.openBrowser();
     }
   },
+  /** Drop tabs whose scriptId is not in the given set (script was archived
+   * or purged). Always keeps at least one tab open (browser fallback). */
+  reconcile(liveScriptIds: Set<string>) {
+    const all = tabs();
+    const survivors = all.filter(
+      (t) => t.kind === "browser" || liveScriptIds.has(t.scriptId!),
+    );
+    if (survivors.length === all.length) return;
+    if (survivors.length === 0) {
+      const fb: Tab = { id: genId(), kind: "browser" };
+      setTabs([fb]);
+      setActiveTabId(fb.id);
+      persist();
+      return;
+    }
+    setTabs(survivors);
+    const stillActive = survivors.find((t) => t.id === activeTabId());
+    if (!stillActive) {
+      setActiveTabId(survivors[survivors.length - 1].id);
+    }
+    persist();
+  },
 };
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;

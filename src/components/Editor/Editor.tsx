@@ -2,8 +2,10 @@ import { onCleanup, onMount, createEffect, createSignal } from "solid-js";
 import {
   createEditor,
   $getRoot,
-  $isElementNode,
+  $getSelection,
+  $isRangeSelection,
   type LexicalEditor,
+  type LexicalNode,
   type EditorThemeClasses,
 } from "lexical";
 import { registerHistory, createEmptyHistoryState } from "@lexical/history";
@@ -31,15 +33,25 @@ export interface EditorProps {
   initialContentJson: string | null | undefined;
   characters: ScriptCharacter[];
   highlighting?: boolean;
+  /** Quick-mode toggle — when on AND the script has exactly 2 characters,
+   * pressing Enter at the end of a Dialog auto-inserts the OTHER character
+   * + a fresh Dialog block, so two-hander dialogue flows without manual
+   * character-name entry. Read reactively (called on each Enter). */
+  quickModeEnabled?: () => boolean;
   onPageCountChange?: (n: number) => void;
   onSavingChange?: (saving: boolean) => void;
+  /** Fires whenever the live character list changes — used by the parent
+   * to drive the quick-mode availability check (need exactly 2). */
+  onCharactersChange?: (chars: ScriptCharacter[]) => void;
 }
 
 const THEME: EditorThemeClasses = {};
 
 const SAVE_DEBOUNCE_MS = 250;
 const AUTO_SNAPSHOT_MS = 5 * 60 * 1000;
-const PLACEHOLDER_BLOCKS_PER_PAGE = 35;
+// Fallback pixel value for one A4 content area (paper-h - top - bottom)
+// at zoom 1 — used only if the ruler element can't be measured.
+const FALLBACK_CONTENT_HEIGHT_PX = (297 - 25 - 25) * 3.7795275591;
 // Used for character pills the user just typed in this session — the server
 // assigns a real palette color on save, but we never re-pull the script (that
 // caused contentEditable focus loss every 250ms during typing), so the dot
@@ -113,7 +125,10 @@ export function Editor(props: EditorProps) {
       seedEmptyState(editor);
     }
 
-    const teardownSmartEnter = installSmartEnter(editor);
+    const teardownSmartEnter = installSmartEnter(editor, {
+      isQuickModeOn: () => !!props.quickModeEnabled?.(),
+      getCharacters: () => liveCharacters(),
+    });
     const teardownAllCaps = installAllCaps(editor);
     const teardownParen = installParentheticalLive(editor);
     const teardownInlineFmt = installInlineFormat(editor);
@@ -127,19 +142,169 @@ export function Editor(props: EditorProps) {
     let dirtySinceSnapshot = false;
     let lastReportedPages = -1;
 
+    // ---- Pagination -------------------------------------------------------
+    // Lexical's official position (Issue #6524, #7652): the editor stays
+    // headless; layout has to happen *outside* the node tree. We can't split
+    // nodes (1:1 node↔DOM mapping); we can't override RootNode. The
+    // recommended pattern is to inject `margin-top` on rendered top-level
+    // blocks after each render so content visually skips the dead zone
+    // between paper sheets, without changing the editor state.
+    //
+    // Atomic units: Character + immediately-following Parenthetical/Dialog
+    // are treated as one unit so a Character can never be orphaned at the
+    // bottom of a page from its dialogue. Mirrors Word's "Keep with next".
+
+    const measurePxFromRuler = (selector: string, fallback: number): number => {
+      const ruler = rootRef
+        ?.closest(".paper-stack")
+        ?.querySelector<HTMLElement>(selector);
+      const v = ruler?.getBoundingClientRect().height ?? 0;
+      return v > 10 ? v : fallback;
+    };
+    const measurePageHeightPx = () =>
+      measurePxFromRuler(".paper-content-ruler", FALLBACK_CONTENT_HEIGHT_PX);
+    const measureDeadZonePx = () =>
+      // Default: (25 + 25) mm margins + 18 px gap at zoom 1.
+      measurePxFromRuler(".paper-deadzone-ruler", 25 * 3.78 * 2 + 18);
+
+    interface BlockUnit {
+      startEl: HTMLElement;
+      endEl: HTMLElement;
+    }
+
+    const buildUnits = (blocks: HTMLElement[]): BlockUnit[] => {
+      const units: BlockUnit[] = [];
+      let i = 0;
+      while (i < blocks.length) {
+        const t = blocks[i].dataset.blockType;
+        if (t === "scriptz-character") {
+          let end = i;
+          while (
+            end + 1 < blocks.length &&
+            (blocks[end + 1].dataset.blockType === "scriptz-dialog" ||
+              blocks[end + 1].dataset.blockType === "scriptz-parenthetical")
+          ) {
+            end++;
+          }
+          units.push({ startEl: blocks[i], endEl: blocks[end] });
+          i = end + 1;
+        } else {
+          units.push({ startEl: blocks[i], endEl: blocks[i] });
+          i++;
+        }
+      }
+      return units;
+    };
+
+    const paginate = () => {
+      if (!rootRef) return;
+      const blocks = Array.from(rootRef.children).filter(
+        (el): el is HTMLElement =>
+          el instanceof HTMLElement && el.dataset.blockType !== undefined,
+      );
+      if (blocks.length === 0) {
+        if (lastReportedPages !== 1) {
+          lastReportedPages = 1;
+          props.onPageCountChange?.(1);
+        }
+        return;
+      }
+
+      // Reset prior pagination margins before re-measuring.
+      for (const b of blocks) {
+        if (b.style.marginTop) b.style.marginTop = "";
+      }
+      // Force a sync layout so offsetTop reflects the reset state.
+      void rootRef.offsetHeight;
+
+      const contentH = measurePageHeightPx();
+      const deadZone = measureDeadZonePx();
+      const pageStride = contentH + deadZone;
+
+      const units = buildUnits(blocks);
+
+      for (const unit of units) {
+        const top = unit.startEl.offsetTop;
+        const bottom = unit.endEl.offsetTop + unit.endEl.offsetHeight;
+        const unitHeight = bottom - top;
+        // Units taller than a single page can't fit anywhere; leave them
+        // at their natural position rather than chasing a moving target.
+        if (unitHeight > contentH) continue;
+
+        const pageIdx = Math.floor(top / pageStride);
+        const contentEndOnPage = pageIdx * pageStride + contentH;
+        const inDeadZone = top >= contentEndOnPage;
+        const crossesBoundary = !inDeadZone && bottom > contentEndOnPage;
+
+        if (inDeadZone || crossesBoundary) {
+          const nextPageStart = (pageIdx + 1) * pageStride;
+          const push = nextPageStart - top;
+          if (push > 0) {
+            unit.startEl.style.marginTop = `${push}px`;
+            // Sync layout so the next unit sees its true offset.
+            void rootRef.offsetHeight;
+          }
+        }
+      }
+
+      // Final page count: highest content y after pagination, divided by
+      // pageStride. Use the last block's bottom rather than scrollHeight
+      // so trailing margin from the last unit's push counts correctly.
+      const lastEl = blocks[blocks.length - 1];
+      const lastBottom = lastEl.offsetTop + lastEl.offsetHeight;
+      const pages = Math.max(1, Math.floor(lastBottom / pageStride) + 1);
+      if (pages !== lastReportedPages) {
+        lastReportedPages = pages;
+        props.onPageCountChange?.(pages);
+      }
+    };
+
+    let paginateTimer: ReturnType<typeof setTimeout> | null = null;
+    const schedulePaginate = (delay = 80) => {
+      if (paginateTimer) clearTimeout(paginateTimer);
+      paginateTimer = setTimeout(() => {
+        paginateTimer = null;
+        paginate();
+      }, delay);
+    };
+
+    const resizeObserver = new ResizeObserver(() => schedulePaginate());
+    if (rootRef) resizeObserver.observe(rootRef);
+    // First pass after the initial render settles.
+    requestAnimationFrame(() => paginate());
+
     const persist = async () => {
       let contentJson = "";
-      let blockCount = 0;
       const seenNames: string[] = [];
       const seenSet = new Set<string>();
 
       editor.getEditorState().read(() => {
         const state = editor.getEditorState();
         contentJson = JSON.stringify(state.toJSON());
+
+        // Identify the Character block the cursor is currently inside.
+        // We exclude its name from the live list so a half-typed name (e.g.
+        // "A" while reaching for "AXEL") doesn't show up as its own
+        // character entry in the autocomplete.
+        let editedCharKey: string | null = null;
+        const sel = $getSelection();
+        if ($isRangeSelection(sel)) {
+          let cur: LexicalNode | null = sel.anchor.getNode();
+          while (cur) {
+            if ($isScriptzCharacterNode(cur)) {
+              editedCharKey = cur.getKey();
+              break;
+            }
+            cur = cur.getParent();
+          }
+        }
+
         const root = $getRoot();
         for (const child of root.getChildren()) {
-          if ($isElementNode(child)) blockCount += 1;
-          if ($isScriptzCharacterNode(child)) {
+          if (
+            $isScriptzCharacterNode(child) &&
+            child.getKey() !== editedCharKey
+          ) {
             const name = child.getTextContent().trim().toUpperCase();
             if (name && !seenSet.has(name)) {
               seenSet.add(name);
@@ -160,26 +325,75 @@ export function Editor(props: EditorProps) {
       const changed =
         next.length !== prev.length ||
         next.some((c, i) => c.name !== prev[i]?.name || c.color !== prev[i]?.color);
-      if (changed) setLiveCharacters(next);
-
-      const pageCount = Math.max(
-        1,
-        Math.ceil(blockCount / PLACEHOLDER_BLOCKS_PER_PAGE),
-      );
-
-      if (pageCount !== lastReportedPages) {
-        lastReportedPages = pageCount;
-        props.onPageCountChange?.(pageCount);
+      if (changed) {
+        setLiveCharacters(next);
+        props.onCharactersChange?.(next);
       }
+
+      // The visual page count is owned by the ResizeObserver loop above
+      // (recomputePages); reuse the latest measurement for the DB save.
+      const pageCount = Math.max(1, lastReportedPages);
 
       props.onSavingChange?.(true);
       try {
-        await api.updateScript({
+        const summary = await api.updateScript({
           id: props.scriptId,
           contentJson,
           pageCount,
         });
         scriptsBus.bump();
+
+        // Re-walk the editor state (the user may have typed during the
+        // round-trip) and map each current name to the server-assigned
+        // palette color from the summary. Names typed mid-flight that the
+        // server hasn't seen yet stay on the placeholder color until the
+        // next save settles them.
+        const colorMap = new Map(
+          summary.characters.map((c) => [c.name.toUpperCase(), c.color]),
+        );
+        const currentNames: string[] = [];
+        const currentSet = new Set<string>();
+        editor.getEditorState().read(() => {
+          let editedCharKey: string | null = null;
+          const sel = $getSelection();
+          if ($isRangeSelection(sel)) {
+            let cur: LexicalNode | null = sel.anchor.getNode();
+            while (cur) {
+              if ($isScriptzCharacterNode(cur)) {
+                editedCharKey = cur.getKey();
+                break;
+              }
+              cur = cur.getParent();
+            }
+          }
+          const root = $getRoot();
+          for (const child of root.getChildren()) {
+            if (
+              $isScriptzCharacterNode(child) &&
+              child.getKey() !== editedCharKey
+            ) {
+              const name = child.getTextContent().trim().toUpperCase();
+              if (name && !currentSet.has(name)) {
+                currentSet.add(name);
+                currentNames.push(name);
+              }
+            }
+          }
+        });
+        const merged: ScriptCharacter[] = currentNames.map((name) => ({
+          name,
+          color: colorMap.get(name) ?? PENDING_CHAR_COLOR,
+        }));
+        const before = liveCharacters();
+        const changed =
+          merged.length !== before.length ||
+          merged.some(
+            (c, i) => c.name !== before[i]?.name || c.color !== before[i]?.color,
+          );
+        if (changed) {
+          setLiveCharacters(merged);
+          props.onCharactersChange?.(merged);
+        }
       } catch (err) {
         console.error("[scriptz] auto-save failed", err);
       } finally {
@@ -195,6 +409,11 @@ export function Editor(props: EditorProps) {
         saveTimer = null;
         void persist();
       }, SAVE_DEBOUNCE_MS);
+      // Re-paginate on every state change. If a Lexical reconciliation
+      // recreated a block's DOM element, our previously-injected
+      // marginTop is gone — paginate() will reapply it. Debounced so we
+      // don't fight the keystroke loop.
+      schedulePaginate();
     });
 
     const snapshotTimer = setInterval(() => {
@@ -207,7 +426,9 @@ export function Editor(props: EditorProps) {
 
     onCleanup(() => {
       if (saveTimer) clearTimeout(saveTimer);
+      if (paginateTimer) clearTimeout(paginateTimer);
       clearInterval(snapshotTimer);
+      resizeObserver.disconnect();
       teardownUpdate();
       teardownCharDD();
       teardownBlockDD();

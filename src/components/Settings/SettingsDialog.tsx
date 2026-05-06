@@ -138,6 +138,36 @@ export function SettingsDialog(props: SettingsDialogProps) {
             checked={settingsStore.highlightingDefault()}
             onChange={(v) => void settingsStore.setHighlightingDefault(v)}
           />
+          <Toggle
+            label="Quick-Modus automatisch aktivieren bei genau 2 Charakteren"
+            checked={settingsStore.quickModeAutoEnable()}
+            onChange={(v) => void settingsStore.setQuickModeAutoEnable(v)}
+          />
+          <p class="muted small">
+            Greift pro Skript nur, solange du den Toggle nicht selbst
+            angefasst hast. Sobald du Quick-Modus in einem Skript einmal
+            händisch ein- oder ausschaltest, bleibt diese Wahl in dem
+            Skript bestehen — auch wenn die Charakterzahl später wieder
+            zwischen 2 und 3+ wechselt.
+          </p>
+        </section>
+
+        <section class="settings-section">
+          <h3>Drucken</h3>
+          <p class="muted small">
+            Standardmäßig druckt ScriptZ ohne Titelblatt und ohne Highlighting.
+            Hier kannst du das pro Druckvorgang erzwingen.
+          </p>
+          <Toggle
+            label="Titelblatt mitdrucken"
+            checked={settingsStore.printTitlePage()}
+            onChange={(v) => void settingsStore.setPrintTitlePage(v)}
+          />
+          <Toggle
+            label="Charakter-Highlighting mitdrucken"
+            checked={settingsStore.printHighlighting()}
+            onChange={(v) => void settingsStore.setPrintHighlighting(v)}
+          />
         </section>
 
         <section class="settings-section">

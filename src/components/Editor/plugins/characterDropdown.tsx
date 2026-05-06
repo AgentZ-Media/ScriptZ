@@ -14,6 +14,10 @@ import {
   $isScriptzCharacterNode,
   type ScriptzCharacterNode,
 } from "../nodes";
+import {
+  predictNextSpeaker,
+  previousCharacterFrom,
+} from "../predict";
 import type { ScriptCharacter } from "../../../lib/types";
 
 function findCharacterAncestor(
@@ -39,10 +43,11 @@ export function installCharacterDropdown(
   const [open, setOpen] = createSignal(false);
   const [pos, setPos] = createSignal({ x: 0, y: 0 });
   const [filter, setFilter] = createSignal("");
-  // -1 = no item highlighted. The dropdown is purely informational while
-  // typing; the user must explicitly arrow into the list (or click) before
-  // Enter will accept a suggestion. Otherwise Enter falls through to
-  // smartEnter and advances to a Dialog block, which is what writers expect.
+  // While the writer is typing, auto-highlight the first matching suggestion
+  // so a partial like "A" lights up "AXEL" and Enter accepts it. An empty
+  // line stays at -1 so Enter falls through to smartEnter (advance to Dialog).
+  // -1 also covers "no matches at all" — Enter then advances normally and the
+  // freshly-typed name is committed when the cursor leaves the block.
   const [activeIdx, setActiveIdx] = createSignal(-1);
   const [activeKey, setActiveKey] = createSignal<string | null>(null);
 
@@ -172,6 +177,7 @@ export function installCharacterDropdown(
   const teardownUpdate = editor.registerUpdateListener(({ editorState }) => {
     let nodeKey: string | null = null;
     let text = "";
+    let predictedName: string | null = null;
     editorState.read(() => {
       const sel = $getSelection();
       if (!$isRangeSelection(sel)) return;
@@ -179,6 +185,16 @@ export function installCharacterDropdown(
       if (!charNode) return;
       nodeKey = charNode.getKey();
       text = charNode.getTextContent();
+      // For an empty Character block, predict who is most likely to speak
+      // next given the previous speaker (bigram + LRU). The dropdown
+      // pre-highlights this candidate so Enter accepts it without the
+      // writer typing anything. Independent of Quick mode.
+      if (text.trim().length === 0) {
+        const prev = previousCharacterFrom(charNode);
+        const candidates = getArgs().scriptCharacters();
+        const guess = predictNextSpeaker(prev, candidates);
+        predictedName = guess?.name.toUpperCase() ?? null;
+      }
     });
 
     if (!nodeKey) {
@@ -189,10 +205,23 @@ export function installCharacterDropdown(
     setActiveKey(nodeKey);
     setFilter(text);
     setPos(positionFromCursor(nodeKey));
-    // Reset to "no selection" on every text change so the dropdown stays
-    // passive while typing — Enter must fall through to smartEnter unless
-    // the writer explicitly arrow-keys into the list.
-    setActiveIdx(-1);
+
+    // Highlight resolution:
+    //  - typed prefix → first matching entry (existing behaviour)
+    //  - empty + prediction → the predicted entry
+    //  - otherwise → -1 (Enter falls through to smartEnter)
+    const trimmed = text.trim();
+    const list = filteredEntries();
+    if (trimmed.length > 0 && list.length > 0) {
+      setActiveIdx(0);
+    } else if (predictedName && list.length > 0) {
+      const idx = list.findIndex(
+        (e) => e.name.toUpperCase() === predictedName,
+      );
+      setActiveIdx(idx >= 0 ? idx : -1);
+    } else {
+      setActiveIdx(-1);
+    }
     setOpen(true);
   });
 

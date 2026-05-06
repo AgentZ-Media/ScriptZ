@@ -11,6 +11,7 @@
     "core:window:allow-set-focus",
     "core:window:allow-close",
     "core:webview:default",
+    "core:webview:allow-print",
     "global-shortcut:default",
     "clipboard-manager:default",
     "os:default",
@@ -30,6 +31,10 @@
         { "url": "http://*" },
         { "url": "mailto:*" }
       ]
+    },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "**" }]
     }
   ]
 }

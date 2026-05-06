@@ -15,7 +15,10 @@
   outline: none;
 }
 
-/* ---- Top bar (logo · search · actions) ---- */
+/* ---- Top bar (logo · search · actions) ----
+   The bar background spans the full window for visual cohesion, but its
+   contents share the same 1440 px max-width as the body so things stay
+   readable on wide displays. */
 .browser-topbar {
   display: grid;
   grid-template-columns: minmax(160px, auto) minmax(240px, 1fr) minmax(220px, auto);
@@ -23,6 +26,9 @@
   gap: var(--sp-4);
   padding: var(--sp-5) var(--sp-6) var(--sp-3);
   flex: 0 0 auto;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
 }
 
 .browser-brand {
@@ -157,6 +163,9 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--sp-3) var(--sp-6) var(--sp-7);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
 }
 
 .browser-section + .browser-section {
@@ -540,6 +549,9 @@
   overflow: hidden;
   position: relative;
   padding: 0 var(--sp-6) var(--sp-5);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
 }
 .trash-toolbar {
   display: flex;

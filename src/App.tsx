@@ -1,6 +1,7 @@
 import {
   Show,
   createSignal,
+  createEffect,
   onMount,
   onCleanup,
   Switch,
@@ -12,14 +13,18 @@ import { settingsStore } from "~/stores/settings";
 import { aiStore } from "~/stores/ai";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
+import { scriptsBus } from "~/lib/scriptsBus";
+import { api } from "~/lib/api";
 import TabBar from "~/components/TabBar";
 import ScriptView from "~/components/Editor/ScriptView";
 import Browser from "~/components/Browser/Browser";
 import { CommandBar } from "~/components/CommandBar/CommandBar";
 import { SettingsDialog } from "~/components/Settings/SettingsDialog";
 import { NewScriptDialog } from "~/components/Browser/NewScriptDialog";
+import { ExportDialog } from "~/components/Editor/ExportDialog";
 import ToastHost from "~/components/Common/ToastHost";
 import { ensureWelcomeContent } from "~/lib/welcome";
+import { printScript } from "~/lib/print";
 
 import "./components/Common/Common.css";
 
@@ -32,6 +37,35 @@ export default function App() {
   const [cmdkOpen, setCmdkOpen] = createSignal(false);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
+  const [exportOpen, setExportOpen] = createSignal(false);
+
+  const activeScriptId = (): string | null => {
+    const t = tabsStore.active();
+    return t?.kind === "script" ? t.scriptId ?? null : null;
+  };
+  const activeScriptTitle = (): string => {
+    const t = tabsStore.active();
+    return t?.kind === "script" ? (t.scriptTitle || "Unbenannt") : "";
+  };
+
+  const openExport = () => {
+    if (activeScriptId()) setExportOpen(true);
+  };
+  const triggerPrint = async () => {
+    const id = activeScriptId();
+    if (!id) return;
+    try {
+      // Browser-native printing through a hidden iframe — the OS shows its
+      // real print sheet directly, no PDF round-trip, no third-party
+      // viewer (Adobe / Preview) launching in front of it.
+      await printScript(id, {
+        highlighting: settingsStore.printHighlighting(),
+        titlePage: settingsStore.printTitlePage(),
+      });
+    } catch (err) {
+      pushToast(`Druck fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+    }
+  };
 
   onMount(async () => {
     try {
@@ -45,6 +79,22 @@ export default function App() {
     } finally {
       setBootReady(true);
     }
+  });
+
+  // Whenever the script list changes (archive / purge / restore / create /
+  // duplicate / rename) reconcile open tabs against the DB so dead tabs
+  // disappear from the dropdown and ⌘1-9 navigation.
+  createEffect(() => {
+    scriptsBus.version();
+    void (async () => {
+      try {
+        const list = await api.listScripts({});
+        const live = new Set(list.map((s) => s.id));
+        tabsStore.reconcile(live);
+      } catch {
+        /* silent */
+      }
+    })();
   });
 
   onMount(() => {
@@ -78,7 +128,31 @@ export default function App() {
         setNewScriptOpen(true);
         return;
       }
-      if (ev.key === "Tab") {
+      if (ev.key.toLowerCase() === "e" && !ev.shiftKey) {
+        if (activeScriptId()) {
+          ev.preventDefault();
+          openExport();
+        }
+        return;
+      }
+      if (ev.key.toLowerCase() === "p" && !ev.shiftKey) {
+        if (activeScriptId()) {
+          ev.preventDefault();
+          void triggerPrint();
+        }
+        return;
+      }
+      // Tab cycling. ⌘Tab is captured by macOS system, so we use the
+      // browser/Slack/VS Code convention: ⌘⌥← / ⌘⌥→. Works inside the
+      // contenteditable editor and doesn't shadow any text-editing
+      // shortcut. We also keep ⌘Tab as a best-effort fallback for
+      // non-Mac builds.
+      if (ev.altKey && (ev.key === "ArrowLeft" || ev.key === "ArrowRight")) {
+        ev.preventDefault();
+        tabsStore.cycle(ev.key === "ArrowRight" ? 1 : -1);
+        return;
+      }
+      if (ev.key === "Tab" && !ev.altKey) {
         ev.preventDefault();
         tabsStore.cycle(ev.shiftKey ? -1 : 1);
         return;
@@ -90,6 +164,9 @@ export default function App() {
           target instanceof HTMLTextAreaElement ||
           target instanceof HTMLSelectElement ||
           (target?.isContentEditable ?? false);
+        // Inside the editor ⌘1–7 are owned by blockHotkeys (block-type
+        // swap). Outside (Browser, dialogs) they activate the tab at
+        // that index.
         if (isTextField) return;
         ev.preventDefault();
         tabsStore.activateByIndex(parseInt(ev.key, 10) - 1);
@@ -113,7 +190,11 @@ export default function App() {
   return (
     <div class="app-root">
       <Show when={bootReady()} fallback={<BootScreen />}>
-        <TabBar />
+        <TabBar
+          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenExport={openExport}
+          onPrint={() => void triggerPrint()}
+        />
 
         <main class="app-main">
           <Show when={activeView()}>
@@ -143,6 +224,14 @@ export default function App() {
           <NewScriptDialog
             onClose={() => setNewScriptOpen(false)}
             onCreated={onCreatedScript}
+          />
+        </Show>
+        <Show when={activeScriptId()}>
+          <ExportDialog
+            open={exportOpen()}
+            onClose={() => setExportOpen(false)}
+            scriptId={activeScriptId()!}
+            scriptTitle={activeScriptTitle()}
           />
         </Show>
         <ToastHost />

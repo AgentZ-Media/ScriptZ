@@ -2,6 +2,7 @@ import {
   $getSelection,
   $isRangeSelection,
   $isElementNode,
+  $createTextNode,
   COMMAND_PRIORITY_HIGH,
   KEY_BACKSPACE_COMMAND,
   KEY_ENTER_COMMAND,
@@ -22,6 +23,7 @@ import {
   $isScriptzCaptionNode,
   $isScriptzSfxNode,
 } from "../nodes";
+import type { ScriptCharacter } from "../../../lib/types";
 
 function findScriptzAncestor(node: LexicalNode | null): BaseScriptzNode | null {
   let cur: LexicalNode | null = node;
@@ -59,7 +61,32 @@ function replaceBlockWith(
   next.select(0, 0);
 }
 
-export function installSmartEnter(editor: LexicalEditor): () => void {
+/** Walk back from a Dialog block to find the most recent Character block
+ * above it. Returns its uppercase trimmed name, or null if none found. */
+function previousCharacterName(block: BaseScriptzNode): string | null {
+  let prev: LexicalNode | null = block.getPreviousSibling();
+  while (prev) {
+    if ($isScriptzCharacterNode(prev)) {
+      const name = prev.getTextContent().trim().toUpperCase();
+      return name || null;
+    }
+    prev = prev.getPreviousSibling();
+  }
+  return null;
+}
+
+export interface SmartEnterArgs {
+  /** Reactive getter for the quick-mode toggle. */
+  isQuickModeOn?: () => boolean;
+  /** Reactive getter for the live character list (excludes the
+   * currently-edited block — see Editor.tsx persist). */
+  getCharacters?: () => ScriptCharacter[];
+}
+
+export function installSmartEnter(
+  editor: LexicalEditor,
+  args: SmartEnterArgs = {},
+): () => void {
   return mergeRegister(
     editor.registerCommand<KeyboardEvent | null>(
       KEY_ENTER_COMMAND,
@@ -100,12 +127,56 @@ export function installSmartEnter(editor: LexicalEditor): () => void {
           return true;
         }
         if ($isScriptzDialogNode(block)) {
-          insertNewBlockAfter(block, $createScriptzCharacterNode());
+          // Quick mode: when the script has exactly two characters, skip
+          // the empty Character step and pre-fill the OTHER one, dropping
+          // the writer straight into a fresh Dialog. Saves a tab/Enter
+          // per turn for two-hander dialogue.
+          if (args.isQuickModeOn?.()) {
+            const chars = args.getCharacters?.() ?? [];
+            if (chars.length === 2) {
+              const prev = previousCharacterName(block);
+              const other = chars.find(
+                (c) => c.name.toUpperCase() !== (prev ?? "").toUpperCase(),
+              );
+              if (other) {
+                const charBlock = $createScriptzCharacterNode();
+                charBlock.setCharacterName(other.name.toUpperCase());
+                charBlock.append($createTextNode(other.name.toUpperCase()));
+                const nextDialog = $createScriptzDialogNode();
+                // Empty dialog (typical after closing a parenthetical)
+                // → replace it so we don't strand a blank line above the
+                // new character.
+                if (isEmpty) {
+                  (block as BaseScriptzNode).replace(charBlock);
+                } else {
+                  (block as BaseScriptzNode).insertAfter(charBlock);
+                }
+                charBlock.insertAfter(nextDialog);
+                nextDialog.select(0, 0);
+                if (event) event.preventDefault();
+                return true;
+              }
+            }
+          }
+          // Empty dialog → replace in place so we don't leave a blank
+          // dialog line above the new Character (common case after
+          // closing a parenthetical with `)`).
+          if (isEmpty) {
+            replaceBlockWith(block, $createScriptzCharacterNode());
+          } else {
+            insertNewBlockAfter(block, $createScriptzCharacterNode());
+          }
           if (event) event.preventDefault();
           return true;
         }
         if ($isScriptzParentheticalNode(block)) {
-          insertNewBlockAfter(block, $createScriptzDialogNode());
+          // Empty parenthetical → replace with Dialog (e.g. user typed
+          // "(" by mistake and hit Enter).
+          if (isEmpty) {
+            replaceBlockWith(block, $createScriptzDialogNode());
+          } else {
+            insertNewBlockAfter(block, $createScriptzDialogNode());
+          }
           if (event) event.preventDefault();
           return true;
         }
