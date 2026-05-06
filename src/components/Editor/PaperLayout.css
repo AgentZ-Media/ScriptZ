@@ -23,7 +23,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--sp-5) var(--sp-5) var(--sp-9);
+  padding: var(--sp-5);
   scroll-padding-top: 60px;
   /* Word-style affordance: the entire paper area looks editable, so
      the I-beam cursor signals that a click anywhere will land the
@@ -55,6 +55,17 @@
     var(--paper-h) * var(--page-count, 1)
     + var(--page-gap, 18px) * (var(--page-count, 1) - 1)
   );
+}
+
+/* Breathing room below the last paper sheet — sits as a real flex item
+   *after* the stack inside `.paper-canvas`, so it's guaranteed to be
+   counted into the canvas's scroll height. CSS margin/padding alone
+   doesn't work here in WebKit because the stack has a fixed calculated
+   height and the editor lives inside it as an absolute overlay. */
+.paper-canvas-tail {
+  flex-shrink: 0;
+  width: 1px;
+  height: 120px;
 }
 
 .paper-page-bg {

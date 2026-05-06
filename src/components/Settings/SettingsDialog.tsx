@@ -9,9 +9,9 @@ import {
 } from "solid-js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
-import { check } from "@tauri-apps/plugin-updater";
 import { Modal } from "~/components/Common/Modal";
 import { settingsStore, type Theme } from "~/stores/settings";
+import { updatesStore } from "~/stores/updates";
 import { aiStore } from "~/stores/ai";
 import { api } from "~/lib/api";
 import type { AiModelInfo } from "~/lib/types";
@@ -20,11 +20,6 @@ import "./SettingsDialog.css";
 
 const REPO_URL = "https://github.com/ibimspumo/ScriptZ";
 
-type CheckResult =
-  | { kind: "uptodate" }
-  | { kind: "available"; version: string }
-  | { kind: "error" };
-
 export interface SettingsDialogProps {
   open: boolean;
   onClose(): void;
@@ -32,8 +27,6 @@ export interface SettingsDialogProps {
 
 export function SettingsDialog(props: SettingsDialogProps) {
   const [appVersion, setAppVersion] = createSignal("0.1.0");
-  const [updateChecking, setUpdateChecking] = createSignal(false);
-  const [updateResult, setUpdateResult] = createSignal<CheckResult | null>(null);
 
   // ---- AI section ----
   const [apiKeyInput, setApiKeyInput] = createSignal<string>("");
@@ -50,17 +43,18 @@ export function SettingsDialog(props: SettingsDialogProps) {
   });
 
   const onCheckUpdate = async () => {
-    setUpdateChecking(true);
-    setUpdateResult(null);
-    try {
-      const update = await check();
-      setUpdateResult(update ? { kind: "available", version: update.version } : { kind: "uptodate" });
-    } catch {
-      setUpdateResult({ kind: "error" });
-    } finally {
-      setUpdateChecking(false);
-    }
+    await updatesStore.checkNow();
   };
+
+  const onDownloadInstall = async () => {
+    await updatesStore.downloadAndInstall();
+  };
+
+  const onRestart = async () => {
+    await updatesStore.restart();
+  };
+
+  const isChecking = () => updatesStore.manualCheck()?.kind === "checking";
 
   const openRepo = async () => {
     try { await openUrl(REPO_URL); } catch {}
@@ -259,34 +253,65 @@ export function SettingsDialog(props: SettingsDialogProps) {
             <button
               class="btn"
               onClick={onCheckUpdate}
-              disabled={updateChecking()}
+              disabled={
+                isChecking() ||
+                updatesStore.stage() === "downloading" ||
+                updatesStore.stage() === "ready"
+              }
             >
-              {updateChecking() ? "Prüfe…" : "Jetzt prüfen"}
+              {isChecking() ? "Prüfe…" : "Jetzt prüfen"}
             </button>
-            <Show when={updateResult()}>
-              {(res) => (
-                <span class="settings-update-result">
-                  <Show
-                    when={res().kind !== "error"}
-                    fallback={<span style="color:var(--status-err);">Fehler beim Prüfen</span>}
-                  >
-                    <Show
-                      when={res().kind === "available"}
-                      fallback={<span class="muted">Du hast die neueste Version</span>}
-                    >
-                      <>
-                        <span>
-                          Update verfügbar: v
-                          {(res() as { kind: "available"; version: string }).version}
-                        </span>
-                        <button class="link-like" onClick={openLatestRelease}>
-                          Auf GitHub anzeigen
-                        </button>
-                      </>
-                    </Show>
-                  </Show>
+
+            <Show when={updatesStore.stage() === "available"}>
+              <span class="settings-update-result">
+                <span>
+                  Update verfügbar: v{updatesStore.available()?.version}
                 </span>
-              )}
+                <button class="btn btn-primary" onClick={() => void onDownloadInstall()}>
+                  Herunterladen & installieren
+                </button>
+                <button class="link-like" onClick={openLatestRelease}>
+                  Auf GitHub anzeigen
+                </button>
+              </span>
+            </Show>
+
+            <Show when={updatesStore.stage() === "downloading"}>
+              <span class="settings-update-result">
+                <span>Lade Update… {updatesStore.progress()}%</span>
+              </span>
+            </Show>
+
+            <Show when={updatesStore.stage() === "ready"}>
+              <span class="settings-update-result">
+                <span>Update bereit.</span>
+                <button class="btn btn-primary" onClick={() => void onRestart()}>
+                  Jetzt neu starten
+                </button>
+              </span>
+            </Show>
+
+            <Show when={updatesStore.stage() === "error"}>
+              <span class="settings-update-result">
+                <span style="color:var(--status-err);">
+                  Download fehlgeschlagen
+                </span>
+                <button class="btn" onClick={() => void onDownloadInstall()}>
+                  Erneut versuchen
+                </button>
+              </span>
+            </Show>
+
+            <Show when={updatesStore.manualCheck()?.kind === "uptodate"}>
+              <span class="settings-update-result">
+                <span class="muted">Du hast die neueste Version</span>
+              </span>
+            </Show>
+
+            <Show when={updatesStore.manualCheck()?.kind === "error"}>
+              <span class="settings-update-result">
+                <span style="color:var(--status-err);">Fehler beim Prüfen</span>
+              </span>
             </Show>
           </div>
         </section>

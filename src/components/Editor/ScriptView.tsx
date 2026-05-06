@@ -328,6 +328,13 @@ export function ScriptView(props: ScriptViewProps) {
                   </Show>
                 </div>
               </div>
+
+              {/* Real DOM spacer — guarantees the canvas scrolls past the
+                  last paper sheet so it doesn't sit flush against the
+                  status strip. CSS margin/padding alone fails here in
+                  WebKit because the paper-stack has a fixed calculated
+                  height and contains the editor as an absolute overlay. */}
+              <div class="paper-canvas-tail" aria-hidden="true" />
             </div>
 
             <div class="script-status">

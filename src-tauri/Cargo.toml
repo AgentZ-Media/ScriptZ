@@ -1,6 +1,6 @@
 [package]
 name = "scriptz"
-version = "0.3.1"
+version = "0.3.2"
 description = "ScriptZ - fast, local, beautiful script editor for TikTok creators and sketch teams."
 authors = ["ScriptZ Contributors"]
 edition = "2021"
