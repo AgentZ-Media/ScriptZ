@@ -8,12 +8,18 @@ import {
   For,
   Show,
 } from "solid-js";
+import { Portal } from "solid-js/web";
 import type { ScriptSummary } from "~/lib/types";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
+import { settingsStore } from "~/stores/settings";
 import { pushToast } from "~/stores/toasts";
-import { relativeTime, formatPageCount, debounce } from "~/lib/format";
-import { tint } from "~/lib/colors";
+import {
+  relativeTime,
+  formatAbsolute,
+  formatPageCount,
+  debounce,
+} from "~/lib/format";
 import { UpdateIndicator } from "~/components/Common/UpdateIndicator";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { NewScriptDialog } from "./NewScriptDialog";
@@ -25,16 +31,6 @@ type SortKey = "updated" | "created" | "title";
 
 export interface BrowserProps {
   onNewScript?: () => void;
-}
-
-const ROW_HEIGHT = 168;
-const CARD_MIN_WIDTH = 280;
-const VIRTUALIZE_THRESHOLD = 80;
-const OVERSCAN_ROWS = 4;
-
-interface ScriptQuery {
-  query: string;
-  sort: SortKey;
 }
 
 export function Browser(props: BrowserProps = {}) {
@@ -51,6 +47,7 @@ export function Browser(props: BrowserProps = {}) {
   } | null>(null);
   const [renameTarget, setRenameTarget] = createSignal<ScriptSummary | null>(null);
   const [renameValue, setRenameValue] = createSignal("");
+  const [selectedId, setSelectedId] = createSignal<string | null>(null);
 
   function openNewScript() {
     if (props.onNewScript) props.onNewScript();
@@ -64,7 +61,7 @@ export function Browser(props: BrowserProps = {}) {
   });
   onCleanup(() => debouncedSetSearch.cancel());
 
-  const queryKey = createMemo<ScriptQuery>(() => ({
+  const queryKey = createMemo(() => ({
     query: debouncedSearch(),
     sort: sort(),
   }));
@@ -79,6 +76,27 @@ export function Browser(props: BrowserProps = {}) {
     { initialValue: [] },
   );
 
+  const list = createMemo(() => scripts() ?? []);
+
+  // Keep the selection in sync with the list (default to the first row)
+  createEffect(() => {
+    const arr = list();
+    const cur = selectedId();
+    if (arr.length === 0) {
+      if (cur !== null) setSelectedId(null);
+      return;
+    }
+    if (!cur || !arr.find((s) => s.id === cur)) {
+      setSelectedId(arr[0].id);
+    }
+  });
+
+  const selected = createMemo(() => {
+    const id = selectedId();
+    if (!id) return null;
+    return list().find((s) => s.id === id) ?? null;
+  });
+
   function onWindowKey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key === "n" && !e.shiftKey && !e.altKey) {
       if (showNewScriptDialog()) return;
@@ -91,55 +109,7 @@ export function Browser(props: BrowserProps = {}) {
     onCleanup(() => window.removeEventListener("keydown", onWindowKey));
   });
 
-  // ---- Virtualization state for scripts grid ----
-  let scrollEl: HTMLDivElement | undefined;
-  const [scrollTop, setScrollTop] = createSignal(0);
-  const [containerWidth, setContainerWidth] = createSignal(0);
-  const [containerHeight, setContainerHeight] = createSignal(0);
-
-  function recomputeContainer() {
-    if (!scrollEl) return;
-    setContainerWidth(scrollEl.clientWidth);
-    setContainerHeight(scrollEl.clientHeight);
-  }
-
-  onMount(() => {
-    if (!scrollEl) return;
-    recomputeContainer();
-    const ro = new ResizeObserver(() => recomputeContainer());
-    ro.observe(scrollEl);
-    onCleanup(() => ro.disconnect());
-  });
-
-  const cols = createMemo(() => {
-    const w = containerWidth();
-    if (w <= 0) return 1;
-    return Math.max(1, Math.floor((w + 20) / (CARD_MIN_WIDTH + 20)));
-  });
-  const list = createMemo(() => scripts() ?? []);
-  const totalRows = createMemo(() => Math.ceil(list().length / cols()));
-  const totalHeight = createMemo(() => totalRows() * ROW_HEIGHT);
-
-  const virtualize = createMemo(() => list().length > VIRTUALIZE_THRESHOLD);
-  const visibleRange = createMemo(() => {
-    if (!virtualize()) return { start: 0, end: list().length };
-    const startRow = Math.max(0, Math.floor(scrollTop() / ROW_HEIGHT) - OVERSCAN_ROWS);
-    const endRow = Math.min(
-      totalRows(),
-      Math.ceil((scrollTop() + containerHeight()) / ROW_HEIGHT) + OVERSCAN_ROWS,
-    );
-    return { start: startRow * cols(), end: Math.min(list().length, endRow * cols()) };
-  });
-
-  function visibleScripts(): { script: ScriptSummary; index: number }[] {
-    const r = visibleRange();
-    const out: { script: ScriptSummary; index: number }[] = [];
-    const arr = list();
-    for (let i = r.start; i < r.end; i++) out.push({ script: arr[i], index: i });
-    return out;
-  }
-
-  // ---- Card actions ----
+  // ---- Row actions ----
   function openScript(s: ScriptSummary, newTab = false) {
     tabsStore.openScript(s.id, s.title, { newTab });
   }
@@ -189,18 +159,35 @@ export function Browser(props: BrowserProps = {}) {
 
   function ctxMenuItems(s: ScriptSummary): ContextMenuItem[] {
     return [
+      { label: "Öffnen", onClick: () => openScript(s) },
+      { label: "In neuem Tab öffnen", onClick: () => openScript(s, true) },
       { label: "Umbenennen", onClick: () => startRename(s) },
       { label: "Duplizieren", onClick: () => void duplicate(s) },
       { label: "In Papierkorb verschieben", onClick: () => void archive(s), danger: true },
     ];
   }
 
-  function onCardClick(e: MouseEvent, s: ScriptSummary) {
-    if (e.metaKey || e.ctrlKey) {
-      openScript(s, true);
-      return;
+  function onRowClick(s: ScriptSummary) {
+    setSelectedId(s.id);
+  }
+  function onRowDouble(s: ScriptSummary, e: MouseEvent) {
+    openScript(s, e.metaKey || e.ctrlKey);
+  }
+
+  function onRowKey(e: KeyboardEvent) {
+    const arr = list();
+    if (arr.length === 0) return;
+    const idx = arr.findIndex((s) => s.id === selectedId());
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedId(arr[Math.min(arr.length - 1, idx + 1)].id);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedId(arr[Math.max(0, idx - 1)].id);
+    } else if (e.key === "Enter") {
+      const s = selected();
+      if (s) openScript(s);
     }
-    openScript(s);
   }
 
   function isWelcome() {
@@ -211,56 +198,59 @@ export function Browser(props: BrowserProps = {}) {
   return (
     <div class="browser-root">
       <header class="browser-header" data-tauri-drag-region>
-        <div class="region-tabs">
+        <div class="region-tabs" role="tablist">
           <button
-            class={`region-tab${activeRegion() === "scripts" ? " active" : ""}`}
+            class="region-tab"
+            classList={{ active: activeRegion() === "scripts" }}
+            role="tab"
+            aria-selected={activeRegion() === "scripts"}
             onClick={() => setActiveRegion("scripts")}
           >
+            <span class="region-dot" aria-hidden="true" />
             Skripte
           </button>
           <button
-            class={`region-tab${activeRegion() === "trash" ? " active" : ""}`}
+            class="region-tab"
+            classList={{ active: activeRegion() === "trash" }}
+            role="tab"
+            aria-selected={activeRegion() === "trash"}
             onClick={() => setActiveRegion("trash")}
           >
+            <span class="region-dot" aria-hidden="true" />
             Papierkorb
           </button>
         </div>
-        <div class="header-spacer" />
         <div class="header-right">
           <UpdateIndicator />
         </div>
       </header>
 
       <Show when={activeRegion() === "scripts"}>
-        <div class="browser-toolbar">
-          <div class="search-wrap">
-            <input
-              type="search"
-              class="search-input"
-              placeholder="Suchen…"
-              value={searchInput()}
-              onInput={(e) => setSearchInput(e.currentTarget.value)}
-            />
-          </div>
-          <div class="filter-bar">
-            <select
-              class="sort-select"
-              value={sort()}
-              onChange={(e) => setSort(e.currentTarget.value as SortKey)}
-            >
-              <option value="updated">Letzte Bearbeitung</option>
-              <option value="created">Erstelldatum</option>
-              <option value="title">Alphabetisch</option>
-            </select>
-          </div>
+        <div class="browser-search">
+          <span class="browser-search-icon" aria-hidden="true">⌕</span>
+          <input
+            type="search"
+            class="browser-search-input"
+            placeholder="Skripte suchen…"
+            value={searchInput()}
+            onInput={(e) => setSearchInput(e.currentTarget.value)}
+            spellcheck={false}
+            autocomplete="off"
+          />
+          <select
+            class="browser-sort"
+            value={sort()}
+            onChange={(e) => setSort(e.currentTarget.value as SortKey)}
+            title="Sortierung"
+          >
+            <option value="updated">Letzte Bearbeitung</option>
+            <option value="created">Erstelldatum</option>
+            <option value="title">Alphabetisch</option>
+          </select>
         </div>
 
         <div class="browser-main">
-          <div
-            class="grid-scroll"
-            ref={(el) => (scrollEl = el)}
-            onScroll={(e) => setScrollTop((e.currentTarget as HTMLDivElement).scrollTop)}
-          >
+          <div class="browser-list-wrap">
             <Show
               when={!isWelcome()}
               fallback={
@@ -272,8 +262,8 @@ export function Browser(props: BrowserProps = {}) {
                     Erstes Skript erstellen
                   </button>
                   <div class="welcome-hint subtle">
-                    <kbd class="kbd">⌘</kbd>
-                    <kbd class="kbd">N</kbd> für ein neues Skript
+                    <span class="kbd">⌘</span>
+                    <span class="kbd">N</span> für ein neues Skript
                   </div>
                 </div>
               }
@@ -288,71 +278,48 @@ export function Browser(props: BrowserProps = {}) {
                   </Show>
                 }
               >
-                <Show
-                  when={virtualize()}
-                  fallback={
-                    <div class="card-grid">
-                      <For each={list()}>
-                        {(s) => (
-                          <ScriptCard
-                            script={s}
-                            onClick={(e) => onCardClick(e, s)}
-                            onContextMenu={(e) => {
-                              e.preventDefault();
-                              setContextMenu({ x: e.clientX, y: e.clientY, script: s });
-                            }}
-                          />
-                        )}
-                      </For>
-                    </div>
-                  }
-                >
-                  <div
-                    class="virtual-spacer"
-                    style={`height:${totalHeight()}px;position:relative;`}
+                <ul class="script-list" onKeyDown={onRowKey}>
+                  <For each={list()}>
+                    {(s) => (
+                      <ScriptRow
+                        script={s}
+                        selected={selectedId() === s.id}
+                        onClick={() => onRowClick(s)}
+                        onDoubleClick={(e) => onRowDouble(s, e)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setSelectedId(s.id);
+                          setContextMenu({ x: e.clientX, y: e.clientY, script: s });
+                        }}
+                        onMore={(e) => {
+                          setSelectedId(s.id);
+                          setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            script: s,
+                          });
+                        }}
+                      />
+                    )}
+                  </For>
+                </ul>
+
+                <div class="list-foot">
+                  <button
+                    class="btn list-foot-new"
+                    onClick={() => openNewScript()}
                   >
-                    <For each={visibleScripts()}>
-                      {(item) => {
-                        const c = cols();
-                        const row = Math.floor(item.index / c);
-                        const col = item.index % c;
-                        const left = (col * 100) / c;
-                        const widthPct = 100 / c;
-                        return (
-                          <div
-                            class="virtual-cell"
-                            style={`position:absolute;top:${row * ROW_HEIGHT}px;left:calc(${left}%);width:calc(${widthPct}% - 0px);padding:0 10px;height:${ROW_HEIGHT}px;`}
-                          >
-                            <ScriptCard
-                              script={item.script}
-                              onClick={(e) => onCardClick(e, item.script)}
-                              onContextMenu={(e) => {
-                                e.preventDefault();
-                                setContextMenu({
-                                  x: e.clientX,
-                                  y: e.clientY,
-                                  script: item.script,
-                                });
-                              }}
-                            />
-                          </div>
-                        );
-                      }}
-                    </For>
-                  </div>
-                </Show>
+                    Neues Skript&nbsp;&nbsp;<span aria-hidden="true">+</span>
+                  </button>
+                </div>
               </Show>
             </Show>
           </div>
-        </div>
 
-        <button
-          class="fab"
-          onClick={() => openNewScript()}
-          aria-label="Neues Skript erstellen"
-        >
-          + Neues Skript erstellen
-        </button>
+          <Show when={selected()}>
+            {(s) => <DetailPane script={s()} onOpen={() => openScript(s())} />}
+          </Show>
+        </div>
       </Show>
 
       <Show when={activeRegion() === "trash"}>
@@ -372,43 +339,45 @@ export function Browser(props: BrowserProps = {}) {
 
       <Show when={renameTarget()}>
         {(t) => (
-          <div
-            class="modal-backdrop"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setRenameTarget(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setRenameTarget(null);
-            }}
-            tabIndex={-1}
-          >
-            <div class="modal" role="dialog">
-              <h2>Umbenennen</h2>
-              <div class="modal-body">
-                <div class="field">
-                  <label>Neuer Titel</label>
-                  <input
-                    type="text"
-                    value={renameValue()}
-                    autofocus
-                    onInput={(e) => setRenameValue(e.currentTarget.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void commitRename();
-                    }}
-                  />
-                  <div class="muted small">Aktuell: {t().title}</div>
+          <Portal>
+            <div
+              class="modal-backdrop"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setRenameTarget(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setRenameTarget(null);
+              }}
+              tabIndex={-1}
+            >
+              <div class="modal" role="dialog">
+                <h2>Umbenennen</h2>
+                <div class="modal-body">
+                  <div class="field">
+                    <label>Neuer Titel</label>
+                    <input
+                      type="text"
+                      value={renameValue()}
+                      autofocus
+                      onInput={(e) => setRenameValue(e.currentTarget.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void commitRename();
+                      }}
+                    />
+                    <div class="muted small">Aktuell: {t().title}</div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn" onClick={() => setRenameTarget(null)}>
+                    Abbrechen
+                  </button>
+                  <button class="btn btn-primary" onClick={commitRename}>
+                    Speichern
+                  </button>
                 </div>
               </div>
-              <div class="modal-footer">
-                <button class="btn btn-ghost" onClick={() => setRenameTarget(null)}>
-                  Abbrechen
-                </button>
-                <button class="btn btn-primary" onClick={commitRename}>
-                  Speichern
-                </button>
-              </div>
             </div>
-          </div>
+          </Portal>
         )}
       </Show>
 
@@ -426,50 +395,136 @@ export function Browser(props: BrowserProps = {}) {
 
 export default Browser;
 
-interface ScriptCardProps {
+interface ScriptRowProps {
   script: ScriptSummary;
-  onClick: (e: MouseEvent) => void;
+  selected: boolean;
+  onClick: () => void;
+  onDoubleClick: (e: MouseEvent) => void;
   onContextMenu: (e: MouseEvent) => void;
+  onMore: (e: MouseEvent) => void;
 }
 
-function ScriptCard(props: ScriptCardProps) {
-  const visibleChars = () => props.script.characters.slice(0, 4);
-  const overflow = () => Math.max(0, props.script.characters.length - 4);
+function ScriptRow(props: ScriptRowProps) {
+  const charSummary = () => {
+    const cs = props.script.characters;
+    if (cs.length === 0) return "Keine Charaktere";
+    return cs.map((c) => c.name).join(" · ");
+  };
 
   return (
-    <article
-      class="script-card"
+    <li
+      class="script-row"
+      classList={{ "is-selected": props.selected }}
       tabIndex={0}
       onClick={props.onClick}
+      onDblClick={props.onDoubleClick}
       onContextMenu={props.onContextMenu}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") props.onClick(e as unknown as MouseEvent);
-      }}
     >
-      <div class="card-top">
-        <h3 class="card-title">{props.script.title}</h3>
+      <span class="script-row-icon" aria-hidden="true">
+        <DocIcon />
+      </span>
+      <div class="script-row-text">
+        <div class="script-row-title">{props.script.title}</div>
+        <div class="script-row-sub muted">{charSummary()}</div>
       </div>
+      <button
+        class="script-row-more"
+        aria-label="Mehr"
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onMore(e);
+        }}
+      >
+        ···
+      </button>
+      <div class="script-row-time muted">
+        {relativeTime(props.script.updated_at)}
+      </div>
+      <div class="script-row-pages muted">
+        {formatPageCount(props.script.page_count)}
+      </div>
+    </li>
+  );
+}
+
+function DetailPane(props: { script: ScriptSummary; onOpen: () => void }) {
+  const highlightingLabel = () => {
+    const v = props.script.highlighting_enabled;
+    if (v === 1) return "An";
+    if (v === 0) return "Aus";
+    return settingsStore.highlightingDefault() ? "An (Standard)" : "Aus (Standard)";
+  };
+  return (
+    <aside class="detail-pane">
+      <div class="detail-head">
+        <span class="detail-icon" aria-hidden="true"><DocIcon /></span>
+        <span class="detail-title">{props.script.title}</span>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-label">Titel</div>
+        <div class="detail-value">{props.script.title}</div>
+      </div>
+
       <Show when={props.script.characters.length > 0}>
-        <div class="card-chars">
-          <For each={visibleChars()}>
-            {(c) => (
-              <span
-                class="char-pill"
-                style={`background:${tint(c.color, 0.15)};color:${c.color}`}
-              >
-                {c.name}
-              </span>
-            )}
-          </For>
-          <Show when={overflow() > 0}>
-            <span class="char-pill more">+{overflow()}</span>
-          </Show>
+        <div class="detail-section">
+          <div class="detail-label">Charaktere</div>
+          <div class="detail-chars">
+            <For each={props.script.characters}>
+              {(c) => (
+                <span class="detail-char-pill">
+                  <span class="detail-char-dot" style={{ background: c.color }} />
+                  {c.name}
+                </span>
+              )}
+            </For>
+          </div>
         </div>
       </Show>
-      <div class="card-foot">
-        <span class="card-time muted">{relativeTime(props.script.updated_at)}</span>
-        <span class="card-pages muted">{formatPageCount(props.script.page_count)}</span>
+
+      <div class="detail-section">
+        <div class="detail-label">Highlighting</div>
+        <div class="detail-value">{highlightingLabel()}</div>
       </div>
-    </article>
+
+      <div class="detail-section">
+        <div class="detail-label">Seiten</div>
+        <div class="detail-value">{props.script.page_count}</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-label">Zuletzt bearbeitet</div>
+        <div class="detail-value">{relativeTime(props.script.updated_at)}</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-label">Erstellt</div>
+        <div class="detail-value">{formatAbsolute(props.script.created_at)}</div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn btn-primary detail-open" onClick={props.onOpen}>
+          Skript öffnen
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function DocIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M5 3h7l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M12 3v3h3" />
+    </svg>
   );
 }

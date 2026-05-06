@@ -1,14 +1,21 @@
+/* =========================================================================
+   ScriptZ — Command bar (Spotlight-style script search).
+   ========================================================================= */
+
 .cmd-backdrop {
   padding-top: 14vh;
 }
 .cmd-modal {
   background: var(--modal-bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-4);
-  box-shadow: var(--sh-3);
-  min-width: 600px;
-  width: min(720px, 92vw);
-  max-height: 60vh;
+  border: 1px solid var(--border);
+  border-radius: var(--r-5);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 24px 60px rgba(28, 24, 20, 0.20),
+    0 4px 12px rgba(28, 24, 20, 0.10);
+  min-width: 560px;
+  width: min(680px, 92vw);
+  max-height: 56vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -18,10 +25,10 @@
 .cmd-search {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 12px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-elev-1);
+  background: var(--modal-bg);
 }
 .cmd-search-icon {
   color: var(--fg-subtle);
@@ -34,16 +41,18 @@
   background: transparent;
   outline: none;
   padding: 4px 0;
+  font-family: var(--font-sans);
   font-size: var(--fs-15);
   color: var(--fg);
 }
 .cmd-search-input:focus { box-shadow: none; border: none; }
+.cmd-search-input::placeholder { color: var(--fg-subtle); }
 .cmd-spinner {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   border: 2px solid var(--border-strong);
-  border-top-color: var(--brand-400);
+  border-top-color: var(--brand-500);
   animation: cmd-spin 0.8s linear infinite;
 }
 @keyframes cmd-spin { to { transform: rotate(360deg); } }
@@ -51,31 +60,37 @@
 .cmd-results {
   flex: 1;
   overflow: auto;
-  padding: 6px 0;
+  padding: 6px 6px 8px;
 }
-.cmd-group + .cmd-group { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+.cmd-group + .cmd-group {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+}
 .cmd-group-label {
-  padding: 6px 16px 4px;
-  font-size: var(--fs-12);
+  padding: 8px 14px 4px;
+  font-size: var(--fs-11);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--fg-subtle);
   font-weight: 600;
 }
 .cmd-row {
-  padding: 8px 16px;
+  padding: 10px 14px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-left: 2px solid transparent;
+  border-radius: var(--r-3);
+  margin: 0 4px;
   transition: background var(--t-fast);
 }
-.cmd-row:hover, .cmd-row.is-active {
-  background: var(--hover);
-  border-left-color: var(--brand-500);
+.cmd-row:hover,
+.cmd-row.is-active {
+  background: var(--selected);
 }
 .cmd-row-title {
+  font-family: var(--font-sans);
   font-size: var(--fs-14);
   color: var(--fg);
   font-weight: 500;
@@ -93,8 +108,8 @@
 .cmd-row-snippet mark {
   background: var(--highlight-mark);
   color: inherit;
-  padding: 0 2px;
-  border-radius: 2px;
+  padding: 0 3px;
+  border-radius: 3px;
 }
 
 .cmd-empty {
@@ -106,7 +121,7 @@
 
 .cmd-footer {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   align-items: center;
   padding: 8px 16px;
   border-top: 1px solid var(--border);
@@ -114,4 +129,8 @@
   font-size: var(--fs-12);
   color: var(--fg-muted);
 }
-.cmd-foot-hint { display: inline-flex; align-items: center; gap: 4px; }
+.cmd-foot-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

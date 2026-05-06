@@ -1,10 +1,20 @@
 .export-form {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-5);
+  gap: var(--sp-3);
 }
 .export-radio-row {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
+  gap: 6px;
+}
+.export-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }

@@ -154,7 +154,7 @@ export function TrashView() {
                   </Show>
                 </div>
                 <div class="modal-footer">
-                  <button class="btn btn-ghost" onClick={() => setConfirm(null)}>
+                  <button class="btn" onClick={() => setConfirm(null)}>
                     Abbrechen
                   </button>
                   <Show when={c().kind === "restore-all"}>

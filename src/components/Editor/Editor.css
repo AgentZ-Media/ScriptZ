@@ -1,7 +1,17 @@
 /* =========================================================================
-   ScriptZ Editor — block styling.
-   Widths key off `--paper-content-w` from tokens.css. No fixed pixels.
-   Font: iA Writer Quattro (clean proportional). System sans as fallback.
+   ScriptZ — Editor block styling.
+
+   The paper interior. Widths key off `--paper-content-w` from tokens.css.
+   Font: iA Writer Quattro everywhere — visual continuity with the UI.
+
+   Layout follows German screenplay convention loosely:
+     ACTION       full width
+     CAPTION      INT./EXT. heading, weight 700, uppercase
+     CHARACTER    centered, weight 700, uppercase (CSS-only)
+     PARENTHEL.   slightly indented, italic
+     DIALOG       indented ~25% from left
+     SFX          uppercase italic-tinted, full width
+     CAMERA       right-aligned uppercase
    ========================================================================= */
 
 .editor-host {
@@ -13,9 +23,9 @@
   width: var(--paper-content-w);
   max-width: 100%;
   margin: 0 auto;
-  font-family: "iA Writer Quattro", var(--font-sans);
-  font-size: 14px;
-  line-height: 1.55;
+  font-family: var(--font-paper);
+  font-size: var(--fs-14);
+  line-height: 1.6;
   color: var(--paper-fg);
   caret-color: var(--brand-500);
   font-feature-settings: "liga" 1, "calt" 1;
@@ -30,20 +40,26 @@
 }
 
 .editor-root .block + .block {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
-/* Larger gaps between groups (block-cluster boundaries). */
+/* Paragraph rhythm — subtle clusters between groups */
 .editor-root .block-scriptz-character + .block-scriptz-dialog,
 .editor-root .block-scriptz-parenthetical + .block-scriptz-dialog,
 .editor-root .block-scriptz-character + .block-scriptz-parenthetical {
-  margin-top: 2px;
+  margin-top: 0;
 }
-
 .editor-root .block-scriptz-action + .block-scriptz-character,
 .editor-root .block-scriptz-dialog + .block-scriptz-action,
-.editor-root .block-scriptz-dialog + .block-scriptz-character {
+.editor-root .block-scriptz-dialog + .block-scriptz-character,
+.editor-root .block-scriptz-action + .block-scriptz-action {
   margin-top: 14px;
+}
+.editor-root .block-scriptz-caption + * {
+  margin-top: 14px;
+}
+.editor-root .block + .block-scriptz-caption {
+  margin-top: 22px;
 }
 
 /* ---- Action ---------------------------------------------------------- */
@@ -51,122 +67,74 @@
   text-align: left;
 }
 
-/* ---- Charakter ------------------------------------------------------- */
-/* Indented from left, ALL CAPS via CSS only (the underlying text in the
-   editor state is preserved as-typed; visuals are uppercased here so that
-   we never have to mutate text nodes during input — that fights Lexical's
-   selection model and causes typing to break after a few keystrokes). */
-.editor-root .block-scriptz-character {
-  text-align: left;
-  margin-left: 38%;
-  text-transform: uppercase;
+/* ---- Caption (INT./EXT. scene heading) ------------------------------- */
+.editor-root .block-scriptz-caption {
   font-weight: 700;
+  font-size: var(--fs-14);
   letter-spacing: 0.04em;
-  margin-top: 16px;
-}
-.editor-root .block-scriptz-character ::selection {
-  text-transform: uppercase; /* keep selection look consistent */
+  text-transform: uppercase;
 }
 
-/* ---- Dialog ---------------------------------------------------------- */
-.editor-root .block-scriptz-dialog {
-  margin-left: 22%;
-  margin-right: 14%;
-  text-align: left;
+/* ---- Character ---
+   Centered horizontally on the paper. Uppercase via CSS only — never
+   mutate text nodes during input (breaks Lexical typing). */
+.editor-root .block-scriptz-character {
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-top: 18px;
 }
 
 /* ---- Parenthetical --------------------------------------------------- */
 .editor-root .block-scriptz-parenthetical {
-  margin-left: 30%;
+  margin-left: 22%;
   margin-right: 22%;
   font-style: italic;
-  color: rgba(0, 0, 0, 0.55);
+  color: rgba(28, 24, 20, 0.65);
   text-align: left;
 }
 
-/* ---- Kamera ---------------------------------------------------------- */
+/* ---- Dialog ---------------------------------------------------------- */
+.editor-root .block-scriptz-dialog {
+  margin-left: 16%;
+  margin-right: 16%;
+  text-align: left;
+}
+
+/* ---- Camera (right-aligned cue) -------------------------------------- */
 .editor-root .block-scriptz-camera {
   text-align: right;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 700;
-  font-size: 13px;
-}
-
-.editor-root .block-scriptz-camera::before {
-  content: "KAMERA: ";
-  font-weight: 700;
-}
-
-.editor-root .block-scriptz-camera:not(:empty)::before {
-  content: "";
-}
-
-/* ---- Caption (e.g. "INT. KÜCHE - TAG") ------------------------------- */
-.editor-root .block-scriptz-caption {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.07);
-  color: var(--paper-fg);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-top: 12px;
+  font-size: var(--fs-13);
+  color: rgba(28, 24, 20, 0.7);
 }
 
 /* ---- SFX ------------------------------------------------------------- */
 .editor-root .block-scriptz-sfx {
-  font-style: italic;
   text-align: left;
-  color: rgba(0, 0, 0, 0.6);
-  font-size: 13px;
-}
-
-.editor-root .block-scriptz-sfx::before {
-  content: "SFX —\00a0";
-  font-style: normal;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-size: var(--fs-13);
+  color: rgba(28, 24, 20, 0.75);
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 12px;
 }
 
 /* ---------------------------------------------------------------------- */
 /* Highlighting: when on, paint character/dialog/parenthetical with the
-   per-character tint set as inline custom prop `--char-tint` on the node. */
-.editor-root[data-highlighting="on"] .block-scriptz-character[data-character-id],
-.editor-root[data-highlighting="on"] .block-scriptz-dialog[data-character-id],
-.editor-root[data-highlighting="on"] .block-scriptz-parenthetical[data-character-id] {
+   per-character tint set as inline custom prop `--char-tint`. The
+   tint is applied directly on the block element by the highlighting
+   plugin; default is transparent so no styling shows when off. */
+.editor-root[data-highlighting="on"] .block-scriptz-character,
+.editor-root[data-highlighting="on"] .block-scriptz-dialog,
+.editor-root[data-highlighting="on"] .block-scriptz-parenthetical {
   background: var(--char-tint, transparent);
   border-radius: 4px;
-  padding: 1px 8px;
-}
-
-/* Slight tint behind the bold ALLCAPS character names even without
-   highlighting, mimicking the screenshot's pill look. */
-.editor-root .block-scriptz-character[data-character-id] {
-  background: var(--char-tint, rgba(0, 0, 0, 0.04));
-  border-radius: 4px;
-  padding: 1px 10px;
-}
-
-/* Dark theme overrides for the paper itself */
-[data-theme="dark"] .editor-root .block-scriptz-parenthetical,
-[data-theme="dark"] .editor-root .block-scriptz-sfx {
-  color: rgba(0, 0, 0, 0.55);
 }
 
 /* Selection on paper */
 .editor-root ::selection {
-  background: rgba(224, 121, 31, 0.25);
-}
-
-/* Hover-only outline of an empty block to suggest typing */
-.editor-root .block:empty::before {
-  content: " ";
-  display: inline-block;
-  min-width: 1ch;
+  background: rgba(224, 121, 31, 0.22);
 }

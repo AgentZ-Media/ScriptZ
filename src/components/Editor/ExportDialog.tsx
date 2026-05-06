@@ -105,35 +105,32 @@ export function ExportDialog(props: ExportDialogProps) {
         return null;
       })()}
       <div class="export-form" onKeyDown={onKeyDown}>
-        <div class="field">
-          <label>Format</label>
-          <div class="export-radio-row">
-            <label class="settings-radio">
-              <input
-                type="radio"
-                name="exp-fmt"
-                value="pdf"
-                checked={format() === "pdf"}
-                onChange={() => setFormat("pdf")}
-              />
-              <span>PDF</span>
-            </label>
-            <label class="settings-radio">
-              <input
-                type="radio"
-                name="exp-fmt"
-                value="txt"
-                checked={format() === "txt"}
-                onChange={() => setFormat("txt")}
-              />
-              <span>Plain Text (für Teleprompter)</span>
-            </label>
-          </div>
+        <div class="export-radio-row">
+          <label class="settings-radio">
+            <input
+              type="radio"
+              name="exp-fmt"
+              value="pdf"
+              checked={format() === "pdf"}
+              onChange={() => setFormat("pdf")}
+            />
+            <span>PDF</span>
+          </label>
+          <label class="settings-radio">
+            <input
+              type="radio"
+              name="exp-fmt"
+              value="txt"
+              checked={format() === "txt"}
+              onChange={() => setFormat("txt")}
+            />
+            <span>Plain Text (für Teleprompter)</span>
+          </label>
         </div>
 
         <Show when={format() === "pdf"}>
-          <div class="field">
-            <label>Optionen</label>
+          <div class="export-divider" />
+          <div class="export-options">
             <label class="settings-toggle">
               <input
                 type="checkbox"

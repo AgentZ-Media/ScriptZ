@@ -65,7 +65,7 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-ghost" onClick={props.onClose}>
+            <button class="btn" onClick={props.onClose}>
               Abbrechen
             </button>
             <button class="btn btn-primary" onClick={submit} disabled={submitting()}>

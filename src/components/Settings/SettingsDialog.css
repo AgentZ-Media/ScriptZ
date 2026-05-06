@@ -1,40 +1,49 @@
 .settings-sections {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-6);
+  gap: var(--sp-5);
 }
 .settings-section h3 {
   margin: 0 0 var(--sp-3) 0;
-  font-size: var(--fs-12);
+  font-family: var(--font-sans);
+  font-size: var(--fs-11);
   font-weight: 600;
-  color: var(--fg-muted);
+  color: var(--fg-subtle);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 .settings-section {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
 }
+.settings-section + .settings-section {
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
 
 .settings-radio-row {
   display: inline-flex;
   gap: var(--sp-4);
   align-items: center;
+  flex-wrap: wrap;
 }
 .settings-radio {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-family: var(--font-sans);
   font-size: var(--fs-13);
   cursor: pointer;
+  color: var(--fg);
 }
 .settings-radio input { accent-color: var(--brand-500); }
 
 .settings-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-family: var(--font-sans);
   font-size: var(--fs-13);
   cursor: pointer;
   user-select: none;
@@ -57,10 +66,11 @@
   color: var(--fg);
 }
 .link-like {
-  color: var(--brand-400);
+  color: var(--brand-600);
   background: transparent;
   border: none;
   padding: 0;
+  font-family: var(--font-sans);
   font-size: var(--fs-13);
   cursor: pointer;
 }
@@ -71,4 +81,5 @@
   flex-direction: column;
   gap: 4px;
   font-size: var(--fs-13);
+  color: var(--fg);
 }

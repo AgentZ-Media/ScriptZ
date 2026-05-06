@@ -3,7 +3,7 @@ import { api } from "~/lib/api";
 
 export type Theme = "dark" | "light" | "auto";
 
-const [theme, setTheme] = createSignal<Theme>("dark");
+const [theme, setTheme] = createSignal<Theme>("light");
 const [highlightingDefault, setHighlightingDefault] = createSignal<boolean>(false);
 const [updateCheckEnabled, setUpdateCheckEnabled] = createSignal<boolean>(true);
 const [hourlyUpdateCheck, setHourlyUpdateCheck] = createSignal<boolean>(true);

@@ -1,7 +1,7 @@
 /* =========================================================================
    ScriptZ — script-shell + paper canvas.
-   Dark surrounding chrome, white A4 paper centred, pill bar at top, status
-   strip at the bottom.
+   Parchment desk surrounding a white paper sheet with subtle shadow.
+   Char pillbar at the top, status strip at the bottom.
    ========================================================================= */
 
 .script-shell {
@@ -13,19 +13,22 @@
   overflow: hidden;
 }
 
-/* ---- Char pill bar (sticky at top of script) ------------------------- */
+/* ---- Char pill bar ----
+   Centered row of rounded character pills with colored dots. Sticky
+   at the top of the script. */
 .script-pillbar {
   position: sticky;
   top: 0;
   z-index: 4;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 14px 28px 10px;
+  padding: var(--sp-4) var(--sp-5) var(--sp-3);
   flex-wrap: wrap;
   background: linear-gradient(
     to bottom,
-    var(--bg) 70%,
+    var(--bg) 65%,
     rgba(0, 0, 0, 0)
   );
   pointer-events: auto;
@@ -35,21 +38,33 @@
 .script-pillbar .char-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 8px;
+  padding: 5px 14px;
   border-radius: var(--r-pill);
-  font-size: 11px;
+  background: var(--bg-elev-1);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-11);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: transform var(--t-fast), border-color var(--t-fast),
-    background var(--t-fast);
+  border: 1px solid var(--border);
+  cursor: default;
+  transition: background var(--t-fast), border-color var(--t-fast),
+    transform var(--t-fast);
 }
-.script-pillbar .char-pill:hover { transform: translateY(-1px); }
-.script-pillbar .char-pill[aria-expanded="true"] {
+.script-pillbar .char-pill:hover {
+  background: var(--bg-elev-2);
   border-color: var(--border-strong);
+}
+.script-pillbar .char-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.script-pillbar .char-pill-label {
+  line-height: 1;
 }
 
 /* ---- Paper canvas ---------------------------------------------------- */
@@ -62,8 +77,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 24px 80px;
-  scroll-padding-top: 80px;
+  padding: var(--sp-3) var(--sp-5) var(--sp-9);
+  scroll-padding-top: 60px;
 }
 
 .paper-stack {
@@ -79,32 +94,18 @@
   min-height: var(--paper-h);
   background: var(--paper-bg);
   color: var(--paper-fg);
-  border-radius: 6px;
+  border-radius: var(--r-4);
   box-shadow: var(--shadow-paper);
-  padding: 56px 56px 64px;
+  padding: var(--paper-margin-top) var(--paper-margin-right)
+    var(--paper-margin-bottom) var(--paper-margin-left);
   overflow: visible;
 }
 
-/* Page number top-right of every sheet (per screenshot) */
-.paper-sheet[data-page-num]::before {
-  content: attr(data-page-num) ".";
-  position: absolute;
-  top: 22px;
-  right: 28px;
-  font-family: "iA Writer Quattro", var(--font-sans);
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.35);
-  letter-spacing: 0.02em;
-}
-.paper-sheet:first-of-type[data-page-num]::before {
-  content: "";
-}
-
-/* Inline page break marker between sheets (dashed line + label) */
+/* Page break marker between sheets — dotted hairline + label */
 .paper-stack .page-break {
   position: relative;
-  height: 36px;
-  margin: 12px 0;
+  height: 32px;
+  margin: 14px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -112,25 +113,25 @@
 .paper-stack .page-break::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 8%;
+  right: 8%;
   top: 50%;
-  border-top: 1px dashed rgba(255, 255, 255, 0.18);
+  border-top: 1px dashed rgba(28, 24, 20, 0.18);
 }
 .paper-stack .page-break span {
   position: relative;
   background: var(--bg);
   padding: 2px 14px;
-  font-family: "iA Writer Quattro", var(--font-sans);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-sans);
+  font-size: var(--fs-11);
+  letter-spacing: 0.16em;
   color: var(--fg-subtle);
-  text-transform: uppercase;
+  text-transform: lowercase;
 }
 
-/* Ghost sheets (placeholders for future page-break engine) */
+/* Ghost sheets (preview placeholders) */
 .paper-sheet.ghost {
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -142,11 +143,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 22px;
-  font-size: 12px;
+  padding: var(--sp-3) var(--sp-5);
+  font-family: var(--font-sans);
+  font-size: var(--fs-12);
   color: var(--fg-muted);
-  background: linear-gradient(to top, var(--bg) 70%, rgba(0, 0, 0, 0));
+  background: linear-gradient(to top, var(--bg) 75%, rgba(0, 0, 0, 0));
   user-select: none;
+  border-top: 1px solid transparent;
 }
 
 .script-status .saving-indicator {
@@ -155,36 +158,16 @@
   gap: 8px;
 }
 .script-status .dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--status-ok);
+  background: var(--fg-disabled);
 }
 .script-status .dot.saving {
-  background: var(--status-warn);
+  background: var(--brand-500);
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
-}
-
-.script-status .right {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-.script-status .right .icon-btn {
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  color: var(--fg-muted);
-  transition: background var(--t-fast), color var(--t-fast);
-}
-.script-status .right .icon-btn:hover {
-  background: var(--hover);
-  color: var(--fg);
 }

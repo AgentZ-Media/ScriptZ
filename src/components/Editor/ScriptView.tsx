@@ -10,7 +10,6 @@ import {
 import { Editor } from "./Editor";
 import { api } from "~/lib/api";
 import type { ScriptCharacter } from "~/lib/types";
-import { tint } from "~/lib/colors";
 import { tabsStore } from "~/stores/tabs";
 import { settingsStore } from "~/stores/settings";
 import { pushToast } from "~/stores/toasts";
@@ -104,7 +103,7 @@ export function ScriptView(props: ScriptViewProps) {
       <Show when={script()} fallback={<div style="padding: 40px;">Lade…</div>}>
         {(s) => (
           <>
-            <div class="script-pillbar" data-tauri-drag-region={true}>
+            <div class="script-pillbar">
               <Show when={s().characters.length > 0}>
                 <For each={s().characters}>
                   {(c) => <CharPill character={c} />}
@@ -165,17 +164,14 @@ export function ScriptView(props: ScriptViewProps) {
 }
 
 function CharPill(props: { character: ScriptCharacter }) {
-  const bg = () => tint(props.character.color, 0.18);
-  const border = () => tint(props.character.color, 0.6);
-  const fg = () => props.character.color;
-
   return (
-    <span
-      class="char-pill"
-      style={{ background: bg(), color: fg(), "border-color": border() }}
-      title={props.character.name}
-    >
-      {props.character.name}
+    <span class="char-pill" title={props.character.name}>
+      <span
+        class="char-pill-dot"
+        style={{ background: props.character.color }}
+        aria-hidden="true"
+      />
+      <span class="char-pill-label">{props.character.name}</span>
     </span>
   );
 }
