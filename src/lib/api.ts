@@ -1,5 +1,7 @@
 import { invoke } from "./tauri";
 import type {
+  AiModelInfo,
+  AiState,
   Script,
   ScriptCharacter,
   ScriptSummary,
@@ -137,5 +139,31 @@ export const api = {
     return invoke("export_plaintext", {
       input: { script_id: input.scriptId, path: input.path },
     });
+  },
+
+  // AI / OpenRouter (opt-in)
+  async aiGetState(): Promise<AiState> {
+    return invoke("ai_get_state", {});
+  },
+  async aiSetApiKey(key: string): Promise<void> {
+    return invoke("ai_set_api_key", { key });
+  },
+  async aiClearApiKey(): Promise<void> {
+    return invoke("ai_clear_api_key", {});
+  },
+  async aiSetEnabled(enabled: boolean): Promise<void> {
+    return invoke("ai_set_enabled", { enabled });
+  },
+  async aiSetModel(modelId: string): Promise<void> {
+    return invoke("ai_set_model", { modelId });
+  },
+  async aiListModels(refresh = false): Promise<AiModelInfo[]> {
+    return invoke("ai_list_models", { refresh });
+  },
+  async aiTestConnection(): Promise<string> {
+    return invoke("ai_test_connection", {});
+  },
+  async aiGenerateSummary(scriptId: string, force = false): Promise<string | null> {
+    return invoke("ai_generate_summary", { scriptId, force });
   },
 };

@@ -1,6 +1,6 @@
 [package]
 name = "scriptz"
-version = "0.1.1"
+version = "0.2.0"
 description = "ScriptZ - fast, local, beautiful script editor for TikTok creators and sketch teams."
 authors = ["ScriptZ Contributors"]
 edition = "2021"
@@ -50,6 +50,10 @@ printpdf = "0.7"
 # Misc
 unicode-segmentation = "1"
 url = "2"
+
+# AI / OpenRouter
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip"] }
+keyring = { version = "3", features = ["apple-native"] }
 
 [profile.release]
 panic = "abort"

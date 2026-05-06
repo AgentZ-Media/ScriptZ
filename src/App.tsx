@@ -9,6 +9,7 @@ import {
   Suspense,
 } from "solid-js";
 import { settingsStore } from "~/stores/settings";
+import { aiStore } from "~/stores/ai";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
 import TabBar from "~/components/TabBar";
@@ -35,6 +36,7 @@ export default function App() {
   onMount(async () => {
     try {
       await settingsStore.load();
+      await aiStore.refresh();
       await ensureWelcomeContent();
       await tabsStore.load();
     } catch (err) {
@@ -118,7 +120,10 @@ export default function App() {
             {(v) => (
               <Switch>
                 <Match when={v().kind === "browser"}>
-                  <Browser onNewScript={() => setNewScriptOpen(true)} />
+                  <Browser
+                    onNewScript={() => setNewScriptOpen(true)}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                  />
                 </Match>
                 <Match when={v().kind === "script"}>
                   <ErrorBoundary fallback={(err) => <div class="error-pane">Fehler: {String(err)}</div>}>

@@ -63,7 +63,8 @@ impl Db {
 
         // Schema v2: simplified — projects/tags/aliases/global characters all dropped.
         // Migration v2 wipes any older v1 schema and recreates fresh (per spec: full reset).
-        let migrations: &[(i64, &str)] = &[(2, MIGRATION_002)];
+        // Migration v3: additive — adds AI summary columns to scripts.
+        let migrations: &[(i64, &str)] = &[(2, MIGRATION_002), (3, MIGRATION_003)];
         let tx = conn.transaction()?;
         for (version, sql) in migrations {
             if *version > current {
@@ -143,4 +144,16 @@ CREATE VIRTUAL TABLE scripts_fts USING fts5(
 CREATE INDEX idx_scripts_updated_at ON scripts(updated_at DESC);
 CREATE INDEX idx_scripts_archived ON scripts(archived_at);
 CREATE INDEX idx_snapshots_script ON snapshots(script_id, created_at DESC);
+"#;
+
+// v3: AI-generated short summary per script (nullable; opt-in feature).
+// summary_source_hash = SHA-256 of the plain-text content used to produce
+// `summary` — lets us cheaply detect "no content change" without diffing.
+// Word-Jaccard against the source text drives re-generation; the hash is
+// just the cheap exit-early check.
+const MIGRATION_003: &str = r#"
+ALTER TABLE scripts ADD COLUMN summary TEXT;
+ALTER TABLE scripts ADD COLUMN summary_source_text TEXT;
+ALTER TABLE scripts ADD COLUMN summary_generated_at INTEGER;
+ALTER TABLE scripts ADD COLUMN summary_model TEXT;
 "#;

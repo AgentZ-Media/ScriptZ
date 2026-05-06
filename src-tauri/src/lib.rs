@@ -75,6 +75,15 @@ pub fn run() {
             // export
             commands::export::export_pdf,
             commands::export::export_plaintext,
+            // ai (OpenRouter — opt-in)
+            commands::ai::ai_get_state,
+            commands::ai::ai_set_api_key,
+            commands::ai::ai_clear_api_key,
+            commands::ai::ai_set_enabled,
+            commands::ai::ai_set_model,
+            commands::ai::ai_list_models,
+            commands::ai::ai_test_connection,
+            commands::ai::ai_generate_summary,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, OptionalExtension};
-use tauri::State;
+use tauri::{AppHandle, State};
 
+use crate::commands::ai;
 use crate::db::{new_id, now_ms, Db};
 use crate::error::{Result, ScriptzError};
 use crate::fts::{delete_script_fts, upsert_script_fts};
@@ -103,7 +104,7 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
     let s = conn
         .query_row(
             "SELECT id, title, highlighting_enabled, characters_meta,
-                    created_at, updated_at, archived_at, page_count
+                    created_at, updated_at, archived_at, page_count, summary
              FROM scripts WHERE id = ?1",
             params![id],
             |r| {
@@ -116,6 +117,7 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
                     r.get::<_, i64>(5)?,
                     r.get::<_, Option<i64>>(6)?,
                     r.get::<_, i64>(7)?,
+                    r.get::<_, Option<String>>(8)?,
                 ))
             },
         )
@@ -130,6 +132,7 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
         updated_at: s.5,
         archived_at: s.6,
         page_count: s.7,
+        summary: s.8,
     })
 }
 
@@ -161,7 +164,7 @@ pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
     let s = conn
         .query_row(
             "SELECT id, title, highlighting_enabled, content_json, characters_meta,
-                    created_at, updated_at, archived_at, page_count
+                    created_at, updated_at, archived_at, page_count, summary
              FROM scripts WHERE id = ?1",
             params![id],
             |r| {
@@ -175,6 +178,7 @@ pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
                     r.get::<_, i64>(6)?,
                     r.get::<_, Option<i64>>(7)?,
                     r.get::<_, i64>(8)?,
+                    r.get::<_, Option<String>>(9)?,
                 ))
             },
         )
@@ -190,11 +194,16 @@ pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
         updated_at: s.6,
         archived_at: s.7,
         page_count: s.8,
+        summary: s.9,
     })
 }
 
 #[tauri::command]
-pub fn update_script(db: State<Db>, input: UpdateScriptInput) -> Result<ScriptSummary> {
+pub fn update_script(
+    app: AppHandle,
+    db: State<Db>,
+    input: UpdateScriptInput,
+) -> Result<ScriptSummary> {
     let conn = db.conn()?;
     let now = now_ms();
     let exists: i64 = conn
@@ -207,6 +216,7 @@ pub fn update_script(db: State<Db>, input: UpdateScriptInput) -> Result<ScriptSu
     if exists == 0 {
         return Err(ScriptzError::NotFound(format!("script {}", input.id)));
     }
+    let content_changed = input.content_json.is_some();
 
     if let Some(title) = &input.title {
         conn.execute(
@@ -250,7 +260,12 @@ pub fn update_script(db: State<Db>, input: UpdateScriptInput) -> Result<ScriptSu
         )?;
     }
     refresh_fts(&conn, &input.id)?;
-    row_to_summary(&conn, input.id)
+    let summary = row_to_summary(&conn, input.id.clone())?;
+    drop(conn);
+    if content_changed {
+        ai::trigger_summary_async(app, input.id);
+    }
+    Ok(summary)
 }
 
 #[tauri::command]

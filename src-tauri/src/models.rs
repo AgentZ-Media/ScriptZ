@@ -19,6 +19,7 @@ pub struct ScriptSummary {
     pub archived_at: Option<i64>,
     pub page_count: i64,
     pub characters: Vec<ScriptCharacter>,
+    pub summary: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +33,7 @@ pub struct Script {
     pub archived_at: Option<i64>,
     pub page_count: i64,
     pub characters: Vec<ScriptCharacter>,
+    pub summary: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
