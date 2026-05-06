@@ -413,7 +413,7 @@ async fn call_openrouter(
         "messages": [
             {
                 "role": "system",
-                "content": "Du fasst Drehbuch-Skripte (Sketch/TikTok) in EINEM prägnanten Satz zusammen. Maximal 18 Wörter. Antworte in der Sprache, in der das Skript geschrieben ist. Keine Anführungszeichen, kein Punkt am Ende, kein Vorwort wie 'Zusammenfassung:'. Antworte ausschließlich im geforderten JSON-Schema."
+                "content": "Du fasst Drehbuch-Skripte (Sketch/TikTok) in EINEM prägnanten Satz zusammen. Maximal 12 Wörter. Antworte in der Sprache, in der das Skript geschrieben ist. Keine Anführungszeichen, kein Punkt am Ende, kein Vorwort wie 'Zusammenfassung:'. Antworte ausschließlich im geforderten JSON-Schema."
             },
             { "role": "user", "content": trimmed }
         ],
@@ -427,7 +427,7 @@ async fn call_openrouter(
                     "properties": {
                         "summary": {
                             "type": "string",
-                            "description": "Eine prägnante Zusammenfassung in der Sprache des Skripts, max. 18 Wörter."
+                            "description": "Eine prägnante Zusammenfassung in der Sprache des Skripts, max. 12 Wörter."
                         }
                     },
                     "required": ["summary"],
