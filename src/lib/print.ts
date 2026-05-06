@@ -338,10 +338,23 @@ function ensurePrintArea(): HTMLDivElement {
   if (!area) {
     area = document.createElement("div");
     area.id = PRINT_AREA_ID;
+    // Hide from screen-reader / accessibility tree — the contents are a
+    // visual-only snapshot for the print engine and shouldn't appear in
+    // tab order or be announced.
+    area.setAttribute("aria-hidden", "true");
+    area.setAttribute("role", "presentation");
     document.body.appendChild(area);
   }
   return area;
 }
+
+// Clearing the area too early races Tauri's async IPC print snapshot and
+// produces blank pages; clearing too late leaves the previous script
+// (potentially private) hanging in the DOM between sessions. 30 s is well
+// past any reasonable print-dialog "ready"-window and short enough to not
+// linger if the user is still inside the same session.
+const PRINT_AREA_CLEAR_DELAY_MS = 30_000;
+let pendingClearTimer: ReturnType<typeof setTimeout> | null = null;
 
 export async function printScript(
   scriptId: string,
@@ -355,13 +368,19 @@ export async function printScript(
   area.innerHTML = renderBody(script, blocks, opts);
 
   // Wait two frames so layout/fonts settle, then trigger native print
-  // dialog. We deliberately do NOT clear the area afterwards: Tauri's
-  // window.print() goes through async IPC, so the dialog actually
-  // captures the DOM some time later — clearing right after the call
-  // would race the snapshot and produce an empty printout. The area
-  // gets overwritten on the next print, so memory doesn't grow.
+  // dialog.
   await new Promise<void>((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
   );
   window.print();
+
+  // Schedule a delayed clear so the previous script doesn't linger
+  // off-screen. A new print() resets the timer (overwrite happens via
+  // innerHTML assignment above).
+  if (pendingClearTimer) clearTimeout(pendingClearTimer);
+  pendingClearTimer = setTimeout(() => {
+    pendingClearTimer = null;
+    const a = document.getElementById(PRINT_AREA_ID);
+    if (a) a.innerHTML = "";
+  }, PRINT_AREA_CLEAR_DELAY_MS);
 }

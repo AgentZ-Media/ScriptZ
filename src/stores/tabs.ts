@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { api } from "~/lib/api";
+import { registerFlusher } from "~/lib/saveFlush";
 
 export type TabKind = "browser" | "script";
 
@@ -121,15 +122,21 @@ export const tabsStore = {
     }
     try {
       const parsed = JSON.parse(raw) as { tabs: Tab[]; activeId: string | null };
-      // Verify scripts still exist
-      const scriptIds = parsed.tabs.filter((t) => t.kind === "script").map((t) => t.scriptId!);
-      const stillExisting = new Set<string>();
-      for (const id of scriptIds) {
+      // Verify scripts still exist. One bulk list_scripts call is far
+      // cheaper than N getScript round-trips per persisted tab — at boot
+      // with many tabs the old N+1 added 50–150 ms to the first paint.
+      const scriptIds = new Set(
+        parsed.tabs.filter((t) => t.kind === "script").map((t) => t.scriptId!),
+      );
+      let stillExisting = new Set<string>();
+      if (scriptIds.size > 0) {
         try {
-          const s = await api.getScript(id);
-          stillExisting.add(s.id);
+          const all = await api.listScripts({ includeArchived: true });
+          stillExisting = new Set(all.map((s) => s.id));
         } catch {
-          /* deleted */
+          // List failed — keep all tabs; reconcile() will clean up later
+          // once the live list refreshes.
+          stillExisting = scriptIds;
         }
       }
       const filtered: Tab[] = parsed.tabs.filter(
@@ -171,12 +178,33 @@ export const tabsStore = {
 };
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let persistInflight: Promise<void> | null = null;
+
+function writeNow(): Promise<void> {
+  const payload = JSON.stringify({ tabs: tabs(), activeId: activeTabId() });
+  const p = api.setAppState(KEY, payload).catch(() => {});
+  persistInflight = p.finally(() => {
+    if (persistInflight === p) persistInflight = null;
+  });
+  return persistInflight;
+}
+
 function persist() {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
-    void api.setAppState(
-      KEY,
-      JSON.stringify({ tabs: tabs(), activeId: activeTabId() }),
-    );
+    persistTimer = null;
+    void writeNow();
   }, 80);
 }
+
+// Register a flusher so window-close / app-quit can drain the pending
+// tab-state write before the window is destroyed.
+registerFlusher(async () => {
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+    await writeNow();
+    return;
+  }
+  if (persistInflight) await persistInflight;
+});

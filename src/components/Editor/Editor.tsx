@@ -23,8 +23,10 @@ import { installParentheticalLive } from "./plugins/parentheticalLive";
 import { installInlineFormat } from "./plugins/inlineFormat";
 import { installBlockHotkeys } from "./plugins/blockHotkeys";
 import { installCharacterDropdown } from "./plugins/characterDropdown";
+import { installHighlight } from "./plugins/highlight";
 import { api } from "../../lib/api";
 import { scriptsBus } from "../../lib/scriptsBus";
+import { registerFlusher } from "../../lib/saveFlush";
 import type { ScriptCharacter } from "../../lib/types";
 import "./Editor.css";
 
@@ -43,6 +45,10 @@ export interface EditorProps {
   /** Fires whenever the live character list changes — used by the parent
    * to drive the quick-mode availability check (need exactly 2). */
   onCharactersChange?: (chars: ScriptCharacter[]) => void;
+  /** Fires when `initialContentJson` cannot be parsed by Lexical. The
+   * editor will NOT mount (and will NOT auto-overwrite the broken state)
+   * — the parent is expected to render a recovery UI instead. */
+  onParseError?: (rawJson: string) => void;
 }
 
 const THEME: EditorThemeClasses = {};
@@ -118,12 +124,81 @@ export function Editor(props: EditorProps) {
         editor.setEditorState(state);
         loaded = true;
       } catch (err) {
-        console.warn("[scriptz] failed to parse initial state, seeding empty", err);
+        console.error(
+          "[scriptz] failed to parse initial state — bailing out so we don't auto-overwrite",
+          err,
+        );
+        // Tell the parent to mount the recovery UI. Importantly we DO
+        // NOT seed an empty state and DO NOT attach the auto-save loop:
+        // the next persist() would silently overwrite the user's broken-
+        // but-present content_json with `{root:{children:[…empty…]}}`,
+        // making recovery impossible.
+        if (props.onParseError) {
+          // Tear down what's already wired up (rich-text + history were
+          // registered above) before bailing. The plugins below haven't
+          // been installed yet, so nothing else to undo.
+          try { teardownHistory(); } catch { /* ignore */ }
+          try { teardownRichText(); } catch { /* ignore */ }
+          editor.setRootElement(null);
+          props.onParseError(props.initialContentJson);
+          return;
+        }
+        // No parent handler? Fall through to the historical behaviour
+        // (seed empty) so the editor at least functions — but log loudly.
       }
     }
     if (!loaded) {
       seedEmptyState(editor);
     }
+
+    // Word-style: when a script becomes the active editor, the writer
+    // should be able to start typing immediately — no manual click into
+    // the contenteditable area required. We focus on the next frame so
+    // Lexical has finished its initial reconcile and the DOM target
+    // exists. `rootEnd` is only used if the parsed state didn't already
+    // place a caret (seedEmptyState calls select(0,0) so it wins).
+    requestAnimationFrame(() => {
+      try {
+        editor.focus(undefined, { defaultSelection: "rootEnd" });
+      } catch {
+        /* ignore — non-fatal if the editor was torn down meanwhile */
+      }
+    });
+
+    // Word-style: clicking anywhere on the surrounding paper canvas
+    // (margins, empty space below the last block) drops the caret at
+    // the end of the document, mirroring how a desktop word processor
+    // treats the page area as "more editor". We attach to the closest
+    // paper-canvas ancestor so the listener lives outside the
+    // contenteditable surface and doesn't fight the editor's own
+    // mousedown handling.
+    const canvas = rootRef.closest(".paper-canvas") as HTMLElement | null;
+    const onCanvasMousedown = (ev: MouseEvent) => {
+      const target = ev.target as HTMLElement | null;
+      if (!target) return;
+      // Click landed inside the editor — let Lexical place the caret
+      // at the actual click location.
+      if (target.closest(".editor-root")) return;
+      // Don't intercept controls (toggle pill, status strip, dropdowns,
+      // etc.) — the user clicked something else on purpose.
+      if (
+        target.closest("button") ||
+        target.closest("input") ||
+        target.closest("textarea") ||
+        target.closest(".scriptz-block-dropdown") ||
+        target.closest(".scriptz-character-dropdown") ||
+        target.closest(".script-status")
+      ) {
+        return;
+      }
+      ev.preventDefault();
+      try {
+        editor.focus(undefined, { defaultSelection: "rootEnd" });
+      } catch {
+        /* ignore */
+      }
+    };
+    canvas?.addEventListener("mousedown", onCanvasMousedown);
 
     const teardownSmartEnter = installSmartEnter(editor, {
       isQuickModeOn: () => !!props.quickModeEnabled?.(),
@@ -137,6 +212,7 @@ export function Editor(props: EditorProps) {
     const teardownCharDD = installCharacterDropdown(editor, hostRef, () => ({
       scriptCharacters: () => liveCharacters(),
     }));
+    const teardownHighlight = installHighlight(editor, () => liveCharacters());
 
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let dirtySinceSnapshot = false;
@@ -416,6 +492,21 @@ export function Editor(props: EditorProps) {
       schedulePaginate();
     });
 
+    // If a save is buffered when the window is closing or this editor is
+    // about to unmount (script switch, tab close), persist immediately
+    // instead of dropping the pending writes.
+    const flushPending = async (): Promise<void> => {
+      if (!saveTimer) return;
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      try {
+        await persist();
+      } catch (err) {
+        console.warn("[scriptz] flushPending failed", err);
+      }
+    };
+    const unregisterFlusher = registerFlusher(flushPending);
+
     const snapshotTimer = setInterval(() => {
       if (!dirtySinceSnapshot) return;
       dirtySinceSnapshot = false;
@@ -425,11 +516,22 @@ export function Editor(props: EditorProps) {
     }, AUTO_SNAPSHOT_MS);
 
     onCleanup(() => {
-      if (saveTimer) clearTimeout(saveTimer);
+      // Critical: flush any debounced save before tearing down so the
+      // last 250 ms of typing isn't lost when switching scripts, closing
+      // a tab, or unmounting on hot-reload. Fire-and-forget — the IPC
+      // continues independently of the editor instance.
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+        void persist();
+      }
+      unregisterFlusher();
+      canvas?.removeEventListener("mousedown", onCanvasMousedown);
       if (paginateTimer) clearTimeout(paginateTimer);
       clearInterval(snapshotTimer);
       resizeObserver.disconnect();
       teardownUpdate();
+      teardownHighlight();
       teardownCharDD();
       teardownBlockDD();
       teardownBlockHK();

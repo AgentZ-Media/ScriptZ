@@ -64,11 +64,19 @@ export function ExportDialog(props: ExportDialogProps) {
       } else {
         result = await api.exportPlaintext({ scriptId: props.scriptId, path });
       }
-      pushToast("Export gespeichert", "ok");
+      let revealed = true;
       try {
         await revealItemInDir(result.path);
-      } catch {
-        /* ignore — non-fatal if reveal isn't available */
+      } catch (err) {
+        // Non-fatal but worth surfacing — without the reveal the user
+        // might not know where the file actually went.
+        revealed = false;
+        console.warn("[scriptz] revealItemInDir failed", err);
+      }
+      if (revealed) {
+        pushToast("Export gespeichert", "ok");
+      } else {
+        pushToast(`Export gespeichert: ${result.path}`, "ok");
       }
       props.onClose();
     } catch (e) {

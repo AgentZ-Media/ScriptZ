@@ -339,6 +339,44 @@ function Toggle(props: {
   );
 }
 
+// ---- Cost helpers ----
+//
+// OpenRouter returns `pricing.prompt` / `pricing.completion` as strings
+// in **dollars per token** (e.g. "0.0000003" for $0.30 per 1M tokens).
+// Multiply by a representative request shape to give the writer a
+// concrete "~ how much does one summary cost me?" number.
+//
+// Numbers are intentionally rough — actual cost depends on the script
+// length and the model's tokeniser. The 800/30 split is a sane middle
+// for a typical TikTok/sketch script (the upstream prompt trims to
+// 12000 characters, ≈ 3000 tokens; most scripts sit well below that).
+const TYPICAL_INPUT_TOKENS = 800;
+const TYPICAL_OUTPUT_TOKENS = 30;
+
+interface PricedModel {
+  prompt_price: string | null;
+  completion_price: string | null;
+}
+
+function estimateCostUsd(m: PricedModel): number | null {
+  const pp = m.prompt_price ? Number(m.prompt_price) : NaN;
+  const cp = m.completion_price ? Number(m.completion_price) : NaN;
+  if (!Number.isFinite(pp) || !Number.isFinite(cp)) return null;
+  return pp * TYPICAL_INPUT_TOKENS + cp * TYPICAL_OUTPUT_TOKENS;
+}
+
+/** Render a tiny USD amount sensibly: very small numbers in scientific
+ * notation are unfriendly, so use a fixed-decimal style and pick the
+ * precision based on magnitude. Returns null if the value is bogus. */
+function formatUsd(n: number | null): string | null {
+  if (n === null || !Number.isFinite(n) || n < 0) return null;
+  if (n === 0) return "$0";
+  if (n < 0.0001) return `$${n.toExponential(1)}`;
+  if (n < 0.01) return `$${n.toFixed(5)}`;
+  if (n < 1) return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(3)}`;
+}
+
 // ---- Searchable model combobox ----
 
 function ModelPicker() {
@@ -396,6 +434,12 @@ function ModelPicker() {
     onCleanup(() => document.removeEventListener("mousedown", onDocClick));
   });
 
+  const selectedCost = createMemo(() => {
+    const m = selected();
+    if (!m) return null;
+    return formatUsd(estimateCostUsd(m));
+  });
+
   return (
     <div class="field">
       <label>Modell</label>
@@ -417,6 +461,22 @@ function ModelPicker() {
           <span class="ai-model-trigger-id muted">{aiStore.modelId()}</span>
           <span class="ai-model-trigger-caret" aria-hidden="true">▾</span>
         </button>
+        <div class="ai-cost-line muted small">
+          <Show
+            when={selectedCost()}
+            fallback={
+              <Show
+                when={selected()}
+                fallback={<span>Lade Modell-Infos…</span>}
+              >
+                <span>Keine Preisangabe für dieses Modell verfügbar.</span>
+              </Show>
+            }
+          >
+            ≈ {selectedCost()} pro Zusammenfassung (typisches Skript,{" "}
+            {TYPICAL_INPUT_TOKENS} Input + {TYPICAL_OUTPUT_TOKENS} Output Tokens).
+          </Show>
+        </div>
 
         <Show when={open()}>
           <div class="ai-model-popover">
@@ -454,17 +514,23 @@ function ModelPicker() {
                   }
                 >
                   <For each={filtered().slice(0, 100)}>
-                    {(m) => (
-                      <button
-                        type="button"
-                        class="ai-model-item"
-                        classList={{ "is-active": m.id === aiStore.modelId() }}
-                        onClick={() => void onChoose(m)}
-                      >
-                        <div class="ai-model-item-name">{m.name}</div>
-                        <div class="ai-model-item-id muted">{m.id}</div>
-                      </button>
-                    )}
+                    {(m) => {
+                      const cost = formatUsd(estimateCostUsd(m));
+                      return (
+                        <button
+                          type="button"
+                          class="ai-model-item"
+                          classList={{ "is-active": m.id === aiStore.modelId() }}
+                          onClick={() => void onChoose(m)}
+                        >
+                          <div class="ai-model-item-name">{m.name}</div>
+                          <div class="ai-model-item-id muted">{m.id}</div>
+                          <Show when={cost}>
+                            <div class="ai-model-item-cost muted">≈ {cost} / Anfrage</div>
+                          </Show>
+                        </button>
+                      );
+                    }}
                   </For>
                   <Show when={filtered().length > 100}>
                     <div class="ai-model-empty muted small">

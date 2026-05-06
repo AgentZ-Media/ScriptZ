@@ -6,6 +6,25 @@ import type { SearchHit } from "~/lib/types";
 import { debounce } from "~/lib/format";
 import "./CommandBar.css";
 
+/**
+ * SQLite's FTS5 `snippet()` returns the user's own content verbatim with
+ * `<mark>`/`</mark>` literally interleaved — no entity escaping. Pumping
+ * that through `innerHTML` would inject any HTML the writer happens to
+ * have typed into the script (CSP defangs scripts, but layout/markup
+ * corruption still works). Escape everything, then re-enable the two
+ * tags FTS produced.
+ */
+function safeSnippet(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/&lt;mark&gt;/g, "<mark>")
+    .replace(/&lt;\/mark&gt;/g, "</mark>");
+}
+
 export interface CommandBarProps {
   open: boolean;
   onClose(): void;
@@ -155,7 +174,7 @@ export function CommandBar(props: CommandBarProps) {
                                 <Show when={hit.snippet}>
                                   <div
                                     class="cmd-row-snippet"
-                                    innerHTML={hit.snippet}
+                                    innerHTML={safeSnippet(hit.snippet)}
                                   />
                                 </Show>
                               </div>

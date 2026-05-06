@@ -70,15 +70,18 @@ export function installBlockHotkeys(editor: LexicalEditor): () => void {
 
       const fresh = FACTORY[target]();
       const text = block.getTextContent();
-      if (text.length === 0) {
-        fresh.append($createTextNode(""));
-      } else {
-        // Preserve text content if any
+      // CLAUDE.md invariant: empty blocks must stay CHILDLESS — Lexical's
+      // reconciler injects a managed <br> placeholder and WebKit can place
+      // the caret. Pre-seeding $createTextNode("") breaks caret placement.
+      if (text.length > 0) {
         fresh.append($createTextNode(text));
       }
       block.replace(fresh);
-      // Place caret at end of new block
-      fresh.selectEnd();
+      if (fresh.getChildrenSize() > 0) {
+        fresh.selectEnd();
+      } else {
+        fresh.select(0, 0);
+      }
       event.preventDefault();
       return true;
     },

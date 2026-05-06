@@ -70,15 +70,19 @@ src/                Solid frontend
         smartEnter.ts          Enter/Backspace state machine
         blockHotkeys.ts        Cmd+1..7 → block-type swap
         blockDropdown.tsx      Tab opens block-type picker
-        characterDropdown.tsx  cursor-anchored autocomplete over the
-                               script's own character list (no globals)
+        characterDropdown.tsx  cursor-anchored autocomplete; entries are
+                               sorted by predict.ts ranking so the visual
+                               order mirrors the prediction
         parentheticalLive.ts   live ( … ) detection in Dialog
         inlineFormat.ts        Cmd+B/I/U
         allcaps.ts             characterName attribute sync (visual UPPER
                                is CSS-only — text-transform on the block)
+        highlight.ts           per-block --char-tint CSS variable; Editor
+                               highlighting now matches PDF/Print output
+                               (per-character colour, not a single tint)
     Browser/
       Browser.tsx           file browser: scripts grid, search, sort,
-                            virtualised >80 cards
+                            paginated by 200 with "load more" button
       TrashView.tsx
       NewScriptDialog.tsx + ScriptContextMenu.tsx
     CommandBar/CommandBar.tsx     Cmd+K Spotlight modal (scripts only)
@@ -95,6 +99,10 @@ src/                Solid frontend
     tauri.ts           thin invoke wrapper, isTauri flag
     colors.ts          tint() helper (rgba blend)
     format.ts          relativeTime, formatAbsolute, debounce
+    saveFlush.ts       central registry for "drain pending writes"
+                       hooks (editor auto-save, tab-state persist) so
+                       the window-close handler in App.tsx can wait for
+                       all buffered work before destroying the window
     welcome.ts         first-run welcome script seeder (generic tutorial)
   styles/
     tokens.css         design tokens (brand orange #e0791f, A4 mm geometry)

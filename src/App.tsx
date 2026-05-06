@@ -2,6 +2,7 @@ import {
   Show,
   createSignal,
   createEffect,
+  createResource,
   onMount,
   onCleanup,
   Switch,
@@ -25,6 +26,7 @@ import { ExportDialog } from "~/components/Editor/ExportDialog";
 import ToastHost from "~/components/Common/ToastHost";
 import { ensureWelcomeContent } from "~/lib/welcome";
 import { printScript } from "~/lib/print";
+import { flushAll } from "~/lib/saveFlush";
 
 import "./components/Common/Common.css";
 
@@ -67,6 +69,47 @@ export default function App() {
     }
   };
 
+  // Lightweight read of the active script's highlighting flag, separate
+  // from ScriptView's createResource so the TabBar can render the toggle
+  // state without prop-drilling through the editor tree. Refetches when
+  // the active script changes OR when scriptsBus bumps (covers the
+  // post-toggle save).
+  const [activeHighlightFlag] = createResource(
+    () => ({ id: activeScriptId(), v: scriptsBus.version() }),
+    async ({ id }) => {
+      if (!id) return null;
+      try {
+        const s = await api.getScript(id);
+        return s.highlighting_enabled;
+      } catch {
+        return null;
+      }
+    },
+    { initialValue: null },
+  );
+
+  const highlightOn = (): boolean => {
+    const flag = activeHighlightFlag();
+    if (flag === 1) return true;
+    if (flag === 0) return false;
+    return settingsStore.highlightingDefault();
+  };
+
+  const toggleHighlight = async () => {
+    const id = activeScriptId();
+    if (!id) return;
+    const next = !highlightOn();
+    try {
+      await api.updateScript({ id, highlightingEnabled: next ? 1 : 0 });
+      scriptsBus.bump();
+    } catch (err) {
+      pushToast(
+        `Highlight-Wechsel fehlgeschlagen: ${(err as Error).message ?? err}`,
+        "error",
+      );
+    }
+  };
+
   onMount(async () => {
     try {
       await settingsStore.load();
@@ -79,6 +122,51 @@ export default function App() {
     } finally {
       setBootReady(true);
     }
+  });
+
+  // Wire window-close-request → drain all pending writes (auto-save,
+  // tab-state, etc.) before letting Tauri destroy the window. Without
+  // this, Cmd+Q / red-traffic-light within 250 ms of a keystroke loses
+  // the buffered save.
+  onMount(() => {
+    let unlisten: (() => void) | null = null;
+    let closing = false;
+    void (async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+        unlisten = await win.onCloseRequested(async (event) => {
+          if (closing) return; // already in flight — let it through
+          event.preventDefault();
+          closing = true;
+          try {
+            await flushAll(2000);
+          } finally {
+            try {
+              await win.destroy();
+            } catch {
+              // Fallback: if destroy() isn't allowed for some reason,
+              // tear down via close() so the user isn't stuck.
+              try {
+                await win.close();
+              } catch {
+                /* nothing left to do */
+              }
+            }
+          }
+        });
+      } catch (err) {
+        // Non-Tauri env (vite preview) or older API — non-fatal.
+        console.warn("[scriptz] close-flush hook unavailable", err);
+      }
+    })();
+    onCleanup(() => {
+      try {
+        unlisten?.();
+      } catch {
+        /* ignore */
+      }
+    });
   });
 
   // Whenever the script list changes (archive / purge / restore / create /
@@ -194,6 +282,8 @@ export default function App() {
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenExport={openExport}
           onPrint={() => void triggerPrint()}
+          onToggleHighlight={() => void toggleHighlight()}
+          highlightOn={highlightOn}
         />
 
         <main class="app-main">

@@ -202,40 +202,53 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
   );
 }
 
-/** Extract a plain-text preview from a Lexical EditorState JSON string. */
+/** Extract a plain-text preview from a Lexical EditorState JSON string.
+ * Hard-bounded so a malformed/extremely-deep state can never block the
+ * main thread. Limits are generous for any realistic ScriptZ document. */
+const MAX_WALK_DEPTH = 200;
+const MAX_BLOCKS = 5000;
+const MAX_TEXT_NODES_PER_BLOCK = 2000;
+
 function extractPreview(json: string): string {
   try {
     const parsed = JSON.parse(json);
     const lines: string[] = [];
-    walk(parsed?.root, lines);
+    const ctx = { blockCount: 0 };
+    walk(parsed?.root, lines, 0, ctx);
     return lines.join("\n").slice(0, 4000);
   } catch {
     return "";
   }
 }
 
-function walk(node: any, out: string[], depth = 0) {
+function walk(node: any, out: string[], depth: number, ctx: { blockCount: number }) {
   if (!node || typeof node !== "object") return;
-  // If this is a scriptz-* block, collect its text content as a single line.
+  if (depth > MAX_WALK_DEPTH) return;
+  if (ctx.blockCount >= MAX_BLOCKS) return;
   const t: string | undefined = node.type;
   if (typeof t === "string" && t.startsWith("scriptz-")) {
-    const text = collectText(node).trim();
+    ctx.blockCount++;
+    const text = collectText(node, 0, { textCount: 0 }).trim();
     if (text) out.push(text);
-    return; // don't double-walk
+    return;
   }
-  // Otherwise, recurse children
   const children = Array.isArray(node.children) ? node.children : null;
   if (children) {
-    for (const c of children) walk(c, out, depth + 1);
+    for (const c of children) walk(c, out, depth + 1, ctx);
   }
 }
 
-function collectText(node: any): string {
+function collectText(node: any, depth: number, ctx: { textCount: number }): string {
   if (!node || typeof node !== "object") return "";
-  if (typeof node.text === "string") return node.text;
+  if (depth > MAX_WALK_DEPTH) return "";
+  if (ctx.textCount >= MAX_TEXT_NODES_PER_BLOCK) return "";
+  if (typeof node.text === "string") {
+    ctx.textCount++;
+    return node.text;
+  }
   const children = Array.isArray(node.children) ? node.children : null;
   if (!children) return "";
   let s = "";
-  for (const c of children) s += collectText(c);
+  for (const c of children) s += collectText(c, depth + 1, ctx);
   return s;
 }

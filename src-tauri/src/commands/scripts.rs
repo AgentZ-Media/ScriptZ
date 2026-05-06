@@ -204,7 +204,7 @@ pub fn update_script(
     db: State<Db>,
     input: UpdateScriptInput,
 ) -> Result<ScriptSummary> {
-    let conn = db.conn()?;
+    let mut conn = db.conn()?;
     let now = now_ms();
     let exists: i64 = conn
         .query_row(
@@ -218,21 +218,27 @@ pub fn update_script(
     }
     let content_changed = input.content_json.is_some();
 
+    // Wrap all field-level UPDATEs in a single transaction so two
+    // concurrent saves can't interleave (e.g. content from save A landing
+    // between title + chars from save B). FTS5 refresh runs inside the
+    // same transaction so the index never points at a half-written row.
+    let tx = conn.transaction()?;
+
     if let Some(title) = &input.title {
-        conn.execute(
+        tx.execute(
             "UPDATE scripts SET title = ?1, updated_at = ?2 WHERE id = ?3",
             params![title, now, input.id],
         )?;
     }
     if let Some(hl) = &input.highlighting_enabled {
-        conn.execute(
+        tx.execute(
             "UPDATE scripts SET highlighting_enabled = ?1, updated_at = ?2 WHERE id = ?3",
             params![hl, now, input.id],
         )?;
     }
     if let Some(content_json) = &input.content_json {
         // Reconcile characters_meta against the new content.
-        let existing_meta: String = conn.query_row(
+        let existing_meta: String = tx.query_row(
             "SELECT characters_meta FROM scripts WHERE id = ?1",
             params![input.id],
             |r| r.get(0),
@@ -240,13 +246,13 @@ pub fn update_script(
         let existing = parse_chars_meta(&existing_meta);
         let chars = reconcile_chars_from_content(&existing, content_json);
         let chars_json = serialize_chars_meta(&chars);
-        conn.execute(
+        tx.execute(
             "UPDATE scripts SET content_json = ?1, characters_meta = ?2, updated_at = ?3 WHERE id = ?4",
             params![content_json, chars_json, now, input.id],
         )?;
     }
     if let Some(pc) = &input.page_count {
-        conn.execute(
+        tx.execute(
             "UPDATE scripts SET page_count = ?1 WHERE id = ?2",
             params![pc, input.id],
         )?;
@@ -254,12 +260,14 @@ pub fn update_script(
     if let Some(chars) = &input.characters {
         // Caller-supplied list (e.g. user edited a color) — overwrite directly.
         let chars_json = serialize_chars_meta(chars);
-        conn.execute(
+        tx.execute(
             "UPDATE scripts SET characters_meta = ?1, updated_at = ?2 WHERE id = ?3",
             params![chars_json, now, input.id],
         )?;
     }
-    refresh_fts(&conn, &input.id)?;
+    refresh_fts(&tx, &input.id)?;
+    tx.commit()?;
+
     let summary = row_to_summary(&conn, input.id.clone())?;
     drop(conn);
     if content_changed {
@@ -340,25 +348,31 @@ pub fn restore_script(db: State<Db>, id: String) -> Result<()> {
 
 #[tauri::command]
 pub fn purge_script(db: State<Db>, id: String) -> Result<()> {
-    let conn = db.conn()?;
-    conn.execute("DELETE FROM scripts WHERE id = ?1", params![id])?;
-    delete_script_fts(&conn, &id)?;
+    let mut conn = db.conn()?;
+    let tx = conn.transaction()?;
+    tx.execute("DELETE FROM scripts WHERE id = ?1", params![id])?;
+    delete_script_fts(&tx, &id)?;
+    tx.commit()?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn empty_trash(db: State<Db>) -> Result<()> {
-    let conn = db.conn()?;
-    let mut stmt = conn.prepare("SELECT id FROM scripts WHERE archived_at IS NOT NULL")?;
-    let ids: Vec<String> = stmt
-        .query_map([], |r| r.get::<_, String>(0))?
-        .filter_map(|r| r.ok())
-        .collect();
-    drop(stmt);
-    for id in ids {
-        conn.execute("DELETE FROM scripts WHERE id = ?1", params![id])?;
-        delete_script_fts(&conn, &id)?;
+    let mut conn = db.conn()?;
+    let ids: Vec<String> = {
+        let mut stmt = conn.prepare("SELECT id FROM scripts WHERE archived_at IS NOT NULL")?;
+        let rows: Vec<String> = stmt
+            .query_map([], |r| r.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+        rows
+    };
+    let tx = conn.transaction()?;
+    for id in &ids {
+        tx.execute("DELETE FROM scripts WHERE id = ?1", params![id])?;
+        delete_script_fts(&tx, id)?;
     }
+    tx.commit()?;
     Ok(())
 }
 

@@ -30,6 +30,18 @@ const SETTING_MODELS_CACHE: &str = "ai.models_cache";
 const SETTING_MODELS_CACHE_AT: &str = "ai.models_cache_at";
 
 const DEFAULT_MODEL_ID: &str = "google/gemini-3.1-flash-lite-preview";
+// Stable, production-grade models that all support OpenRouter's
+// structured-outputs (`response_format: json_schema`) requirement.
+// Tried in order if the user-selected model fails with a "model not
+// available / temporarily down" error. Conservatively scoped to
+// failures where retrying the same model wouldn't help (404 / 400 /
+// 5xx) — auth + quota errors propagate through unchanged so the user
+// sees a meaningful message instead of four duplicate 401s.
+const FALLBACK_MODEL_CHAIN: &[&str] = &[
+    "google/gemini-2.5-flash-lite",
+    "openai/gpt-4o-mini",
+    "anthropic/claude-haiku-4.5",
+];
 const MODELS_CACHE_TTL_MS: i64 = 24 * 60 * 60 * 1000;
 const MIN_WORD_COUNT_FOR_SUMMARY: usize = 30;
 const RE_SUMMARIZE_JACCARD_THRESHOLD: f32 = 0.5;
@@ -301,45 +313,76 @@ pub async fn ai_test_connection() -> Result<String> {
 /// throw away a usable summary just because the script grew.
 struct SummaryState {
     summary: Option<String>,
-    summary_source_text: Option<String>,
+    /// Deduped word-token set from the last successful summary's source.
+    /// Empty when no summary exists yet.
+    prev_tokens: std::collections::HashSet<String>,
     summary_generated_at: Option<i64>,
 }
 
+fn parse_tokens(raw: &str) -> std::collections::HashSet<String> {
+    raw.split(' ')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
+fn serialize_tokens(set: &std::collections::HashSet<String>) -> String {
+    // Order is not significant — it's a set comparison — but sorting
+    // keeps the on-disk representation stable for diffs/snapshots.
+    let mut v: Vec<&String> = set.iter().collect();
+    v.sort();
+    v.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" ")
+}
+
 fn read_summary_state(conn: &Connection, script_id: &str) -> Result<SummaryState> {
-    let row = conn
+    let row: Option<(Option<String>, Option<String>, Option<String>, Option<i64>)> = conn
         .query_row(
-            "SELECT summary, summary_source_text, summary_generated_at
+            "SELECT summary, summary_source_tokens, summary_source_text, summary_generated_at
              FROM scripts WHERE id = ?1",
             params![script_id],
-            |r| {
-                Ok(SummaryState {
-                    summary: r.get(0)?,
-                    summary_source_text: r.get(1)?,
-                    summary_generated_at: r.get(2)?,
-                })
-            },
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
         )
-        .optional()?
-        .unwrap_or(SummaryState {
+        .optional()?;
+    let Some((summary, tokens_raw, legacy_text, generated_at)) = row else {
+        return Ok(SummaryState {
             summary: None,
-            summary_source_text: None,
+            prev_tokens: std::collections::HashSet::new(),
             summary_generated_at: None,
         });
-    Ok(row)
+    };
+    // Prefer the compact tokens column. Fall back to the legacy
+    // `summary_source_text` (pre-v4 rows) by tokenising it on the fly —
+    // this keeps the cooldown state correct for one transitional save,
+    // after which write_summary will populate the new column and the
+    // legacy text is ignored.
+    let prev_tokens = if let Some(t) = tokens_raw {
+        parse_tokens(&t)
+    } else if let Some(text) = legacy_text {
+        word_token_set(&text)
+    } else {
+        std::collections::HashSet::new()
+    };
+    Ok(SummaryState {
+        summary,
+        prev_tokens,
+        summary_generated_at: generated_at,
+    })
 }
 
 fn write_summary(
     conn: &Connection,
     script_id: &str,
     summary: &str,
-    source_text: &str,
+    source_tokens: &std::collections::HashSet<String>,
     model: &str,
 ) -> Result<()> {
+    let tokens_str = serialize_tokens(source_tokens);
     conn.execute(
-        "UPDATE scripts SET summary = ?1, summary_source_text = ?2,
+        "UPDATE scripts SET summary = ?1, summary_source_tokens = ?2,
+                            summary_source_text = NULL,
                             summary_generated_at = ?3, summary_model = ?4
          WHERE id = ?5",
-        params![summary, source_text, now_ms(), model, script_id],
+        params![summary, tokens_str, now_ms(), model, script_id],
     )?;
     Ok(())
 }
@@ -366,9 +409,12 @@ enum Decision {
     Generate,
 }
 
-fn decide(state: &SummaryState, current_text: &str, force: bool) -> Decision {
-    let word_count = word_token_set(current_text).len();
-    if word_count < MIN_WORD_COUNT_FOR_SUMMARY && !force {
+fn decide(
+    state: &SummaryState,
+    curr_tokens: &std::collections::HashSet<String>,
+    force: bool,
+) -> Decision {
+    if curr_tokens.len() < MIN_WORD_COUNT_FOR_SUMMARY && !force {
         return Decision::Skip("zu wenig Inhalt");
     }
     if let Some(at) = state.summary_generated_at {
@@ -380,34 +426,39 @@ fn decide(state: &SummaryState, current_text: &str, force: bool) -> Decision {
     if force {
         return Decision::Generate;
     }
-    match (&state.summary, &state.summary_source_text) {
-        (Some(_), Some(prev)) => {
-            let prev_set = word_token_set(prev);
-            let curr_set = word_token_set(current_text);
-            let sim = jaccard_similarity(&prev_set, &curr_set);
-            if sim >= RE_SUMMARIZE_JACCARD_THRESHOLD {
-                Decision::Skip("kein wesentlicher Inhalt-Drift")
-            } else {
-                Decision::Generate
-            }
+    if state.summary.is_some() && !state.prev_tokens.is_empty() {
+        let sim = jaccard_similarity(&state.prev_tokens, curr_tokens);
+        if sim >= RE_SUMMARIZE_JACCARD_THRESHOLD {
+            return Decision::Skip("kein wesentlicher Inhalt-Drift");
         }
-        _ => Decision::Generate,
     }
+    Decision::Generate
 }
 
-async fn call_openrouter(
+/// Whether `status` indicates a "this specific model is unavailable" failure
+/// where falling back to a different model is sensible. Authentication,
+/// quota, and rate-limit errors are intentionally NOT in this set —
+/// retrying with another model wouldn't help and would just spam the user
+/// with duplicate failures.
+fn should_fallback_to_next_model(status: reqwest::StatusCode) -> bool {
+    matches!(
+        status.as_u16(),
+        // 400: provider rejected the request shape (often "model doesn't
+        //      support structured outputs" or "bad model id").
+        // 404: model not found / removed.
+        // 502/503/504: model temporarily down.
+        400 | 404 | 502 | 503 | 504
+    )
+}
+
+/// Single attempt at one specific model. Returns Ok(summary) on success,
+/// Err with the response status preserved as a string prefix so the
+/// outer fallback loop can decide whether to try the next candidate.
+async fn call_openrouter_once(
     api_key: &str,
     model_id: &str,
-    plain_text: &str,
-) -> Result<String> {
-    // Trim very long scripts to keep request size + cost predictable. Gemini
-    // 3.1 Flash Lite has a 1M ctx window so this is overkill for safety only.
-    let trimmed = if plain_text.chars().count() > 12_000 {
-        plain_text.chars().take(12_000).collect::<String>()
-    } else {
-        plain_text.to_string()
-    };
-
+    trimmed_input: &str,
+) -> std::result::Result<String, (Option<reqwest::StatusCode>, ScriptzError)> {
     let body = serde_json::json!({
         "model": model_id,
         "messages": [
@@ -415,7 +466,7 @@ async fn call_openrouter(
                 "role": "system",
                 "content": "Du fasst Drehbuch-Skripte (Sketch/TikTok) in EINEM prägnanten Satz zusammen. Maximal 12 Wörter. Antworte in der Sprache, in der das Skript geschrieben ist. Keine Anführungszeichen, kein Punkt am Ende, kein Vorwort wie 'Zusammenfassung:'. Antworte ausschließlich im geforderten JSON-Schema."
             },
-            { "role": "user", "content": trimmed }
+            { "role": "user", "content": trimmed_input }
         ],
         "response_format": {
             "type": "json_schema",
@@ -447,34 +498,106 @@ async fn call_openrouter(
         .header("X-Title", "ScriptZ")
         .json(&body)
         .send()
-        .await?;
+        .await
+        .map_err(|e| (None, ScriptzError::Http(e.to_string())))?;
     let status = resp.status();
     let text = resp.text().await.unwrap_or_default();
     if !status.is_success() {
-        return Err(ScriptzError::Ai(format!("OpenRouter {status}: {text}")));
+        return Err((
+            Some(status),
+            ScriptzError::Ai(format!("OpenRouter {status} ({model_id}): {text}")),
+        ));
     }
-    let v: serde_json::Value = serde_json::from_str(&text)?;
+    let v: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|e| (Some(status), ScriptzError::Json(e)))?;
     let content = v
         .get("choices")
         .and_then(|c| c.get(0))
         .and_then(|c| c.get("message"))
         .and_then(|m| m.get("content"))
         .and_then(|c| c.as_str())
-        .ok_or_else(|| ScriptzError::Ai("OpenRouter: leere Antwort".into()))?;
+        .ok_or_else(|| {
+            (
+                Some(status),
+                ScriptzError::Ai("OpenRouter: leere Antwort".into()),
+            )
+        })?;
     let parsed: serde_json::Value = serde_json::from_str(content)
-        .map_err(|e| ScriptzError::Ai(format!("kein gültiges JSON: {e}")))?;
+        .map_err(|e| (Some(status), ScriptzError::Ai(format!("kein gültiges JSON: {e}"))))?;
     let summary = parsed
         .get("summary")
         .and_then(|s| s.as_str())
-        .ok_or_else(|| ScriptzError::Ai("Feld 'summary' fehlt".into()))?
+        .ok_or_else(|| (Some(status), ScriptzError::Ai("Feld 'summary' fehlt".into())))?
         .trim()
         .trim_matches(|c| c == '"' || c == '\u{201C}' || c == '\u{201D}')
         .trim_end_matches('.')
         .to_string();
     if summary.is_empty() {
-        return Err(ScriptzError::Ai("Leere Zusammenfassung".into()));
+        return Err((Some(status), ScriptzError::Ai("Leere Zusammenfassung".into())));
     }
     Ok(summary)
+}
+
+/// Try the user's configured model first; if it fails with a status that
+/// suggests model-specific unavailability, walk down a stable fallback
+/// chain. Returns the summary plus the model-id that actually produced
+/// it (so we can record which model the cached source-tokens belong to).
+async fn call_openrouter(
+    api_key: &str,
+    primary_model_id: &str,
+    plain_text: &str,
+) -> Result<(String, String)> {
+    // Trim very long scripts to keep request size + cost predictable.
+    // Gemini's 1 M ctx is overkill; this is a safety bound.
+    let trimmed = if plain_text.chars().count() > 12_000 {
+        plain_text.chars().take(12_000).collect::<String>()
+    } else {
+        plain_text.to_string()
+    };
+
+    // Build the ordered candidate list: user's model first, then the
+    // production fallbacks (skipping the user's model if it duplicates
+    // an entry in the chain).
+    let mut tried: Vec<&str> = Vec::with_capacity(1 + FALLBACK_MODEL_CHAIN.len());
+    tried.push(primary_model_id);
+    for &m in FALLBACK_MODEL_CHAIN {
+        if m != primary_model_id {
+            tried.push(m);
+        }
+    }
+
+    let mut last_err: Option<ScriptzError> = None;
+    for (idx, model_id) in tried.iter().enumerate() {
+        match call_openrouter_once(api_key, model_id, &trimmed).await {
+            Ok(summary) => {
+                if idx > 0 {
+                    tracing::warn!(
+                        target: "ai",
+                        "primary model unavailable, fell back to {}",
+                        model_id
+                    );
+                }
+                return Ok((summary, (*model_id).to_string()));
+            }
+            Err((Some(status), err)) if should_fallback_to_next_model(status) => {
+                tracing::warn!(
+                    target: "ai",
+                    "model {} unavailable ({}), trying next fallback",
+                    model_id,
+                    status,
+                );
+                last_err = Some(err);
+                continue;
+            }
+            Err((_status, err)) => {
+                // Non-fallbackable failure (auth, quota, rate-limit,
+                // network error). Stop immediately so the user sees
+                // the real cause instead of N duplicate auth errors.
+                return Err(err);
+            }
+        }
+    }
+    Err(last_err.unwrap_or_else(|| ScriptzError::Ai("Alle Modelle nicht verfügbar".into())))
 }
 
 #[tauri::command]
@@ -492,7 +615,7 @@ async fn generate_summary_inner(
     force: bool,
 ) -> Result<Option<String>> {
     // Phase 1: read state + decide. All sync, no .await held over Connection.
-    let (decision, content_text, model_id, api_key) = {
+    let (decision, content_text, curr_tokens, model_id, api_key) = {
         let conn = db.conn()?;
         let enabled = read_setting(&conn, SETTING_ENABLED)?
             .map(|v| v == "1")
@@ -515,9 +638,10 @@ async fn generate_summary_inner(
             return Err(ScriptzError::NotFound(format!("script {script_id}")));
         };
         let plain = extract_plain_text(&content_json);
+        let curr_tokens = word_token_set(&plain);
         let state = read_summary_state(&conn, script_id)?;
-        let decision = decide(&state, &plain, force);
-        (decision, plain, model_id, key)
+        let decision = decide(&state, &curr_tokens, force);
+        (decision, plain, curr_tokens, model_id, key)
     };
 
     let plain = match decision {
@@ -534,11 +658,14 @@ async fn generate_summary_inner(
     let result = call_openrouter(&api_key, &model_id, &plain).await;
     release_inflight(script_id);
 
-    let summary = result?;
+    let (summary, used_model) = result?;
 
     {
         let conn = db.conn()?;
-        write_summary(&conn, script_id, &summary, &plain, &model_id)?;
+        // Record which model actually produced the summary — useful
+        // when the user later wonders why their selected model isn't
+        // in `summary_model`.
+        write_summary(&conn, script_id, &summary, &curr_tokens, &used_model)?;
     }
 
     Ok(Some(summary))

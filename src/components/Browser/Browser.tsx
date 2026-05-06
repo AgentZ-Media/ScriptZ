@@ -31,6 +31,12 @@ type ViewMode = "grid" | "list";
 
 const VIEW_STATE_KEY = "browser.view_mode";
 const RECENT_GRID_COUNT = 4;
+// Page size for the older-scripts list. We page in 200-script chunks so
+// the Browser stays snappy even with thousands of scripts on disk —
+// CLAUDE.md mentions ">80 cards virtualised" but the actual rendering
+// has always been a flat For. A LIMIT + "load more" button is the
+// minimum-viable scaling fix.
+const PAGE_SIZE = 200;
 
 export interface BrowserProps {
   onNewScript?: () => void;
@@ -75,10 +81,21 @@ export function Browser(props: BrowserProps = {}) {
   });
   onCleanup(() => debouncedSetSearch.cancel());
 
+  const [pageLimit, setPageLimit] = createSignal(PAGE_SIZE);
+
+  // Reset paging whenever the query changes — a search shouldn't inherit
+  // the last "load more" cursor from the unfiltered list.
+  createEffect(() => {
+    void debouncedSearch();
+    void sort();
+    setPageLimit(PAGE_SIZE);
+  });
+
   const queryKey = createMemo(() => ({
     query: debouncedSearch(),
     sort: sort(),
     version: scriptsBus.version(),
+    limit: pageLimit(),
   }));
 
   const [scripts] = createResource(
@@ -87,11 +104,18 @@ export function Browser(props: BrowserProps = {}) {
       api.listScripts({
         query: q.query || undefined,
         sort: q.sort,
+        limit: q.limit,
       }),
     { initialValue: [] },
   );
 
   const list = createMemo(() => scripts() ?? []);
+
+  // The backend doesn't return a total count — we infer "there's more"
+  // from the page being completely full. False positive on the boundary
+  // is fine; clicking "load more" then yields zero new entries.
+  const hasMore = createMemo(() => list().length >= pageLimit());
+
   const isSearching = createMemo(() => debouncedSearch().trim().length > 0);
 
   const recent = createMemo(() => {
@@ -360,8 +384,18 @@ export function Browser(props: BrowserProps = {}) {
 
               <Show when={list().length > 0}>
                 <div class="browser-footer muted small">
-                  {list().length}{" "}
-                  {list().length === 1 ? "Skript" : "Skripte"}
+                  <span>
+                    {list().length}{" "}
+                    {list().length === 1 ? "Skript" : "Skripte"}
+                  </span>
+                  <Show when={hasMore()}>
+                    <button
+                      class="btn btn-ghost browser-load-more"
+                      onClick={() => setPageLimit((n) => n + PAGE_SIZE)}
+                    >
+                      {PAGE_SIZE} weitere laden
+                    </button>
+                  </Show>
                 </div>
               </Show>
             </Show>

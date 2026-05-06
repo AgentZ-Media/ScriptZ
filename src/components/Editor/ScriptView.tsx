@@ -12,6 +12,7 @@ import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
 import { settingsStore } from "~/stores/settings";
 import { pushToast } from "~/stores/toasts";
+import { scriptsBus } from "~/lib/scriptsBus";
 import { SnapshotsDialog } from "./SnapshotsDialog";
 import type { ScriptCharacter } from "~/lib/types";
 import "./PaperLayout.css";
@@ -23,14 +24,27 @@ export interface ScriptViewProps {
 const QUICK_MODE_KEY = (id: string) => `script.${id}.quick_mode`;
 
 export function ScriptView(props: ScriptViewProps) {
-  const [script] = createResource(
-    () => props.scriptId,
-    (id) => api.getScript(id),
+  // Refetch on scriptsBus bumps too — toggling the highlight from the
+  // TabBar updates the DB and bumps the bus, but without this dependency
+  // the editor would keep reading the stale highlighting_enabled value
+  // and the on-screen tinting wouldn't react.
+  // The Editor itself is keyed on s().id (Show keyed) so a refetch with
+  // unchanged id does NOT remount it; only the reactive props (highlighting,
+  // characters) re-evaluate, which is what we want.
+  const [script, { mutate: setScript }] = createResource(
+    () => ({ id: props.scriptId, v: scriptsBus.version() }),
+    ({ id }) => api.getScript(id),
   );
   const [pageCount, setPageCount] = createSignal(1);
   const [currentPage, setCurrentPage] = createSignal(1);
   const [saving, setSaving] = createSignal(false);
   const [snapshotsOpen, setSnapshotsOpen] = createSignal(false);
+  // Set when initialContentJson can't be parsed by Lexical. We deliberately
+  // suspend the editor (and its auto-save loop) so we don't overwrite the
+  // user's broken-but-present content_json with an empty state — see H1
+  // in the production audit for the rationale.
+  const [parseError, setParseError] = createSignal<string | null>(null);
+  const [recovering, setRecovering] = createSignal(false);
 
   // Quick-mode toggle: enabled only while the script has exactly two
   // characters. The per-script app_state key holds the writer's manual
@@ -53,9 +67,12 @@ export function ScriptView(props: ScriptViewProps) {
 
   let canvasRef: HTMLDivElement | undefined;
 
-  // Highlighting resolution: per-script override > global default
+  // Highlighting resolution: per-script override > global default.
+  // Read `.latest` so a scriptsBus-driven refetch (e.g. highlight toggle)
+  // doesn't throw to the parent Suspense and tear the editor out of the
+  // tree — the previous value stays accessible while the new one loads.
   const highlightingOn = () => {
-    const s = script();
+    const s = script.latest;
     if (!s) return false;
     if (s.highlighting_enabled === 1) return true;
     if (s.highlighting_enabled === 0) return false;
@@ -84,16 +101,81 @@ export function ScriptView(props: ScriptViewProps) {
 
   // Sync the script tab's title back to tab store
   createEffect(() => {
-    const s = script();
+    const s = script.latest;
     if (s) tabsStore.setScriptTitle(s.id, s.title);
   });
 
   // Seed liveChars from the initial server fetch so the toggle reflects the
   // real state before any save round-trip has run.
   createEffect(() => {
-    const s = script();
+    const s = script.latest;
     if (s) setLiveChars(s.characters);
   });
+
+  // Reset recovery state when the script id changes — the previous tab's
+  // parse error doesn't carry over to a different script.
+  createEffect(() => {
+    void props.scriptId;
+    setParseError(null);
+  });
+
+  // Replace the broken content_json with a fresh empty Lexical state.
+  // Snapshots up to this point still hold the original JSON via the
+  // automatic auto-snapshot loop, so the writer can roll back if they
+  // change their mind.
+  const onResetToEmpty = async () => {
+    if (recovering()) return;
+    setRecovering(true);
+    try {
+      // Take a manual snapshot of the current (broken) JSON before we
+      // overwrite — the user's last reachable safety net. This works
+      // because createSnapshot reads content_json from the DB, which
+      // still holds the broken-but-original state.
+      try {
+        await api.createSnapshot(props.scriptId, "manual");
+      } catch (err) {
+        console.warn("[scriptz] pre-recovery snapshot failed", err);
+      }
+      const empty = JSON.stringify({
+        root: {
+          type: "root",
+          version: 1,
+          direction: null,
+          format: "",
+          indent: 0,
+          children: [
+            {
+              type: "scriptz-character",
+              version: 1,
+              characterName: "",
+              direction: null,
+              format: "",
+              indent: 0,
+              children: [],
+            },
+          ],
+        },
+      });
+      const updated = await api.updateScript({
+        id: props.scriptId,
+        contentJson: empty,
+        pageCount: 1,
+      });
+      // Re-fetch the script so the editor mounts with fresh JSON.
+      const fresh = await api.getScript(props.scriptId);
+      setScript(fresh);
+      setLiveChars(updated.characters ?? []);
+      setParseError(null);
+      pushToast(
+        "Skript zurückgesetzt. Snapshot des alten Inhalts liegt im Verlauf.",
+        "ok",
+      );
+    } catch (err) {
+      pushToast(`Reset fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+    } finally {
+      setRecovering(false);
+    }
+  };
 
   // Load the per-script manual override on script change. Absent key →
   // null (= follow global auto rule); explicit "1"/"0" → user override.
@@ -150,7 +232,13 @@ export function ScriptView(props: ScriptViewProps) {
 
   return (
     <div class="script-shell">
-      <Show when={script()} fallback={<div style="padding: 40px;">Lade…</div>}>
+      {/* `script.latest` keeps returning the previously-resolved value
+          during a refetch (e.g. after the highlight toggle bumps
+          scriptsBus). Reading `script()` instead would throw the
+          fetch-in-flight promise up to the Suspense boundary in App,
+          which then yanks the editor out and re-mounts it on resolve —
+          producing the visible flash the user reported. */}
+      <Show when={script.latest} fallback={<div style="padding: 40px;">Lade…</div>}>
         {(s) => (
           <>
             <button
@@ -211,19 +299,32 @@ export function ScriptView(props: ScriptViewProps) {
                     the previous script's content and persist it to the
                     newly-active scriptId on the next save). */}
                 <div class="paper-editor-overlay">
-                  <Show when={s().id} keyed>
-                    {(scriptId) => (
-                      <Editor
-                        scriptId={scriptId}
-                        initialContentJson={s().content_json}
-                        characters={s().characters}
-                        highlighting={highlightingOn()}
-                        quickModeEnabled={() => quickMode()}
-                        onPageCountChange={setPageCount}
-                        onSavingChange={setSaving}
-                        onCharactersChange={setLiveChars}
+                  <Show
+                    when={!parseError()}
+                    fallback={
+                      <RecoveryPanel
+                        broken={parseError() ?? ""}
+                        onOpenSnapshots={() => setSnapshotsOpen(true)}
+                        onReset={() => void onResetToEmpty()}
+                        resetting={recovering()}
                       />
-                    )}
+                    }
+                  >
+                    <Show when={s().id} keyed>
+                      {(scriptId) => (
+                        <Editor
+                          scriptId={scriptId}
+                          initialContentJson={s().content_json}
+                          characters={s().characters}
+                          highlighting={highlightingOn()}
+                          quickModeEnabled={() => quickMode()}
+                          onPageCountChange={setPageCount}
+                          onSavingChange={setSaving}
+                          onCharactersChange={setLiveChars}
+                          onParseError={(raw) => setParseError(raw)}
+                        />
+                      )}
+                    </Show>
                   </Show>
                 </div>
               </div>
@@ -247,6 +348,45 @@ export function ScriptView(props: ScriptViewProps) {
           </>
         )}
       </Show>
+    </div>
+  );
+}
+
+function RecoveryPanel(props: {
+  broken: string;
+  onOpenSnapshots: () => void;
+  onReset: () => void;
+  resetting: boolean;
+}) {
+  return (
+    <div class="recovery-panel" role="alert">
+      <h3 class="recovery-title">Skript-Inhalt nicht lesbar</h3>
+      <p class="recovery-body">
+        Die gespeicherte Struktur dieses Skripts konnte nicht geladen werden.
+        Damit dein Inhalt nicht durch eine leere Version überschrieben wird,
+        ist der Editor pausiert.
+      </p>
+      <p class="recovery-body muted small">
+        Empfohlen: Öffne den Snapshot-Verlauf und stelle eine ältere Version
+        wieder her — dort liegt der Inhalt aller bisherigen Auto-Snapshots.
+      </p>
+      <div class="recovery-actions">
+        <button class="btn btn-primary" onClick={props.onOpenSnapshots}>
+          Snapshots öffnen
+        </button>
+        <button
+          class="btn btn-danger"
+          onClick={props.onReset}
+          disabled={props.resetting}
+          title="Aktuelle (defekte) Version als Snapshot sichern und mit leerem Skript fortfahren"
+        >
+          {props.resetting ? "Setze zurück…" : "Trotzdem leer fortfahren"}
+        </button>
+      </div>
+      <details class="recovery-details">
+        <summary>Technische Info</summary>
+        <pre class="recovery-raw">{props.broken.slice(0, 4000)}</pre>
+      </details>
     </div>
   );
 }

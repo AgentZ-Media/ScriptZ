@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.0-e0791f?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/version-0.3.1-e0791f?style=flat-square" alt="version" />
   <img src="https://img.shields.io/badge/platform-macOS-e0791f?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Apple_Silicon-native-e0791f?style=flat-square" alt="Apple Silicon" />
   <img src="https://img.shields.io/badge/storage-local_only-e0791f?style=flat-square" alt="local-only" />
@@ -47,6 +47,7 @@ App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Tel
 - **Intelligente Autovervollständigung**: tippst du `A`, ist `AXEL` markiert — Enter akzeptiert.
 - **Bigramm-Vorhersage** für die nächste Sprecher-Zeile: Dropdown highlightet vor, wer als Nächstes laut Gesprächsverlauf dran ist.
 - **Quick-Modus** für Dialog-Sketches mit zwei Personen: Enter im Dialog → der andere Charakter wird automatisch eingefügt.
+- **Live-Highlight-Toggle** in der Titelleiste — schaltet die Charakter-Farben pro Skript an/aus, identisch zur PDF/Print-Darstellung (per-Zeile tight Pills, nicht block-breit).
 
 ### Echte A4-Pagination im Editor
 

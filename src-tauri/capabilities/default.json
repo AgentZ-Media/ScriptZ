@@ -10,6 +10,7 @@
     "core:window:allow-hide",
     "core:window:allow-set-focus",
     "core:window:allow-close",
+    "core:window:allow-destroy",
     "core:webview:default",
     "core:webview:allow-print",
     "global-shortcut:default",
@@ -34,7 +35,13 @@
     },
     {
       "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "**" }]
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "/Volumes/**" }
+      ]
     }
   ]
 }

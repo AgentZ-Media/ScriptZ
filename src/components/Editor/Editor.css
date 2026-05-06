@@ -123,15 +123,21 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Highlighting: when on, paint character/dialog/parenthetical with the
-   per-character tint set as inline custom prop `--char-tint`. The
-   tint is applied directly on the block element by the highlighting
-   plugin; default is transparent so no styling shows when off. */
-.editor-root[data-highlighting="on"] .block-scriptz-character,
-.editor-root[data-highlighting="on"] .block-scriptz-dialog,
-.editor-root[data-highlighting="on"] .block-scriptz-parenthetical {
+/* Highlighting: when on, paint character/dialog/parenthetical text with
+   the per-character tint set as `--char-tint` on the block by the
+   highlight plugin. The bg is applied to the inner text-span (Lexical
+   wraps every text node in `<span data-lexical-text="true">`) with
+   `box-decoration-break: clone` so multi-line text gets per-line pills
+   that hug the actual text — same look as the PDF / print output, not
+   a full block-wide bar. */
+.editor-root[data-highlighting="on"] .block-scriptz-character > span[data-lexical-text],
+.editor-root[data-highlighting="on"] .block-scriptz-dialog > span[data-lexical-text],
+.editor-root[data-highlighting="on"] .block-scriptz-parenthetical > span[data-lexical-text] {
   background: var(--char-tint, var(--char-tint-default));
-  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 /* Selection on paper */

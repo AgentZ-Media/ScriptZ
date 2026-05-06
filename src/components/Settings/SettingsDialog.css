@@ -54,6 +54,16 @@
 }
 
 /* ---- AI section ---- */
+.ai-cost-line {
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.ai-model-item-cost {
+  margin-top: 2px;
+  font-size: var(--fs-11);
+  font-variant-numeric: tabular-nums;
+}
+
 .ai-key-row {
   display: flex;
   flex-wrap: wrap;

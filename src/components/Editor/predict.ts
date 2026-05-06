@@ -49,24 +49,27 @@ export function collectSpeakerSequence(): string[] {
   return out;
 }
 
-/** Pick the most plausible next speaker. Bigram score (how often Y
- * followed `prev`) is primary; LRU (smallest last-position wins, i.e.
- * least recently spoken) breaks ties. `prev` may be null on the first
- * character of a fresh script — then bigram has no signal and pure LRU
- * over the candidate list applies. Returns null if no candidate qualifies
- * (only one character defined or zero). */
-export function predictNextSpeaker(
+/** Rank all candidates by "who is most likely to speak next given the
+ * previous speaker". Used both for the highlight (top entry) and for
+ * sorting the autocomplete dropdown so the visual order matches the
+ * prediction — second-most-likely is row 2, etc.
+ *
+ *   1. Drop the previous speaker from the head of the ranking (avoids
+ *      the dropdown suggesting "A → A" right after A spoke). They
+ *      rejoin at the tail so the user can still pick them if they
+ *      really want.
+ *   2. Within the remaining candidates: bigram score (how often Y has
+ *      historically followed `prev`) descending, LRU (least recently
+ *      spoken) ascending as a tiebreaker. Never-spoken characters get
+ *      LRU = -1 so they rotate in before any previously-used one when
+ *      bigram scores tie.
+ */
+export function rankNextSpeakers(
   prev: string | null,
   candidates: ScriptCharacter[],
-): ScriptCharacter | null {
-  if (candidates.length === 0) return null;
+): ScriptCharacter[] {
+  if (candidates.length === 0) return [];
   const prevUpper = (prev ?? "").toUpperCase();
-  const others = candidates.filter(
-    (c) => c.name.toUpperCase() !== prevUpper,
-  );
-  if (others.length === 0) return null;
-  if (others.length === 1) return others[0];
-
   const sequence = collectSpeakerSequence();
 
   const bigram = new Map<string, number>();
@@ -81,21 +84,36 @@ export function predictNextSpeaker(
   const lru = new Map<string, number>();
   for (let i = 0; i < sequence.length; i++) lru.set(sequence[i], i);
 
-  let best: ScriptCharacter | null = null;
-  let bestBg = -1;
-  let bestLru = Number.POSITIVE_INFINITY;
-  for (const c of others) {
-    const u = c.name.toUpperCase();
-    const bg = bigram.get(u) ?? 0;
-    // Never spoken → treat as oldest (-1) so a fresh character rotates
-    // in before any previously-used one when scores are otherwise tied.
-    const lr = lru.get(u) ?? -1;
-    const better = bg > bestBg || (bg === bestBg && lr < bestLru);
-    if (better) {
-      best = c;
-      bestBg = bg;
-      bestLru = lr;
-    }
-  }
-  return best;
+  const others = candidates.filter((c) => c.name.toUpperCase() !== prevUpper);
+  const self = candidates.filter((c) => c.name.toUpperCase() === prevUpper);
+
+  others.sort((a, b) => {
+    const ua = a.name.toUpperCase();
+    const ub = b.name.toUpperCase();
+    const bgA = bigram.get(ua) ?? 0;
+    const bgB = bigram.get(ub) ?? 0;
+    if (bgA !== bgB) return bgB - bgA;
+    const lruA = lru.get(ua) ?? -1;
+    const lruB = lru.get(ub) ?? -1;
+    if (lruA !== lruB) return lruA - lruB;
+    return ua.localeCompare(ub);
+  });
+
+  return [...others, ...self];
+}
+
+/** Pick the single most plausible next speaker. Convenience wrapper —
+ * shares the ranking logic, just returns the head (or null if the only
+ * remaining candidate is the previous speaker). */
+export function predictNextSpeaker(
+  prev: string | null,
+  candidates: ScriptCharacter[],
+): ScriptCharacter | null {
+  if (candidates.length === 0) return null;
+  const prevUpper = (prev ?? "").toUpperCase();
+  const ranked = rankNextSpeakers(prev, candidates);
+  // Skip past the previous speaker (rankNextSpeakers keeps them at the
+  // tail) — the predicted "next" must not be the one who just spoke.
+  const head = ranked.find((c) => c.name.toUpperCase() !== prevUpper);
+  return head ?? null;
 }

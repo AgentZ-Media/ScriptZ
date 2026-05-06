@@ -15,7 +15,7 @@ import {
   type ScriptzCharacterNode,
 } from "../nodes";
 import {
-  predictNextSpeaker,
+  rankNextSpeakers,
   previousCharacterFrom,
 } from "../predict";
 import type { ScriptCharacter } from "../../../lib/types";
@@ -50,12 +50,17 @@ export function installCharacterDropdown(
   // freshly-typed name is committed when the cursor leaves the block.
   const [activeIdx, setActiveIdx] = createSignal(-1);
   const [activeKey, setActiveKey] = createSignal<string | null>(null);
+  // Computed once per update from inside `editor.read()` (we need access
+  // to `previousCharacterFrom` which walks Lexical state). Holds the
+  // characters in predict-ranked order: most-likely-next-speaker first,
+  // previous speaker pushed to the tail.
+  const [rankedList, setRankedList] = createSignal<ScriptCharacter[]>([]);
 
   const filteredEntries = (): ScriptCharacter[] => {
     const q = filter().trim().toUpperCase();
-    const all = getArgs().scriptCharacters();
-    if (!q) return all;
-    return all.filter((e) => e.name.toUpperCase().includes(q));
+    const list = rankedList();
+    if (!q) return list;
+    return list.filter((e) => e.name.toUpperCase().includes(q));
   };
 
   const positionFromCursor = (nodeKey: string | null): { x: number; y: number } => {
@@ -177,7 +182,8 @@ export function installCharacterDropdown(
   const teardownUpdate = editor.registerUpdateListener(({ editorState }) => {
     let nodeKey: string | null = null;
     let text = "";
-    let predictedName: string | null = null;
+    let ranked: ScriptCharacter[] = [];
+    let prevSpeakerUpper: string | null = null;
     editorState.read(() => {
       const sel = $getSelection();
       if (!$isRangeSelection(sel)) return;
@@ -185,16 +191,13 @@ export function installCharacterDropdown(
       if (!charNode) return;
       nodeKey = charNode.getKey();
       text = charNode.getTextContent();
-      // For an empty Character block, predict who is most likely to speak
-      // next given the previous speaker (bigram + LRU). The dropdown
-      // pre-highlights this candidate so Enter accepts it without the
-      // writer typing anything. Independent of Quick mode.
-      if (text.trim().length === 0) {
-        const prev = previousCharacterFrom(charNode);
-        const candidates = getArgs().scriptCharacters();
-        const guess = predictNextSpeaker(prev, candidates);
-        predictedName = guess?.name.toUpperCase() ?? null;
-      }
+      // Sort the autocomplete entries by likelihood-of-being-next-speaker
+      // so the visual order matches the prediction (top entry = most
+      // likely, previous speaker pushed to the tail).
+      const prev = previousCharacterFrom(charNode);
+      prevSpeakerUpper = prev ? prev.toUpperCase() : null;
+      const candidates = getArgs().scriptCharacters();
+      ranked = rankNextSpeakers(prev, candidates);
     });
 
     if (!nodeKey) {
@@ -204,23 +207,28 @@ export function installCharacterDropdown(
 
     setActiveKey(nodeKey);
     setFilter(text);
+    setRankedList(ranked);
     setPos(positionFromCursor(nodeKey));
 
     // Highlight resolution:
-    //  - typed prefix → first matching entry (existing behaviour)
-    //  - empty + prediction → the predicted entry
-    //  - otherwise → -1 (Enter falls through to smartEnter)
+    //  - typed prefix → first matching entry (filtered list is still in
+    //    predict order, so this is also the most plausible match).
+    //  - empty + the top-ranked entry is a "real" next speaker
+    //    suggestion (i.e. not just the previous speaker because no one
+    //    else exists) → highlight it so Enter accepts.
+    //  - otherwise → -1, so Enter falls through to smartEnter and
+    //    advances to a fresh Dialog block instead of picking a name.
     const trimmed = text.trim();
     const list = filteredEntries();
-    if (trimmed.length > 0 && list.length > 0) {
-      setActiveIdx(0);
-    } else if (predictedName && list.length > 0) {
-      const idx = list.findIndex(
-        (e) => e.name.toUpperCase() === predictedName,
-      );
-      setActiveIdx(idx >= 0 ? idx : -1);
-    } else {
+    if (list.length === 0) {
       setActiveIdx(-1);
+    } else if (trimmed.length > 0) {
+      setActiveIdx(0);
+    } else {
+      const top = list[0];
+      const isRealSuggestion =
+        top != null && top.name.toUpperCase() !== prevSpeakerUpper;
+      setActiveIdx(isRealSuggestion ? 0 : -1);
     }
     setOpen(true);
   });

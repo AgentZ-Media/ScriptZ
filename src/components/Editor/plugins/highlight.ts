@@ -1,0 +1,107 @@
+// Per-character tint for Charakter / Dialog / Parenthetical blocks.
+//
+// CLAUDE.md is strict about not mutating Lexical text-node state during
+// keystrokes — but applying a CSS custom property on the rendered DOM
+// element (no Lexical state changes, no transforms) is safe. This plugin
+// runs after every reconcile and writes `--char-tint` onto the DOM
+// element of any block whose effective speaker has a known palette
+// colour. The Editor.css rule paints `background: var(--char-tint, …)`
+// when `data-highlighting="on"` is set on the editor root.
+//
+// PDF and Print already do the equivalent walk in Rust + HTML-string
+// templating (see export.rs / print.ts). This brings the live editor
+// in line with the rendered output the user sees on save/share.
+
+import type { LexicalEditor } from "lexical";
+import { $getRoot } from "lexical";
+import { $isScriptzCharacterNode } from "../nodes";
+import type { ScriptCharacter } from "../../../lib/types";
+
+const TINT_BLOCKS = new Set([
+  "scriptz-character",
+  "scriptz-dialog",
+  "scriptz-parenthetical",
+]);
+
+/** Convert "#rrggbb" plus an alpha factor (0..1) into a "rgb(r,g,b)"
+ * blended toward white — matches the formula used by print.ts and
+ * export.rs so editor / print / PDF tints look identical. */
+function hexToTint(hex: string, alpha: number): string {
+  const s = hex.replace("#", "");
+  if (s.length !== 6) return "";
+  const r = parseInt(s.slice(0, 2), 16);
+  const g = parseInt(s.slice(2, 4), 16);
+  const b = parseInt(s.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "";
+  const mix = (c: number) => Math.round(255 - (255 - c) * alpha);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+export function installHighlight(
+  editor: LexicalEditor,
+  getCharacters: () => ScriptCharacter[],
+): () => void {
+  let lastApplied = new WeakMap<HTMLElement, string>();
+
+  const apply = () => {
+    const chars = getCharacters();
+    // Build the lookup map even when empty so we can clear stale tints
+    // (case: a character was renamed/deleted — its dialog blocks should
+    // lose the colour rather than keep the previous value).
+    const colorByName = new Map<string, string>();
+    for (const c of chars) {
+      colorByName.set(c.name.toUpperCase(), c.color);
+    }
+
+    editor.getEditorState().read(() => {
+      const root = $getRoot();
+      let currentName: string | null = null;
+      for (const child of root.getChildren()) {
+        const type = child.getType();
+        if ($isScriptzCharacterNode(child)) {
+          const name = child.getTextContent().trim().toUpperCase();
+          currentName = name || null;
+        } else if (type !== "scriptz-dialog" && type !== "scriptz-parenthetical") {
+          // Any non-dialogue block resets the speaker context. (Action,
+          // Camera, Caption, SFX between two character runs shouldn't
+          // inherit the previous speaker's tint.)
+          currentName = null;
+        }
+        if (!TINT_BLOCKS.has(type)) continue;
+        const dom = editor.getElementByKey(child.getKey()) as HTMLElement | null;
+        if (!dom) continue;
+
+        let speaker: string | null = null;
+        if ($isScriptzCharacterNode(child)) {
+          const own = child.getTextContent().trim().toUpperCase();
+          speaker = own || null;
+        } else {
+          speaker = currentName;
+        }
+        const color = speaker ? colorByName.get(speaker) ?? null : null;
+        const next = color ? hexToTint(color, 0.28) : "";
+        const prev = lastApplied.get(dom) ?? "";
+        if (next === prev) continue;
+        if (next) {
+          dom.style.setProperty("--char-tint", next);
+        } else {
+          dom.style.removeProperty("--char-tint");
+        }
+        lastApplied.set(dom, next);
+      }
+    });
+  };
+
+  // Initial pass after mount — give Lexical a frame to render the DOM.
+  const raf = requestAnimationFrame(apply);
+  const teardownUpdate = editor.registerUpdateListener(() => {
+    apply();
+  });
+
+  return () => {
+    cancelAnimationFrame(raf);
+    teardownUpdate();
+    // Drop refs so GC can reclaim DOM nodes once detached.
+    lastApplied = new WeakMap();
+  };
+}

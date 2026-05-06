@@ -25,6 +25,16 @@
   align-items: center;
   padding: var(--sp-5) var(--sp-5) var(--sp-9);
   scroll-padding-top: 60px;
+  /* Word-style affordance: the entire paper area looks editable, so
+     the I-beam cursor signals that a click anywhere will land the
+     caret somewhere sensible. Buttons and toggles override this with
+     their own cursor declarations (pointer/not-allowed). */
+  cursor: text;
+}
+.paper-canvas .paper-page-bg,
+.paper-canvas .paper-stack,
+.paper-canvas .paper-editor-overlay {
+  cursor: text;
 }
 
 /* ---- Paper stack -----------------------------------------------------
@@ -197,4 +207,63 @@
 /* The script-shell needs a positioning context for the floating toggle. */
 .script-shell {
   position: relative;
+}
+
+/* ---- Recovery panel -------------------------------------------------
+   Shown in place of the editor when content_json fails to parse. The
+   editor stays unmounted (so auto-save doesn't overwrite the broken
+   data) until the writer either restores from a snapshot or accepts a
+   fresh empty start. */
+.recovery-panel {
+  width: var(--paper-content-w);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: var(--sp-6);
+  background: var(--paper-bg);
+  color: var(--paper-fg);
+  border-radius: var(--r-3);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-paper);
+  font-family: var(--font-sans);
+  /* Recovery view isn't editable — restore the regular pointer so the
+     I-beam from `.paper-canvas` doesn't suggest typing is possible. */
+  cursor: default;
+}
+.recovery-title {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--status-err, var(--brand-500));
+}
+.recovery-body {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+.recovery-actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  flex-wrap: wrap;
+}
+.recovery-details {
+  margin-top: var(--sp-5);
+  font-size: var(--fs-12);
+  color: var(--fg-muted);
+}
+.recovery-details summary {
+  cursor: pointer;
+  user-select: none;
+}
+.recovery-raw {
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--bg-elev-1);
+  border-radius: var(--r-2);
+  max-height: 240px;
+  overflow: auto;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-11);
+  white-space: pre-wrap;
+  word-break: break-all;
 }

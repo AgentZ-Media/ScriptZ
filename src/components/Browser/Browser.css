@@ -478,7 +478,25 @@
 /* ---- Footer ---- */
 .browser-footer {
   margin-top: var(--sp-6);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+.browser-load-more {
+  font-size: var(--fs-12);
+  padding: 4px 10px;
+  border-radius: var(--r-2);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.browser-load-more:hover {
+  background: var(--bg-elev-1);
+  color: var(--fg);
+  border-color: var(--border-strong);
 }
 
 /* ---- Welcome / empty ---- */

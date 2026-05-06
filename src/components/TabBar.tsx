@@ -23,6 +23,8 @@ export interface TabBarProps {
   onOpenSettings?: () => void;
   onOpenExport?: () => void;
   onPrint?: () => void;
+  onToggleHighlight?: () => void;
+  highlightOn?: () => boolean;
 }
 
 /**
@@ -284,6 +286,20 @@ export function TabBar(props: TabBarProps) {
         <Show when={showCenterPill()}>
           <button
             class="titlebar-action"
+            classList={{ "is-on": !!props.highlightOn?.() }}
+            aria-label="Charakter-Highlighting umschalten"
+            aria-pressed={!!props.highlightOn?.()}
+            title={
+              props.highlightOn?.()
+                ? "Charakter-Highlighting aus"
+                : "Charakter-Highlighting an"
+            }
+            onClick={() => props.onToggleHighlight?.()}
+          >
+            <HighlightIcon />
+          </button>
+          <button
+            class="titlebar-action"
             aria-label="Drucken"
             title="Drucken (⌘P)"
             onClick={() => props.onPrint?.()}
@@ -309,6 +325,18 @@ export function TabBar(props: TabBarProps) {
         </button>
       </div>
     </header>
+  );
+}
+
+function HighlightIcon() {
+  // Three small filled circles in three palette accents — communicates
+  // "character highlighting" at a glance without needing text.
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="6" cy="12" r="3.2" fill="#e0791f" />
+      <circle cx="12" cy="12" r="3.2" fill="#3a8ed4" />
+      <circle cx="18" cy="12" r="3.2" fill="#7a4ad4" />
+    </svg>
   );
 }
 
