@@ -1,7 +1,7 @@
 /* =========================================================================
    ScriptZ — script-shell + paper canvas.
    Parchment desk surrounding a white paper sheet with subtle shadow.
-   Char pillbar at the top, status strip at the bottom.
+   Status strip at the bottom.
    ========================================================================= */
 
 .script-shell {
@@ -11,56 +11,6 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
-}
-
-/* ---- Char pill bar ----
-   Centered row of rounded character pills with colored dots. Sticky
-   at the top of the script. */
-.script-pillbar {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: var(--sp-4) var(--sp-5) var(--sp-3);
-  flex-wrap: wrap;
-  background: linear-gradient(to bottom, var(--bg) 65%, transparent);
-  pointer-events: auto;
-  min-height: 38px;
-}
-
-.script-pillbar .char-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 14px;
-  border-radius: var(--r-pill);
-  background: var(--bg-elev-1);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  font-size: var(--fs-11);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: 1px solid var(--border);
-  cursor: default;
-  transition: background var(--t-fast), border-color var(--t-fast),
-    transform var(--t-fast);
-}
-.script-pillbar .char-pill:hover {
-  background: var(--bg-elev-2);
-  border-color: var(--border-strong);
-}
-.script-pillbar .char-pill-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.script-pillbar .char-pill-label {
-  line-height: 1;
 }
 
 /* ---- Paper canvas ---------------------------------------------------- */
@@ -73,7 +23,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--sp-3) var(--sp-5) var(--sp-9);
+  padding: var(--sp-5) var(--sp-5) var(--sp-9);
   scroll-padding-top: 60px;
 }
 
@@ -84,10 +34,13 @@
   flex-direction: column;
 }
 
+/* The main sheet hugs its content. Only ghost placeholders enforce a
+   full A4 height — that way a short script's paper has a visible
+   bottom edge inside the viewport, while multi-page documents still
+   show the next page as a recognizable A4 placeholder. */
 .paper-sheet {
   position: relative;
   width: var(--paper-w);
-  min-height: var(--paper-h);
   background: var(--paper-bg);
   color: var(--paper-fg);
   border-radius: var(--r-4);
@@ -125,13 +78,18 @@
   text-transform: lowercase;
 }
 
-/* Ghost sheets (preview placeholders) */
+/* Ghost sheets — visual placeholders for additional pages. They
+   intentionally stay full A4 so the document feels paginated. */
 .paper-sheet.ghost {
+  min-height: var(--paper-h);
   opacity: 0.5;
   pointer-events: none;
 }
 
-/* ---- Status strip at the bottom -------------------------------------- */
+/* ---- Status strip at the bottom --------------------------------------
+   Solid cream background — the paper slides cleanly under it instead of
+   bleeding through a fading gradient. The hairline border establishes a
+   clear horizon between paper area and chrome. */
 .script-status {
   position: sticky;
   bottom: 0;
@@ -143,9 +101,10 @@
   font-family: var(--font-sans);
   font-size: var(--fs-12);
   color: var(--fg-muted);
-  background: linear-gradient(to top, var(--bg) 75%, transparent);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
   user-select: none;
-  border-top: 1px solid transparent;
+  flex-shrink: 0;
 }
 
 .script-status .saving-indicator {

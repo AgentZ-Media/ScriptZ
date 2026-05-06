@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - '!v*.*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build macOS (Apple Silicon)
+    # Pin to macos-26 (Tahoe) so the SDK matches what users see locally
+    # on Tahoe — the Sequoia SDK shifts the traffic-light cluster a few
+    # pixels and the chrome stops looking pixel-identical to `pnpm
+    # tauri dev`. macos-26 has been GA on GitHub-hosted runners since
+    # 2026-02-26.
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tauri updater signing keys. Required so tauri-action emits the
+          # signed `latest.json` manifest + `.app.tar.gz` bundle that the
+          # in-app updater polls for. Set these as repo secrets:
+          #   - TAURI_SIGNING_PRIVATE_KEY: contents of ~/.tauri/scriptz_updater.key
+          #   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD: password if the key has one
+          #     (leave empty if generated with --no-password)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'ScriptZ ${{ github.ref_name }}'
+          releaseBody: |
+            ScriptZ ${{ github.ref_name }} — Apple Silicon only.
+
+            ## Install (first time only)
+
+            1. Download the `.dmg` below and open it.
+            2. Drag **ScriptZ.app** into your **Applications** folder.
+            3. The app is **unsigned** (no Apple Developer account), so macOS
+               will refuse to open it. Run this once in Terminal to remove the
+               quarantine flag:
+
+               ```bash
+               xattr -cr /Applications/ScriptZ.app
+               ```
+
+            4. Open ScriptZ from Applications — it will now launch normally.
+
+            If you skip step 3, you'll see "ScriptZ is damaged and can't be
+            opened" or "cannot be opened because the developer cannot be
+            verified". That's macOS Gatekeeper, not the app.
+
+            ## Updating
+
+            From this release onward, ScriptZ checks GitHub once an hour for
+            new versions. When one is available you'll see a small green pill
+            in the file browser footer — click it to download and install in
+            place. The `xattr` step is **not** required for in-app updates
+            (only for the very first install).
+          releaseDraft: false
+          prerelease: false
+          args: --target aarch64-apple-darwin

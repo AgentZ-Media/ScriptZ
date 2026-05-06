@@ -10,6 +10,7 @@ import {
 } from "lexical";
 import {
   BaseScriptzNode,
+  $createScriptzDialogNode,
   $isScriptzCharacterNode,
   type ScriptzCharacterNode,
 } from "../nodes";
@@ -38,7 +39,11 @@ export function installCharacterDropdown(
   const [open, setOpen] = createSignal(false);
   const [pos, setPos] = createSignal({ x: 0, y: 0 });
   const [filter, setFilter] = createSignal("");
-  const [activeIdx, setActiveIdx] = createSignal(0);
+  // -1 = no item highlighted. The dropdown is purely informational while
+  // typing; the user must explicitly arrow into the list (or click) before
+  // Enter will accept a suggestion. Otherwise Enter falls through to
+  // smartEnter and advances to a Dialog block, which is what writers expect.
+  const [activeIdx, setActiveIdx] = createSignal(-1);
   const [activeKey, setActiveKey] = createSignal<string | null>(null);
 
   const filteredEntries = (): ScriptCharacter[] => {
@@ -48,12 +53,23 @@ export function installCharacterDropdown(
     return all.filter((e) => e.name.toUpperCase().includes(q));
   };
 
-  const positionFromCursor = (): { x: number; y: number } => {
+  const positionFromCursor = (nodeKey: string | null): { x: number; y: number } => {
     const dom = window.getSelection();
     if (dom && dom.rangeCount > 0) {
       const rect = dom.getRangeAt(0).getBoundingClientRect();
       if (rect.width || rect.height || rect.left || rect.top) {
         return { x: rect.left, y: rect.bottom + 6 };
+      }
+    }
+    // Empty Charakter block: the range sits on Lexical's managed <br>
+    // placeholder and reports a zero rect. Anchor to the block's own DOM
+    // element so the dropdown shows up under the (empty) line instead of
+    // jumping to the editor's top-left corner.
+    if (nodeKey) {
+      const el = editor.getElementByKey(nodeKey);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        return { x: r.left, y: r.bottom + 6 };
       }
     }
     const r = host.getBoundingClientRect();
@@ -65,7 +81,7 @@ export function installCharacterDropdown(
     setActiveKey(null);
   };
 
-  const applySelection = (entry: ScriptCharacter) => {
+  const applySelection = (entry: ScriptCharacter, advance: boolean) => {
     const key = activeKey();
     if (!key) return;
     editor.update(() => {
@@ -75,7 +91,15 @@ export function installCharacterDropdown(
       const children = node.getChildren();
       for (const c of children) c.remove();
       node.append($createTextNode(entry.name.toUpperCase()));
-      node.selectEnd();
+      if (advance) {
+        // Mirror smartEnter's character → dialog transition so picking a
+        // suggestion drops the writer straight into the dialog line.
+        const next = $createScriptzDialogNode();
+        node.insertAfter(next);
+        next.select(0, 0);
+      } else {
+        node.selectEnd();
+      }
     });
     close();
   };
@@ -122,7 +146,7 @@ export function installCharacterDropdown(
                 onMouseEnter={() => setActiveIdx(i())}
                 onMouseDown={(ev) => {
                   ev.preventDefault();
-                  applySelection(entry);
+                  applySelection(entry, true);
                 }}
               >
                 <span
@@ -164,27 +188,32 @@ export function installCharacterDropdown(
 
     setActiveKey(nodeKey);
     setFilter(text);
-    setPos(positionFromCursor());
-    setActiveIdx(0);
+    setPos(positionFromCursor(nodeKey));
+    // Reset to "no selection" on every text change so the dropdown stays
+    // passive while typing — Enter must fall through to smartEnter unless
+    // the writer explicitly arrow-keys into the list.
+    setActiveIdx(-1);
     setOpen(true);
   });
 
   const onKey = (ev: KeyboardEvent) => {
     if (!open()) return;
     const list = filteredEntries();
+    if (list.length === 0) return;
     if (ev.key === "ArrowDown") {
       ev.preventDefault();
-      setActiveIdx((i) => (i + 1) % Math.max(1, list.length));
+      setActiveIdx((i) => (i < 0 ? 0 : (i + 1) % list.length));
     } else if (ev.key === "ArrowUp") {
       ev.preventDefault();
-      setActiveIdx((i) => (i - 1 + list.length) % Math.max(1, list.length));
+      setActiveIdx((i) => (i < 0 ? list.length - 1 : (i - 1 + list.length) % list.length));
     } else if (ev.key === "Enter") {
-      const entry = list[activeIdx()];
-      if (entry) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        applySelection(entry);
-      }
+      const idx = activeIdx();
+      if (idx < 0) return; // No active suggestion → let smartEnter advance.
+      const entry = list[idx];
+      if (!entry) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      applySelection(entry, true);
     } else if (ev.key === "Escape") {
       ev.preventDefault();
       close();

@@ -1,4 +1,4 @@
-import { onCleanup, onMount, createEffect } from "solid-js";
+import { onCleanup, onMount, createEffect, createSignal } from "solid-js";
 import {
   createEditor,
   $getRoot,
@@ -12,6 +12,7 @@ import {
   SCRIPTZ_NODES,
   BaseScriptzNode,
   $createScriptzCharacterNode,
+  $isScriptzCharacterNode,
 } from "./nodes";
 import { installSmartEnter } from "./plugins/smartEnter";
 import { installBlockDropdown } from "./plugins/blockDropdown";
@@ -32,7 +33,6 @@ export interface EditorProps {
   highlighting?: boolean;
   onPageCountChange?: (n: number) => void;
   onSavingChange?: (saving: boolean) => void;
-  onSaved?: () => void;
 }
 
 const THEME: EditorThemeClasses = {};
@@ -40,6 +40,11 @@ const THEME: EditorThemeClasses = {};
 const SAVE_DEBOUNCE_MS = 250;
 const AUTO_SNAPSHOT_MS = 5 * 60 * 1000;
 const PLACEHOLDER_BLOCKS_PER_PAGE = 35;
+// Used for character pills the user just typed in this session — the server
+// assigns a real palette color on save, but we never re-pull the script (that
+// caused contentEditable focus loss every 250ms during typing), so the dot
+// stays neutral until the next time the script is opened.
+const PENDING_CHAR_COLOR = "#9aa0a6";
 
 function seedEmptyState(editor: LexicalEditor) {
   editor.update(
@@ -60,6 +65,16 @@ function seedEmptyState(editor: LexicalEditor) {
 export function Editor(props: EditorProps) {
   let rootRef: HTMLDivElement | undefined;
   let hostRef: HTMLDivElement | undefined;
+
+  // Live character list seeded from the server, then updated client-side as
+  // the writer adds/renames Charakter blocks. We deliberately stop refetching
+  // the whole script after every save (that was disrupting contentEditable
+  // focus mid-keystroke); instead, walk the Lexical state ourselves. Names
+  // already known to the server keep their assigned palette color; freshly-
+  // typed names get a neutral placeholder until the script is reloaded.
+  const [liveCharacters, setLiveCharacters] = createSignal<ScriptCharacter[]>(
+    props.characters ?? [],
+  );
 
   onMount(() => {
     if (!rootRef || !hostRef) return;
@@ -105,7 +120,7 @@ export function Editor(props: EditorProps) {
     const teardownBlockHK = installBlockHotkeys(editor);
     const teardownBlockDD = installBlockDropdown(editor, hostRef);
     const teardownCharDD = installCharacterDropdown(editor, hostRef, () => ({
-      scriptCharacters: () => props.characters ?? [],
+      scriptCharacters: () => liveCharacters(),
     }));
 
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -115,6 +130,8 @@ export function Editor(props: EditorProps) {
     const persist = async () => {
       let contentJson = "";
       let blockCount = 0;
+      const seenNames: string[] = [];
+      const seenSet = new Set<string>();
 
       editor.getEditorState().read(() => {
         const state = editor.getEditorState();
@@ -122,8 +139,28 @@ export function Editor(props: EditorProps) {
         const root = $getRoot();
         for (const child of root.getChildren()) {
           if ($isElementNode(child)) blockCount += 1;
+          if ($isScriptzCharacterNode(child)) {
+            const name = child.getTextContent().trim().toUpperCase();
+            if (name && !seenSet.has(name)) {
+              seenSet.add(name);
+              seenNames.push(name);
+            }
+          }
         }
       });
+
+      // Refresh the autocomplete list from the in-editor state (no script
+      // refetch — that was knocking contentEditable focus loose every 250ms).
+      const prev = liveCharacters();
+      const colorByName = new Map(prev.map((c) => [c.name.toUpperCase(), c.color]));
+      const next: ScriptCharacter[] = seenNames.map((name) => ({
+        name,
+        color: colorByName.get(name) ?? PENDING_CHAR_COLOR,
+      }));
+      const changed =
+        next.length !== prev.length ||
+        next.some((c, i) => c.name !== prev[i]?.name || c.color !== prev[i]?.color);
+      if (changed) setLiveCharacters(next);
 
       const pageCount = Math.max(
         1,
@@ -143,7 +180,6 @@ export function Editor(props: EditorProps) {
           pageCount,
         });
         scriptsBus.bump();
-        props.onSaved?.();
       } catch (err) {
         console.error("[scriptz] auto-save failed", err);
       } finally {

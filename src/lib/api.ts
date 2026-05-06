@@ -6,7 +6,6 @@ import type {
   SearchHit,
   Snapshot,
   SnapshotMeta,
-  UpdateInfo,
 } from "./types";
 
 export const api = {
@@ -138,10 +137,5 @@ export const api = {
     return invoke("export_plaintext", {
       input: { script_id: input.scriptId, path: input.path },
     });
-  },
-
-  // Updates
-  async checkForUpdate(current: string): Promise<UpdateInfo> {
-    return invoke("check_for_update", { current });
   },
 };

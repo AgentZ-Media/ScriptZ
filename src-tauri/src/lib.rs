@@ -75,8 +75,6 @@ pub fn run() {
             // export
             commands::export::export_pdf,
             commands::export::export_plaintext,
-            // updates
-            commands::updates::check_for_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

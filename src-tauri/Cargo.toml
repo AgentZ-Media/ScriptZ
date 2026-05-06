@@ -44,16 +44,12 @@ uuid = { version = "1", features = ["v4", "serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Updates / HTTP
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
-
 # PDF generation
 printpdf = "0.7"
 
 # Misc
 unicode-segmentation = "1"
 url = "2"
-semver = "1"
 
 [profile.release]
 panic = "abort"

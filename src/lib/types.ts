@@ -51,12 +51,3 @@ export type BlockType =
   | "scriptz-camera"
   | "scriptz-caption"
   | "scriptz-sfx";
-
-export interface UpdateInfo {
-  available: boolean;
-  current: string;
-  latest: string | null;
-  url: string | null;
-  published_at: string | null;
-  error: string | null;
-}

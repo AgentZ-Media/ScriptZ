@@ -1,5 +1,5 @@
 import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
-import { tabsStore, type Tab } from "~/stores/tabs";
+import { tabsStore } from "~/stores/tabs";
 
 import "./TabBar.css";
 
@@ -34,8 +34,8 @@ export function TabBar() {
   });
 
   const openMenu = () => {
-    const tabs = tabsStore.tabs();
-    const activeIdx = tabs.findIndex((t) => t.id === tabsStore.activeTabId());
+    const list = tabsStore.tabs().filter((t) => t.kind === "script");
+    const activeIdx = list.findIndex((t) => t.id === tabsStore.activeTabId());
     setMenuIdx(activeIdx >= 0 ? activeIdx : 0);
     setMenuOpen(true);
     requestAnimationFrame(() => {
@@ -55,7 +55,8 @@ export function TabBar() {
   };
 
   const onMenuKey = (e: KeyboardEvent) => {
-    const tabs = tabsStore.tabs();
+    const list = tabsStore.tabs().filter((t) => t.kind === "script");
+    if (list.length === 0) return;
     if (e.key === "Escape") {
       e.preventDefault();
       closeMenu();
@@ -63,13 +64,13 @@ export function TabBar() {
     }
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setMenuIdx((i) => (i + 1) % tabs.length);
+      setMenuIdx((i) => (i + 1) % list.length);
       focusKeyboardRow();
       return;
     }
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      setMenuIdx((i) => (i - 1 + tabs.length) % tabs.length);
+      setMenuIdx((i) => (i - 1 + list.length) % list.length);
       focusKeyboardRow();
       return;
     }
@@ -81,13 +82,13 @@ export function TabBar() {
     }
     if (e.key === "End") {
       e.preventDefault();
-      setMenuIdx(tabs.length - 1);
+      setMenuIdx(list.length - 1);
       focusKeyboardRow();
       return;
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      const t = tabs[menuIdx()];
+      const t = list[menuIdx()];
       if (t) {
         tabsStore.activate(t.id);
         closeMenu();
@@ -108,80 +109,88 @@ export function TabBar() {
     return t.scriptTitle || "Unbenannt";
   };
 
+  const scriptTabs = () => tabsStore.tabs().filter((t) => t.kind === "script");
+  const showCenterPill = () => {
+    const t = tabsStore.active();
+    return !!t && t.kind === "script";
+  };
+
   return (
     <header class="titlebar" data-tauri-drag-region={true}>
-      <div class="titlebar-brand">
-        <img class="titlebar-logo" src={iconUrl} alt="ScriptZ" />
+      <button
+        class="titlebar-brand"
+        type="button"
+        aria-label="Übersicht öffnen"
+        title="Übersicht"
+        onClick={() => tabsStore.openBrowser()}
+      >
+        <img class="titlebar-logo" src={iconUrl} alt="" />
         <span class="titlebar-wordmark">ScriptZ</span>
-      </div>
+      </button>
 
-      <div class="titlebar-spacer" />
-
-      <div class="titlebar-center" ref={menuRef}>
-        <button
-          ref={triggerRef}
-          class="titlebar-title"
-          aria-expanded={menuOpen()}
-          aria-haspopup="menu"
-          onClick={() => (menuOpen() ? closeMenu() : openMenu())}
-          onKeyDown={onTriggerKey}
-          title="Tab wechseln"
-        >
-          <span class="titlebar-title-text">{activeLabel()}</span>
-          <span class="titlebar-caret" aria-hidden="true">⌄</span>
-        </button>
-
-        <Show when={menuOpen()}>
-          <div
-            class="titlebar-menu"
-            role="menu"
-            ref={menuListRef}
-            onKeyDown={onMenuKey}
+      <Show when={showCenterPill()}>
+        <div class="titlebar-center" ref={menuRef}>
+          <button
+            ref={triggerRef}
+            class="titlebar-title"
+            aria-expanded={menuOpen()}
+            aria-haspopup="menu"
+            onClick={() => (menuOpen() ? closeMenu() : openMenu())}
+            onKeyDown={onTriggerKey}
+            title="Tab wechseln"
           >
-            <For each={tabsStore.tabs()}>
-              {(t, i) => {
-                const active = () => tabsStore.activeTabId() === t.id;
-                const keyboard = () => i() === menuIdx();
-                const label = () =>
-                  t.kind === "browser" ? "Übersicht" : t.scriptTitle || "Unbenannt";
-                const dot = () => (t.kind === "browser" ? "⌂" : "●");
-                return (
-                  <div
-                    class="titlebar-menu-row"
-                    classList={{
-                      "is-active": active(),
-                      "is-keyboard": keyboard(),
-                    }}
-                    role="menuitem"
-                    tabIndex={keyboard() ? 0 : -1}
-                    onMouseEnter={() => setMenuIdx(i())}
-                    onClick={() => {
-                      tabsStore.activate(t.id);
-                      closeMenu();
-                    }}
-                  >
-                    <span class="titlebar-menu-dot" aria-hidden="true">{dot()}</span>
-                    <span class="titlebar-menu-label">{label()}</span>
-                    <button
-                      class="titlebar-menu-close"
-                      aria-label="Tab schließen"
-                      tabIndex={-1}
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        tabsStore.closeTab(t.id);
+            <span class="titlebar-title-text">{activeLabel()}</span>
+            <span class="titlebar-caret" aria-hidden="true">⌄</span>
+          </button>
+
+          <Show when={menuOpen()}>
+            <div
+              class="titlebar-menu"
+              role="menu"
+              ref={menuListRef}
+              onKeyDown={onMenuKey}
+            >
+              <For each={scriptTabs()}>
+                {(t, i) => {
+                  const active = () => tabsStore.activeTabId() === t.id;
+                  const keyboard = () => i() === menuIdx();
+                  const label = () => t.scriptTitle || "Unbenannt";
+                  return (
+                    <div
+                      class="titlebar-menu-row"
+                      classList={{
+                        "is-active": active(),
+                        "is-keyboard": keyboard(),
+                      }}
+                      role="menuitem"
+                      tabIndex={keyboard() ? 0 : -1}
+                      onMouseEnter={() => setMenuIdx(i())}
+                      onClick={() => {
+                        tabsStore.activate(t.id);
+                        closeMenu();
                       }}
                     >
-                      ×
-                    </button>
-                  </div>
-                );
-              }}
-            </For>
-          </div>
-        </Show>
-      </div>
-
-      <div class="titlebar-spacer" />
+                      <span class="titlebar-menu-dot" aria-hidden="true">●</span>
+                      <span class="titlebar-menu-label">{label()}</span>
+                      <button
+                        class="titlebar-menu-close"
+                        aria-label="Tab schließen"
+                        tabIndex={-1}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          tabsStore.closeTab(t.id);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                }}
+              </For>
+            </div>
+          </Show>
+        </div>
+      </Show>
 
       <div class="titlebar-trailing">
         <button

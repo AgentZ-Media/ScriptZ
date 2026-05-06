@@ -9,7 +9,6 @@ import {
 } from "solid-js";
 import { Editor } from "./Editor";
 import { api } from "~/lib/api";
-import type { ScriptCharacter } from "~/lib/types";
 import { tabsStore } from "~/stores/tabs";
 import { settingsStore } from "~/stores/settings";
 import { pushToast } from "~/stores/toasts";
@@ -22,7 +21,7 @@ export interface ScriptViewProps {
 }
 
 export function ScriptView(props: ScriptViewProps) {
-  const [script, { refetch }] = createResource(
+  const [script] = createResource(
     () => props.scriptId,
     (id) => api.getScript(id),
   );
@@ -103,14 +102,6 @@ export function ScriptView(props: ScriptViewProps) {
       <Show when={script()} fallback={<div style="padding: 40px;">Lade…</div>}>
         {(s) => (
           <>
-            <div class="script-pillbar">
-              <Show when={s().characters.length > 0}>
-                <For each={s().characters}>
-                  {(c) => <CharPill character={c} />}
-                </For>
-              </Show>
-            </div>
-
             <div class="paper-canvas" ref={canvasRef}>
               <div class="paper-stack">
                 <div class="paper-sheet" data-page-num={1}>
@@ -121,7 +112,6 @@ export function ScriptView(props: ScriptViewProps) {
                     highlighting={highlightingOn()}
                     onPageCountChange={setPageCount}
                     onSavingChange={setSaving}
-                    onSaved={() => void refetch()}
                   />
                 </div>
                 <For each={Array.from({ length: Math.max(0, pageCount() - 1) }, (_, i) => i + 2)}>
@@ -160,19 +150,6 @@ export function ScriptView(props: ScriptViewProps) {
         )}
       </Show>
     </div>
-  );
-}
-
-function CharPill(props: { character: ScriptCharacter }) {
-  return (
-    <span class="char-pill" title={props.character.name}>
-      <span
-        class="char-pill-dot"
-        style={{ background: props.character.color }}
-        aria-hidden="true"
-      />
-      <span class="char-pill-label">{props.character.name}</span>
-    </span>
   );
 }
 

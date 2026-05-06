@@ -22,10 +22,24 @@
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  padding-right: var(--sp-4);
+  padding: 0 var(--sp-3);
   border-right: 1px solid var(--border);
   margin-right: var(--sp-4);
   height: 28px;
+  background: transparent;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  border-left: 1px solid transparent;
+  border-radius: var(--r-2) 0 0 var(--r-2);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.titlebar-brand:hover {
+  background: var(--hover);
+}
+.titlebar-brand:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
 }
 .titlebar-logo {
   width: 22px;
@@ -42,11 +56,12 @@
 }
 
 /* ----- Centered title button ----- */
-.titlebar-spacer { flex: 1; min-width: 0; }
-
 .titlebar-center {
-  position: relative;
-  flex: 0 0 auto;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
 
 .titlebar-title {
@@ -165,6 +180,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .titlebar-action {
   width: 28px;
