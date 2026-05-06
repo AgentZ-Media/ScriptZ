@@ -1,0 +1,62 @@
+// Mirror of src-tauri/src/models.rs
+
+export interface ScriptCharacter {
+  name: string;
+  color: string;
+}
+
+export interface ScriptSummary {
+  id: string;
+  title: string;
+  highlighting_enabled: number | null;
+  created_at: number;
+  updated_at: number;
+  archived_at: number | null;
+  page_count: number;
+  characters: ScriptCharacter[];
+}
+
+export interface Script extends ScriptSummary {
+  content_json: string;
+}
+
+export interface Snapshot {
+  id: string;
+  script_id: string;
+  content_json: string;
+  trigger: "auto" | "manual";
+  created_at: number;
+}
+
+export interface SnapshotMeta {
+  id: string;
+  script_id: string;
+  trigger: "auto" | "manual";
+  created_at: number;
+}
+
+export interface SearchHit {
+  kind: "script";
+  id: string;
+  title: string;
+  snippet: string;
+  meta: Record<string, unknown>;
+}
+
+export type BlockType =
+  | "scriptz-action"
+  | "scriptz-character"
+  | "scriptz-dialog"
+  | "scriptz-parenthetical"
+  | "scriptz-camera"
+  | "scriptz-caption"
+  | "scriptz-sfx";
+
+export interface UpdateInfo {
+  available: boolean;
+  current: string;
+  latest: string | null;
+  url: string | null;
+  published_at: string | null;
+  error: string | null;
+}

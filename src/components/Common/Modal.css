@@ -1,0 +1,10 @@
+/* Modal: relies on .modal-backdrop, .modal, .modal-body, .modal-footer from global.css */
+.modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+.modal-body {
+  flex: 1 1 auto;
+  overflow: auto;
+}
