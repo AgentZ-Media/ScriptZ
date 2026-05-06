@@ -81,8 +81,14 @@ export default function App() {
         tabsStore.cycle(ev.shiftKey ? -1 : 1);
         return;
       }
-      const isBrowser = activeView()?.kind === "browser";
-      if (isBrowser && /^[1-9]$/.test(ev.key)) {
+      if (/^[1-9]$/.test(ev.key) && !ev.shiftKey && !ev.altKey) {
+        const target = ev.target as HTMLElement | null;
+        const isTextField =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          (target?.isContentEditable ?? false);
+        if (isTextField) return;
         ev.preventDefault();
         tabsStore.activateByIndex(parseInt(ev.key, 10) - 1);
       }

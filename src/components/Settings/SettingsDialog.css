@@ -22,35 +22,14 @@
   border-top: 1px solid var(--border);
 }
 
+/* .settings-radio + .settings-toggle live in global.css — used in
+   ExportDialog too. Only the row container is local. */
 .settings-radio-row {
   display: inline-flex;
   gap: var(--sp-4);
   align-items: center;
   flex-wrap: wrap;
 }
-.settings-radio {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  color: var(--fg);
-}
-.settings-radio input { accent-color: var(--brand-500); }
-
-.settings-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  user-select: none;
-  color: var(--fg);
-}
-.settings-toggle input { accent-color: var(--brand-500); }
-.settings-toggle.is-disabled { opacity: 0.5; cursor: not-allowed; }
 
 .settings-update-row {
   display: flex;
@@ -65,16 +44,6 @@
   font-size: var(--fs-13);
   color: var(--fg);
 }
-.link-like {
-  color: var(--brand-600);
-  background: transparent;
-  border: none;
-  padding: 0;
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  cursor: pointer;
-}
-.link-like:hover { text-decoration: underline; }
 
 .settings-about {
   display: flex;

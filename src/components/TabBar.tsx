@@ -16,24 +16,90 @@ import iconUrl from "~/assets/scriptz-icon.png";
  */
 export function TabBar() {
   const [menuOpen, setMenuOpen] = createSignal(false);
+  const [menuIdx, setMenuIdx] = createSignal(0);
   let menuRef: HTMLDivElement | undefined;
+  let menuListRef: HTMLDivElement | undefined;
+  let triggerRef: HTMLButtonElement | undefined;
 
   const closeOnOutside = (e: MouseEvent) => {
     if (!menuRef) return;
     if (!menuRef.contains(e.target as Node)) setMenuOpen(false);
   };
-  const closeOnEsc = (e: KeyboardEvent) => {
-    if (e.key === "Escape") setMenuOpen(false);
-  };
 
   onMount(() => {
     document.addEventListener("mousedown", closeOnOutside);
-    document.addEventListener("keydown", closeOnEsc);
     onCleanup(() => {
       document.removeEventListener("mousedown", closeOnOutside);
-      document.removeEventListener("keydown", closeOnEsc);
     });
   });
+
+  const openMenu = () => {
+    const tabs = tabsStore.tabs();
+    const activeIdx = tabs.findIndex((t) => t.id === tabsStore.activeTabId());
+    setMenuIdx(activeIdx >= 0 ? activeIdx : 0);
+    setMenuOpen(true);
+    requestAnimationFrame(() => {
+      menuListRef?.querySelector<HTMLElement>(".titlebar-menu-row.is-keyboard")?.focus();
+    });
+  };
+  const closeMenu = () => {
+    setMenuOpen(false);
+    triggerRef?.focus();
+  };
+
+  const onTriggerKey = (e: KeyboardEvent) => {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      menuOpen() ? closeMenu() : openMenu();
+    }
+  };
+
+  const onMenuKey = (e: KeyboardEvent) => {
+    const tabs = tabsStore.tabs();
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeMenu();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMenuIdx((i) => (i + 1) % tabs.length);
+      focusKeyboardRow();
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMenuIdx((i) => (i - 1 + tabs.length) % tabs.length);
+      focusKeyboardRow();
+      return;
+    }
+    if (e.key === "Home") {
+      e.preventDefault();
+      setMenuIdx(0);
+      focusKeyboardRow();
+      return;
+    }
+    if (e.key === "End") {
+      e.preventDefault();
+      setMenuIdx(tabs.length - 1);
+      focusKeyboardRow();
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const t = tabs[menuIdx()];
+      if (t) {
+        tabsStore.activate(t.id);
+        closeMenu();
+      }
+    }
+  };
+
+  const focusKeyboardRow = () => {
+    requestAnimationFrame(() => {
+      menuListRef?.querySelector<HTMLElement>(".titlebar-menu-row.is-keyboard")?.focus();
+    });
+  };
 
   const activeLabel = () => {
     const t = tabsStore.active();
@@ -53,10 +119,12 @@ export function TabBar() {
 
       <div class="titlebar-center" ref={menuRef}>
         <button
+          ref={triggerRef}
           class="titlebar-title"
           aria-expanded={menuOpen()}
           aria-haspopup="menu"
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => (menuOpen() ? closeMenu() : openMenu())}
+          onKeyDown={onTriggerKey}
           title="Tab wechseln"
         >
           <span class="titlebar-title-text">{activeLabel()}</span>
@@ -64,7 +132,52 @@ export function TabBar() {
         </button>
 
         <Show when={menuOpen()}>
-          <TabMenu onClose={() => setMenuOpen(false)} />
+          <div
+            class="titlebar-menu"
+            role="menu"
+            ref={menuListRef}
+            onKeyDown={onMenuKey}
+          >
+            <For each={tabsStore.tabs()}>
+              {(t, i) => {
+                const active = () => tabsStore.activeTabId() === t.id;
+                const keyboard = () => i() === menuIdx();
+                const label = () =>
+                  t.kind === "browser" ? "Übersicht" : t.scriptTitle || "Unbenannt";
+                const dot = () => (t.kind === "browser" ? "⌂" : "●");
+                return (
+                  <div
+                    class="titlebar-menu-row"
+                    classList={{
+                      "is-active": active(),
+                      "is-keyboard": keyboard(),
+                    }}
+                    role="menuitem"
+                    tabIndex={keyboard() ? 0 : -1}
+                    onMouseEnter={() => setMenuIdx(i())}
+                    onClick={() => {
+                      tabsStore.activate(t.id);
+                      closeMenu();
+                    }}
+                  >
+                    <span class="titlebar-menu-dot" aria-hidden="true">{dot()}</span>
+                    <span class="titlebar-menu-label">{label()}</span>
+                    <button
+                      class="titlebar-menu-close"
+                      aria-label="Tab schließen"
+                      tabIndex={-1}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        tabsStore.closeTab(t.id);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              }}
+            </For>
+          </div>
         </Show>
       </div>
 
@@ -81,47 +194,6 @@ export function TabBar() {
         </button>
       </div>
     </header>
-  );
-}
-
-function TabMenu(props: { onClose: () => void }) {
-  const select = (t: Tab) => {
-    tabsStore.activate(t.id);
-    props.onClose();
-  };
-  const close = (t: Tab, ev: MouseEvent) => {
-    ev.stopPropagation();
-    tabsStore.closeTab(t.id);
-  };
-  return (
-    <div class="titlebar-menu" role="menu">
-      <For each={tabsStore.tabs()}>
-        {(t) => {
-          const active = () => tabsStore.activeTabId() === t.id;
-          const label = () =>
-            t.kind === "browser" ? "Übersicht" : t.scriptTitle || "Unbenannt";
-          const dot = () => (t.kind === "browser" ? "⌂" : "●");
-          return (
-            <div
-              class="titlebar-menu-row"
-              classList={{ "is-active": active() }}
-              role="menuitem"
-              onClick={() => select(t)}
-            >
-              <span class="titlebar-menu-dot" aria-hidden="true">{dot()}</span>
-              <span class="titlebar-menu-label">{label()}</span>
-              <button
-                class="titlebar-menu-close"
-                aria-label="Tab schließen"
-                onClick={(ev) => close(t, ev)}
-              >
-                ×
-              </button>
-            </div>
-          );
-        }}
-      </For>
-    </div>
   );
 }
 

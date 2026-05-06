@@ -1,9 +1,10 @@
-import { createSignal, createResource, For, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { createSignal, createResource, createMemo, For, Show } from "solid-js";
 import type { ScriptSummary } from "~/lib/types";
 import { api } from "~/lib/api";
 import { pushToast } from "~/stores/toasts";
 import { relativeTime } from "~/lib/format";
+import { Modal } from "~/components/Common/Modal";
+import { scriptsBus } from "~/lib/scriptsBus";
 
 type Confirm =
   | { kind: "restore-all" }
@@ -12,16 +13,17 @@ type Confirm =
 
 export function TrashView() {
   const [confirm, setConfirm] = createSignal<Confirm | null>(null);
-  const [scripts, { refetch }] = createResource(() =>
-    api.listScripts({ onlyArchived: true, sort: "updated" }),
+  const [scripts] = createResource(
+    () => scriptsBus.version(),
+    () => api.listScripts({ onlyArchived: true, sort: "updated" }),
   );
 
   async function restoreAll() {
-    const list = scripts() ?? [];
+    const arr = scripts() ?? [];
     try {
-      await Promise.all(list.map((s) => api.restoreScript(s.id)));
-      pushToast(`${list.length} Skripte wiederhergestellt`, "ok");
-      void refetch();
+      await Promise.all(arr.map((s) => api.restoreScript(s.id)));
+      pushToast(`${arr.length} Skripte wiederhergestellt`, "ok");
+      scriptsBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     }
@@ -31,7 +33,7 @@ export function TrashView() {
     try {
       await api.emptyTrash();
       pushToast("Papierkorb geleert", "ok");
-      void refetch();
+      scriptsBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     }
@@ -41,7 +43,7 @@ export function TrashView() {
     try {
       await api.restoreScript(id);
       pushToast("Wiederhergestellt", "ok");
-      void refetch();
+      scriptsBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     }
@@ -51,13 +53,21 @@ export function TrashView() {
     try {
       await api.purgeScript(id);
       pushToast("Endgültig gelöscht", "ok");
-      void refetch();
+      scriptsBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     }
   }
 
   const list = () => scripts() ?? [];
+
+  const confirmTitle = createMemo(() => {
+    const c = confirm();
+    if (!c) return "";
+    if (c.kind === "restore-all") return "Alle wiederherstellen?";
+    if (c.kind === "empty") return "Papierkorb leeren?";
+    return "Endgültig löschen?";
+  });
 
   return (
     <div class="trash-region">
@@ -119,84 +129,70 @@ export function TrashView() {
         </ul>
       </Show>
 
-      <Show when={confirm()}>
-        {(c) => (
-          <Portal>
-            <div
-              class="modal-backdrop"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setConfirm(null);
-              }}
-            >
-              <div class="modal" role="dialog">
-                <h2>
-                  {c().kind === "restore-all" && "Alle wiederherstellen?"}
-                  {c().kind === "empty" && "Papierkorb leeren?"}
-                  {c().kind === "purge" && "Endgültig löschen?"}
-                </h2>
-                <div class="modal-body">
-                  <Show when={c().kind === "restore-all"}>
-                    <p>
-                      Alle {list().length} Skripte werden aus dem Papierkorb wiederhergestellt.
-                    </p>
-                  </Show>
-                  <Show when={c().kind === "empty"}>
-                    <p>
-                      Alle {list().length} Skripte werden <strong>unwiderruflich</strong>{" "}
-                      gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
-                    </p>
-                  </Show>
-                  <Show when={c().kind === "purge"}>
-                    <p>
-                      "{(c() as { kind: "purge"; script: ScriptSummary }).script.title}" wird{" "}
-                      <strong>unwiderruflich</strong> gelöscht.
-                    </p>
-                  </Show>
-                </div>
-                <div class="modal-footer">
-                  <button class="btn" onClick={() => setConfirm(null)}>
-                    Abbrechen
-                  </button>
-                  <Show when={c().kind === "restore-all"}>
-                    <button
-                      class="btn btn-primary"
-                      onClick={() => {
-                        setConfirm(null);
-                        void restoreAll();
-                      }}
-                    >
-                      Wiederherstellen
-                    </button>
-                  </Show>
-                  <Show when={c().kind === "empty"}>
-                    <button
-                      class="btn btn-danger"
-                      onClick={() => {
-                        setConfirm(null);
-                        void emptyAll();
-                      }}
-                    >
-                      Leeren
-                    </button>
-                  </Show>
-                  <Show when={c().kind === "purge"}>
-                    <button
-                      class="btn btn-danger"
-                      onClick={() => {
-                        const cur = c();
-                        setConfirm(null);
-                        if (cur.kind === "purge") void purgeOne(cur.script.id);
-                      }}
-                    >
-                      Löschen
-                    </button>
-                  </Show>
-                </div>
-              </div>
-            </div>
-          </Portal>
-        )}
-      </Show>
+      <Modal
+        open={confirm() !== null}
+        onClose={() => setConfirm(null)}
+        title={confirmTitle()}
+        footer={
+          <>
+            <button class="btn" onClick={() => setConfirm(null)}>
+              Abbrechen
+            </button>
+            <Show when={confirm()?.kind === "restore-all"}>
+              <button
+                class="btn btn-primary"
+                onClick={() => {
+                  setConfirm(null);
+                  void restoreAll();
+                }}
+              >
+                Wiederherstellen
+              </button>
+            </Show>
+            <Show when={confirm()?.kind === "empty"}>
+              <button
+                class="btn btn-danger"
+                onClick={() => {
+                  setConfirm(null);
+                  void emptyAll();
+                }}
+              >
+                Leeren
+              </button>
+            </Show>
+            <Show when={confirm()?.kind === "purge"}>
+              <button
+                class="btn btn-danger"
+                onClick={() => {
+                  const c = confirm();
+                  setConfirm(null);
+                  if (c && c.kind === "purge") void purgeOne(c.script.id);
+                }}
+              >
+                Löschen
+              </button>
+            </Show>
+          </>
+        }
+      >
+        <Show when={confirm()}>
+          {(c) => (
+            <p class="muted">
+              <Show when={c().kind === "restore-all"}>
+                Alle {list().length} Skripte werden aus dem Papierkorb wiederhergestellt.
+              </Show>
+              <Show when={c().kind === "empty"}>
+                Alle {list().length} Skripte werden <strong>unwiderruflich</strong>{" "}
+                gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+              </Show>
+              <Show when={c().kind === "purge"}>
+                "{(c() as { kind: "purge"; script: ScriptSummary }).script.title}" wird{" "}
+                <strong>unwiderruflich</strong> gelöscht.
+              </Show>
+            </p>
+          )}
+        </Show>
+      </Modal>
     </div>
   );
 }

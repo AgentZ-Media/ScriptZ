@@ -71,7 +71,7 @@ textarea:hover {
 input:focus,
 textarea:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(224, 121, 31, 0.16);
+  box-shadow: 0 0 0 3px var(--ring-brand);
 }
 
 a { color: var(--brand-600); text-decoration: none; }
@@ -92,13 +92,13 @@ a:hover { text-decoration: underline; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: rgba(28, 24, 20, 0.18);
+  background: var(--border-strong);
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(28, 24, 20, 0.32);
+  background: var(--fg-disabled);
   background-clip: padding-box;
   border: 2px solid transparent;
 }
@@ -107,7 +107,6 @@ a:hover { text-decoration: underline; }
    Buttons — three flavours.
    .btn          neutral, paper-cream
    .btn-primary  brand-tinted (orange soft) — main CTA
-   .btn-ghost    transparent, hover-tinted
    .btn-danger   muted destructive
    ============================================================ */
 .btn {
@@ -144,20 +143,14 @@ a:hover { text-decoration: underline; }
   border-color: var(--brand-500);
 }
 
-.btn-ghost {
-  background: transparent;
-  border-color: transparent;
-}
-.btn-ghost:hover { background: var(--hover); }
-
 .btn-danger {
   background: transparent;
   color: var(--status-err);
   border-color: var(--border);
 }
 .btn-danger:hover {
-  background: rgba(196, 74, 74, 0.10);
-  border-color: rgba(196, 74, 74, 0.35);
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
 }
 
 /* Keyboard hint */
@@ -172,7 +165,7 @@ a:hover { text-decoration: underline; }
   background: var(--bg-elev-1);
   color: var(--fg-muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-11);
   border: 1px solid var(--border);
   box-shadow: 0 1px 0 var(--border);
 }
@@ -196,6 +189,18 @@ a:hover { text-decoration: underline; }
 .muted    { color: var(--fg-muted); }
 .subtle   { color: var(--fg-subtle); }
 .small    { font-size: var(--fs-12); }
+
+/* Inline link-styled button */
+.link-like {
+  color: var(--brand-600);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+.link-like:hover { text-decoration: underline; }
 
 .hide-scroll { scrollbar-width: none; }
 .hide-scroll::-webkit-scrollbar { display: none; }
@@ -221,15 +226,19 @@ a:hover { text-decoration: underline; }
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: var(--r-5);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 24px 60px rgba(28, 24, 20, 0.22),
-    0 4px 12px rgba(28, 24, 20, 0.10);
+  box-shadow: var(--shadow-modal);
+  display: flex;
+  flex-direction: column;
   min-width: min(420px, 92vw);
   max-width: 600px;
   width: min(600px, 92vw);
+  max-height: 80vh;
   overflow: hidden;
   animation: scale-in var(--t-med);
+}
+.modal-body {
+  flex: 1 1 auto;
+  overflow: auto;
 }
 .modal h2 {
   margin: 0;
@@ -328,9 +337,7 @@ a:hover { text-decoration: underline; }
   border-radius: var(--r-3);
   padding: 10px 16px;
   font-size: var(--fs-13);
-  box-shadow:
-    0 8px 24px rgba(28, 24, 20, 0.15),
-    0 2px 6px rgba(28, 24, 20, 0.08);
+  box-shadow: var(--shadow-toast);
   animation: scale-in var(--t-med);
   pointer-events: all;
 }

@@ -2,6 +2,7 @@ import { For, Show, createMemo, createResource, createSignal } from "solid-js";
 import { Modal } from "~/components/Common/Modal";
 import { confirmDialog } from "~/components/Common/ConfirmDialog";
 import { api } from "~/lib/api";
+import { scriptsBus } from "~/lib/scriptsBus";
 import { formatAbsolute } from "~/lib/format";
 import type { Snapshot, SnapshotMeta } from "~/lib/types";
 import { pushToast } from "~/stores/toasts";
@@ -104,6 +105,7 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
     if (!ok) return;
     try {
       await api.restoreSnapshot(id);
+      scriptsBus.bump();
       pushToast("Snapshot wiederhergestellt", "ok");
       props.onRestore?.(id);
       setReloadKey(reloadKey() + 1);
@@ -126,6 +128,7 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
           <button class="btn btn-danger" onClick={onDelete} disabled={!selectedId()}>
             Löschen
           </button>
+          <span class="snap-spacer" />
           <button class="btn" onClick={props.onClose}>
             Schließen
           </button>
@@ -141,7 +144,31 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
         </button>
       </div>
       <div class="snap-grid">
-        <div class="snap-list">
+        <div
+          class="snap-list"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            const list = snapshots() ?? [];
+            if (list.length === 0) return;
+            const idx = list.findIndex((s) => s.id === selectedId());
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setSelectedId(list[Math.min(list.length - 1, idx + 1)].id);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setSelectedId(list[Math.max(0, idx - 1)].id);
+            } else if (e.key === "Home") {
+              e.preventDefault();
+              setSelectedId(list[0].id);
+            } else if (e.key === "End") {
+              e.preventDefault();
+              setSelectedId(list[list.length - 1].id);
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              void onRestore();
+            }
+          }}
+        >
           <Show
             when={(snapshots()?.length ?? 0) > 0}
             fallback={<div class="snap-empty">Noch keine Snapshots.</div>}
@@ -151,6 +178,7 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
                 <button
                   class={`snap-item${snap.id === selectedId() ? " is-active" : ""}`}
                   onClick={() => setSelectedId(snap.id)}
+                  tabIndex={-1}
                 >
                   <span class="snap-time">{formatAbsolute(snap.created_at)}</span>
                   <span class={`snap-badge snap-badge-${snap.trigger}`}>

@@ -26,11 +26,7 @@
   gap: 8px;
   padding: var(--sp-4) var(--sp-5) var(--sp-3);
   flex-wrap: wrap;
-  background: linear-gradient(
-    to bottom,
-    var(--bg) 65%,
-    rgba(0, 0, 0, 0)
-  );
+  background: linear-gradient(to bottom, var(--bg) 65%, transparent);
   pointer-events: auto;
   min-height: 38px;
 }
@@ -116,7 +112,7 @@
   left: 8%;
   right: 8%;
   top: 50%;
-  border-top: 1px dashed rgba(28, 24, 20, 0.18);
+  border-top: 1px dashed var(--page-break-line);
 }
 .paper-stack .page-break span {
   position: relative;
@@ -147,7 +143,7 @@
   font-family: var(--font-sans);
   font-size: var(--fs-12);
   color: var(--fg-muted);
-  background: linear-gradient(to top, var(--bg) 75%, rgba(0, 0, 0, 0));
+  background: linear-gradient(to top, var(--bg) 75%, transparent);
   user-select: none;
   border-top: 1px solid transparent;
 }

@@ -5,6 +5,11 @@
    warm cream surfaces, white paper, near-black warm ink, brand orange.
    The "dark theme" is a coherent dim variant for late-night work, but
    the parchment look is the default and what the screenshots target.
+
+   Tokens with multiple aliases (--font-sans / --font-mono / --font-paper)
+   intentionally resolve to the same family today. They are kept apart so
+   future overrides (e.g. user-pickable paper font) can be wired through a
+   single var without touching component CSS.
    ========================================================================= */
 
 :root {
@@ -21,12 +26,9 @@
   --brand-900: #432212;
   --brand-soft: #fce4cc;     /* tint for primary buttons over cream */
 
-  /* ---- Type ----
-     iA Writer Quattro is a quasi-proportional mono — the entire app uses
-     it for both UI and paper, which is why the screenshots feel cohesive. */
-  --font-sans: "iA Writer Quattro", ui-monospace, "SF Mono", "JetBrains Mono",
-    Menlo, Consolas, monospace;
-  --font-mono: "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
+  /* ---- Type ---- */
+  --font-sans:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
   --font-paper: "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
 
   --fs-11: 11px;
@@ -39,9 +41,7 @@
   --fs-20: 20px;
   --fs-24: 24px;
   --fs-28: 28px;
-  --fs-32: 32px;
 
-  --lh-tight: 1.25;
   --lh-snug: 1.4;
   --lh-normal: 1.55;
   --lh-relaxed: 1.7;
@@ -56,15 +56,12 @@
   --sp-7: 32px;
   --sp-8: 40px;
   --sp-9: 48px;
-  --sp-10: 64px;
 
   /* ---- Radii ---- */
-  --r-1: 4px;
   --r-2: 6px;
   --r-3: 8px;
   --r-4: 12px;
   --r-5: 16px;
-  --r-6: 20px;
   --r-pill: 999px;
 
   /* ---- Motion ---- */
@@ -107,7 +104,6 @@
   --bg-elev-1: #f5f1e8;     /* slightly raised surface (cards) */
   --bg-elev-2: #ebe6da;     /* recessed surface (toolbars) */
   --bg-elev-3: #e2dccb;     /* deepest cream */
-  --bg-overlay: rgba(245, 241, 232, 0.85);
 
   /* Ink */
   --fg:         #1c1814;     /* warm near-black */
@@ -121,9 +117,10 @@
   --border-focus:  var(--brand-500);
 
   /* Paper */
-  --paper-bg:    #fbfaf6;     /* the actual sheet */
-  --paper-fg:   #1c1814;
-  --paper-edge: rgba(0, 0, 0, 0.04);
+  --paper-bg:        #fbfaf6;
+  --paper-fg:       #1c1814;
+  --paper-fg-muted: rgba(28, 24, 20, 0.65);
+  --paper-fg-faint: rgba(28, 24, 20, 0.45);
 
   --hover:    rgba(28, 24, 20, 0.05);
   --selected: rgba(224, 121, 31, 0.12);
@@ -132,6 +129,16 @@
     0 1px 1px rgba(0, 0, 0, 0.03),
     0 8px 24px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-popover:
+    0 12px 32px rgba(28, 24, 20, 0.18),
+    0 2px 6px rgba(28, 24, 20, 0.08);
+  --shadow-modal:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 24px 60px rgba(28, 24, 20, 0.22),
+    0 4px 12px rgba(28, 24, 20, 0.10);
+  --shadow-toast:
+    0 8px 24px rgba(28, 24, 20, 0.15),
+    0 2px 6px rgba(28, 24, 20, 0.08);
 
   --backdrop:  rgba(28, 24, 20, 0.32);
   --modal-bg:  #fbfaf6;
@@ -142,8 +149,18 @@
   --status-ok:   #4f9a6c;
   --status-warn: #c87b00;
   --status-err:  #c44a4a;
+  --danger-soft:        rgba(196, 74, 74, 0.10);
+  --danger-soft-strong: rgba(196, 74, 74, 0.14);
+  --danger-border:      rgba(196, 74, 74, 0.35);
 
   --highlight-mark: rgba(224, 121, 31, 0.25);
+
+  /* Focus ring + paper selection — tokenized so dark theme can shift them. */
+  --ring-brand:        rgba(224, 121, 31, 0.16);
+  --ring-brand-strong: rgba(224, 121, 31, 0.6);
+  --selection-paper:   rgba(224, 121, 31, 0.22);
+  --char-tint-default: rgba(224, 121, 31, 0.10);
+  --page-break-line:   rgba(28, 24, 20, 0.18);
 
   /* Brand button surfaces (tinted, not saturated) */
   --primary-bg:        var(--brand-soft);
@@ -162,7 +179,6 @@
   --bg-elev-1: #1c1a15;
   --bg-elev-2: #221f19;
   --bg-elev-3: #2a261f;
-  --bg-overlay: rgba(15, 13, 10, 0.7);
 
   --fg:         #ece7da;
   --fg-muted:  #a8a293;
@@ -173,9 +189,10 @@
   --border-strong: rgba(255, 245, 220, 0.14);
   --border-focus:  var(--brand-400);
 
-  --paper-bg:   #f5f1e8;
-  --paper-fg:  #1c1814;
-  --paper-edge: rgba(0, 0, 0, 0.05);
+  --paper-bg:        #f5f1e8;
+  --paper-fg:       #1c1814;
+  --paper-fg-muted: rgba(28, 24, 20, 0.65);
+  --paper-fg-faint: rgba(28, 24, 20, 0.45);
 
   --hover:    rgba(255, 245, 220, 0.05);
   --selected: rgba(224, 121, 31, 0.14);
@@ -184,6 +201,16 @@
     0 1px 4px rgba(0, 0, 0, 0.6),
     0 22px 56px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(0, 0, 0, 0.3);
+  --shadow-popover:
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-modal:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-toast:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.25);
 
   --backdrop: rgba(15, 13, 10, 0.6);
   --modal-bg: #1c1a15;
@@ -194,8 +221,17 @@
   --status-ok:   #6cc28e;
   --status-warn: #e7a64a;
   --status-err:  #e07070;
+  --danger-soft:        rgba(224, 112, 112, 0.14);
+  --danger-soft-strong: rgba(224, 112, 112, 0.20);
+  --danger-border:      rgba(224, 112, 112, 0.45);
 
   --highlight-mark: rgba(255, 184, 77, 0.32);
+
+  --ring-brand:        rgba(224, 121, 31, 0.22);
+  --ring-brand-strong: rgba(224, 121, 31, 0.7);
+  --selection-paper:   rgba(224, 121, 31, 0.28);
+  --char-tint-default: rgba(224, 121, 31, 0.16);
+  --page-break-line:   rgba(255, 245, 220, 0.16);
 
   --primary-bg:        rgba(224, 121, 31, 0.18);
   --primary-fg:        var(--brand-200);
@@ -216,15 +252,33 @@
     --fg-subtle: #75705f;
     --paper-bg:   #f5f1e8;
     --paper-fg:  #1c1814;
+    --paper-fg-muted: rgba(28, 24, 20, 0.65);
+    --paper-fg-faint: rgba(28, 24, 20, 0.45);
     --hover:    rgba(255, 245, 220, 0.05);
     --selected: rgba(224, 121, 31, 0.14);
     --backdrop: rgba(15, 13, 10, 0.6);
     --modal-bg: #1c1a15;
     --pill-bg: rgba(255, 245, 220, 0.06);
     --highlight-mark: rgba(255, 184, 77, 0.32);
+    --ring-brand:        rgba(224, 121, 31, 0.22);
+    --ring-brand-strong: rgba(224, 121, 31, 0.7);
+    --selection-paper:   rgba(224, 121, 31, 0.28);
+    --char-tint-default: rgba(224, 121, 31, 0.16);
+    --page-break-line:   rgba(255, 245, 220, 0.16);
     --primary-bg:        rgba(224, 121, 31, 0.18);
     --primary-fg:        var(--brand-200);
     --primary-border:    rgba(224, 121, 31, 0.45);
     --primary-bg-hover:  rgba(224, 121, 31, 0.28);
+  }
+}
+
+/* Respect system reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -1,4 +1,4 @@
-import { Show, createSignal } from "solid-js";
+import { Show, createSignal, createEffect } from "solid-js";
 import { save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Modal } from "~/components/Common/Modal";
@@ -22,16 +22,17 @@ export function ExportDialog(props: ExportDialogProps) {
   const [titlePage, setTitlePage] = createSignal<boolean>(false);
   const [exporting, setExporting] = createSignal(false);
 
-  // When the dialog opens, default highlighting from global setting
-  let lastOpen = false;
-  const initEffect = () => {
-    if (props.open && !lastOpen) {
+  // When the dialog opens, default highlighting from global setting.
+  let prevOpen = false;
+  createEffect(() => {
+    const isOpen = props.open;
+    if (isOpen && !prevOpen) {
       setHighlighting(settingsStore.highlightingDefault());
       setTitlePage(false);
       setFormat("pdf");
     }
-    lastOpen = props.open;
-  };
+    prevOpen = isOpen;
+  });
 
   const onExport = async () => {
     if (exporting()) return;
@@ -100,10 +101,6 @@ export function ExportDialog(props: ExportDialogProps) {
         </>
       }
     >
-      {(() => {
-        initEffect();
-        return null;
-      })()}
       <div class="export-form" onKeyDown={onKeyDown}>
         <div class="export-radio-row">
           <label class="settings-radio">

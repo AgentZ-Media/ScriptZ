@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { scriptsBus } from "./scriptsBus";
 
 const SEED_KEY = "welcome_seeded_v3";
 
@@ -103,6 +104,7 @@ export async function ensureWelcomeContent(): Promise<void> {
       title: "Willkommen bei ScriptZ",
       initialContentJson: welcomeScriptJson(),
     });
+    scriptsBus.bump();
   }
   await api.setAppState(SEED_KEY, "1");
 }

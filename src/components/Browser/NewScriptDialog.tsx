@@ -1,8 +1,9 @@
 import { createSignal } from "solid-js";
-import { Portal } from "solid-js/web";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
+import { scriptsBus } from "~/lib/scriptsBus";
+import { Modal } from "~/components/Common/Modal";
 
 export interface NewScriptDialogProps {
   onClose: () => void;
@@ -20,6 +21,7 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
       const created = await api.createScript({
         title: title().trim() || undefined,
       });
+      scriptsBus.bump();
       tabsStore.openScript(created.id, created.title);
       props.onCreated?.();
       props.onClose();
@@ -30,50 +32,42 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
     }
   }
 
-  function onKey(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      props.onClose();
-    } else if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void submit();
-    }
-  }
-
   return (
-    <Portal>
-      <div
-        class="modal-backdrop"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) props.onClose();
-        }}
-        onKeyDown={onKey}
-        tabIndex={-1}
-      >
-        <div class="modal" role="dialog" aria-label="Neues Skript">
-          <h2>Neues Skript</h2>
-          <div class="modal-body">
-            <div class="field">
-              <label>Titel</label>
-              <input
-                type="text"
-                placeholder="Unbenannt"
-                value={title()}
-                onInput={(e) => setTitle(e.currentTarget.value)}
-                autofocus
-              />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn" onClick={props.onClose}>
-              Abbrechen
-            </button>
-            <button class="btn btn-primary" onClick={submit} disabled={submitting()}>
-              Erstellen
-            </button>
-          </div>
-        </div>
+    <Modal
+      open={true}
+      onClose={props.onClose}
+      title="Neues Skript"
+      footer={
+        <>
+          <button class="btn" onClick={props.onClose}>
+            Abbrechen
+          </button>
+          <button
+            class="btn btn-primary"
+            onClick={submit}
+            disabled={submitting()}
+          >
+            Erstellen
+          </button>
+        </>
+      }
+    >
+      <div class="field">
+        <label>Titel</label>
+        <input
+          type="text"
+          placeholder="Unbenannt"
+          value={title()}
+          onInput={(e) => setTitle(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void submit();
+            }
+          }}
+          autofocus
+        />
       </div>
-    </Portal>
+    </Modal>
   );
 }

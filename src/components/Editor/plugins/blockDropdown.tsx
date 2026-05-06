@@ -3,7 +3,6 @@ import { render } from "solid-js/web";
 import {
   $getSelection,
   $isRangeSelection,
-  $createTextNode,
   COMMAND_PRIORITY_HIGH,
   KEY_TAB_COMMAND,
   type LexicalEditor,
@@ -102,11 +101,11 @@ function BlockDropdown(props: DropdownProps) {
         left: `${props.x}px`,
         top: `${props.y}px`,
         "z-index": 1000,
-        background: "var(--bg-elev-2)",
+        background: "var(--modal-bg)",
         color: "var(--fg)",
-        border: "1px solid var(--border-strong)",
+        border: "1px solid var(--border)",
         "border-radius": "var(--r-3)",
-        "box-shadow": "var(--sh-3)",
+        "box-shadow": "var(--shadow-popover)",
         padding: "4px",
         "min-width": "180px",
         "font-family": "var(--font-sans)",
@@ -166,16 +165,18 @@ export function installBlockDropdown(
         if (block.getType() === type) return;
         const next = createBlockOfType(type);
         // Move all children into the new block (preserve text/format).
-        const children = block.getChildren();
-        if (children.length === 0) {
-          next.append($createTextNode(""));
-        } else {
-          for (const child of children) {
-            next.append(child);
-          }
+        // CLAUDE.md: empty blocks must stay CHILDLESS — Lexical injects a
+        // managed <br> placeholder; pre-seeding $createTextNode("") breaks
+        // caret placement in WebKit.
+        for (const child of block.getChildren()) {
+          next.append(child);
         }
         block.replace(next);
-        next.selectEnd();
+        if (next.getChildrenSize() > 0) {
+          next.selectEnd();
+        } else {
+          next.select(0, 0);
+        }
       });
       close();
     };

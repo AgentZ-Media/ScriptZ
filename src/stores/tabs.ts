@@ -24,7 +24,18 @@ export const tabsStore = {
   tabs,
   activeTabId,
   active: () => tabs().find((t) => t.id === activeTabId()),
+  /**
+   * Activate the existing browser tab if there is one; otherwise create
+   * a new one. Pressing Cmd+T or the + button repeatedly should focus
+   * the same overview, not pile up duplicates.
+   */
   openBrowser(): Tab {
+    const existing = tabs().find((t) => t.kind === "browser");
+    if (existing) {
+      setActiveTabId(existing.id);
+      persist();
+      return existing;
+    }
     const t: Tab = { id: genId(), kind: "browser" };
     setTabs([...tabs(), t]);
     setActiveTabId(t.id);

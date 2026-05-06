@@ -18,21 +18,20 @@
 .update-pill:hover {
   background: var(--primary-bg-hover);
   border-color: var(--brand-500);
-  transform: translateY(-1px);
 }
-.update-pill:active { transform: translateY(0); }
+.update-pill:active { transform: translateY(1px); }
 .update-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--brand-500);
-  box-shadow: 0 0 0 0 rgba(224, 121, 31, 0.6);
+  box-shadow: 0 0 0 0 var(--ring-brand-strong);
   animation: update-dot-pulse 1.6s ease-out infinite;
 }
 @keyframes update-dot-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(224, 121, 31, 0.6); }
-  70%  { box-shadow: 0 0 0 8px rgba(224, 121, 31, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(224, 121, 31, 0); }
+  0%   { box-shadow: 0 0 0 0 var(--ring-brand-strong); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 @keyframes update-pill-fade-in {
   from { opacity: 0; transform: translateY(-4px); }

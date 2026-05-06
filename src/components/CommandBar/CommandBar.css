@@ -2,18 +2,12 @@
    ScriptZ — Command bar (Spotlight-style script search).
    ========================================================================= */
 
-.cmd-backdrop {
-  padding-top: 14vh;
-}
 .cmd-modal {
   background: var(--modal-bg);
   border: 1px solid var(--border);
   border-radius: var(--r-5);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 24px 60px rgba(28, 24, 20, 0.20),
-    0 4px 12px rgba(28, 24, 20, 0.10);
-  min-width: 560px;
+  box-shadow: var(--shadow-modal);
+  min-width: min(560px, 92vw);
   width: min(680px, 92vw);
   max-height: 56vh;
   display: flex;
@@ -61,19 +55,6 @@
   flex: 1;
   overflow: auto;
   padding: 6px 6px 8px;
-}
-.cmd-group + .cmd-group {
-  border-top: 1px solid var(--border);
-  margin-top: 6px;
-  padding-top: 6px;
-}
-.cmd-group-label {
-  padding: 8px 14px 4px;
-  font-size: var(--fs-11);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--fg-subtle);
-  font-weight: 600;
 }
 .cmd-row {
   padding: 10px 14px;

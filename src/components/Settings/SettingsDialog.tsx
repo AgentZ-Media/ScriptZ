@@ -130,7 +130,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     >
                       <>
                         <span>Update verfügbar: v{res().latest}</span>
-                        <button class="btn-ghost link-like" onClick={openUpdateUrl}>
+                        <button class="link-like" onClick={openUpdateUrl}>
                           Auf GitHub anzeigen
                         </button>
                       </>
@@ -151,7 +151,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
             </div>
             <div class="muted">Lizenz: MIT</div>
             <div>
-              <button class="btn-ghost link-like" onClick={openRepo}>
+              <button class="link-like" onClick={openRepo}>
                 {REPO_URL}
               </button>
             </div>

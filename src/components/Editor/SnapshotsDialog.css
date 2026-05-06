@@ -17,6 +17,8 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-elev-1);
+  padding: 4px;
+  outline: none;
 }
 .snap-item {
   display: flex;
@@ -26,17 +28,16 @@
   padding: 10px 12px;
   background: transparent;
   text-align: left;
-  border-radius: 0;
+  border-radius: var(--r-2);
   transition: background var(--t-fast);
-}
-.snap-item + .snap-item {
-  border-top: 1px solid var(--border);
 }
 .snap-item:hover { background: var(--hover); }
 .snap-item.is-active {
   background: var(--selected);
   box-shadow: inset 2px 0 0 var(--brand-500);
 }
+/* Items themselves are tabIndex=-1; keyboard nav lives on the parent .snap-list. */
+.snap-spacer { flex: 1; }
 .snap-time {
   font-family: var(--font-sans);
   font-size: var(--fs-13);
@@ -54,8 +55,8 @@
   text-transform: uppercase;
 }
 .snap-badge-manual {
-  background: rgba(224, 121, 31, 0.16);
-  color: var(--brand-700);
+  background: var(--primary-bg);
+  color: var(--primary-fg);
 }
 .snap-preview {
   border: 1px solid var(--border);

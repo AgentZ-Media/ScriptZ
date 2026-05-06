@@ -4,11 +4,9 @@ import {
   createResource,
   createEffect,
   onCleanup,
-  onMount,
   For,
   Show,
 } from "solid-js";
-import { Portal } from "solid-js/web";
 import type { ScriptSummary } from "~/lib/types";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
@@ -22,8 +20,9 @@ import {
 } from "~/lib/format";
 import { UpdateIndicator } from "~/components/Common/UpdateIndicator";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
-import { NewScriptDialog } from "./NewScriptDialog";
 import { TrashView } from "./TrashView";
+import { Modal } from "~/components/Common/Modal";
+import { scriptsBus } from "~/lib/scriptsBus";
 import "./Browser.css";
 
 type Region = "scripts" | "trash";
@@ -39,7 +38,6 @@ export function Browser(props: BrowserProps = {}) {
   const [debouncedSearch, setDebouncedSearch] = createSignal("");
   const [sort, setSort] = createSignal<SortKey>("updated");
 
-  const [showNewScriptDialog, setShowNewScriptDialog] = createSignal(false);
   const [contextMenu, setContextMenu] = createSignal<{
     x: number;
     y: number;
@@ -50,8 +48,7 @@ export function Browser(props: BrowserProps = {}) {
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
 
   function openNewScript() {
-    if (props.onNewScript) props.onNewScript();
-    else setShowNewScriptDialog(true);
+    props.onNewScript?.();
   }
 
   const debouncedSetSearch = debounce((v: string) => setDebouncedSearch(v), 350);
@@ -64,9 +61,10 @@ export function Browser(props: BrowserProps = {}) {
   const queryKey = createMemo(() => ({
     query: debouncedSearch(),
     sort: sort(),
+    version: scriptsBus.version(),
   }));
 
-  const [scripts, { refetch: refetchScripts }] = createResource(
+  const [scripts] = createResource(
     queryKey,
     (q) =>
       api.listScripts({
@@ -97,17 +95,7 @@ export function Browser(props: BrowserProps = {}) {
     return list().find((s) => s.id === id) ?? null;
   });
 
-  function onWindowKey(e: KeyboardEvent) {
-    if ((e.metaKey || e.ctrlKey) && e.key === "n" && !e.shiftKey && !e.altKey) {
-      if (showNewScriptDialog()) return;
-      e.preventDefault();
-      openNewScript();
-    }
-  }
-  onMount(() => {
-    window.addEventListener("keydown", onWindowKey);
-    onCleanup(() => window.removeEventListener("keydown", onWindowKey));
-  });
+  // Cmd+N is owned globally by App.tsx; no per-Browser listener.
 
   // ---- Row actions ----
   function openScript(s: ScriptSummary, newTab = false) {
@@ -118,7 +106,7 @@ export function Browser(props: BrowserProps = {}) {
     try {
       await api.archiveScript(s.id);
       pushToast(`"${s.title}" in den Papierkorb verschoben`, "ok");
-      void refetchScripts();
+      scriptsBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     }
@@ -127,7 +115,7 @@ export function Browser(props: BrowserProps = {}) {
     try {
       const dup = await api.duplicateScript(s.id);
       pushToast("Skript dupliziert", "ok");
-      void refetchScripts();
+      scriptsBus.bump();
       tabsStore.openScript(dup.id, dup.title, { newTab: true });
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
@@ -149,7 +137,7 @@ export function Browser(props: BrowserProps = {}) {
       const updated = await api.renameScript(target.id, v);
       tabsStore.setScriptTitle(target.id, updated.title);
       pushToast("Umbenannt", "ok");
-      void refetchScripts();
+      scriptsBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     } finally {
@@ -174,6 +162,18 @@ export function Browser(props: BrowserProps = {}) {
     openScript(s, e.metaKey || e.ctrlKey);
   }
 
+  let listRef: HTMLUListElement | undefined;
+
+  function focusSelectedRow() {
+    requestAnimationFrame(() => {
+      const row = listRef?.querySelector<HTMLElement>(
+        '.script-row[data-selected="true"]',
+      );
+      row?.focus();
+      row?.scrollIntoView({ block: "nearest" });
+    });
+  }
+
   function onRowKey(e: KeyboardEvent) {
     const arr = list();
     if (arr.length === 0) return;
@@ -181,12 +181,22 @@ export function Browser(props: BrowserProps = {}) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedId(arr[Math.min(arr.length - 1, idx + 1)].id);
+      focusSelectedRow();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedId(arr[Math.max(0, idx - 1)].id);
+      focusSelectedRow();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setSelectedId(arr[0].id);
+      focusSelectedRow();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setSelectedId(arr[arr.length - 1].id);
+      focusSelectedRow();
     } else if (e.key === "Enter") {
       const s = selected();
-      if (s) openScript(s);
+      if (s) openScript(s, e.metaKey || e.ctrlKey);
     }
   }
 
@@ -197,7 +207,7 @@ export function Browser(props: BrowserProps = {}) {
 
   return (
     <div class="browser-root">
-      <header class="browser-header" data-tauri-drag-region>
+      <header class="browser-header">
         <div class="region-tabs" role="tablist">
           <button
             class="region-tab"
@@ -278,7 +288,7 @@ export function Browser(props: BrowserProps = {}) {
                   </Show>
                 }
               >
-                <ul class="script-list" onKeyDown={onRowKey}>
+                <ul class="script-list" onKeyDown={onRowKey} ref={listRef}>
                   <For each={list()}>
                     {(s) => (
                       <ScriptRow
@@ -309,7 +319,8 @@ export function Browser(props: BrowserProps = {}) {
                     class="btn list-foot-new"
                     onClick={() => openNewScript()}
                   >
-                    Neues Skript&nbsp;&nbsp;<span aria-hidden="true">+</span>
+                    <span>Neues Skript</span>
+                    <span class="list-foot-plus" aria-hidden="true">+</span>
                   </button>
                 </div>
               </Show>
@@ -337,58 +348,39 @@ export function Browser(props: BrowserProps = {}) {
         )}
       </Show>
 
-      <Show when={renameTarget()}>
-        {(t) => (
-          <Portal>
-            <div
-              class="modal-backdrop"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setRenameTarget(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setRenameTarget(null);
-              }}
-              tabIndex={-1}
-            >
-              <div class="modal" role="dialog">
-                <h2>Umbenennen</h2>
-                <div class="modal-body">
-                  <div class="field">
-                    <label>Neuer Titel</label>
-                    <input
-                      type="text"
-                      value={renameValue()}
-                      autofocus
-                      onInput={(e) => setRenameValue(e.currentTarget.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") void commitRename();
-                      }}
-                    />
-                    <div class="muted small">Aktuell: {t().title}</div>
-                  </div>
-                </div>
-                <div class="modal-footer">
-                  <button class="btn" onClick={() => setRenameTarget(null)}>
-                    Abbrechen
-                  </button>
-                  <button class="btn btn-primary" onClick={commitRename}>
-                    Speichern
-                  </button>
-                </div>
-              </div>
+      <Modal
+        open={renameTarget() !== null}
+        onClose={() => setRenameTarget(null)}
+        title="Umbenennen"
+        footer={
+          <>
+            <button class="btn" onClick={() => setRenameTarget(null)}>
+              Abbrechen
+            </button>
+            <button class="btn btn-primary" onClick={commitRename}>
+              Speichern
+            </button>
+          </>
+        }
+      >
+        <Show when={renameTarget()}>
+          {(t) => (
+            <div class="field">
+              <label>Neuer Titel</label>
+              <input
+                type="text"
+                value={renameValue()}
+                autofocus
+                onInput={(e) => setRenameValue(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void commitRename();
+                }}
+              />
+              <div class="muted small">Aktuell: {t().title}</div>
             </div>
-          </Portal>
-        )}
-      </Show>
-
-      <Show when={showNewScriptDialog()}>
-        <NewScriptDialog
-          onClose={() => setShowNewScriptDialog(false)}
-          onCreated={() => {
-            void refetchScripts();
-          }}
-        />
-      </Show>
+          )}
+        </Show>
+      </Modal>
     </div>
   );
 }
@@ -415,6 +407,7 @@ function ScriptRow(props: ScriptRowProps) {
     <li
       class="script-row"
       classList={{ "is-selected": props.selected }}
+      data-selected={props.selected ? "true" : undefined}
       tabIndex={0}
       onClick={props.onClick}
       onDblClick={props.onDoubleClick}
@@ -429,13 +422,13 @@ function ScriptRow(props: ScriptRowProps) {
       </div>
       <button
         class="script-row-more"
-        aria-label="Mehr"
+        aria-label="Mehr Aktionen"
         onClick={(e) => {
           e.stopPropagation();
           props.onMore(e);
         }}
       >
-        ···
+        ⋯
       </button>
       <div class="script-row-time muted">
         {relativeTime(props.script.updated_at)}
@@ -450,9 +443,10 @@ function ScriptRow(props: ScriptRowProps) {
 function DetailPane(props: { script: ScriptSummary; onOpen: () => void }) {
   const highlightingLabel = () => {
     const v = props.script.highlighting_enabled;
-    if (v === 1) return "An";
-    if (v === 0) return "Aus";
-    return settingsStore.highlightingDefault() ? "An (Standard)" : "Aus (Standard)";
+    const def = settingsStore.highlightingDefault();
+    if (v === 1) return def ? "An" : "An · Override";
+    if (v === 0) return def ? "Aus · Override" : "Aus";
+    return def ? "An · Standard" : "Aus · Standard";
   };
   return (
     <aside class="detail-pane">

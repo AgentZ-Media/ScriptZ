@@ -21,6 +21,7 @@ import { installInlineFormat } from "./plugins/inlineFormat";
 import { installBlockHotkeys } from "./plugins/blockHotkeys";
 import { installCharacterDropdown } from "./plugins/characterDropdown";
 import { api } from "../../lib/api";
+import { scriptsBus } from "../../lib/scriptsBus";
 import type { ScriptCharacter } from "../../lib/types";
 import "./Editor.css";
 
@@ -141,6 +142,7 @@ export function Editor(props: EditorProps) {
           contentJson,
           pageCount,
         });
+        scriptsBus.bump();
         props.onSaved?.();
       } catch (err) {
         console.error("[scriptz] auto-save failed", err);
