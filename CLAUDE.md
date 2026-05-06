@@ -173,6 +173,47 @@ pnpm tauri:build            # native .app at
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
+## Releasing & in-app auto-update
+
+Auto-update is the official `tauri-plugin-updater` flow, same shape as
+NoteZ. The frontend does `check() → downloadAndInstall() → relaunch()`
+in [`src/components/Common/UpdateIndicator.tsx`](src/components/Common/UpdateIndicator.tsx);
+the manual "Jetzt prüfen" button in Settings goes through the same
+plugin. Updates are signed with a minisign keypair — the public key is
+embedded in [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json),
+the private key lives at `~/.tauri/scriptz_updater.key` (no password)
+and is mirrored to the GitHub repo secret
+`TAURI_SIGNING_PRIVATE_KEY`. **Lose the private key and you lose the
+ability to ship updates** — back it up.
+
+The release pipeline lives in
+[`.github/workflows/release.yml`](.github/workflows/release.yml). It
+fires on tags matching `v*.*.*` (but not `v*.*.*.*`), runs on
+`macos-26` for SDK parity with Tahoe users, builds for
+`aarch64-apple-darwin` only, and publishes a Release containing the
+DMG, the signed `.app.tar.gz` + `.sig`, and the `latest.json` manifest
+the in-app updater polls. The current-version check inside the app
+uses `@tauri-apps/api/app`'s `getVersion()`, which reads from Cargo
+metadata at runtime — no `VITE_APP_VERSION` constant to keep in sync.
+
+To cut a release:
+
+1. Bump the version in **all three** places (they must agree, or
+   `tauri build` warns and `latest.json` will mislabel the release):
+   - `package.json` → `version`
+   - `src-tauri/Cargo.toml` → `[package] version`
+   - `src-tauri/tauri.conf.json` → `version`
+2. Commit, push `main`.
+3. `git tag -a vX.Y.Z -m "ScriptZ vX.Y.Z — …" && git push origin vX.Y.Z`
+4. The workflow runs ~6 min and produces the release. After it finishes,
+   any running v(X.Y.Z-1) instance picks the new version up on its next
+   hourly poll (or immediately on app restart).
+
+The first manual install still needs `xattr -cr /Applications/ScriptZ.app`
+because the app is unsigned (no Apple Developer account). In-place
+updates **don't** need that — the new bundle inherits the running
+process's quarantine state.
+
 ## Don'ts
 
 - **Never start the dev server on your own.** The user runs it. Use
@@ -182,8 +223,11 @@ cargo check --manifest-path src-tauri/Cargo.toml
 - **No `tauri-plugin-sql`.** We own the schema in Rust (richer than the
   plugin allows for FTS5 + reconcile-on-save).
 - **No localStorage for script content.** Persistence is SQLite.
-- **No telemetry.** App works fully offline. The only network call is the
-  hourly GitHub Releases check (no body, no identifier).
+- **No telemetry.** App works fully offline. The only network call is
+  the hourly updater poll to
+  `https://github.com/ibimspumo/ScriptZ/releases/latest/download/latest.json`
+  (no body, no identifier) plus the manifest-driven binary download
+  when the user clicks the update pill.
 - **Don't reintroduce global characters, projects, tags, aliases,
   character bibles, per-script overrides, the series field, or
   vibrancy chrome.** They were deliberately removed in 2026-05 to bring
