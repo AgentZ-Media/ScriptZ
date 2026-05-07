@@ -104,7 +104,7 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
     let s = conn
         .query_row(
             "SELECT id, title, highlighting_enabled, characters_meta,
-                    created_at, updated_at, archived_at, page_count, summary
+                    created_at, updated_at, archived_at, page_count, summary, folder_id
              FROM scripts WHERE id = ?1",
             params![id],
             |r| {
@@ -118,6 +118,7 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
                     r.get::<_, Option<i64>>(6)?,
                     r.get::<_, i64>(7)?,
                     r.get::<_, Option<String>>(8)?,
+                    r.get::<_, Option<String>>(9)?,
                 ))
             },
         )
@@ -133,6 +134,7 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
         archived_at: s.6,
         page_count: s.7,
         summary: s.8,
+        folder_id: s.9,
     })
 }
 
@@ -148,11 +150,21 @@ pub fn create_script(db: State<Db>, input: CreateScriptInput) -> Result<ScriptSu
         .unwrap_or_else(empty_lexical_state);
     let chars = reconcile_chars_from_content(&[], &content_json);
     let chars_json = serialize_chars_meta(&chars);
+    if let Some(fid) = &input.folder_id {
+        let exists: i64 = conn
+            .query_row("SELECT COUNT(*) FROM folders WHERE id = ?1", params![fid], |r| {
+                r.get(0)
+            })
+            .unwrap_or(0);
+        if exists == 0 {
+            return Err(ScriptzError::NotFound(format!("folder {fid}")));
+        }
+    }
     conn.execute(
         "INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                              created_at, updated_at, page_count)
-         VALUES (?1, ?2, NULL, ?3, ?4, ?5, ?5, 1)",
-        params![id, title, content_json, chars_json, now],
+                              created_at, updated_at, page_count, folder_id)
+         VALUES (?1, ?2, NULL, ?3, ?4, ?5, ?5, 1, ?6)",
+        params![id, title, content_json, chars_json, now, input.folder_id],
     )?;
     refresh_fts(&conn, &id)?;
     row_to_summary(&conn, id)
@@ -164,7 +176,7 @@ pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
     let s = conn
         .query_row(
             "SELECT id, title, highlighting_enabled, content_json, characters_meta,
-                    created_at, updated_at, archived_at, page_count, summary
+                    created_at, updated_at, archived_at, page_count, summary, folder_id
              FROM scripts WHERE id = ?1",
             params![id],
             |r| {
@@ -179,6 +191,7 @@ pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
                     r.get::<_, Option<i64>>(7)?,
                     r.get::<_, i64>(8)?,
                     r.get::<_, Option<String>>(9)?,
+                    r.get::<_, Option<String>>(10)?,
                 ))
             },
         )
@@ -195,6 +208,7 @@ pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
         archived_at: s.7,
         page_count: s.8,
         summary: s.9,
+        folder_id: s.10,
     })
 }
 
@@ -296,6 +310,10 @@ pub fn list_scripts(db: State<Db>, query: ListScriptsQuery) -> Result<Vec<Script
             args.push(Box::new(format!("%{}%", trimmed)));
         }
     }
+    if let Some(folder_id) = &query.folder_id {
+        sql.push_str(" AND folder_id = ?");
+        args.push(Box::new(folder_id.clone()));
+    }
     let sort = query.sort.as_deref().unwrap_or("updated");
     match sort {
         "created" => sql.push_str(" ORDER BY created_at DESC"),
@@ -386,8 +404,8 @@ pub fn duplicate_script(db: State<Db>, id: String) -> Result<ScriptSummary> {
     let chars_json = serialize_chars_meta(&src.characters);
     conn.execute(
         "INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                              created_at, updated_at, page_count)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7)",
+                              created_at, updated_at, page_count, folder_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7, ?8)",
         params![
             new_id,
             new_title,
@@ -396,6 +414,7 @@ pub fn duplicate_script(db: State<Db>, id: String) -> Result<ScriptSummary> {
             chars_json,
             now,
             src.page_count,
+            src.folder_id,
         ],
     )?;
     refresh_fts(&conn, &new_id)?;

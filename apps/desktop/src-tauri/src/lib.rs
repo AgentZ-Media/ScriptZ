@@ -57,6 +57,14 @@ pub fn run() {
             commands::scripts::empty_trash,
             commands::scripts::duplicate_script,
             commands::scripts::rename_script,
+            // folders
+            commands::folders::count_live_scripts,
+            commands::folders::list_folders,
+            commands::folders::create_folder,
+            commands::folders::rename_folder,
+            commands::folders::delete_folder,
+            commands::folders::move_script,
+            commands::folders::move_scripts,
             // snapshots
             commands::snapshots::create_snapshot,
             commands::snapshots::list_snapshots,

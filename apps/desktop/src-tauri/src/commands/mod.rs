@@ -1,3 +1,4 @@
+pub mod folders;
 pub mod scripts;
 pub mod snapshots;
 pub mod search;

@@ -15,10 +15,19 @@ export interface ScriptSummary {
   page_count: number;
   characters: ScriptCharacter[];
   summary: string | null;
+  folder_id: string | null;
 }
 
 export interface Script extends ScriptSummary {
   content_json: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+  script_count: number;
 }
 
 // ---- AI / OpenRouter ----

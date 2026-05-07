@@ -39,6 +39,7 @@ export default function App() {
   const [cmdkOpen, setCmdkOpen] = createSignal(false);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
+  const [newScriptFolder, setNewScriptFolder] = createSignal<string | null>(null);
   const [exportOpen, setExportOpen] = createSignal(false);
 
   const activeScriptId = (): string | null => {
@@ -213,6 +214,7 @@ export default function App() {
       }
       if (ev.key.toLowerCase() === "n" && !ev.shiftKey) {
         ev.preventDefault();
+        setNewScriptFolder(null);
         setNewScriptOpen(true);
         return;
       }
@@ -292,7 +294,10 @@ export default function App() {
               <Switch>
                 <Match when={v().kind === "browser"}>
                   <Browser
-                    onNewScript={() => setNewScriptOpen(true)}
+                    onNewScript={(folderId) => {
+                      setNewScriptFolder(folderId ?? null);
+                      setNewScriptOpen(true);
+                    }}
                     onOpenSettings={() => setSettingsOpen(true)}
                   />
                 </Match>
@@ -314,6 +319,7 @@ export default function App() {
           <NewScriptDialog
             onClose={() => setNewScriptOpen(false)}
             onCreated={onCreatedScript}
+            defaultFolderId={newScriptFolder()}
           />
         </Show>
         <Show when={activeScriptId()}>

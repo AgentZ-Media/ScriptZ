@@ -157,6 +157,127 @@
   line-height: 1;
 }
 
+/* ---- Folder chip row ----
+   Sits between the topbar and the body. The list scrolls horizontally
+   so we don't have to wrap or hide chips when there are many folders;
+   the "+ Neuer Ordner" button is pinned outside the scroll area on the
+   right so it never disappears under overflow. */
+.folder-chips-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-6) var(--sp-3);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.folder-chips-scroll {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 6px; /* room for focus ring + scrollbar */
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: thin;
+}
+.folder-chips-scroll::-webkit-scrollbar { height: 6px; }
+.folder-chips-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.folder-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-size: var(--fs-13);
+  color: var(--fg-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--t-fast), border-color var(--t-fast),
+    color var(--t-fast), box-shadow var(--t-fast);
+}
+.folder-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elev-2);
+  color: var(--fg);
+}
+.folder-chip:focus-visible {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--ring-brand);
+}
+.folder-chip.is-active {
+  background: var(--brand-soft);
+  border-color: var(--brand-500);
+  color: var(--fg);
+  font-weight: 600;
+}
+.folder-chip.is-drop-target {
+  border-color: var(--brand-500);
+  background: var(--brand-soft);
+  box-shadow: 0 0 0 3px var(--ring-brand);
+}
+.folder-chip-icon {
+  color: var(--fg-subtle);
+  display: inline-flex;
+  align-items: center;
+}
+.folder-chip.is-active .folder-chip-icon { color: var(--fg-muted); }
+.folder-chip-label { line-height: 1.1; }
+.folder-chip-count {
+  font-size: var(--fs-11);
+  font-weight: 600;
+  color: var(--fg-subtle);
+  background: var(--bg-elev-2);
+  border-radius: var(--r-pill);
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+.folder-chip.is-active .folder-chip-count {
+  background: var(--bg-elev-1);
+  color: var(--fg-muted);
+}
+
+.folder-chips-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: var(--fs-13);
+  border-radius: var(--r-pill);
+  color: var(--fg-muted);
+}
+.folder-chips-new:hover { color: var(--fg); }
+
+/* Drag-feedback on draggable cards / rows. Anchored on the .card and
+   .list-row classes that already exist; we only override during DnD. */
+.card.is-dragging,
+.list-row.is-dragging {
+  opacity: 0.4;
+}
+
+/* Empty-folder placeholder */
+.empty-folder {
+  text-align: center;
+  padding: var(--sp-7) var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
 /* ---- Body (sections) ---- */
 .browser-body {
   flex: 1;
@@ -557,6 +678,24 @@
 .ctx-menu-item.danger { color: var(--status-err); }
 .ctx-menu-item.danger:hover { background: var(--danger-soft); }
 .ctx-menu-item:disabled { color: var(--fg-disabled); pointer-events: none; }
+
+/* Submenu trigger row: chevron on the right, label on the left. */
+.ctx-menu-item.has-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ctx-menu-item .ctx-menu-label { flex: 1; min-width: 0; }
+.ctx-menu-item .ctx-menu-chevron {
+  color: var(--fg-subtle);
+  font-size: var(--fs-14);
+  line-height: 1;
+}
+.ctx-submenu {
+  /* Inherits .ctx-menu styles — only needs a marker class for hit-tests
+     during cursor transitions between parent and child menus. */
+}
 
 /* ---- Trash region ---- */
 .trash-region {

@@ -20,6 +20,7 @@ pub struct ScriptSummary {
     pub page_count: i64,
     pub characters: Vec<ScriptCharacter>,
     pub summary: Option<String>,
+    pub folder_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +35,16 @@ pub struct Script {
     pub page_count: i64,
     pub characters: Vec<ScriptCharacter>,
     pub summary: Option<String>,
+    pub folder_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Folder {
+    pub id: String,
+    pub name: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub script_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +68,7 @@ pub struct SnapshotMeta {
 pub struct CreateScriptInput {
     pub title: Option<String>,
     pub initial_content_json: Option<String>,
+    pub folder_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,4 +101,9 @@ pub struct ListScriptsQuery {
     pub query: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+    /// When `Some(id)`, restrict to scripts in that folder. When `None`,
+    /// no folder filter is applied (= "Alle"). There is no explicit
+    /// "ungrouped" filter on purpose: the UI surfaces every script under
+    /// "Alle" and individual folders, nothing in between.
+    pub folder_id: Option<String>,
 }

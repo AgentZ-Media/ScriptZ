@@ -67,10 +67,14 @@ impl Db {
         // Migration v4: additive — adds summary_source_tokens (compact
         //   word-set used for Jaccard) so we don't have to store the
         //   full plain-text body alongside every script.
+        // Migration v5: additive — folders (single, flat level) and
+        //   scripts.folder_id with ON DELETE SET NULL so deleting a folder
+        //   leaves its scripts intact in "Alle".
         let migrations: &[(i64, &str)] = &[
             (2, MIGRATION_002),
             (3, MIGRATION_003),
             (4, MIGRATION_004),
+            (5, MIGRATION_005),
         ];
         let tx = conn.transaction()?;
         for (version, sql) in migrations {
@@ -232,4 +236,19 @@ ALTER TABLE scripts ADD COLUMN summary_model TEXT;
 // in-place at the next save without losing their cooldown state.
 const MIGRATION_004: &str = r#"
 ALTER TABLE scripts ADD COLUMN summary_source_tokens TEXT;
+"#;
+
+// v5: flat folders. One folder per script (nullable — "Alle" / no folder
+// is the absence of folder_id). Deleting a folder is a soft drop: scripts
+// in it just lose their folder_id and reappear in "Alle". No nesting yet;
+// if we ever want it, add `parent_id TEXT REFERENCES folders(id)` later.
+const MIGRATION_005: &str = r#"
+CREATE TABLE folders (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+ALTER TABLE scripts ADD COLUMN folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL;
+CREATE INDEX idx_scripts_folder ON scripts(folder_id);
 "#;

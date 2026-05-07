@@ -1,18 +1,31 @@
-import { createSignal } from "solid-js";
+import { createSignal, createResource, For, Show } from "solid-js";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
 import { scriptsBus } from "~/lib/scriptsBus";
+import { foldersBus } from "~/lib/foldersBus";
 import { Modal } from "~/components/Common/Modal";
 
 export interface NewScriptDialogProps {
   onClose: () => void;
   onCreated?: () => void;
+  /** Optional pre-selection — when the dialog is opened from a folder
+   * filter, the new script defaults to that folder. `null` = "Alle". */
+  defaultFolderId?: string | null;
 }
 
 export function NewScriptDialog(props: NewScriptDialogProps) {
   const [title, setTitle] = createSignal("");
+  const [folderId, setFolderId] = createSignal<string | null>(
+    props.defaultFolderId ?? null,
+  );
   const [submitting, setSubmitting] = createSignal(false);
+
+  const [folders] = createResource(
+    () => foldersBus.version(),
+    () => api.listFolders(),
+    { initialValue: [] },
+  );
 
   async function submit() {
     if (submitting()) return;
@@ -20,8 +33,10 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
     try {
       const created = await api.createScript({
         title: title().trim() || undefined,
+        folderId: folderId(),
       });
       scriptsBus.bump();
+      foldersBus.bump();
       tabsStore.openScript(created.id, created.title);
       props.onCreated?.();
       props.onClose();
@@ -68,6 +83,22 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
           autofocus
         />
       </div>
+      <Show when={(folders() ?? []).length > 0}>
+        <div class="field">
+          <label>Ordner</label>
+          <select
+            value={folderId() ?? ""}
+            onChange={(e) =>
+              setFolderId(e.currentTarget.value === "" ? null : e.currentTarget.value)
+            }
+          >
+            <option value="">Kein Ordner</option>
+            <For each={folders()}>
+              {(f) => <option value={f.id}>{f.name}</option>}
+            </For>
+          </select>
+        </div>
+      </Show>
     </Modal>
   );
 }

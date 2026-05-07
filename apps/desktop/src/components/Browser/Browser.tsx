@@ -8,7 +8,7 @@ import {
   For,
   Show,
 } from "solid-js";
-import type { ScriptSummary } from "~/lib/types";
+import type { Folder, ScriptSummary } from "~/lib/types";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
@@ -22,7 +22,10 @@ import { UpdateIndicator } from "~/components/Common/UpdateIndicator";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { TrashView } from "./TrashView";
 import { Modal } from "~/components/Common/Modal";
+import { ConfirmDialog } from "~/components/Common/ConfirmDialog";
 import { scriptsBus } from "~/lib/scriptsBus";
+import { foldersBus } from "~/lib/foldersBus";
+import { FolderChips, SCRIPT_DRAG_MIME } from "./FolderChips";
 import "./Browser.css";
 
 type Region = "scripts" | "trash";
@@ -30,16 +33,14 @@ type SortKey = "updated" | "created" | "title";
 type ViewMode = "grid" | "list";
 
 const VIEW_STATE_KEY = "browser.view_mode";
+const ACTIVE_FOLDER_STATE_KEY = "browser.active_folder";
 const RECENT_GRID_COUNT = 4;
-// Page size for the older-scripts list. We page in 200-script chunks so
-// the Browser stays snappy even with thousands of scripts on disk —
-// CLAUDE.md mentions ">80 cards virtualised" but the actual rendering
-// has always been a flat For. A LIMIT + "load more" button is the
-// minimum-viable scaling fix.
 const PAGE_SIZE = 200;
 
 export interface BrowserProps {
-  onNewScript?: () => void;
+  /** Called with the currently active folder filter so the App-level
+   * NewScriptDialog can pre-select it. */
+  onNewScript?: (folderId: string | null) => void;
   onOpenSettings?: () => void;
 }
 
@@ -49,29 +50,49 @@ export function Browser(props: BrowserProps = {}) {
   const [debouncedSearch, setDebouncedSearch] = createSignal("");
   const [sort, setSort] = createSignal<SortKey>("updated");
   const [viewMode, setViewMode] = createSignal<ViewMode>("grid");
+  const [activeFolderId, setActiveFolderId] = createSignal<string | null>(null);
 
   const [contextMenu, setContextMenu] = createSignal<{
     x: number;
     y: number;
-    script: ScriptSummary;
+    items: ContextMenuItem[];
   } | null>(null);
   const [renameTarget, setRenameTarget] = createSignal<ScriptSummary | null>(null);
   const [renameValue, setRenameValue] = createSignal("");
+  const [folderRenameTarget, setFolderRenameTarget] = createSignal<Folder | null>(
+    null,
+  );
+  const [folderRenameValue, setFolderRenameValue] = createSignal("");
+  const [folderCreateOpen, setFolderCreateOpen] = createSignal(false);
+  const [folderCreateValue, setFolderCreateValue] = createSignal("");
+  const [folderDeleteTarget, setFolderDeleteTarget] = createSignal<Folder | null>(
+    null,
+  );
 
-  // Restore persisted view mode.
+  // Restore persisted view mode + active folder. Active folder is
+  // remembered across launches so the user lands in the same place; if
+  // the folder was deleted we fall back to "Alle".
   onMount(async () => {
     try {
       const v = await api.getAppState(VIEW_STATE_KEY);
       if (v === "list" || v === "grid") setViewMode(v);
+    } catch {}
+    try {
+      const f = await api.getAppState(ACTIVE_FOLDER_STATE_KEY);
+      if (typeof f === "string" && f.length > 0) setActiveFolderId(f);
     } catch {}
   });
   createEffect(() => {
     const v = viewMode();
     void api.setAppState(VIEW_STATE_KEY, v).catch(() => {});
   });
+  createEffect(() => {
+    const f = activeFolderId();
+    void api.setAppState(ACTIVE_FOLDER_STATE_KEY, f ?? "").catch(() => {});
+  });
 
   function openNewScript() {
-    props.onNewScript?.();
+    props.onNewScript?.(activeFolderId());
   }
 
   const debouncedSetSearch = debounce((v: string) => setDebouncedSearch(v), 350);
@@ -83,17 +104,18 @@ export function Browser(props: BrowserProps = {}) {
 
   const [pageLimit, setPageLimit] = createSignal(PAGE_SIZE);
 
-  // Reset paging whenever the query changes — a search shouldn't inherit
-  // the last "load more" cursor from the unfiltered list.
+  // Reset paging whenever the query, sort or folder changes.
   createEffect(() => {
     void debouncedSearch();
     void sort();
+    void activeFolderId();
     setPageLimit(PAGE_SIZE);
   });
 
   const queryKey = createMemo(() => ({
     query: debouncedSearch(),
     sort: sort(),
+    folderId: activeFolderId(),
     version: scriptsBus.version(),
     limit: pageLimit(),
   }));
@@ -105,15 +127,38 @@ export function Browser(props: BrowserProps = {}) {
         query: q.query || undefined,
         sort: q.sort,
         limit: q.limit,
+        folderId: q.folderId,
       }),
     { initialValue: [] },
   );
 
+  // Folders + total count for the "Alle" chip. Both refetch whenever
+  // folders OR scripts change (counts move when scripts are added,
+  // archived, moved or purged).
+  const folderKey = createMemo(() => ({
+    fv: foldersBus.version(),
+    sv: scriptsBus.version(),
+  }));
+  const [folders] = createResource(folderKey, () => api.listFolders(), {
+    initialValue: [],
+  });
+  const [allCount] = createResource(folderKey, () => api.countLiveScripts(), {
+    initialValue: 0,
+  });
+
+  // If the active folder was deleted out from under us, fall back to "Alle".
+  createEffect(() => {
+    const id = activeFolderId();
+    const list = folders() ?? [];
+    if (id && !folders.loading && list.length >= 0) {
+      if (!list.find((f) => f.id === id)) {
+        setActiveFolderId(null);
+      }
+    }
+  });
+
   const list = createMemo(() => scripts() ?? []);
 
-  // The backend doesn't return a total count — we infer "there's more"
-  // from the page being completely full. False positive on the boundary
-  // is fine; clicking "load more" then yields zero new entries.
   const hasMore = createMemo(() => list().length >= pageLimit());
 
   const isSearching = createMemo(() => debouncedSearch().trim().length > 0);
@@ -127,6 +172,12 @@ export function Browser(props: BrowserProps = {}) {
     return list().slice(RECENT_GRID_COUNT);
   });
 
+  const activeFolderName = createMemo(() => {
+    const id = activeFolderId();
+    if (!id) return null;
+    return folders()?.find((f) => f.id === id)?.name ?? null;
+  });
+
   // ---- Row actions ----
   function openScript(s: ScriptSummary, newTab = false) {
     tabsStore.openScript(s.id, s.title, { newTab });
@@ -137,6 +188,7 @@ export function Browser(props: BrowserProps = {}) {
       await api.archiveScript(s.id);
       pushToast(`"${s.title}" in den Papierkorb verschoben`, "ok");
       scriptsBus.bump();
+      foldersBus.bump();
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
     }
@@ -146,6 +198,7 @@ export function Browser(props: BrowserProps = {}) {
       const dup = await api.duplicateScript(s.id);
       pushToast("Skript dupliziert", "ok");
       scriptsBus.bump();
+      foldersBus.bump();
       tabsStore.openScript(dup.id, dup.title, { newTab: true });
     } catch (e) {
       pushToast(`Fehler: ${(e as Error).message}`, "error");
@@ -175,12 +228,56 @@ export function Browser(props: BrowserProps = {}) {
     }
   }
 
+  async function moveScriptTo(s: ScriptSummary, folderId: string | null) {
+    try {
+      await api.moveScript(s.id, folderId);
+      const fname =
+        folderId === null
+          ? "Alle"
+          : folders()?.find((f) => f.id === folderId)?.name ?? "Ordner";
+      pushToast(`Verschoben nach „${fname}"`, "ok");
+      scriptsBus.bump();
+      foldersBus.bump();
+    } catch (e) {
+      pushToast(`Fehler: ${(e as Error).message}`, "error");
+    }
+  }
+
   function ctxMenuItems(s: ScriptSummary): ContextMenuItem[] {
+    const moveChildren: ContextMenuItem[] = [];
+    moveChildren.push({
+      label: "Kein Ordner",
+      onClick: () => void moveScriptTo(s, null),
+      disabled: s.folder_id === null,
+    });
+    const fs = folders() ?? [];
+    if (fs.length > 0) {
+      for (const f of fs) {
+        moveChildren.push({
+          label: f.name,
+          onClick: () => void moveScriptTo(s, f.id),
+          disabled: s.folder_id === f.id,
+        });
+      }
+    }
+    moveChildren.push({
+      label: "Neuer Ordner…",
+      onClick: () => {
+        // Open the create-folder modal; once created, move the script there.
+        // We thread the script through a one-shot pending state so the
+        // create flow knows what to do next.
+        setPendingMoveAfterCreate(s);
+        setFolderCreateValue("");
+        setFolderCreateOpen(true);
+      },
+    });
+
     return [
       { label: "Öffnen", onClick: () => openScript(s) },
       { label: "In neuem Tab öffnen", onClick: () => openScript(s, true) },
       { label: "Umbenennen", onClick: () => startRename(s) },
       { label: "Duplizieren", onClick: () => void duplicate(s) },
+      { label: "In Ordner verschieben", children: moveChildren },
       {
         label: "In Papierkorb verschieben",
         onClick: () => void archive(s),
@@ -189,8 +286,111 @@ export function Browser(props: BrowserProps = {}) {
     ];
   }
 
+  // Right-click on a folder chip → rename / delete.
+  function folderChipMenu(folder: Folder, ev: MouseEvent) {
+    setContextMenu({
+      x: ev.clientX,
+      y: ev.clientY,
+      items: [
+        {
+          label: "Umbenennen",
+          onClick: () => {
+            setFolderRenameTarget(folder);
+            setFolderRenameValue(folder.name);
+          },
+        },
+        {
+          label: "Ordner löschen",
+          onClick: () => setFolderDeleteTarget(folder),
+          danger: true,
+        },
+      ],
+    });
+  }
+
+  const [pendingMoveAfterCreate, setPendingMoveAfterCreate] =
+    createSignal<ScriptSummary | null>(null);
+
+  async function commitFolderCreate() {
+    const v = folderCreateValue().trim();
+    if (!v) {
+      setFolderCreateOpen(false);
+      setPendingMoveAfterCreate(null);
+      return;
+    }
+    try {
+      const created = await api.createFolder(v);
+      foldersBus.bump();
+      const pending = pendingMoveAfterCreate();
+      if (pending) {
+        await api.moveScript(pending.id, created.id);
+        scriptsBus.bump();
+        foldersBus.bump();
+        pushToast(`Verschoben nach „${created.name}"`, "ok");
+      } else {
+        pushToast(`Ordner „${created.name}" angelegt`, "ok");
+      }
+    } catch (e) {
+      pushToast(`Fehler: ${(e as Error).message}`, "error");
+    } finally {
+      setFolderCreateOpen(false);
+      setPendingMoveAfterCreate(null);
+    }
+  }
+
+  async function commitFolderRename() {
+    const target = folderRenameTarget();
+    if (!target) return;
+    const v = folderRenameValue().trim();
+    if (!v || v === target.name) {
+      setFolderRenameTarget(null);
+      return;
+    }
+    try {
+      await api.renameFolder(target.id, v);
+      pushToast("Ordner umbenannt", "ok");
+      foldersBus.bump();
+    } catch (e) {
+      pushToast(`Fehler: ${(e as Error).message}`, "error");
+    } finally {
+      setFolderRenameTarget(null);
+    }
+  }
+
+  async function commitFolderDelete() {
+    const target = folderDeleteTarget();
+    if (!target) return;
+    try {
+      await api.deleteFolder(target.id);
+      pushToast(`Ordner „${target.name}" gelöscht`, "ok");
+      // ON DELETE SET NULL leaves scripts intact in "Alle" — refresh both.
+      if (activeFolderId() === target.id) setActiveFolderId(null);
+      foldersBus.bump();
+      scriptsBus.bump();
+    } catch (e) {
+      pushToast(`Fehler: ${(e as Error).message}`, "error");
+    } finally {
+      setFolderDeleteTarget(null);
+    }
+  }
+
   function isWelcome() {
-    return !scripts.loading && !isSearching() && list().length === 0;
+    return (
+      !scripts.loading &&
+      !isSearching() &&
+      list().length === 0 &&
+      activeFolderId() === null &&
+      (folders() ?? []).length === 0
+    );
+  }
+
+  function isEmptyFolder() {
+    return (
+      !scripts.loading &&
+      !isSearching() &&
+      list().length === 0 &&
+      activeFolderId() !== null
+    );
   }
 
   let searchInputRef: HTMLInputElement | undefined;
@@ -265,6 +465,25 @@ export function Browser(props: BrowserProps = {}) {
       </header>
 
       <Show when={activeRegion() === "scripts"}>
+        <FolderChips
+          folders={folders() ?? []}
+          activeFolderId={activeFolderId()}
+          allCount={allCount() ?? 0}
+          onSelect={(id) => setActiveFolderId(id)}
+          onCreateFolder={() => {
+            setPendingMoveAfterCreate(null);
+            setFolderCreateValue("");
+            setFolderCreateOpen(true);
+          }}
+          onChipContextMenu={folderChipMenu}
+          onDropScript={(folderId, scriptId) => {
+            const s = list().find((x) => x.id === scriptId);
+            if (s && s.folder_id !== folderId) {
+              void moveScriptTo(s, folderId);
+            }
+          }}
+        />
+
         <div class="browser-body">
           <Show
             when={!isWelcome()}
@@ -283,120 +502,154 @@ export function Browser(props: BrowserProps = {}) {
               </div>
             }
           >
-            <Show when={list().length > 0 || scripts.loading}>
-              <Show when={!isSearching() && recent().length > 0}>
-                <section class="browser-section">
-                  <div class="browser-section-head">
-                    <h2 class="browser-section-title">Zuletzt bearbeitet</h2>
-                    <div class="browser-section-tools">
-                      <select
-                        class="browser-sort"
-                        value={sort()}
-                        onChange={(e) =>
-                          setSort(e.currentTarget.value as SortKey)
-                        }
-                        title="Sortierung"
-                      >
-                        <option value="updated">Letzte Bearbeitung</option>
-                        <option value="created">Erstelldatum</option>
-                        <option value="title">Alphabetisch</option>
-                      </select>
-                      <ViewToggle value={viewMode()} onChange={setViewMode} />
-                    </div>
-                  </div>
-
-                  <Show
-                    when={viewMode() === "grid"}
-                    fallback={
-                      <ScriptList
-                        items={recent()}
-                        onOpen={openScript}
-                        onMore={(s, e) =>
-                          setContextMenu({ x: e.clientX, y: e.clientY, script: s })
-                        }
-                      />
-                    }
-                  >
-                    <div class="card-grid">
-                      <For each={recent()}>
-                        {(s) => (
-                          <ScriptCard
-                            script={s}
-                            onClick={() => openScript(s)}
-                            onMiddleClick={() => openScript(s, true)}
-                            onContextMenu={(e) => {
-                              e.preventDefault();
-                              setContextMenu({
-                                x: e.clientX,
-                                y: e.clientY,
-                                script: s,
-                              });
-                            }}
-                            onMore={(e) =>
-                              setContextMenu({
-                                x: e.clientX,
-                                y: e.clientY,
-                                script: s,
-                              })
-                            }
-                          />
-                        )}
-                      </For>
-                    </div>
-                  </Show>
-                </section>
-              </Show>
-
-              <Show when={older().length > 0 || isSearching()}>
-                <section class="browser-section">
-                  <div class="browser-section-head">
-                    <h2 class="browser-section-title">
-                      {isSearching() ? "Suchergebnisse" : "Ältere Skripte"}
-                    </h2>
-                    <Show when={isSearching()}>
+            <Show
+              when={!isEmptyFolder()}
+              fallback={
+                <div class="empty-folder">
+                  <p class="muted">
+                    „{activeFolderName()}" ist leer.
+                  </p>
+                  <p class="muted small">
+                    Skripte hierher ziehen oder per Rechtsklick „In Ordner
+                    verschieben" zuweisen.
+                  </p>
+                </div>
+              }
+            >
+              <Show when={list().length > 0 || scripts.loading}>
+                <Show when={!isSearching() && recent().length > 0}>
+                  <section class="browser-section">
+                    <div class="browser-section-head">
+                      <h2 class="browser-section-title">
+                        <Show
+                          when={activeFolderName()}
+                          fallback={"Zuletzt bearbeitet"}
+                        >
+                          Zuletzt in „{activeFolderName()}"
+                        </Show>
+                      </h2>
                       <div class="browser-section-tools">
-                        <span class="muted small">
-                          {list().length}{" "}
-                          {list().length === 1 ? "Treffer" : "Treffer"}
-                        </span>
+                        <select
+                          class="browser-sort"
+                          value={sort()}
+                          onChange={(e) =>
+                            setSort(e.currentTarget.value as SortKey)
+                          }
+                          title="Sortierung"
+                        >
+                          <option value="updated">Letzte Bearbeitung</option>
+                          <option value="created">Erstelldatum</option>
+                          <option value="title">Alphabetisch</option>
+                        </select>
+                        <ViewToggle value={viewMode()} onChange={setViewMode} />
+                      </div>
+                    </div>
+
+                    <Show
+                      when={viewMode() === "grid"}
+                      fallback={
+                        <ScriptList
+                          items={recent()}
+                          onOpen={openScript}
+                          onMore={(s, e) =>
+                            setContextMenu({
+                              x: e.clientX,
+                              y: e.clientY,
+                              items: ctxMenuItems(s),
+                            })
+                          }
+                        />
+                      }
+                    >
+                      <div class="card-grid">
+                        <For each={recent()}>
+                          {(s) => (
+                            <ScriptCard
+                              script={s}
+                              onClick={() => openScript(s)}
+                              onMiddleClick={() => openScript(s, true)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setContextMenu({
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  items: ctxMenuItems(s),
+                                });
+                              }}
+                              onMore={(e) =>
+                                setContextMenu({
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  items: ctxMenuItems(s),
+                                })
+                              }
+                            />
+                          )}
+                        </For>
                       </div>
                     </Show>
-                  </div>
-                  <Show
-                    when={older().length > 0}
-                    fallback={
-                      <div class="empty-state muted">
-                        Keine Skripte gefunden.
-                      </div>
-                    }
-                  >
-                    <ScriptList
-                      items={older()}
-                      onOpen={openScript}
-                      onMore={(s, e) =>
-                        setContextMenu({ x: e.clientX, y: e.clientY, script: s })
-                      }
-                      withHeader
-                    />
-                  </Show>
-                </section>
-              </Show>
+                  </section>
+                </Show>
 
-              <Show when={list().length > 0}>
-                <div class="browser-footer muted small">
-                  <span>
-                    {list().length}{" "}
-                    {list().length === 1 ? "Skript" : "Skripte"}
-                  </span>
-                  <Show when={hasMore()}>
-                    <button
-                      class="btn btn-ghost browser-load-more"
-                      onClick={() => setPageLimit((n) => n + PAGE_SIZE)}
+                <Show when={older().length > 0 || isSearching()}>
+                  <section class="browser-section">
+                    <div class="browser-section-head">
+                      <h2 class="browser-section-title">
+                        {isSearching() ? "Suchergebnisse" : "Ältere Skripte"}
+                      </h2>
+                      <Show when={isSearching()}>
+                        <div class="browser-section-tools">
+                          <span class="muted small">
+                            {list().length}{" "}
+                            {list().length === 1 ? "Treffer" : "Treffer"}
+                          </span>
+                        </div>
+                      </Show>
+                    </div>
+                    <Show
+                      when={older().length > 0}
+                      fallback={
+                        <div class="empty-state muted">
+                          Keine Skripte gefunden.
+                        </div>
+                      }
                     >
-                      {PAGE_SIZE} weitere laden
-                    </button>
-                  </Show>
-                </div>
+                      <ScriptList
+                        items={older()}
+                        onOpen={openScript}
+                        onMore={(s, e) =>
+                          setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            items: ctxMenuItems(s),
+                          })
+                        }
+                        withHeader
+                      />
+                    </Show>
+                  </section>
+                </Show>
+
+                <Show when={list().length > 0}>
+                  <div class="browser-footer muted small">
+                    <span>
+                      {list().length}{" "}
+                      {list().length === 1 ? "Skript" : "Skripte"}
+                      <Show when={activeFolderName()}>
+                        {" "}
+                        in „{activeFolderName()}"
+                      </Show>
+                    </span>
+                    <Show when={hasMore()}>
+                      <button
+                        class="btn btn-ghost browser-load-more"
+                        onClick={() => setPageLimit((n) => n + PAGE_SIZE)}
+                      >
+                        {PAGE_SIZE} weitere laden
+                      </button>
+                    </Show>
+                  </div>
+                </Show>
               </Show>
             </Show>
           </Show>
@@ -413,7 +666,7 @@ export function Browser(props: BrowserProps = {}) {
             x={cm().x}
             y={cm().y}
             onClose={() => setContextMenu(null)}
-            items={ctxMenuItems(cm().script)}
+            items={cm().items}
           />
         )}
       </Show>
@@ -451,6 +704,99 @@ export function Browser(props: BrowserProps = {}) {
           )}
         </Show>
       </Modal>
+
+      <Modal
+        open={folderCreateOpen()}
+        onClose={() => {
+          setFolderCreateOpen(false);
+          setPendingMoveAfterCreate(null);
+        }}
+        title="Neuer Ordner"
+        footer={
+          <>
+            <button
+              class="btn"
+              onClick={() => {
+                setFolderCreateOpen(false);
+                setPendingMoveAfterCreate(null);
+              }}
+            >
+              Abbrechen
+            </button>
+            <button class="btn btn-primary" onClick={commitFolderCreate}>
+              Anlegen
+            </button>
+          </>
+        }
+      >
+        <div class="field">
+          <label>Name</label>
+          <input
+            type="text"
+            value={folderCreateValue()}
+            placeholder="z. B. TikTok"
+            autofocus
+            onInput={(e) => setFolderCreateValue(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void commitFolderCreate();
+            }}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={folderRenameTarget() !== null}
+        onClose={() => setFolderRenameTarget(null)}
+        title="Ordner umbenennen"
+        footer={
+          <>
+            <button class="btn" onClick={() => setFolderRenameTarget(null)}>
+              Abbrechen
+            </button>
+            <button class="btn btn-primary" onClick={commitFolderRename}>
+              Speichern
+            </button>
+          </>
+        }
+      >
+        <Show when={folderRenameTarget()}>
+          {(t) => (
+            <div class="field">
+              <label>Neuer Name</label>
+              <input
+                type="text"
+                value={folderRenameValue()}
+                autofocus
+                onInput={(e) => setFolderRenameValue(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void commitFolderRename();
+                }}
+              />
+              <div class="muted small">Aktuell: {t().name}</div>
+            </div>
+          )}
+        </Show>
+      </Modal>
+
+      <Show when={folderDeleteTarget()}>
+        {(t) => (
+          <ConfirmDialog
+            open={true}
+            title={`„${t().name}" löschen?`}
+            body={
+              t().script_count === 0
+                ? "Der Ordner ist leer."
+                : t().script_count === 1
+                ? `Das eine Skript darin bleibt erhalten und ist danach unter „Alle" zu finden.`
+                : `Die ${t().script_count} Skripte darin bleiben erhalten und sind danach unter „Alle" zu finden.`
+            }
+            confirmLabel="Löschen"
+            danger
+            onCancel={() => setFolderDeleteTarget(null)}
+            onConfirm={() => void commitFolderDelete()}
+          />
+        )}
+      </Show>
     </div>
   );
 }
@@ -468,9 +814,21 @@ interface ScriptCardProps {
 }
 
 function ScriptCard(props: ScriptCardProps) {
+  const [dragging, setDragging] = createSignal(false);
   return (
     <article
       class="card"
+      classList={{ "is-dragging": dragging() }}
+      draggable={true}
+      onDragStart={(e) => {
+        if (!e.dataTransfer) return;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
+        // Plain-text fallback so OS-level drop feedback isn't empty.
+        e.dataTransfer.setData("text/plain", props.script.title);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey) props.onMiddleClick();
         else props.onClick();
@@ -585,6 +943,7 @@ function ListRow(props: {
   onOpen: (e: MouseEvent) => void;
   onMore: (e: MouseEvent) => void;
 }) {
+  const [dragging, setDragging] = createSignal(false);
   const charSummary = () => {
     const cs = props.script.characters;
     if (cs.length === 0) return "Keine Charaktere";
@@ -596,8 +955,18 @@ function ListRow(props: {
   return (
     <div
       class="list-row"
+      classList={{ "is-dragging": dragging() }}
       role="row"
       tabIndex={0}
+      draggable={true}
+      onDragStart={(e) => {
+        if (!e.dataTransfer) return;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
+        e.dataTransfer.setData("text/plain", props.script.title);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
       onClick={(e) => props.onOpen(e)}
       onKeyDown={(e) => {
         if (e.key === "Enter") props.onOpen(e as unknown as MouseEvent);

@@ -2,6 +2,7 @@ import { invoke } from "./tauri";
 import type {
   AiModelInfo,
   AiState,
+  Folder,
   Script,
   ScriptCharacter,
   ScriptSummary,
@@ -15,11 +16,13 @@ export const api = {
   async createScript(input: {
     title?: string;
     initialContentJson?: string;
+    folderId?: string | null;
   }): Promise<ScriptSummary> {
     return invoke("create_script", {
       input: {
         title: input.title ?? null,
         initial_content_json: input.initialContentJson ?? null,
+        folder_id: input.folderId ?? null,
       },
     });
   },
@@ -50,6 +53,7 @@ export const api = {
     query?: string;
     limit?: number;
     offset?: number;
+    folderId?: string | null;
   } = {}): Promise<ScriptSummary[]> {
     return invoke("list_scripts", {
       query: {
@@ -59,6 +63,7 @@ export const api = {
         query: query.query ?? null,
         limit: query.limit ?? null,
         offset: query.offset ?? null,
+        folderId: query.folderId ?? null,
       },
     });
   },
@@ -79,6 +84,29 @@ export const api = {
   },
   async renameScript(id: string, title: string): Promise<ScriptSummary> {
     return invoke("rename_script", { id, title });
+  },
+
+  // Folders
+  async listFolders(): Promise<Folder[]> {
+    return invoke("list_folders", {});
+  },
+  async countLiveScripts(): Promise<number> {
+    return invoke("count_live_scripts", {});
+  },
+  async createFolder(name: string): Promise<Folder> {
+    return invoke("create_folder", { name });
+  },
+  async renameFolder(id: string, name: string): Promise<Folder> {
+    return invoke("rename_folder", { id, name });
+  },
+  async deleteFolder(id: string): Promise<void> {
+    return invoke("delete_folder", { id });
+  },
+  async moveScript(scriptId: string, folderId: string | null): Promise<void> {
+    return invoke("move_script", { scriptId, folderId });
+  },
+  async moveScripts(scriptIds: string[], folderId: string | null): Promise<void> {
+    return invoke("move_scripts", { scriptIds, folderId });
   },
 
   // Snapshots
