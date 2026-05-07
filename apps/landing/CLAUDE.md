@@ -1,7 +1,7 @@
-# getscriptz.app - Claude context
+# write-scriptz.com - Claude context
 
 Astro-Landing für ScriptZ, Vercel-Deploy, statisch. Hosting unter
-[getscriptz.app](https://getscriptz.app).
+[write-scriptz.com](https://write-scriptz.com).
 
 ## Aufbau
 

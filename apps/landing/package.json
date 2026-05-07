@@ -2,7 +2,7 @@
   "name": "@scriptz/landing",
   "private": true,
   "version": "0.1.0",
-  "description": "ScriptZ marketing site - getscriptz.app",
+  "description": "ScriptZ marketing site - write-scriptz.com",
   "type": "module",
   "scripts": {
     "dev": "astro dev",

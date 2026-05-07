@@ -1,7 +1,7 @@
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  site: "https://getscriptz.app",
+  site: "https://write-scriptz.com",
   trailingSlash: "never",
   build: {
     format: "file",

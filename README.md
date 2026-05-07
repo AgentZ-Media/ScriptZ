@@ -161,7 +161,7 @@ In-App-Updates funktionieren danach automatisch und ohne weitere Hürden.
 ## Entwicklung
 
 Dieses Repository ist ein pnpm-Monorepo. Die App selbst lebt in
-[`apps/desktop/`](apps/desktop/), die Marketing-Seite getscriptz.app
+[`apps/desktop/`](apps/desktop/), die Marketing-Seite write-scriptz.com
 in [`apps/landing/`](apps/landing/).
 
 Vom Repo-Root:

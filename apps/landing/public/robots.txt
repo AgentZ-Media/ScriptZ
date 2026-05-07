@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://getscriptz.app/sitemap-index.xml
+Sitemap: https://write-scriptz.com/sitemap-index.xml

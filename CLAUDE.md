@@ -4,7 +4,7 @@ pnpm-Workspace mit zwei eigenständigen Apps:
 
 - [`apps/desktop/`](apps/desktop/) - die Tauri-Desktop-App (Solid + Rust + Lexical).
   Eigene `CLAUDE.md` darin mit allen App-spezifischen Details.
-- [`apps/landing/`](apps/landing/) - die Marketing-Seite getscriptz.app
+- [`apps/landing/`](apps/landing/) - die Marketing-Seite write-scriptz.com
   (Astro, statisch, Vercel-Deploy).
 
 ## Konvention
@@ -16,7 +16,7 @@ aktuelle Version), holt sie sie zur Build-Zeit von GitHub Releases -
 nicht via Workspace-Import.
 
 Phase 2 (geplant, noch nicht umgesetzt): Eine Web-Version der App
-unter `app.getscriptz.app`. Erst dann lohnt sich ein
+unter `app.write-scriptz.com`. Erst dann lohnt sich ein
 `packages/core/` für Lexical-Nodes, Charakter-Logik und Storage-
 Adapter. Bis dahin: getrennt halten, Komplexität vermeiden.
 
@@ -70,7 +70,7 @@ werden (`cd apps/desktop && pnpm tauri:dev`).
   baut beim Pushen eines `vX.Y.Z`-Tags auf `macos-26` und published
   Release-Artefakte. Auto-Updater im laufenden Client poll't `latest.json`.
 - **Landing**: Vercel-Project mit `Root Directory` = `apps/landing`.
-  Deploy auf jeden Push zu `main`. Eigene Domain getscriptz.app.
+  Deploy auf jeden Push zu `main`. Eigene Domain write-scriptz.com.
 
 ## Deutsche Texte
 

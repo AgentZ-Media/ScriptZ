@@ -9,8 +9,8 @@
 
 export const site = {
   name: "ScriptZ",
-  domain: "getscriptz.app",
-  url: "https://getscriptz.app",
+  domain: "write-scriptz.com",
+  url: "https://write-scriptz.com",
   description:
     "Skripte schreiben, ohne dass die App im Weg steht. Lokal, kostenlos, Open Source. Für Creators, die viele Skripte am Tag schreiben.",
   github: "https://github.com/ibimspumo/ScriptZ",
