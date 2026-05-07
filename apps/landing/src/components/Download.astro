@@ -6,7 +6,6 @@ interface Props {
 }
 const { release } = Astro.props;
 
-// Falls publishedAt vorhanden, schön formatieren
 let publishedDe = "";
 if (release.publishedAt) {
   try {
@@ -27,11 +26,11 @@ if (release.publishedAt) {
     <div class="dl-card reveal">
       <span class="eyebrow">Hol's dir</span>
       <h2 class="h-section dl-title">
-        Bereit, dein nächstes Skript zu schreiben?
+        Dein Workflow verdient ein besseres Skript-Tool.
       </h2>
       <p class="dl-lead">
-        Eine Datei, ein Doppelklick, los geht's. Funktioniert auf
-        jedem Mac mit Apple-Silicon-Chip (also alles ab dem M1).
+        Eine Datei, ein Doppelklick, los geht's. Kostenlos für jeden
+        Mac mit Apple-Silicon- oder Intel-Chip.
       </p>
 
       <div class="dl-cta">
@@ -42,7 +41,7 @@ if (release.publishedAt) {
           ScriptZ {release.tag} laden
         </a>
         <p class="dl-meta">
-          Apple Silicon · macOS 13 oder neuer · Universelle{" "}
+          macOS 13 oder neuer · Universelle{" "}
           <code>.dmg</code>-Datei
           {publishedDe && (
             <>
@@ -60,11 +59,11 @@ if (release.publishedAt) {
             Einmalig im Terminal:
             <code>xattr -cr /Applications/ScriptZ.app</code>
           </li>
-          <li>App öffnen. Fertig - alle weiteren Updates kommen automatisch.</li>
+          <li>App öffnen. Fertig. Updates kommen automatisch.</li>
         </ol>
         <p class="dl-firstrun-why">
-          Schritt 2 ist nötig, weil wir keinen 99 Euro Apple Developer
-          Account haben. Daher kostet die App auch nichts.
+          Schritt 2 ist nötig, weil wir keinen 99-Euro-Apple-Developer-
+          Account haben. Genau deshalb kostet die App auch nichts.
         </p>
       </div>
 

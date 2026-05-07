@@ -10,7 +10,7 @@ src/
   components/        Astro-Komponenten der Sektionen
     Nav.astro
     Hero.astro
-    AutoTypingDemo.astro   App-Editor 1:1 als Loop-Demo
+    Workflow.astro         Vier-Schritt-Tour mit interaktiver Editor-Demo in Schritt 3
     Story.astro            "Warum ScriptZ" + AgentZ-Hintergrund
     Features.astro         Top-3-Features
     Compare.astro          Vergleichstabelle gegen andere Tools
@@ -55,7 +55,7 @@ passen, sonst zeigt sie ein Produkt, das es so nicht gibt.
 
 Wenn du **hier** etwas änderst, weil die App sich verändert hat:
 
-- Editor-Demo ([`AutoTypingDemo.astro`](src/components/AutoTypingDemo.astro))
+- Editor-Demo (Schritt 3 in [`Workflow.astro`](src/components/Workflow.astro))
   muss das echte Editor-Layout 1:1 spiegeln. Referenz: die Block-CSS in
   [`apps/desktop/src/components/Editor/Editor.css`](../desktop/src/components/Editor/Editor.css).
 - Versprechen in [`OpenSource.astro`](src/components/OpenSource.astro)

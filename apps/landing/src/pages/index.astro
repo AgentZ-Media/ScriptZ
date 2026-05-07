@@ -2,6 +2,7 @@
 import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import Hero from "../components/Hero.astro";
+import Workflow from "../components/Workflow.astro";
 import Story from "../components/Story.astro";
 import Features from "../components/Features.astro";
 import Compare from "../components/Compare.astro";
@@ -17,6 +18,7 @@ const release = await getLatestRelease();
   <Nav version={release.version} />
   <main>
     <Hero release={release} />
+    <Workflow />
     <Story />
     <Features />
     <Compare />

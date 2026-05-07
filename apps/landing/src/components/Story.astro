@@ -1,5 +1,5 @@
 ---
-// Die Warum-Sektion: warum gibt es ScriptZ überhaupt.
+// Warum-Sektion: warum es ScriptZ überhaupt gibt.
 ---
 
 <section class="story section" id="warum">
@@ -8,8 +8,8 @@
       <div class="story-text reveal">
         <span class="eyebrow">Warum es ScriptZ gibt</span>
         <h2 class="h-section story-title">
-          Aus eigenem Schmerz gebaut. Von Leuten, die selbst sehr viele
-          Skripte schreiben.
+          Aus eigenem Schmerz gebaut.<br />
+          <span class="story-title-em">Von Leuten, die selbst sehr viele Skripte schreiben.</span>
         </h2>
 
         <p class="story-paragraph">
@@ -19,26 +19,26 @@
           Schwerin. Auf TikTok, YouTube, Instagram und Facebook haben
           wir zusammen über 240.000 Follower aufgebaut. In knapp vier
           Jahren sind dabei rund dreitausend Skripte für unsere
-          eigenen Kanäle entstanden, hinzu kommen die Skripte für
+          eigenen Kanäle entstanden, dazu kommen die Skripte für
           unsere Kunden. Und es werden täglich mehr.
         </p>
 
         <p class="story-paragraph">
           Wir haben jedes verfügbare Tool ausprobiert. Notion ist zu
           groß, zu langsam und macht aus einem Skript eine
-          Datenbankzeile. Drehbuch-Programme wie Final Draft oder
-          Celtx sind für 90-minütige Spielfilme gebaut, nicht für
-          ein 30-Sekunden-Skript, das du in zehn Minuten fertig
-          haben willst. Apple Notes hat keine Charakter-Logik. Google
-          Docs nimmt dir das Tippgefühl, wenn das Internet schwankt.
+          Datenbankzeile. Drehbuch-Programme wie Final Draft sind für
+          90-minütige Spielfilme gebaut, nicht für ein 30-Sekunden-
+          Skript, das du in zehn Minuten fertig haben willst. Apple
+          Notes hat keine Charakter-Logik. Google Docs nimmt dir das
+          Tippgefühl, sobald das Internet schwankt.
         </p>
 
         <p class="story-paragraph">
-          Also haben wir die App gebaut, die wir selbst die ganze Zeit
-          gesucht haben. Reduziert auf das, was zählt, wenn jemand
-          unter Zeitdruck Sketches und Skripte raushaut. Und weil wir
-          finden, dass gutes Werkzeug niemandem gehören sollte: ist
-          ScriptZ kostenlos und Open Source.
+          Also haben wir die App gebaut, die wir selbst die ganze
+          Zeit gesucht haben. Reduziert auf das, was zählt, wenn
+          jemand unter Zeitdruck Sketches und Skripte raushaut. Und
+          weil wir finden, dass gutes Werkzeug niemandem gehören
+          sollte: ist ScriptZ kostenlos und Open Source.
         </p>
       </div>
 
@@ -49,7 +49,7 @@
         </li>
         <li class="stat">
           <span class="stat-num">240k+</span>
-          <span class="stat-label">Follower über TikTok, YouTube, Instagram, Facebook</span>
+          <span class="stat-label">Follower auf TikTok, YouTube, Instagram, Facebook</span>
         </li>
         <li class="stat">
           <span class="stat-num">365</span>
@@ -57,7 +57,7 @@
         </li>
         <li class="stat">
           <span class="stat-num">100%</span>
-          <span class="stat-label">der App-Entwicklung getrieben von eigener Praxis</span>
+          <span class="stat-label">der Entwicklung getrieben von eigener Praxis</span>
         </li>
       </ul>
     </div>
@@ -65,9 +65,6 @@
 </section>
 
 <style>
-  /* Bewusst kein eigener Hintergrund mehr - das Karo der Body laeuft
-     ungestoert durch alle Sektionen. */
-
   .story-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 320px;
@@ -82,6 +79,9 @@
     margin-top: var(--sp-3);
     margin-bottom: var(--sp-6);
     color: var(--fg);
+  }
+  .story-title-em {
+    color: var(--fg-muted);
   }
 
   .story-paragraph {

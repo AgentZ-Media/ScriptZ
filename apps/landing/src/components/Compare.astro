@@ -1,5 +1,5 @@
 ---
-// Vergleichstabelle: warum ScriptZ und nicht Notion / Final Draft / Apple Notes / Google Docs.
+// Vergleichstabelle: warum ScriptZ und nicht Notion / Final Draft / Apple Notes.
 ---
 
 <section class="cmp section-tight" id="vergleich">
@@ -7,7 +7,8 @@
     <div class="cmp-head reveal">
       <span class="eyebrow">ScriptZ vs. der Rest</span>
       <h2 class="h-section">
-        Wir haben die Tabelle ausgefüllt, die du sonst selbst<br />zusammensuchen müsstest.
+        Wir haben die Tabelle ausgefüllt,<br />
+        <span class="cmp-head-em">die du sonst selbst zusammensuchen müsstest.</span>
       </h2>
       <p class="lead cmp-lead">
         Die meisten Programme machen entweder zu viel oder zu wenig.
@@ -37,9 +38,9 @@
       </div>
 
       <div class="cmp-row">
-        <div class="cmp-cell-feat">Funktioniert offline</div>
+        <div class="cmp-cell-feat">Funktioniert komplett offline</div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-warn" aria-label="Eingeschraenkt">~</span></div>
+        <div class="cmp-cell"><span class="ic ic-warn" aria-label="Eingeschränkt">~</span></div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
       </div>
@@ -61,7 +62,7 @@
       </div>
 
       <div class="cmp-row">
-        <div class="cmp-cell-feat">Spezielle Block-Typen für Skripte</div>
+        <div class="cmp-cell-feat">Eigene Block-Typen für Skripte</div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
         <div class="cmp-cell"><span class="ic ic-no">−</span></div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
@@ -69,7 +70,7 @@
       </div>
 
       <div class="cmp-row">
-        <div class="cmp-cell-feat">Auf TikTok-Skripte zugeschnitten</div>
+        <div class="cmp-cell-feat">Auf kurze Skripte zugeschnitten</div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
         <div class="cmp-cell"><span class="ic ic-no">−</span></div>
         <div class="cmp-cell"><span class="ic ic-no">−</span></div>
@@ -101,7 +102,7 @@
       </div>
 
       <div class="cmp-row">
-        <div class="cmp-cell-feat">Quellcode oeffentlich</div>
+        <div class="cmp-cell-feat">Quellcode öffentlich</div>
         <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
         <div class="cmp-cell"><span class="ic ic-no">−</span></div>
         <div class="cmp-cell"><span class="ic ic-no">−</span></div>
@@ -110,7 +111,7 @@
     </div>
 
     <p class="cmp-footnote">
-      Notion und Google Docs sind super Tools - aber für Datenbanken
+      Notion und Google Docs sind super Tools, aber für Datenbanken
       und Textdokumente, nicht für Skripte. Final Draft und Celtx
       sind großartig, wenn du am 110-seitigen Spielfilm sitzt.
       ScriptZ füllt die Lücke dazwischen.
@@ -122,6 +123,9 @@
   .cmp-head {
     text-align: center;
     margin-bottom: var(--sp-9);
+  }
+  .cmp-head-em {
+    color: var(--fg-muted);
   }
   .cmp-lead {
     margin: var(--sp-4) auto 0;
@@ -177,13 +181,11 @@
   }
   .cmp-self img { border-radius: 5px; }
 
-  /* Spalte ScriptZ subtil hervorheben - mit grauem Tint, kein Akzent */
   .cmp-table .cmp-row > .cmp-cell:nth-child(2),
   .cmp-table .cmp-row > .cmp-self {
     background: rgba(28, 24, 20, 0.04);
   }
 
-  /* Icons */
   .ic {
     display: inline-flex;
     align-items: center;
@@ -219,16 +221,10 @@
     margin-right: auto;
   }
 
-  /* Auf schmalen Screens scrollbar machen, sonst zerbricht das Grid. */
   @media (max-width: 760px) {
-    .cmp-table {
-      overflow-x: auto;
-    }
-    .cmp-row {
-      min-width: 640px;
-    }
-    .cmp-cell-feat,
-    .cmp-cell {
+    .cmp-table { overflow-x: auto; }
+    .cmp-row { min-width: 640px; }
+    .cmp-cell-feat, .cmp-cell {
       padding: var(--sp-3) var(--sp-4);
       font-size: var(--fs-13);
     }

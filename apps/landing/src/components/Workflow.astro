@@ -1,0 +1,1742 @@
+---
+/**
+ * Workflow.astro - Vier-Schritt-Demo
+ *
+ * Spiegelt die echte App 1:1. Jeder Schritt ist ein Mac-Fenster mit
+ * der App drin, kein Mockup.
+ *   1. Übersicht        - Browser mit Karten ("Zuletzt bearbeitet")
+ *   2. Anlegen          - "Neues Skript"-Modal (nur Titel-Feld)
+ *   3. Schreiben        - Editor mit Titlebar und Status-Strip
+ *   4. Exportieren      - "Skript exportieren"-Modal (PDF / Plain Text)
+ *
+ * Tabs oben zum Springen, Auto-Advance alle ~7s. Pausiert bei Hover
+ * und out-of-viewport. Schreiben-Demo macht echtes Per-Char-Tippen.
+ *
+ * Quelldateien in der App, an denen sich die Demo orientiert:
+ *   apps/desktop/src/components/TabBar.tsx
+ *   apps/desktop/src/components/Browser/Browser.tsx + .css
+ *   apps/desktop/src/components/Browser/NewScriptDialog.tsx
+ *   apps/desktop/src/components/Editor/ScriptView.tsx + Editor.css
+ *   apps/desktop/src/components/Editor/ExportDialog.tsx + .css
+ */
+---
+
+<section class="wf section" id="workflow">
+  <div class="container">
+    <div class="wf-head reveal">
+      <span class="eyebrow">Dein Workflow</span>
+      <h2 class="h-section">
+        Von der Idee zum fertigen Skript.<br />
+        <span class="wf-head-em">In vier Schritten.</span>
+      </h2>
+      <p class="lead wf-lead">
+        Kein Tutorial, kein Onboarding-Marathon. Einmal angeklickt
+        und du bist drin. So fühlt sich Schreiben mit ScriptZ an.
+      </p>
+    </div>
+
+    <div class="wf-stage reveal" data-wf>
+      <div class="wf-tabs" role="tablist" aria-label="ScriptZ Workflow">
+        <button class="wf-tab is-active" data-wf-tab="0" role="tab" aria-selected="true">
+          <span class="wf-tab-num">1</span>
+          <span class="wf-tab-text">
+            <span class="wf-tab-title">Übersicht</span>
+            <span class="wf-tab-sub">Skripte finden</span>
+          </span>
+        </button>
+        <button class="wf-tab" data-wf-tab="1" role="tab" aria-selected="false">
+          <span class="wf-tab-num">2</span>
+          <span class="wf-tab-text">
+            <span class="wf-tab-title">Anlegen</span>
+            <span class="wf-tab-sub">Neues Skript</span>
+          </span>
+        </button>
+        <button class="wf-tab" data-wf-tab="2" role="tab" aria-selected="false">
+          <span class="wf-tab-num">3</span>
+          <span class="wf-tab-text">
+            <span class="wf-tab-title">Schreiben</span>
+            <span class="wf-tab-sub">Strukturiert tippen</span>
+          </span>
+        </button>
+        <button class="wf-tab" data-wf-tab="3" role="tab" aria-selected="false">
+          <span class="wf-tab-num">4</span>
+          <span class="wf-tab-text">
+            <span class="wf-tab-title">Exportieren</span>
+            <span class="wf-tab-sub">PDF oder Plain Text</span>
+          </span>
+        </button>
+
+        <div class="wf-tabs-progress" aria-hidden="true">
+          <div class="wf-tabs-progress-bar" data-wf-progress></div>
+        </div>
+      </div>
+
+      <div class="wf-viewport">
+        <!-- ============ STEP 1: ÜBERSICHT ============ -->
+        <div class="wf-panel is-active" data-wf-panel="0" role="tabpanel">
+          <div class="wf-frame">
+            <div class="wf-titlebar">
+              <span class="wf-tl-traffic">
+                <span class="wf-dot wf-dot-r"></span>
+                <span class="wf-dot wf-dot-y"></span>
+                <span class="wf-dot wf-dot-g"></span>
+              </span>
+              <span class="wf-titlebar-brand">
+                <img src="/img/icon.png" alt="" width="16" height="16" />
+                ScriptZ
+              </span>
+              <span class="wf-titlebar-spacer"></span>
+              <span class="wf-titlebar-actions">
+                <span class="wf-titlebar-action" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+              </span>
+            </div>
+
+            <div class="wf-browser">
+              <div class="wf-browser-topbar">
+                <div class="wf-browser-search">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  <span class="wf-browser-search-text">Skripte suchen…</span>
+                  <span class="wf-browser-search-kbd">⌘F</span>
+                </div>
+                <div class="wf-browser-actions">
+                  <button class="wf-browser-new" tabindex="-1">
+                    <span class="wf-browser-new-plus">+</span>
+                    Neues Skript
+                  </button>
+                  <span class="wf-browser-icon-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                  </span>
+                  <span class="wf-browser-icon-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  </span>
+                </div>
+              </div>
+
+              <div class="wf-browser-body">
+                <div class="wf-browser-section-head">
+                  <h3 class="wf-browser-section-title">Zuletzt bearbeitet</h3>
+                  <div class="wf-browser-section-tools">
+                    <span class="wf-browser-sort">Letzte Bearbeitung ▾</span>
+                    <span class="wf-browser-view-toggle">
+                      <span class="wf-browser-view-btn is-active" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+                      </span>
+                      <span class="wf-browser-view-btn" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4h10"/><path d="M3 8h10"/><path d="M3 12h10"/></svg>
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="wf-card-grid">
+                  <article class="wf-bcard" data-wf-card="0">
+                    <div class="wf-bcard-head">
+                      <span class="wf-bcard-icon">
+                        <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h7l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 3v3h3"/></svg>
+                      </span>
+                      <span class="wf-bcard-more">⋯</span>
+                    </div>
+                    <h4 class="wf-bcard-title">Coffee Shop Chaos</h4>
+                    <div class="wf-bcard-chars">
+                      <span class="wf-bcard-char">LINA</span>
+                      <span class="wf-bcard-char">BEN</span>
+                    </div>
+                    <div class="wf-bcard-meta">
+                      <span class="wf-bcard-time">
+                        <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
+                        vor 1 Std.
+                      </span>
+                      <span class="wf-bcard-pages">2 Seiten</span>
+                    </div>
+                    <p class="wf-bcard-summary">
+                      Lina sucht den richtigen Tisch und stört Ben beim
+                      Storys-Aufnehmen.
+                    </p>
+                  </article>
+
+                  <article class="wf-bcard" data-wf-card="1">
+                    <div class="wf-bcard-head">
+                      <span class="wf-bcard-icon">
+                        <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h7l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 3v3h3"/></svg>
+                      </span>
+                      <span class="wf-bcard-more">⋯</span>
+                    </div>
+                    <h4 class="wf-bcard-title">Timo will seine 28-Stunden-Woche auf 2 Tage verteilen</h4>
+                    <div class="wf-bcard-chars">
+                      <span class="wf-bcard-char">AXEL</span>
+                      <span class="wf-bcard-char">TIMO</span>
+                    </div>
+                    <div class="wf-bcard-meta">
+                      <span class="wf-bcard-time">
+                        <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
+                        vor 1 Tag
+                      </span>
+                      <span class="wf-bcard-pages">3 Seiten</span>
+                    </div>
+                    <p class="wf-bcard-summary">
+                      Timo erklärt Axel seine angeblich produktivere
+                      Wochen-Aufteilung.
+                    </p>
+                  </article>
+
+                  <article class="wf-bcard" data-wf-card="2">
+                    <div class="wf-bcard-head">
+                      <span class="wf-bcard-icon">
+                        <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h7l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 3v3h3"/></svg>
+                      </span>
+                      <span class="wf-bcard-more">⋯</span>
+                    </div>
+                    <h4 class="wf-bcard-title">Cliché GenZ im Bewerbungsgespräch</h4>
+                    <div class="wf-bcard-chars">
+                      <span class="wf-bcard-char">TIMO</span>
+                      <span class="wf-bcard-char">AXEL</span>
+                    </div>
+                    <div class="wf-bcard-meta">
+                      <span class="wf-bcard-time">
+                        <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
+                        vor 2 Tagen
+                      </span>
+                      <span class="wf-bcard-pages">2 Seiten</span>
+                    </div>
+                    <p class="wf-bcard-summary">
+                      Beschreibung wird beim nächsten Speichern erstellt.
+                    </p>
+                  </article>
+                </div>
+
+                <div class="wf-browser-cursor" data-wf-cursor></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ STEP 2: ANLEGEN ============ -->
+        <div class="wf-panel" data-wf-panel="1" role="tabpanel" hidden>
+          <div class="wf-frame">
+            <div class="wf-titlebar">
+              <span class="wf-tl-traffic">
+                <span class="wf-dot wf-dot-r"></span>
+                <span class="wf-dot wf-dot-y"></span>
+                <span class="wf-dot wf-dot-g"></span>
+              </span>
+              <span class="wf-titlebar-brand">
+                <img src="/img/icon.png" alt="" width="16" height="16" />
+                ScriptZ
+              </span>
+              <span class="wf-titlebar-spacer"></span>
+              <span class="wf-titlebar-actions">
+                <span class="wf-titlebar-action" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/></svg></span>
+              </span>
+            </div>
+
+            <div class="wf-create">
+              <!-- Hintergrund: angedeutete Skript-Karten, abgedunkelt durch Backdrop -->
+              <div class="wf-create-bg">
+                <div class="wf-create-row-bg"></div>
+                <div class="wf-create-row-bg"></div>
+                <div class="wf-create-row-bg"></div>
+              </div>
+              <div class="wf-modal-backdrop"></div>
+
+              <div class="wf-modal" data-wf-modal>
+                <h3 class="wf-modal-title">Neues Skript</h3>
+                <div class="wf-modal-body">
+                  <div class="wf-field">
+                    <label class="wf-field-label">Titel</label>
+                    <span class="wf-field-input is-focused" data-wf-input>
+                      <span class="wf-field-typed" data-wf-typed></span><span class="wf-field-caret"></span>
+                      <span class="wf-field-placeholder" data-wf-placeholder>Unbenannt</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="wf-modal-foot">
+                  <button class="wf-btn" tabindex="-1">Abbrechen</button>
+                  <button class="wf-btn wf-btn-primary" data-wf-create-btn tabindex="-1">Erstellen</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ STEP 3: SCHREIBEN ============ -->
+        <div class="wf-panel" data-wf-panel="2" role="tabpanel" hidden>
+          <div class="wf-frame">
+            <div class="wf-titlebar">
+              <span class="wf-tl-traffic">
+                <span class="wf-dot wf-dot-r"></span>
+                <span class="wf-dot wf-dot-y"></span>
+                <span class="wf-dot wf-dot-g"></span>
+              </span>
+              <span class="wf-titlebar-brand">
+                <img src="/img/icon.png" alt="" width="16" height="16" />
+                ScriptZ
+              </span>
+              <span class="wf-titlebar-pill" aria-hidden="true">
+                <span class="wf-titlebar-pill-text">Coffee Shop Chaos</span>
+                <span class="wf-titlebar-pill-caret">⌄</span>
+              </span>
+              <span class="wf-titlebar-actions">
+                <span class="wf-titlebar-action" title="Charakter-Highlighting" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <circle cx="6" cy="12" r="3" fill="#1c1814"/>
+                    <circle cx="12" cy="12" r="3" fill="#5b554c"/>
+                    <circle cx="18" cy="12" r="3" fill="#a8a293"/>
+                  </svg>
+                </span>
+                <span class="wf-titlebar-action" title="Drucken" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M7 18h10v3H7z"/></svg>
+                </span>
+                <span class="wf-titlebar-action" title="Exportieren" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="m7 9 5-5 5 5"/><path d="M5 19h14"/></svg>
+                </span>
+                <span class="wf-titlebar-action" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+              </span>
+            </div>
+
+            <div class="wf-write">
+              <div class="wf-paper">
+                <div class="wf-editor" data-wf-editor></div>
+              </div>
+            </div>
+
+            <div class="wf-status">
+              <span class="wf-status-l">
+                <span class="wf-status-dot"></span>
+                <span>Gespeichert</span>
+              </span>
+              <span class="wf-status-r">Seite 1 von 1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ STEP 4: EXPORTIEREN ============ -->
+        <div class="wf-panel" data-wf-panel="3" role="tabpanel" hidden>
+          <div class="wf-frame">
+            <div class="wf-titlebar">
+              <span class="wf-tl-traffic">
+                <span class="wf-dot wf-dot-r"></span>
+                <span class="wf-dot wf-dot-y"></span>
+                <span class="wf-dot wf-dot-g"></span>
+              </span>
+              <span class="wf-titlebar-brand">
+                <img src="/img/icon.png" alt="" width="16" height="16" />
+                ScriptZ
+              </span>
+              <span class="wf-titlebar-pill" aria-hidden="true">
+                <span class="wf-titlebar-pill-text">Coffee Shop Chaos</span>
+                <span class="wf-titlebar-pill-caret">⌄</span>
+              </span>
+              <span class="wf-titlebar-actions">
+                <span class="wf-titlebar-action" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <circle cx="6" cy="12" r="3" fill="#1c1814"/>
+                    <circle cx="12" cy="12" r="3" fill="#5b554c"/>
+                    <circle cx="18" cy="12" r="3" fill="#a8a293"/>
+                  </svg>
+                </span>
+                <span class="wf-titlebar-action" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M7 18h10v3H7z"/></svg>
+                </span>
+                <span class="wf-titlebar-action is-active" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="m7 9 5-5 5 5"/><path d="M5 19h14"/></svg>
+                </span>
+                <span class="wf-titlebar-action" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+              </span>
+            </div>
+
+            <div class="wf-export-wrap">
+              <div class="wf-export-paper-bg">
+                <div class="wf-export-mini">
+                  <div class="wf-export-line wf-export-action">Café am Morgen.</div>
+                  <div class="wf-export-line wf-export-character">LINA</div>
+                  <div class="wf-export-line wf-export-dialog">Ist hier noch frei?</div>
+                  <div class="wf-export-line wf-export-character">BEN</div>
+                  <div class="wf-export-line wf-export-parenthetical">(ohne aufzusehen)</div>
+                  <div class="wf-export-line wf-export-dialog">Wenn du keine Storys aufnimmst, gerne.</div>
+                </div>
+              </div>
+              <div class="wf-modal-backdrop"></div>
+
+              <div class="wf-export-modal" data-wf-export-modal>
+                <h3 class="wf-modal-title">Skript exportieren</h3>
+                <div class="wf-modal-body">
+                  <div class="wf-radio-row">
+                    <label class="wf-radio is-checked" data-wf-radio="pdf">
+                      <span class="wf-radio-input" aria-hidden="true">
+                        <span class="wf-radio-dot"></span>
+                      </span>
+                      <span class="wf-radio-label">PDF</span>
+                    </label>
+                    <label class="wf-radio" data-wf-radio="txt">
+                      <span class="wf-radio-input" aria-hidden="true">
+                        <span class="wf-radio-dot"></span>
+                      </span>
+                      <span class="wf-radio-label">Plain Text (für Teleprompter)</span>
+                    </label>
+                  </div>
+
+                  <div class="wf-export-divider" data-wf-pdf-options></div>
+
+                  <div class="wf-toggle-rows" data-wf-pdf-options-rows>
+                    <label class="wf-toggle" data-wf-toggle="hl">
+                      <span class="wf-checkbox" aria-hidden="true">
+                        <span class="wf-checkbox-mark"></span>
+                      </span>
+                      <span>Charakter-Highlighting</span>
+                    </label>
+                    <label class="wf-toggle" data-wf-toggle="title">
+                      <span class="wf-checkbox" aria-hidden="true">
+                        <span class="wf-checkbox-mark"></span>
+                      </span>
+                      <span>Titelblatt einschließen</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="wf-modal-foot">
+                  <button class="wf-btn" tabindex="-1">Abbrechen</button>
+                  <button class="wf-btn wf-btn-primary" data-wf-export-btn tabindex="-1">Exportieren</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="wf-foot reveal">
+        Tipp: Klick durch die Schritte oder lass die Tour von allein laufen.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  /* ============================================================
+     Workflow-Section - alle Klassen unter .wf-... gescoped.
+     is:global, weil die Schreiben-Demo Blöcke per JS erzeugt.
+     ============================================================ */
+
+  .wf-head {
+    text-align: center;
+    margin-bottom: var(--sp-9);
+  }
+  .wf-head .h-section {
+    margin-top: var(--sp-3);
+  }
+  .wf-head-em { color: var(--fg-muted); }
+  .wf-lead {
+    margin: var(--sp-4) auto 0;
+    text-align: center;
+    max-width: 56ch;
+  }
+
+  /* ----- Stage Wrapper ----- */
+  .wf-stage {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-6);
+    padding: var(--sp-5);
+    box-shadow: var(--shadow-card);
+    position: relative;
+  }
+
+  /* ----- Tabs ----- */
+  .wf-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-2);
+    padding: var(--sp-2);
+    background: var(--bg-elev-2);
+    border-radius: var(--r-5);
+    margin-bottom: var(--sp-5);
+    position: relative;
+  }
+  .wf-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--r-4);
+    text-align: left;
+    color: var(--fg-muted);
+    transition: background var(--t-med), color var(--t-med);
+    position: relative;
+  }
+  .wf-tab:hover { color: var(--fg); background: rgba(28, 24, 20, 0.04); }
+  .wf-tab.is-active {
+    background: var(--bg-elev-1);
+    color: var(--fg);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 1px 2px rgba(28, 24, 20, 0.06),
+      0 4px 12px rgba(28, 24, 20, 0.04);
+  }
+  .wf-tab-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-size: var(--fs-13);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    transition: background var(--t-med), color var(--t-med), border-color var(--t-med);
+  }
+  .wf-tab.is-active .wf-tab-num {
+    background: var(--fg);
+    color: #fff;
+    border-color: var(--fg);
+  }
+  .wf-tab-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .wf-tab-title {
+    font-size: var(--fs-14);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+  .wf-tab-sub {
+    font-size: var(--fs-12);
+    color: var(--fg-faint);
+    line-height: 1.2;
+  }
+  .wf-tab.is-active .wf-tab-sub { color: var(--fg-muted); }
+
+  .wf-tabs-progress {
+    position: absolute;
+    left: var(--sp-2);
+    right: var(--sp-2);
+    bottom: 0;
+    height: 2px;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+  .wf-tabs-progress-bar {
+    height: 100%;
+    width: 0;
+    background: var(--fg);
+    border-radius: 999px;
+    transition: width 80ms linear;
+    opacity: 0.55;
+  }
+
+  /* ----- Viewport ----- */
+  .wf-viewport {
+    position: relative;
+    min-height: 480px;
+  }
+
+  .wf-panel {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 380ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .wf-panel.is-active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .wf-panel[hidden] { display: none; }
+
+  /* ----- Frame (App-Fenster) ----- */
+  .wf-frame {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-5);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 8px 24px rgba(28, 24, 20, 0.06),
+      0 1px 2px rgba(28, 24, 20, 0.04);
+    overflow: hidden;
+  }
+
+  /* Titlebar (44px in der echten App) - traffic + brand + center pill + actions */
+  .wf-titlebar {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 14px;
+    background: var(--bg-elev-2);
+    border-bottom: 1px solid var(--border);
+    gap: var(--sp-3);
+  }
+  .wf-tl-traffic {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .wf-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .wf-dot-r { background: #ed6a5e; }
+  .wf-dot-y { background: #f5be4f; }
+  .wf-dot-g { background: #61c554; }
+
+  .wf-titlebar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--fg);
+    font-size: var(--fs-13);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 0 0 auto;
+    margin-left: 4px;
+  }
+  .wf-titlebar-brand img { border-radius: 4px; }
+
+  .wf-titlebar-spacer { flex: 1 1 auto; }
+
+  /* Center pill (only when script is open in real app) */
+  .wf-titlebar-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    font-size: var(--fs-13);
+    color: var(--fg);
+    font-weight: 500;
+    margin: 0 auto;
+    max-width: 280px;
+  }
+  .wf-titlebar-pill-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .wf-titlebar-pill-caret {
+    color: var(--fg-faint);
+    font-size: 11px;
+  }
+
+  .wf-titlebar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+  }
+  .wf-titlebar-action {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--r-2);
+    color: var(--fg-muted);
+  }
+  .wf-titlebar-action.is-active {
+    background: var(--bg-elev-3);
+    color: var(--fg);
+  }
+
+  /* ============ STEP 1: ÜBERSICHT (Browser) ============ */
+  .wf-browser {
+    background: var(--bg);
+    min-height: 416px;
+    position: relative;
+  }
+  .wf-browser-topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    padding: var(--sp-4) var(--sp-5) var(--sp-3);
+  }
+  .wf-browser-search {
+    flex: 1 1 auto;
+    max-width: 520px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px 6px 14px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    color: var(--fg-faint);
+    font-size: var(--fs-13);
+  }
+  .wf-browser-search-text { flex: 1; color: var(--fg-faint); }
+  .wf-browser-search-kbd {
+    font-size: var(--fs-11);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--fg-subtle);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: var(--r-2);
+    padding: 1px 6px;
+  }
+  .wf-browser-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+  .wf-browser-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: var(--fg);
+    color: #fff;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-13);
+    font-weight: 600;
+    cursor: default;
+  }
+  .wf-browser-new-plus {
+    font-size: var(--fs-14);
+    line-height: 1;
+  }
+  .wf-browser-icon-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--r-2);
+    color: var(--fg-muted);
+  }
+
+  .wf-browser-body {
+    padding: var(--sp-2) var(--sp-5) var(--sp-5);
+    position: relative;
+  }
+  .wf-browser-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-3);
+  }
+  .wf-browser-section-title {
+    margin: 0;
+    font-size: var(--fs-14);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--fg);
+  }
+  .wf-browser-section-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wf-browser-sort {
+    font-size: var(--fs-12);
+    color: var(--fg-muted);
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-2);
+    padding: 4px 9px;
+  }
+  .wf-browser-view-toggle {
+    display: inline-flex;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-2);
+    padding: 2px;
+    gap: 2px;
+  }
+  .wf-browser-view-btn {
+    width: 24px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: var(--fg-subtle);
+  }
+  .wf-browser-view-btn.is-active {
+    background: var(--bg-elev-3);
+    color: var(--fg);
+  }
+
+  /* Karten - Browser.css 1:1 (kompakter, weil Demo-Skala) */
+  .wf-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--sp-3);
+  }
+  .wf-bcard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    min-height: 200px;
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .wf-bcard.is-hovered {
+    background: var(--bg-elev-2);
+    border-color: var(--border-strong);
+  }
+  .wf-bcard-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .wf-bcard-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--r-3);
+    background: var(--bg-elev-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-muted);
+  }
+  .wf-bcard.is-hovered .wf-bcard-icon { background: var(--bg-elev-3); }
+  .wf-bcard-more {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-subtle);
+    font-size: var(--fs-14);
+    line-height: 1;
+    opacity: 0;
+    transition: opacity var(--t-fast);
+  }
+  .wf-bcard.is-hovered .wf-bcard-more { opacity: 1; }
+  .wf-bcard-title {
+    margin: 0;
+    font-size: var(--fs-14);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--fg);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .wf-bcard-chars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: var(--fs-11);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+  }
+  .wf-bcard-char + .wf-bcard-char::before {
+    content: "·";
+    margin-right: 5px;
+    color: var(--fg-subtle);
+  }
+  .wf-bcard-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: var(--sp-3);
+    font-size: var(--fs-12);
+    color: var(--fg-muted);
+  }
+  .wf-bcard-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .wf-bcard-summary {
+    margin: 0;
+    font-size: var(--fs-12);
+    line-height: 1.4;
+    color: var(--fg-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .wf-bcard:last-child .wf-bcard-summary {
+    color: var(--fg-faint);
+    font-style: italic;
+  }
+
+  /* Cursor */
+  .wf-browser-cursor {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+    transform: translate(0, 0);
+    transition: transform 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    z-index: 5;
+  }
+  .wf-browser-cursor::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 9px solid var(--fg);
+    border-bottom: 5px solid transparent;
+    transform: rotate(-30deg);
+    filter: drop-shadow(0 1px 2px rgba(28, 24, 20, 0.2));
+  }
+  .wf-browser-cursor::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 9px solid #fff;
+    border-bottom: 5px solid transparent;
+    transform: rotate(-30deg);
+    margin: 1px 0 0 1px;
+  }
+
+  /* ============ STEP 2: ANLEGEN (Modal) ============ */
+  .wf-create {
+    position: relative;
+    background: var(--bg);
+    min-height: 416px;
+    overflow: hidden;
+  }
+  .wf-create-bg {
+    padding: var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    opacity: 0.55;
+  }
+  .wf-create-row-bg {
+    height: 64px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+  }
+
+  /* Modal-Backdrop wie in der App: blur(6px) + halb-transparent */
+  .wf-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(28, 24, 20, 0.18);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .wf-modal,
+  .wf-export-modal {
+    position: absolute;
+    top: 14%;
+    left: 50%;
+    transform: translateX(-50%) scale(0.985);
+    width: min(420px, 90%);
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-5);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 24px 60px rgba(28, 24, 20, 0.18),
+      0 8px 24px rgba(28, 24, 20, 0.10);
+    overflow: hidden;
+    opacity: 0;
+    animation: wf-modal-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  @keyframes wf-modal-in {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.985); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+
+  .wf-modal-title {
+    margin: 0;
+    padding: var(--sp-6) var(--sp-6) var(--sp-2);
+    font-size: var(--fs-16);
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    color: var(--fg);
+  }
+  .wf-modal-body {
+    padding: var(--sp-2) var(--sp-6) var(--sp-5);
+  }
+  .wf-modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: var(--sp-4) var(--sp-6) var(--sp-5);
+  }
+
+  .wf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .wf-field-label {
+    font-size: var(--fs-12);
+    color: var(--fg-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .wf-field-input {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-3);
+    font-size: var(--fs-14);
+    color: var(--fg);
+    position: relative;
+  }
+  .wf-field-input.is-focused {
+    border-color: var(--fg);
+    box-shadow: 0 0 0 3px rgba(28, 24, 20, 0.06);
+  }
+  .wf-field-typed { display: inline; }
+  .wf-field-caret {
+    display: inline-block;
+    width: 1.5px;
+    height: 16px;
+    background: var(--fg);
+    margin-left: 1px;
+    animation: wf-blink 1.05s steps(2, end) infinite;
+  }
+  .wf-field-input.is-empty .wf-field-caret { animation: wf-blink 1.05s steps(2, end) infinite; }
+  @keyframes wf-blink { 50% { opacity: 0; } }
+
+  .wf-field-placeholder {
+    color: var(--fg-faint);
+    pointer-events: none;
+    margin-left: 0;
+  }
+  .wf-field-input.is-typing .wf-field-placeholder,
+  .wf-field-input.has-text .wf-field-placeholder {
+    display: none;
+  }
+
+  .wf-btn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--r-3);
+    font-size: var(--fs-13);
+    font-weight: 500;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    cursor: default;
+    transition: transform var(--t-fast), background var(--t-med), box-shadow var(--t-med);
+  }
+  .wf-btn-primary {
+    background: var(--fg);
+    color: #fff;
+    border-color: var(--fg);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(28, 24, 20, 0.18);
+  }
+  .wf-btn-primary.is-pressing {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 0 0 4px rgba(28, 24, 20, 0.10);
+  }
+
+  /* ============ STEP 3: SCHREIBEN (Editor) ============ */
+  .wf-write {
+    background: var(--bg-elev-2);
+    padding: 28px 28px 24px;
+    display: flex;
+    justify-content: center;
+    min-height: 360px;
+    position: relative;
+  }
+  .wf-paper {
+    background: #ffffff;
+    color: #1c1814;
+    border-radius: 10px;
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 540px;
+    min-height: 320px;
+    padding: 36px 56px;
+    position: relative;
+  }
+  .wf-paper .wf-editor {
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #1c1814;
+    caret-color: #1c1814;
+    font-feature-settings: "liga" 1, "calt" 1;
+  }
+
+  .wf-editor .wf-blk {
+    display: block;
+    margin: 0;
+    padding: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .wf-editor .wf-blk + .wf-blk { margin-top: 4px; }
+  .wf-editor .wf-blk-character + .wf-blk-dialog,
+  .wf-editor .wf-blk-parenthetical + .wf-blk-dialog,
+  .wf-editor .wf-blk-character + .wf-blk-parenthetical { margin-top: 0; }
+  .wf-editor .wf-blk-action + .wf-blk-character,
+  .wf-editor .wf-blk-dialog + .wf-blk-action,
+  .wf-editor .wf-blk-dialog + .wf-blk-character,
+  .wf-editor .wf-blk-action + .wf-blk-action { margin-top: 14px; }
+
+  .wf-editor .wf-blk-action { text-align: left; }
+  .wf-editor .wf-blk-character {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-top: 18px;
+  }
+  .wf-editor .wf-blk-parenthetical {
+    margin-left: 22%;
+    margin-right: 22%;
+    font-style: italic;
+    color: rgba(28, 24, 20, 0.65);
+    text-align: left;
+  }
+  .wf-editor .wf-blk-dialog {
+    margin-left: 16%;
+    margin-right: 16%;
+    text-align: left;
+  }
+  .wf-editor .wf-cursor {
+    display: inline-block;
+    width: 1.5px;
+    height: 1.05em;
+    background: #1c1814;
+    transform: translateY(3px);
+    margin-left: 1px;
+    animation: wf-blink 1.05s steps(2, end) infinite;
+  }
+
+  .wf-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 18px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    font-size: var(--fs-12);
+    color: var(--fg-muted);
+  }
+  .wf-status-l, .wf-status-r {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wf-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--fg-faint);
+  }
+
+  /* ============ STEP 4: EXPORTIEREN (Modal) ============ */
+  .wf-export-wrap {
+    background: var(--bg-elev-2);
+    padding: var(--sp-5);
+    position: relative;
+    min-height: 416px;
+    display: flex;
+    justify-content: center;
+  }
+  .wf-export-paper-bg {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 540px;
+    min-height: 320px;
+    padding: 36px 56px;
+    color: #1c1814;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .wf-export-mini { display: block; }
+  .wf-export-line { margin: 0; }
+  .wf-export-action {
+    text-align: left;
+    color: rgba(28, 24, 20, 0.7);
+    margin-bottom: 8px;
+  }
+  .wf-export-character {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-top: 12px;
+  }
+  .wf-export-character:first-of-type { margin-top: 0; }
+  .wf-export-dialog {
+    text-align: left;
+    margin-left: 16%;
+    margin-right: 16%;
+  }
+  .wf-export-parenthetical {
+    text-align: left;
+    margin-left: 22%;
+    margin-right: 22%;
+    font-style: italic;
+    color: rgba(28, 24, 20, 0.65);
+  }
+
+  /* Radio rows + Toggles - 1:1 zur ExportDialog.tsx */
+  .wf-radio-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wf-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-13);
+    color: var(--fg);
+    cursor: default;
+    padding: 4px 0;
+  }
+  .wf-radio-input {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: #fff;
+    transition: border-color var(--t-fast);
+  }
+  .wf-radio-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--fg);
+    opacity: 0;
+    transition: opacity var(--t-fast);
+  }
+  .wf-radio.is-checked .wf-radio-input { border-color: var(--fg); }
+  .wf-radio.is-checked .wf-radio-dot { opacity: 1; }
+
+  .wf-export-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0 8px;
+    transition: opacity var(--t-med);
+  }
+  .wf-toggle-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: opacity var(--t-med), max-height var(--t-med);
+    overflow: hidden;
+    max-height: 100px;
+  }
+  .wf-toggle-rows.is-hidden,
+  .wf-export-divider.is-hidden {
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
+  }
+  .wf-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-13);
+    color: var(--fg);
+    cursor: default;
+  }
+  .wf-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border-strong);
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .wf-checkbox-mark {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+    transform: rotate(45deg);
+    border-bottom: 1.5px solid #fff;
+    border-right: 1.5px solid #fff;
+    margin-bottom: 2px;
+    opacity: 0;
+    transition: opacity var(--t-fast);
+  }
+  .wf-toggle.is-checked .wf-checkbox {
+    background: var(--fg);
+    border-color: var(--fg);
+  }
+  .wf-toggle.is-checked .wf-checkbox-mark { opacity: 1; }
+
+  .wf-foot {
+    margin-top: var(--sp-5);
+    text-align: center;
+    color: var(--fg-faint);
+    font-size: var(--fs-13);
+  }
+
+  /* ----- Responsive ----- */
+  @media (max-width: 880px) {
+    .wf-tabs {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 4px;
+    }
+    .wf-tab {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 4px;
+      padding: 8px 4px;
+      min-width: 0;
+    }
+    .wf-tab-num { width: 22px; height: 22px; font-size: var(--fs-11); }
+    .wf-tab-text { min-width: 0; }
+    .wf-tab-title { font-size: var(--fs-12); line-height: 1.15; }
+    .wf-tab-sub { display: none; }
+
+    .wf-titlebar { height: 40px; padding: 0 10px; gap: 8px; }
+    .wf-titlebar-pill { font-size: var(--fs-12); padding: 4px 10px; }
+    .wf-titlebar-action { width: 22px; height: 22px; }
+
+    .wf-card-grid { grid-template-columns: 1fr; }
+    .wf-bcard { min-height: 0; }
+
+    .wf-paper { padding: 28px 32px; min-height: 280px; }
+    .wf-paper .wf-editor { font-size: 13px; }
+
+    .wf-export-paper-bg { padding: 28px 32px; }
+  }
+
+  @media (max-width: 520px) {
+    .wf-stage { padding: var(--sp-3); }
+    .wf-tabs { gap: 2px; padding: 3px; }
+    .wf-tab { padding: 6px 2px; }
+    .wf-tab-num { width: 20px; height: 20px; font-size: 10px; }
+    .wf-tab-title { font-size: 11px; letter-spacing: -0.02em; }
+
+    .wf-browser-topbar { flex-wrap: wrap; padding: var(--sp-3); }
+    .wf-browser-search { order: 1; max-width: 100%; }
+    .wf-browser-actions { order: 2; }
+    .wf-browser-body { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+    .wf-paper { padding: 22px 24px; font-size: 12px; }
+    .wf-paper .wf-editor { font-size: 12px; }
+    .wf-export-paper-bg { padding: 22px 24px; font-size: 11px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wf-tabs-progress-bar { display: none; }
+    .wf-modal,
+    .wf-export-modal { animation: none; opacity: 1; }
+    .wf-browser-cursor { transition: none; }
+    .wf-editor .wf-cursor { animation: none; opacity: 0.5; }
+    .wf-field-caret { animation: none; opacity: 0.5; }
+  }
+</style>
+
+<script>
+  /**
+   * Workflow-Controller. Auto-Advance, Hover-Pause, Out-of-View-Pause.
+   * Pro Schritt eine eigene Animation, die beim Eintritt startet und
+   * beim Verlassen aufräumt.
+   */
+  (() => {
+    const stage = document.querySelector<HTMLElement>("[data-wf]");
+    if (!stage) return;
+
+    const tabs = Array.from(stage.querySelectorAll<HTMLButtonElement>(".wf-tab"));
+    const panels = Array.from(stage.querySelectorAll<HTMLElement>(".wf-panel"));
+    const progress = stage.querySelector<HTMLElement>("[data-wf-progress]");
+
+    const STEP_DURATIONS = [7000, 6500, 9500, 8500];
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let active = 0;
+    let timer: number | null = null;
+    let progTimer: number | null = null;
+    let progStart = 0;
+    let inView = true;
+    let isHover = false;
+    let cleanup: (() => void) | null = null;
+
+    /* ---------- Step 1: Übersicht ---------- */
+    const animOverview = (panel: HTMLElement): (() => void) => {
+      const cards = Array.from(panel.querySelectorAll<HTMLElement>("[data-wf-card]"));
+      const cursor = panel.querySelector<HTMLElement>("[data-wf-cursor]");
+      const body = panel.querySelector<HTMLElement>(".wf-browser-body");
+      if (!cursor || cards.length === 0 || !body) return () => {};
+
+      let stopped = false;
+      const cleanups: Array<() => void> = [];
+
+      const positionCursor = (i: number) => {
+        const card = cards[i];
+        const bodyRect = body.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const x = cardRect.left - bodyRect.left + cardRect.width * 0.5;
+        const y = cardRect.top - bodyRect.top + cardRect.height * 0.4;
+        cursor.style.transform = `translate(${x}px, ${y}px)`;
+      };
+      const setHovered = (idx: number) => {
+        cards.forEach((c, k) => c.classList.toggle("is-hovered", k === idx));
+      };
+
+      let i = 0;
+      const tick = () => {
+        if (stopped) return;
+        positionCursor(i);
+        setHovered(i);
+        i = (i + 1) % cards.length;
+        const t = window.setTimeout(tick, 1700);
+        cleanups.push(() => clearTimeout(t));
+      };
+
+      requestAnimationFrame(() => {
+        positionCursor(0);
+        setHovered(0);
+        const t = window.setTimeout(tick, 1100);
+        cleanups.push(() => clearTimeout(t));
+      });
+
+      return () => {
+        stopped = true;
+        cleanups.forEach((fn) => fn());
+        cards.forEach((c) => c.classList.remove("is-hovered"));
+      };
+    };
+
+    /* ---------- Step 2: Anlegen ---------- */
+    const animCreate = (panel: HTMLElement): (() => void) => {
+      const input = panel.querySelector<HTMLElement>("[data-wf-input]");
+      const typed = panel.querySelector<HTMLElement>("[data-wf-typed]");
+      const placeholder = panel.querySelector<HTMLElement>("[data-wf-placeholder]");
+      const btn = panel.querySelector<HTMLElement>("[data-wf-create-btn]");
+      if (!input || !typed || !btn) return () => {};
+
+      const TEXT = "Neue Idee fürs nächste Video";
+      let stopped = false;
+      const cleanups: Array<() => void> = [];
+
+      typed.textContent = "";
+      input.classList.remove("is-typing", "has-text");
+      btn.classList.remove("is-pressing");
+      if (placeholder) placeholder.style.display = "";
+
+      const start = window.setTimeout(() => {
+        if (stopped) return;
+        input.classList.add("is-typing");
+        if (placeholder) placeholder.style.display = "none";
+        let k = 0;
+        const typeStep = () => {
+          if (stopped) return;
+          if (k <= TEXT.length) {
+            typed.textContent = TEXT.slice(0, k);
+            k++;
+            const t = window.setTimeout(typeStep, 55 + Math.random() * 45);
+            cleanups.push(() => clearTimeout(t));
+          } else {
+            input.classList.add("has-text");
+            const t = window.setTimeout(() => {
+              if (stopped) return;
+              btn.classList.add("is-pressing");
+              const t2 = window.setTimeout(() => btn.classList.remove("is-pressing"), 240);
+              cleanups.push(() => clearTimeout(t2));
+            }, 600);
+            cleanups.push(() => clearTimeout(t));
+          }
+        };
+        typeStep();
+      }, 500);
+      cleanups.push(() => clearTimeout(start));
+
+      return () => {
+        stopped = true;
+        cleanups.forEach((fn) => fn());
+      };
+    };
+
+    /* ---------- Step 3: Schreiben ---------- */
+    type Block = { kind: "action" | "character" | "dialog" | "parenthetical"; text: string };
+    const SCRIPT: Block[] = [
+      { kind: "action", text: "Café am Morgen. Lina sucht den richtigen Tisch." },
+      { kind: "character", text: "Lina" },
+      { kind: "dialog", text: "Ist hier noch frei?" },
+      { kind: "character", text: "Ben" },
+      { kind: "parenthetical", text: "(ohne aufzusehen)" },
+      { kind: "dialog", text: "Wenn du keine Storys aufnimmst, gerne." },
+      { kind: "character", text: "Lina" },
+      { kind: "dialog", text: "Sieht aus wie ein Ja." },
+    ];
+
+    const animWrite = (panel: HTMLElement): (() => void) => {
+      const root = panel.querySelector<HTMLElement>("[data-wf-editor]");
+      if (!root) return () => {};
+      let stopped = false;
+      const cleanups: Array<() => void> = [];
+
+      const wait = (ms: number) =>
+        new Promise<void>((r) => {
+          if (stopped) return r();
+          const t = window.setTimeout(() => r(), ms);
+          cleanups.push(() => clearTimeout(t));
+        });
+
+      const makeCursor = () => {
+        const c = document.createElement("span");
+        c.className = "wf-cursor";
+        c.setAttribute("aria-hidden", "true");
+        return c;
+      };
+      const makeBlock = (b: Block) => {
+        const el = document.createElement("div");
+        el.className = `wf-blk wf-blk-${b.kind}`;
+        const span = document.createElement("span");
+        span.className = "wf-blk-text";
+        el.appendChild(span);
+        return el;
+      };
+      const typeBlock = async (el: HTMLElement, text: string, cursor: HTMLElement) => {
+        const span = el.querySelector<HTMLElement>(".wf-blk-text")!;
+        for (let k = 0; k < text.length; k++) {
+          if (stopped) return;
+          span.textContent = text.slice(0, k + 1);
+          el.appendChild(cursor);
+          await wait(28 + Math.random() * 28);
+        }
+      };
+
+      (async () => {
+        if (reduceMotion) {
+          root.innerHTML = "";
+          for (const b of SCRIPT) {
+            const el = makeBlock(b);
+            (el.querySelector(".wf-blk-text") as HTMLElement).textContent = b.text;
+            root.appendChild(el);
+          }
+          return;
+        }
+
+        root.innerHTML = "";
+        const cursor = makeCursor();
+        for (let idx = 0; idx < SCRIPT.length; idx++) {
+          if (stopped) return;
+          const b = SCRIPT[idx];
+          const el = makeBlock(b);
+          cursor.remove();
+          root.appendChild(el);
+          el.appendChild(cursor);
+          await typeBlock(el, b.text, cursor);
+          await wait(180);
+        }
+      })();
+
+      return () => {
+        stopped = true;
+        cleanups.forEach((fn) => fn());
+      };
+    };
+
+    /* ---------- Step 4: Exportieren ---------- */
+    const animExport = (panel: HTMLElement): (() => void) => {
+      const radioPdf = panel.querySelector<HTMLElement>('[data-wf-radio="pdf"]');
+      const radioTxt = panel.querySelector<HTMLElement>('[data-wf-radio="txt"]');
+      const divider = panel.querySelector<HTMLElement>("[data-wf-pdf-options]");
+      const rows = panel.querySelector<HTMLElement>("[data-wf-pdf-options-rows]");
+      const toggleHl = panel.querySelector<HTMLElement>('[data-wf-toggle="hl"]');
+      const toggleTitle = panel.querySelector<HTMLElement>('[data-wf-toggle="title"]');
+      const exportBtn = panel.querySelector<HTMLElement>("[data-wf-export-btn]");
+      if (!radioPdf || !radioTxt || !divider || !rows || !exportBtn) return () => {};
+
+      let stopped = false;
+      const cleanups: Array<() => void> = [];
+
+      // Reset to initial state: PDF selected, options visible, no toggles checked
+      radioPdf.classList.add("is-checked");
+      radioTxt.classList.remove("is-checked");
+      divider.classList.remove("is-hidden");
+      rows.classList.remove("is-hidden");
+      toggleHl?.classList.remove("is-checked");
+      toggleTitle?.classList.remove("is-checked");
+      exportBtn.classList.remove("is-pressing");
+
+      const wait = (ms: number) =>
+        new Promise<void>((r) => {
+          if (stopped) return r();
+          const t = window.setTimeout(() => r(), ms);
+          cleanups.push(() => clearTimeout(t));
+        });
+
+      (async () => {
+        await wait(900);
+        // Click Plain Text radio - toggles hide
+        if (stopped) return;
+        radioPdf.classList.remove("is-checked");
+        radioTxt.classList.add("is-checked");
+        divider.classList.add("is-hidden");
+        rows.classList.add("is-hidden");
+        await wait(1400);
+        // Back to PDF - toggles show again
+        if (stopped) return;
+        radioTxt.classList.remove("is-checked");
+        radioPdf.classList.add("is-checked");
+        divider.classList.remove("is-hidden");
+        rows.classList.remove("is-hidden");
+        await wait(1100);
+        // Tick Charakter-Highlighting
+        if (stopped) return;
+        toggleHl?.classList.add("is-checked");
+        await wait(1000);
+        // Tick Titelblatt
+        if (stopped) return;
+        toggleTitle?.classList.add("is-checked");
+        await wait(1000);
+        // Press Exportieren
+        if (stopped) return;
+        exportBtn.classList.add("is-pressing");
+        const t = window.setTimeout(() => exportBtn.classList.remove("is-pressing"), 260);
+        cleanups.push(() => clearTimeout(t));
+      })();
+
+      return () => {
+        stopped = true;
+        cleanups.forEach((fn) => fn());
+      };
+    };
+
+    const STEP_ANIMS: Array<(p: HTMLElement) => () => void> = [
+      animOverview,
+      animCreate,
+      animWrite,
+      animExport,
+    ];
+
+    /* ---------- Tab-Switch ---------- */
+    const switchTo = (idx: number) => {
+      if (idx === active && cleanup) return;
+      cleanup?.();
+      cleanup = null;
+
+      active = idx;
+      tabs.forEach((t, k) => {
+        t.classList.toggle("is-active", k === idx);
+        t.setAttribute("aria-selected", String(k === idx));
+      });
+      panels.forEach((p, k) => {
+        const isMatch = k === idx;
+        p.classList.toggle("is-active", isMatch);
+        if (isMatch) {
+          p.removeAttribute("hidden");
+        } else {
+          p.setAttribute("hidden", "");
+        }
+      });
+
+      const panel = panels[idx];
+      if (panel) {
+        requestAnimationFrame(() => {
+          cleanup = STEP_ANIMS[idx](panel);
+        });
+      }
+      restartProgress();
+    };
+
+    /* ---------- Auto-Advance + Progress Bar ---------- */
+    const stopProgress = () => {
+      if (progTimer) {
+        cancelAnimationFrame(progTimer);
+        progTimer = null;
+      }
+      if (progress) progress.style.width = "0%";
+    };
+    const restartProgress = () => {
+      stopProgress();
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      if (reduceMotion || !inView || isHover) return;
+      const dur = STEP_DURATIONS[active];
+      progStart = performance.now();
+      const tick = () => {
+        const elapsed = performance.now() - progStart;
+        const pct = Math.min(100, (elapsed / dur) * 100);
+        if (progress) progress.style.width = pct + "%";
+        if (pct < 100 && progTimer !== null) {
+          progTimer = requestAnimationFrame(tick);
+        }
+      };
+      progTimer = requestAnimationFrame(tick);
+      timer = window.setTimeout(() => {
+        switchTo((active + 1) % panels.length);
+      }, dur);
+    };
+
+    tabs.forEach((tab, k) => {
+      tab.addEventListener("click", () => switchTo(k));
+    });
+
+    stage.addEventListener("mouseenter", () => {
+      isHover = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      stopProgress();
+    });
+    stage.addEventListener("mouseleave", () => {
+      isHover = false;
+      restartProgress();
+    });
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          inView = e.isIntersecting;
+          if (inView) restartProgress();
+          else {
+            if (timer) { clearTimeout(timer); timer = null; }
+            stopProgress();
+          }
+        }
+      },
+      { threshold: 0.2 },
+    );
+    obs.observe(stage);
+
+    requestAnimationFrame(() => {
+      cleanup = STEP_ANIMS[0](panels[0]);
+      restartProgress();
+    });
+  })();
+</script>
