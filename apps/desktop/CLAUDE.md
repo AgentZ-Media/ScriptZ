@@ -212,11 +212,12 @@ To cut a release:
 
 1. Bump the version in **all four** places (they must agree, or
    `tauri build` warns and `latest.json` will mislabel the release):
-   - `package.json` → `version`
-   - `src-tauri/Cargo.toml` → `[package] version`
-   - `src-tauri/tauri.conf.json` → `version`
-   - `README.md` → the `version-X.Y.Z` shields.io badge near the top
-     (the only displayed version humans see before installing)
+   - `apps/desktop/package.json` → `version`
+   - `apps/desktop/src-tauri/Cargo.toml` → `[package] version`
+   - `apps/desktop/src-tauri/tauri.conf.json` → `version`
+   - `/README.md` (Repo-Root) → the `version-X.Y.Z` shields.io badge
+     near the top (the only displayed version humans see before
+     installing)
 2. Commit, push `main`.
 3. `git tag -a vX.Y.Z -m "ScriptZ vX.Y.Z — …" && git push origin vX.Y.Z`
 4. The workflow runs ~6 min and produces the release. After it finishes,

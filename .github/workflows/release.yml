@@ -34,9 +34,10 @@ jobs:
           workspaces: apps/desktop/src-tauri
 
       - name: Setup pnpm
+        # Version kommt aus packageManager in der Repo-Root-package.json,
+        # damit lokal und CI dieselbe pnpm-Version benutzen. Keine Angabe
+        # hier - sonst kollidieren beide Quellen (ERR_PNPM_BAD_PM_VERSION).
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@v4
