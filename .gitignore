@@ -24,3 +24,6 @@ pnpm-debug.log*
 # Editor / OS
 *.swp
 .tauri-build-stamp
+
+# Claude Code (lokales Tooling, kein Projekt-Artefakt)
+.claude/
