@@ -135,11 +135,15 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition: background var(--t-fast), color var(--t-fast),
-    border-color var(--t-fast);
+    border-color var(--t-fast), transform var(--t-fast);
 }
 .icon-btn:hover {
   background: var(--hover);
   color: var(--fg);
+}
+.icon-btn:active {
+  transform: scale(0.92);
+  transition-duration: 80ms;
 }
 .icon-btn.is-active {
   background: var(--bg-elev-2);
@@ -204,12 +208,18 @@
   white-space: nowrap;
   flex-shrink: 0;
   transition: background var(--t-fast), border-color var(--t-fast),
-    color var(--t-fast), box-shadow var(--t-fast);
+    color var(--t-fast), box-shadow var(--t-fast),
+    transform var(--t-fast);
 }
 .folder-chip:hover {
   border-color: var(--border-strong);
   background: var(--bg-elev-2);
   color: var(--fg);
+  transform: translateY(-0.5px);
+}
+.folder-chip:active {
+  transform: translateY(0.5px) scale(0.97);
+  transition-duration: 80ms;
 }
 .folder-chip:focus-visible {
   outline: none;
@@ -356,7 +366,14 @@
 .card:hover {
   border-color: var(--border-strong);
   background: var(--bg-elev-2);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06),
+              0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.card:active {
+  transform: translateY(0) scale(0.992);
+  transition-duration: 80ms;
+  box-shadow: none;
 }
 .card:focus-visible {
   border-color: var(--brand-500);

@@ -64,11 +64,15 @@
   gap: 2px;
   border-radius: var(--r-3);
   margin: 0 4px;
-  transition: background var(--t-fast);
+  transition: background var(--t-fast), transform var(--t-fast);
 }
 .cmd-row:hover,
 .cmd-row.is-active {
   background: var(--selected);
+}
+.cmd-row:active {
+  transform: scale(0.99);
+  transition-duration: 80ms;
 }
 .cmd-row-title {
   font-family: var(--font-sans);

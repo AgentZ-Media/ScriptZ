@@ -114,10 +114,24 @@
   box-shadow: var(--shadow-popover);
   padding: 6px;
   z-index: 30;
-  animation: scale-in var(--t-fast);
+  /* Dediziertes Keyframe statt scale-in: das Menue zentriert sich
+     ueber translateX(-50%) und scale-in's to-Frame wuerde die Cascade
+     ueberschreiben, was bei animation-fill-mode:none zu einem Snap
+     beim Animations-Ende fuehrt (Sprung um halbe Menue-Breite). */
+  animation: titlebar-menu-pop var(--t-fast);
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+@keyframes titlebar-menu-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 .titlebar-menu-search {
   padding: 4px 6px 6px;
@@ -164,7 +178,11 @@
   cursor: pointer;
   font-size: var(--fs-13);
   color: var(--fg);
-  transition: background var(--t-fast);
+  transition: background var(--t-fast), transform var(--t-fast);
+}
+.titlebar-menu-row:active {
+  transform: scale(0.985);
+  transition-duration: 80ms;
 }
 .titlebar-menu-row:hover,
 .titlebar-menu-row.is-keyboard {
@@ -236,11 +254,16 @@
   color: var(--fg-muted);
   font-size: 16px;
   line-height: 1;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition: background var(--t-fast), color var(--t-fast),
+    transform var(--t-fast);
 }
 .titlebar-action:hover {
   background: var(--hover);
   color: var(--fg);
+}
+.titlebar-action:active {
+  transform: scale(0.9);
+  transition-duration: 80ms;
 }
 .titlebar-action:focus-visible {
   outline: 2px solid var(--brand-500);
