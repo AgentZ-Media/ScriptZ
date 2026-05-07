@@ -1,0 +1,109 @@
+---
+import { site } from "../data/site";
+
+interface Props {
+  version: string;
+}
+const { version } = Astro.props;
+---
+
+<nav class="nav" aria-label="Hauptnavigation">
+  <div class="container nav-inner">
+    <a href="/" class="logo" aria-label="Startseite">
+      <img src="/img/icon.png" alt="" width="28" height="28" />
+      <span class="logo-name">ScriptZ</span>
+      <span class="logo-version">v{version}</span>
+    </a>
+
+    <div class="nav-links">
+      <a href="#warum" class="nav-link">Warum</a>
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#vergleich" class="nav-link">Vergleich</a>
+      <a href={site.github} class="nav-link" rel="noopener noreferrer">GitHub</a>
+    </div>
+
+    <a href="#download" class="btn btn-primary btn-sm download-btn">Kostenlos laden</a>
+  </div>
+</nav>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: var(--header-h);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--t-med), background var(--t-med);
+  }
+  /* Subtile Linie sobald gescrollt - JS setzt data-scrolled. */
+  :global(html.is-scrolled) .nav {
+    border-bottom-color: var(--border);
+  }
+
+  .nav-inner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-6);
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-3);
+    color: var(--fg);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .logo img {
+    border-radius: 7px;
+  }
+  .logo-name {
+    font-size: var(--fs-16);
+  }
+  .logo-version {
+    color: var(--fg-faint);
+    font-size: var(--fs-12);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-left: -2px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: var(--sp-7);
+  }
+  .nav-link {
+    color: var(--fg-muted);
+    font-size: var(--fs-14);
+    font-weight: 500;
+    transition: color var(--t-fast);
+  }
+  .nav-link:hover {
+    color: var(--fg);
+  }
+
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+  }
+  @media (max-width: 480px) {
+    .logo-version { display: none; }
+  }
+</style>
+
+<script>
+  // Subtile Linie unter der Nav, wenn gescrollt wird.
+  const onScroll = () => {
+    if (window.scrollY > 8) {
+      document.documentElement.classList.add("is-scrolled");
+    } else {
+      document.documentElement.classList.remove("is-scrolled");
+    }
+  };
+  onScroll();
+  window.addEventListener("scroll", onScroll, { passive: true });
+</script>

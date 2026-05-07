@@ -1,0 +1,492 @@
+---
+/**
+ * Auto-Typing-Demo
+ *
+ * Zeigt das ScriptZ-Editor-Layout exakt wie in der App:
+ * - Charakter zentriert, ALLCAPS
+ * - Dialog mit 16% Linkseinrückung
+ * - Parenthetical mit 22% Linkseinrückung, kursiv, gedämpft
+ * - Action volle Breite, links
+ * - Pro Charakter ein eigener Tint, gemixt zu weiß bei Alpha 0.28
+ *   (gleicher Algorithmus wie highlight.ts in der App)
+ *
+ * Loop:
+ * - Skript wird Block für Block, Zeichen für Zeichen geschrieben
+ * - Am Ende kurze Pause
+ * - Dann simuliert die Demo "Backspace gedrückt halten":
+ *   alles wird rückwärts schnell gelöscht
+ * - Zurück auf Anfang
+ *
+ * Container-Höhe ist FIX, kein Layout-Shift.
+ */
+---
+
+<div class="demo" aria-label="ScriptZ Editor mit einem Beispiel-Skript">
+  <div class="demo-frame">
+    <div class="demo-titlebar">
+      <span class="dot dot-r" aria-hidden="true"></span>
+      <span class="dot dot-y" aria-hidden="true"></span>
+      <span class="dot dot-g" aria-hidden="true"></span>
+      <span class="demo-tabs">
+        <span class="demo-tab is-active">
+          <img src="/img/icon.png" alt="" width="14" height="14" />
+          Coffee Shop Chaos
+        </span>
+        <span class="demo-tab-add" aria-hidden="true">+</span>
+      </span>
+    </div>
+
+    <div class="demo-paper">
+      <div class="demo-paper-sheet">
+        <div class="demo-editor" id="autoTypingScript" aria-live="polite" aria-atomic="false">
+          <!-- Wird per JS gefüllt. Höhe via min-height fixiert. -->
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-status">
+      <span class="demo-status-left">
+        <span class="demo-status-dot" aria-hidden="true"></span>
+        <span>Automatisch gespeichert</span>
+      </span>
+      <span class="demo-status-right">
+        <span>2 Charaktere</span>
+        <span class="demo-status-sep" aria-hidden="true">·</span>
+        <span>Seite 1 / 1</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /* HINWEIS: dieser Block ist absichtlich `is:global`. Die Block-Elemente
+     im Editor (`.blk`, `.blk-character`, `.blk-dialog` ...) werden per
+     JavaScript erzeugt und bekommen Astros Scope-Hash nicht mit; ein
+     scoped Style würde sie nicht treffen. Alle Selektoren hier sind
+     unter `.demo-editor` containerisiert, damit sie wirklich nur in
+     der Demo wirken. */
+
+  .demo {
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    perspective: 1200px;
+  }
+
+  .demo-frame {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-6);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transform: rotateX(2deg);
+    transition: transform var(--t-slow);
+  }
+  .demo:hover .demo-frame {
+    transform: rotateX(0);
+  }
+
+  /* --- Titlebar --- */
+  .demo-titlebar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: 12px 14px 10px;
+    background: var(--bg-elev-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .demo-titlebar .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .demo-titlebar .dot-r { background: #ed6a5e; }
+  .demo-titlebar .dot-y { background: #f5be4f; }
+  .demo-titlebar .dot-g { background: #61c554; }
+
+  .demo-tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-left: var(--sp-4);
+  }
+  .demo-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 10px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: var(--fs-13);
+    color: var(--fg);
+    font-weight: 500;
+  }
+  .demo-tab img { border-radius: 4px; }
+  .demo-tab-add {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-faint);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* --- Paper-Canvas (Parchment-Hintergrund) --- */
+  .demo-paper {
+    background: var(--bg-elev-2);
+    padding: 28px 28px 36px;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* --- Paper-Sheet (das eigentliche A4) ---
+     Geometrie nicht ganz A4, aber das Verhältnis 1.41 stimmt; wir
+     skalieren das visuelle Sheet so, dass Hero-Höhe konstant bleibt. */
+  .demo-paper-sheet {
+    background: #ffffff;          /* paper opak weiss */
+    color: #1c1814;                /* paper fg */
+    border-radius: 10px;
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 540px;
+    /* HÖHE FIX - das volle Skript inkl. Cursor-Padding passt rein.
+       Kein Layout-Shift während Tippen oder Backspace-Reset. */
+    min-height: 420px;
+    padding: 56px 64px;            /* simuliert paper-margin top/seitlich */
+    position: relative;
+  }
+
+  /* --- Editor-Wurzel --- */
+  .demo-editor {
+    font-family: var(--font-sans);
+    font-size: 14.5px;             /* ~ App fs-14 leicht hochskaliert */
+    line-height: 1.6;
+    color: #1c1814;
+    caret-color: #1c1814;
+    font-feature-settings: "liga" 1, "calt" 1;
+    position: relative;
+  }
+
+  /* --- Block Basis ---
+     Alle .blk-Selektoren sind unter .demo-editor verschachtelt, damit
+     die globalen Klassen-Namen nichts ausserhalb der Demo treffen. */
+  .demo-editor .blk {
+    display: block;
+    margin: 0;
+    padding: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .demo-editor .blk + .blk {
+    margin-top: 4px;
+  }
+
+  /* Spacing-Cluster wie in der App (Editor.css) */
+  .demo-editor .blk-character + .blk-dialog,
+  .demo-editor .blk-parenthetical + .blk-dialog,
+  .demo-editor .blk-character + .blk-parenthetical {
+    margin-top: 0;
+  }
+  .demo-editor .blk-action + .blk-character,
+  .demo-editor .blk-dialog + .blk-action,
+  .demo-editor .blk-dialog + .blk-character,
+  .demo-editor .blk-action + .blk-action {
+    margin-top: 14px;
+  }
+
+  /* --- Action --- */
+  .demo-editor .blk-action {
+    text-align: left;
+  }
+
+  /* --- Charakter (zentriert, ALLCAPS) --- */
+  .demo-editor .blk-character {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-top: 18px;
+  }
+
+  /* --- Parenthetical --- */
+  .demo-editor .blk-parenthetical {
+    margin-left: 22%;
+    margin-right: 22%;
+    font-style: italic;
+    color: rgba(28, 24, 20, 0.65);
+    text-align: left;
+  }
+
+  /* --- Dialog --- */
+  .demo-editor .blk-dialog {
+    margin-left: 16%;
+    margin-right: 16%;
+    text-align: left;
+  }
+
+  /* Charakter-Highlighting (Farb-Pillen pro Sprecher) ist in der App
+     ein optionales Feature. Die Demo zeigt bewusst nur die reine
+     Formatierung - Layout, Einrückung, Großschreibung. So sieht ein
+     frisches Skript ohne Highlight aus. */
+
+  /* Cursor */
+  .demo-editor .demo-cursor {
+    display: inline-block;
+    width: 1.5px;
+    height: 1.05em;
+    background: #1c1814;
+    transform: translateY(3px);
+    margin-left: 1px;
+    animation: demo-blink 1.05s steps(2, end) infinite;
+  }
+  @keyframes demo-blink {
+    50% { opacity: 0; }
+  }
+
+  /* --- Statusleiste --- */
+  .demo-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    font-size: var(--fs-12);
+    color: var(--fg-muted);
+  }
+  .demo-status-left,
+  .demo-status-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .demo-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4f9a6c;
+    box-shadow: 0 0 0 3px rgba(79, 154, 108, 0.15);
+  }
+  .demo-status-sep { color: var(--fg-faint); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .demo-editor .demo-cursor { animation: none; opacity: 0.6; }
+  }
+
+  @media (max-width: 760px) {
+    .demo-paper { padding: 18px; }
+    .demo-paper-sheet {
+      padding: 32px 28px;
+      min-height: 440px;
+      max-width: 100%;
+    }
+    .demo-editor { font-size: 13.5px; }
+    .demo-editor .blk-dialog { margin-left: 10%; margin-right: 10%; }
+    .demo-editor .blk-parenthetical { margin-left: 14%; margin-right: 14%; }
+  }
+</style>
+
+<script>
+  /**
+   * Auto-Typing-Loop mit Backspace-Reset.
+   *
+   * 1. Schreibt das Beispiel-Skript Block für Block, Zeichen für Zeichen.
+   * 2. Pausiert kurz am Ende.
+   * 3. Simuliert "Backspace gedrückt halten": entfernt rapide alle
+   *    Zeichen rückwärts, einschließlich der Block-Grenzen.
+   * 4. Beginnt von vorn.
+   *
+   * Pausiert wenn die Demo nicht im Viewport ist (Strom sparen).
+   */
+  type Block = {
+    kind: "action" | "character" | "dialog" | "parenthetical";
+    text: string;
+  };
+
+  const SCRIPT: Block[] = [
+    { kind: "action", text: "Café am Morgen. Lina sucht den richtigen Tisch." },
+    { kind: "character", text: "Lina" },
+    { kind: "dialog", text: "Ist hier noch frei?" },
+    { kind: "character", text: "Ben" },
+    { kind: "parenthetical", text: "(ohne aufzusehen)" },
+    { kind: "dialog", text: "Wenn du keine Storys aufnimmst, gerne." },
+    { kind: "character", text: "Lina" },
+    { kind: "dialog", text: "Sieht aus wie ein Ja." },
+  ];
+
+  const TYPE_SPEED_MS = 32;        // ms pro Zeichen beim Tippen
+  const BLOCK_PAUSE_MS = 220;      // Pause zwischen Blöcken
+  const END_HOLD_MS = 2200;        // Pause am Skript-Ende
+  const DELETE_SPEED_MS = 8;       // ms pro Zeichen beim Backspace
+  const DELETE_PAUSE_MS = 600;     // Pause nach komplettem Löschen
+  const RESTART_PAUSE_MS = 320;
+
+  const root = document.getElementById("autoTypingScript");
+  if (root) {
+    let isVisible = true;
+    new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) isVisible = e.isIntersecting;
+      },
+      { threshold: 0.2 },
+    ).observe(root);
+
+    const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    const waitWhilePaused = async () => {
+      while (!isVisible) await wait(250);
+    };
+
+    const makeCursor = (): HTMLSpanElement => {
+      const c = document.createElement("span");
+      c.className = "demo-cursor";
+      c.setAttribute("aria-hidden", "true");
+      return c;
+    };
+
+    const makeBlockEl = (block: Block): HTMLElement => {
+      const el = document.createElement("div");
+      el.className = `blk blk-${block.kind}`;
+      const span = document.createElement("span");
+      span.className = "blk-text";
+      el.appendChild(span);
+      return el;
+    };
+
+    /** Hängt Cursor ans Ende des angegebenen Blocks (nach .blk-text). */
+    const placeCursor = (blockEl: HTMLElement, cursor: HTMLSpanElement) => {
+      blockEl.appendChild(cursor);
+    };
+
+    const typeBlock = async (
+      blockEl: HTMLElement,
+      text: string,
+      cursor: HTMLSpanElement,
+    ) => {
+      const span = blockEl.querySelector(".blk-text") as HTMLElement;
+      for (let i = 0; i < text.length; i++) {
+        if (!isVisible) await waitWhilePaused();
+        span.textContent = text.slice(0, i + 1);
+        // Cursor am Ende halten
+        placeCursor(blockEl, cursor);
+        await wait(TYPE_SPEED_MS);
+      }
+    };
+
+    /**
+     * Backspace-Reset: löscht den ganzen Editor-Inhalt rapid rückwärts.
+     * Geht block-weise vom letzten zum ersten Block, leert jeden Block
+     * Zeichen für Zeichen, entfernt dann den leeren Block (außer dem
+     * ersten - der bleibt leer mit Cursor stehen).
+     */
+    const backspaceAll = async (cursor: HTMLSpanElement) => {
+      while (true) {
+        const blocks = root.querySelectorAll<HTMLElement>(".blk");
+        if (blocks.length === 0) break;
+        const last = blocks[blocks.length - 1];
+        const span = last.querySelector(".blk-text") as HTMLElement | null;
+        const text = span?.textContent ?? "";
+
+        // Cursor in den aktuellen letzten Block ziehen
+        placeCursor(last, cursor);
+
+        if (text.length > 0) {
+          // Zeichen für Zeichen rückwärts
+          for (let i = text.length - 1; i >= 0; i--) {
+            if (!isVisible) await waitWhilePaused();
+            if (span) span.textContent = text.slice(0, i);
+            await wait(DELETE_SPEED_MS);
+          }
+        }
+
+        // Block ist jetzt leer. Wenn es nicht der einzige übrige ist,
+        // entfernen (simuliert Backspace am Block-Anfang -> merge).
+        if (blocks.length > 1) {
+          last.remove();
+          // kurze Mikropause damit der Sprung wahrnehmbar ist
+          await wait(DELETE_SPEED_MS * 2);
+        } else {
+          // Letzter Block - leer lassen und raus
+          break;
+        }
+      }
+    };
+
+    const buildEmptyStart = (): { firstBlock: HTMLElement; cursor: HTMLSpanElement } => {
+      root.innerHTML = "";
+      const cursor = makeCursor();
+      // Initial: ein leerer Action-Block (wie in der App nach New Script).
+      // In der App startet ein neues Skript zwar mit einem leeren Charakter-
+      // Block, aber für die Demo wirkt Action neutraler.
+      const firstBlock = makeBlockEl({ kind: "action", text: "" });
+      root.appendChild(firstBlock);
+      placeCursor(firstBlock, cursor);
+      return { firstBlock, cursor };
+    };
+
+    const playOnce = async () => {
+      const { firstBlock, cursor } = buildEmptyStart();
+
+      // Erster Block: füllen mit dem ersten Skript-Block.
+      // Wenn der erste Skript-Block ein anderer Typ ist, müssen wir den
+      // leeren Action-Block ersetzen.
+      const firstScriptBlock = SCRIPT[0];
+      if (firstScriptBlock.kind !== "action") {
+        firstBlock.remove();
+        const replacement = makeBlockEl(firstScriptBlock);
+        root.appendChild(replacement);
+        placeCursor(replacement, cursor);
+        await typeBlock(replacement, firstScriptBlock.text, cursor);
+      } else {
+        await typeBlock(firstBlock, firstScriptBlock.text, cursor);
+      }
+      await wait(BLOCK_PAUSE_MS);
+
+      // Weitere Blöcke
+      for (let i = 1; i < SCRIPT.length; i++) {
+        const b = SCRIPT[i];
+        const el = makeBlockEl(b);
+        // Cursor temporär aus dem alten Block ziehen
+        cursor.remove();
+        root.appendChild(el);
+        placeCursor(el, cursor);
+        await typeBlock(el, b.text, cursor);
+        await wait(BLOCK_PAUSE_MS);
+      }
+
+      // Halten
+      await wait(END_HOLD_MS);
+
+      // Backspace-Reset
+      await backspaceAll(cursor);
+      await wait(DELETE_PAUSE_MS);
+    };
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    (async () => {
+      if (reduceMotion) {
+        // Statisch: alle Blöcke fertig anzeigen, kein Loop, kein Cursor.
+        root.innerHTML = "";
+        for (const b of SCRIPT) {
+          const el = makeBlockEl(b);
+          (el.querySelector(".blk-text") as HTMLElement).textContent = b.text;
+          root.appendChild(el);
+        }
+        return;
+      }
+
+      while (true) {
+        await waitWhilePaused();
+        await playOnce();
+        await wait(RESTART_PAUSE_MS);
+      }
+    })();
+  }
+</script>

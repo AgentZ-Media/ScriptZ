@@ -1,0 +1,112 @@
+---
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import { getLatestRelease, site } from "../data/site";
+
+const release = await getLatestRelease();
+---
+
+<Base
+  pageTitle="Impressum"
+  description={`Anbieterkennzeichnung gemäß § 5 DDG für ${site.domain}.`}
+>
+  <Nav version={release.version} />
+
+  <main class="legal">
+    <div class="container-narrow">
+      <header class="legal-head">
+        <span class="eyebrow">Rechtliches</span>
+        <h1 class="h-section">Impressum</h1>
+        <p class="lead">
+          Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz).
+        </p>
+      </header>
+
+      <article class="legal-content">
+        <h2>Diensteanbieter</h2>
+        <p>
+          AgentZ Media<br />
+          Inhaber: Axel Roller<br />
+          Ziegenmarkt 6<br />
+          19055 Schwerin<br />
+          Deutschland
+        </p>
+
+        <h2>Kontakt</h2>
+        <p>
+          Telefon: <a href="tel:+4938557568044">+49 385 5756 8044</a><br />
+          E-Mail: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+        </p>
+
+        <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+        <p>
+          Axel Roller<br />
+          Ziegenmarkt 6, 19055 Schwerin
+        </p>
+
+        <h2>Zuständige Kammer</h2>
+        <p>
+          Industrie- und Handelskammer zu Schwerin<br />
+          Graf-Schack-Allee 12, 19053 Schwerin
+        </p>
+
+        <h2>Online-Streitbeilegung (OS)</h2>
+        <p>
+          Die Europäische Kommission stellt eine Plattform zur
+          Online-Streitbeilegung bereit:
+          <a
+            href="https://ec.europa.eu/consumers/odr/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >https://ec.europa.eu/consumers/odr/</a
+          >.
+        </p>
+
+        <h2>Verbraucherstreitbeilegung</h2>
+        <p>
+          Wir sind nicht bereit und nicht verpflichtet, an
+          Streitbeilegungsverfahren vor einer
+          Verbraucherschlichtungsstelle teilzunehmen.
+        </p>
+      </article>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .legal {
+    padding-top: var(--sp-10);
+    padding-bottom: var(--sp-12);
+  }
+  .legal-head {
+    margin-bottom: var(--sp-9);
+  }
+  .legal-head .h-section {
+    margin: var(--sp-3) 0 var(--sp-3);
+  }
+
+  .legal-content :global(h2) {
+    font-size: var(--fs-20);
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    color: var(--fg);
+    margin: var(--sp-8) 0 var(--sp-3);
+  }
+  .legal-content :global(p) {
+    color: var(--fg-muted);
+    line-height: var(--lh-relaxed);
+    margin: 0 0 var(--sp-3);
+  }
+  .legal-content :global(a) {
+    color: var(--fg);
+    border-bottom: 1px solid var(--border-strong);
+    transition: border-color var(--t-fast), color var(--t-fast);
+  }
+  .legal-content :global(a:hover) {
+    color: var(--fg);
+    border-bottom-color: var(--fg);
+  }
+</style>

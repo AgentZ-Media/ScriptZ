@@ -7,9 +7,13 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 
-# Tauri
-src-tauri/target/
-src-tauri/gen/
+# Tauri (Monorepo: apps/*/src-tauri/...)
+**/src-tauri/target/
+**/src-tauri/gen/
+
+# Astro
+.astro/
+.vercel/
 
 # Logs
 npm-debug.log*

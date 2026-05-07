@@ -1,0 +1,77 @@
+---
+import "../styles/global.css";
+import { site } from "../data/site";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Wird im <title> dem Site-Namen vorangestellt. */
+  pageTitle?: string;
+}
+
+const {
+  title,
+  description = site.description,
+  pageTitle,
+} = Astro.props;
+
+const fullTitle =
+  title ?? (pageTitle ? `${pageTitle} - ${site.name}` : `${site.name} - Der schnellste Skript-Editor für Creators`);
+const ogImage = `${site.url}/img/icon-large.png`;
+---
+
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+
+    <link rel="icon" type="image/png" href="/img/icon.png" />
+    <link rel="apple-touch-icon" href="/img/icon.png" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, site.url).toString()} />
+
+    <link rel="preload" href="/fonts/iAWriterQuattroS-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/iAWriterQuattroS-Bold.woff2" as="font" type="font/woff2" crossorigin />
+
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, site.url).toString()} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="de_DE" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <meta name="robots" content="index, follow" />
+  </head>
+  <body>
+    <slot />
+
+    <script>
+      // Mikroanimationen: Reveal-on-scroll für Elemente mit .reveal.
+      // Wir benutzen IntersectionObserver, damit die Page auch ohne JS
+      // funktioniert (Reveal-Klasse zeigt dann einfach gar nicht).
+      const reveal = (entries: IntersectionObserverEntry[]) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        }
+      };
+      const observer = new IntersectionObserver(reveal, {
+        threshold: 0.12,
+        rootMargin: "0px 0px -40px 0px",
+      });
+      document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>

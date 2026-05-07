@@ -31,7 +31,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: apps/desktop/src-tauri
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -92,4 +92,5 @@ jobs:
             (only for the very first install).
           releaseDraft: false
           prerelease: false
+          projectPath: apps/desktop
           args: --target aarch64-apple-darwin

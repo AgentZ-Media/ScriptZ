@@ -1,0 +1,151 @@
+---
+// Die Warum-Sektion: warum gibt es ScriptZ überhaupt.
+---
+
+<section class="story section" id="warum">
+  <div class="container">
+    <div class="story-grid">
+      <div class="story-text reveal">
+        <span class="eyebrow">Warum es ScriptZ gibt</span>
+        <h2 class="h-section story-title">
+          Aus eigenem Schmerz gebaut. Von Leuten, die selbst sehr viele
+          Skripte schreiben.
+        </h2>
+
+        <p class="story-paragraph">
+          Wir sind <a href="https://www.tiktok.com/@deragentz"
+          target="_blank" rel="noopener noreferrer"
+          class="story-link">AgentZ</a>, eine Social-Media-Agentur aus
+          Schwerin. Auf TikTok, YouTube, Instagram und Facebook haben
+          wir zusammen über 240.000 Follower aufgebaut. In knapp vier
+          Jahren sind dabei rund dreitausend Skripte für unsere
+          eigenen Kanäle entstanden, hinzu kommen die Skripte für
+          unsere Kunden. Und es werden täglich mehr.
+        </p>
+
+        <p class="story-paragraph">
+          Wir haben jedes verfügbare Tool ausprobiert. Notion ist zu
+          groß, zu langsam und macht aus einem Skript eine
+          Datenbankzeile. Drehbuch-Programme wie Final Draft oder
+          Celtx sind für 90-minütige Spielfilme gebaut, nicht für
+          ein 30-Sekunden-Skript, das du in zehn Minuten fertig
+          haben willst. Apple Notes hat keine Charakter-Logik. Google
+          Docs nimmt dir das Tippgefühl, wenn das Internet schwankt.
+        </p>
+
+        <p class="story-paragraph">
+          Also haben wir die App gebaut, die wir selbst die ganze Zeit
+          gesucht haben. Reduziert auf das, was zählt, wenn jemand
+          unter Zeitdruck Sketches und Skripte raushaut. Und weil wir
+          finden, dass gutes Werkzeug niemandem gehören sollte: ist
+          ScriptZ kostenlos und Open Source.
+        </p>
+      </div>
+
+      <ul class="story-stats reveal" aria-label="Reichweite und Skript-Volumen">
+        <li class="stat">
+          <span class="stat-num">~3.000</span>
+          <span class="stat-label">Skripte für eigene Kanäle in knapp 4 Jahren</span>
+        </li>
+        <li class="stat">
+          <span class="stat-num">240k+</span>
+          <span class="stat-label">Follower über TikTok, YouTube, Instagram, Facebook</span>
+        </li>
+        <li class="stat">
+          <span class="stat-num">365</span>
+          <span class="stat-label">Videos pro Jahr produzieren wir aktuell für Kunden</span>
+        </li>
+        <li class="stat">
+          <span class="stat-num">100%</span>
+          <span class="stat-label">der App-Entwicklung getrieben von eigener Praxis</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Bewusst kein eigener Hintergrund mehr - das Karo der Body laeuft
+     ungestoert durch alle Sektionen. */
+
+  .story-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: var(--sp-11);
+    align-items: start;
+  }
+
+  .story-text {
+    max-width: 64ch;
+  }
+  .story-title {
+    margin-top: var(--sp-3);
+    margin-bottom: var(--sp-6);
+    color: var(--fg);
+  }
+
+  .story-paragraph {
+    color: var(--fg-muted);
+    font-size: var(--fs-18);
+    line-height: var(--lh-relaxed);
+    margin-bottom: var(--sp-5);
+  }
+  .story-paragraph:last-child {
+    margin-bottom: 0;
+  }
+
+  .story-link {
+    color: var(--fg);
+    border-bottom: 1px solid var(--border-strong);
+    padding-bottom: 1px;
+    transition: border-color var(--t-fast), color var(--t-fast);
+  }
+  .story-link:hover {
+    color: var(--fg);
+    border-bottom-color: var(--fg);
+  }
+
+  .story-stats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
+  }
+  .stat {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: var(--r-5);
+    padding: var(--sp-5) var(--sp-6);
+    transition: border-color var(--t-med), transform var(--t-med);
+  }
+  .stat:hover {
+    border-color: var(--border-strong);
+    transform: translateX(-2px);
+  }
+  .stat-num {
+    display: block;
+    font-size: var(--fs-32);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    line-height: 1.1;
+  }
+  .stat-label {
+    display: block;
+    margin-top: 4px;
+    color: var(--fg-muted);
+    font-size: var(--fs-13);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 960px) {
+    .story-grid {
+      grid-template-columns: 1fr;
+      gap: var(--sp-9);
+    }
+    .story-stats {
+      position: static;
+    }
+  }
+</style>

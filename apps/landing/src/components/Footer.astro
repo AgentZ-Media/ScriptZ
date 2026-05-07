@@ -1,0 +1,151 @@
+---
+import { site } from "../data/site";
+const year = new Date().getFullYear();
+---
+
+<footer class="ft">
+  <div class="container ft-inner">
+    <div class="ft-brand">
+      <a href="/" class="ft-logo">
+        <img src="/img/icon.png" alt="" width="22" height="22" />
+        <span>ScriptZ</span>
+      </a>
+      <p class="ft-tagline">
+        Gebaut von <a href="https://www.tiktok.com/@deragentz"
+        rel="noopener noreferrer">AgentZ Media</a> in Schwerin.
+      </p>
+    </div>
+
+    <nav class="ft-cols" aria-label="Footer-Navigation">
+      <div class="ft-col">
+        <h3 class="ft-h">Produkt</h3>
+        <ul>
+          <li><a href="#warum">Warum ScriptZ</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#vergleich">Vergleich</a></li>
+          <li><a href="#download">Download</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h3 class="ft-h">Open Source</h3>
+        <ul>
+          <li><a href={site.github} rel="noopener noreferrer">GitHub-Repo</a></li>
+          <li><a href={site.releasesPage} rel="noopener noreferrer">Releases</a></li>
+          <li><a href={`${site.github}/issues`} rel="noopener noreferrer">Bug melden</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h3 class="ft-h">Rechtliches</h3>
+        <ul>
+          <li><a href="/impressum">Impressum</a></li>
+          <li><a href="/datenschutz">Datenschutz</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h3 class="ft-h">Kontakt</h3>
+        <ul>
+          <li><a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a></li>
+          <li><a href="https://www.tiktok.com/@deragentz" rel="noopener noreferrer">@deragentz auf TikTok</a></li>
+          <li><a href="https://www.agent-z.de" rel="noopener noreferrer">agent-z.de</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container ft-bottom">
+    <p class="ft-copy">© {year} AgentZ Media · Alle Rechte vorbehalten.</p>
+    <p class="ft-techline">
+      Made with iA Writer Quattro, Tauri, Solid und Astro. Auf Vercel gehostet,
+      keine Tracker.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .ft {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: var(--sp-10) 0 var(--sp-7);
+    margin-top: var(--sp-12);
+  }
+
+  .ft-inner {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: var(--sp-10);
+    margin-bottom: var(--sp-8);
+  }
+
+  .ft-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: var(--sp-3);
+  }
+  .ft-logo img { border-radius: 5px; }
+  .ft-tagline {
+    color: var(--fg-muted);
+    font-size: var(--fs-14);
+    line-height: 1.6;
+    max-width: 32ch;
+  }
+  .ft-tagline a {
+    color: var(--fg);
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .ft-tagline a:hover { color: var(--fg); }
+
+  .ft-cols {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-6);
+  }
+  .ft-h {
+    font-size: var(--fs-12);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg);
+    margin-bottom: var(--sp-3);
+  }
+  .ft-col ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ft-col a {
+    color: var(--fg-muted);
+    font-size: var(--fs-14);
+    transition: color var(--t-fast);
+  }
+  .ft-col a:hover { color: var(--fg); }
+
+  .ft-bottom {
+    border-top: 1px solid var(--border);
+    padding-top: var(--sp-6);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+  .ft-copy, .ft-techline {
+    color: var(--fg-faint);
+    font-size: var(--fs-12);
+  }
+
+  @media (max-width: 880px) {
+    .ft-inner {
+      grid-template-columns: 1fr;
+      gap: var(--sp-7);
+    }
+    .ft-cols {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--sp-6) var(--sp-5);
+    }
+  }
+  @media (max-width: 480px) {
+    .ft-cols { grid-template-columns: 1fr; }
+  }
+</style>
