@@ -277,6 +277,57 @@ export default function App() {
     setNewScriptOpen(false);
   };
 
+  // ---- View-Transition: Tab-Wechsel & Browser <-> Editor ---------------
+  // Richtungsbasierter Slide statt Cross-Fade. Vier Modi:
+  //   forward         neuer Tab liegt rechts vom alten           -> Slide von rechts
+  //   backward        neuer Tab liegt links vom alten            -> Slide von links
+  //   into-script     Browser-Tab wird zum Skript-Tab            -> Skript "hebt sich"
+  //   back-to-browser Skript-Tab wird zum Browser-Tab            -> Zoom-Out auf die Uebersicht
+  //
+  // Das Triggern passiert via Klassen-Toggle + erzwungenes Reflow auf dem
+  // Inner-Wrapper, damit die CSS-Animation jedes Mal neu startet (auch
+  // wenn die Direction gleich bleibt, z.B. zweimal hintereinander Tab
+  // weiter nach rechts).
+  let appMainRef: HTMLElement | undefined;
+  let viewFrameRef: HTMLDivElement | undefined;
+  let prevTab: { id: string; kind: "browser" | "script" } | null = null;
+  createEffect(() => {
+    const list = tabsStore.tabs();
+    const id = tabsStore.activeTabId();
+    if (!id || !appMainRef || !viewFrameRef) return;
+    const cur = list.find((t) => t.id === id);
+    if (!cur) return;
+    if (prevTab === null) {
+      // Erster Mount nach Boot — keine Animation.
+      prevTab = { id: cur.id, kind: cur.kind };
+      return;
+    }
+    if (prevTab.id === cur.id && prevTab.kind === cur.kind) return;
+
+    let dir: "forward" | "backward" | "into-script" | "back-to-browser";
+    if (prevTab.kind === "browser" && cur.kind === "script") {
+      dir = "into-script";
+    } else if (prevTab.kind === "script" && cur.kind === "browser") {
+      dir = "back-to-browser";
+    } else {
+      const oldIdx = list.findIndex((t) => t.id === prevTab!.id);
+      const newIdx = list.findIndex((t) => t.id === cur.id);
+      // Wenn der alte Tab inzwischen geschlossen wurde (oldIdx === -1),
+      // defaulten wir auf forward — wirkt im Zweifel "weiter".
+      dir = oldIdx === -1 || newIdx === -1 || newIdx >= oldIdx
+        ? "forward"
+        : "backward";
+    }
+    prevTab = { id: cur.id, kind: cur.kind };
+
+    appMainRef.dataset.viewDir = dir;
+    viewFrameRef.classList.remove("is-animating");
+    // Reflow erzwingen, damit der Browser den Klassen-Wechsel registriert
+    // und die Animation tatsaechlich neu triggert.
+    void viewFrameRef.offsetWidth;
+    viewFrameRef.classList.add("is-animating");
+  });
+
   return (
     <div class="app-root">
       <Show when={bootReady()} fallback={<BootScreen />}>
@@ -288,29 +339,30 @@ export default function App() {
           highlightOn={highlightOn}
         />
 
-        <main class="app-main">
-          <Show when={activeView()}>
-            {(v) => (
-              <Switch>
-                <Match when={v().kind === "browser"}>
-                  <Browser
-                    onNewScript={(folderId) => {
-                      setNewScriptFolder(folderId ?? null);
-                      setNewScriptOpen(true);
-                    }}
-                    onOpenSettings={() => setSettingsOpen(true)}
-                  />
-                </Match>
-                <Match when={v().kind === "script"}>
-                  <ErrorBoundary fallback={(err) => <div class="error-pane">Fehler: {String(err)}</div>}>
-                    <Suspense fallback={<div class="loading-pane">Lade Skript…</div>}>
-                      <ScriptView scriptId={(v() as { scriptId: string }).scriptId} />
-                    </Suspense>
-                  </ErrorBoundary>
-                </Match>
-              </Switch>
-            )}
-          </Show>
+        <main class="app-main" ref={appMainRef}>
+          <div class="view-frame" ref={viewFrameRef}>
+            <Show when={activeView()}>
+              {(v) => (
+                <Switch>
+                  <Match when={v().kind === "browser"}>
+                    <Browser
+                      onNewScript={(folderId) => {
+                        setNewScriptFolder(folderId ?? null);
+                        setNewScriptOpen(true);
+                      }}
+                    />
+                  </Match>
+                  <Match when={v().kind === "script"}>
+                    <ErrorBoundary fallback={(err) => <div class="error-pane">Fehler: {String(err)}</div>}>
+                      <Suspense fallback={<div class="loading-pane">Lade Skript…</div>}>
+                        <ScriptView scriptId={(v() as { scriptId: string }).scriptId} />
+                      </Suspense>
+                    </ErrorBoundary>
+                  </Match>
+                </Switch>
+              )}
+            </Show>
+          </div>
         </main>
 
         <CommandBar open={cmdkOpen()} onClose={() => setCmdkOpen(false)} />
