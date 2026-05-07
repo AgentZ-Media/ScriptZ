@@ -97,6 +97,41 @@ GitHub-Releases-API zieht. Ohne diesen Hook würde die Landing auf
 der vorherigen Version hängenbleiben, weil Vercel nur auf Git-Push
 reagiert - und der Push passiert *vor* dem Release-Publish.
 
+## Workflow nach jeder Änderung (wichtig)
+
+Nach **jeder** abgeschlossenen Aufgabe (Feature, Fix, Refactor,
+Doku-Update, egal was) **niemals automatisch committen, pushen oder
+releasen**. Stattdessen einmal kurz innehalten und dem User eine
+Zusammenfassung + Optionen geben:
+
+1. **Was wurde geändert?** Ein Satz, plus Liste der angefassten
+   Dateien. So kann der User selbst nochmal drüberschauen, bevor
+   irgendwas rausgeht.
+2. **Konsistenz-Check:** Ist die Landing mit betroffen (siehe Tabelle
+   oben)? Müssen Versionen synchron gezogen werden? Wenn ja, sagen.
+3. **Empfehlung + Optionen** für das weitere Vorgehen, abhängig von
+   der Art der Änderung. Beispiele:
+   - **Trivial** (Tippfehler, Kommentar, kleines Style-Detail):
+     Direkt-Commit auf `main` reicht. Kein Release nötig.
+   - **Kleiner, aber wichtiger Bugfix** (User merkt's, betrifft alle):
+     Direkt-Commit auf `main` + Patch-Release `vX.Y.Z+1` empfehlen,
+     damit der Auto-Updater die Fix ausrollt. Release-Checkliste
+     durchgehen.
+   - **Neues Feature oder nicht-trivialer Refactor:** PR auf GitHub
+     vorschlagen, damit CodeRabbit drüberschaut. Erst nach Review +
+     Merge ggf. Minor-Release `vX.Y+1.0`.
+   - **Landing-only Änderung** (Texte, Bilder, Marketing): Direkt-
+     Commit reicht, kein Versions-Bump - Vercel deployed bei Push.
+   - **Risiko-Änderung** (Migrations, Storage-Format, Build-Pipeline):
+     Immer PR, nie direkt - egal wie klein.
+4. **Auf Antwort warten.** Erst handeln, wenn der User explizit sagt
+   was er will (z.B. "ja, Patch-Release" oder "PR machen" oder "nur
+   committen, kein Release"). Niemals in einem Rutsch durchziehen,
+   auch wenn die Empfehlung offensichtlich scheint.
+
+Diese Regel gilt **immer**, auch wenn der User vorher schon eine
+Aufgabe ähnlich abgewickelt hat. Jede Änderung ist neu zu bewerten.
+
 ## Deutsche Texte
 
 App und Landing sind beide auf Deutsch. In Code-Kommentaren und
