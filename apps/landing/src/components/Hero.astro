@@ -29,7 +29,7 @@ const { release } = Astro.props;
       </p>
 
       <div class="hero-cta">
-        <a href={release.dmgUrl} class="btn btn-primary btn-lg">
+        <a href={release.dmgUrl} class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
             <path d="M16.7 13.5c-.02-2.34 1.91-3.46 2-3.51-1.09-1.6-2.79-1.81-3.39-1.83-1.45-.15-2.83.85-3.56.85-.74 0-1.87-.83-3.07-.81-1.58.02-3.04.92-3.85 2.34-1.64 2.85-.42 7.07 1.17 9.39.78 1.13 1.71 2.4 2.93 2.36 1.18-.05 1.62-.76 3.04-.76 1.42 0 1.82.76 3.06.74 1.27-.02 2.07-1.15 2.85-2.29.9-1.31 1.27-2.59 1.29-2.66-.03-.01-2.46-.94-2.49-3.72ZM14.5 6.6c.65-.79 1.09-1.89.97-2.99-.94.04-2.07.62-2.74 1.41-.6.7-1.13 1.82-.99 2.91 1.04.08 2.11-.53 2.76-1.33Z" />
           </svg>
@@ -42,7 +42,7 @@ const { release } = Astro.props;
 
       <p class="hero-meta">
         macOS 13 oder neuer · Apple Silicon &amp; Intel · v{release.version} ·
-        <a href={release.releasePageUrl} class="hero-meta-link" rel="noopener noreferrer">Changelog</a>
+        <a href={release.releasePageUrl} class="hero-meta-link" target="_blank" rel="noopener noreferrer">Changelog</a>
       </p>
     </div>
 
