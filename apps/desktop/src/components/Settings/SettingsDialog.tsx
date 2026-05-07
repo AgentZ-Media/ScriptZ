@@ -18,7 +18,7 @@ import type { AiModelInfo } from "~/lib/types";
 import { pushToast } from "~/stores/toasts";
 import "./SettingsDialog.css";
 
-const REPO_URL = "https://github.com/ibimspumo/ScriptZ";
+const REPO_URL = "https://github.com/AgentZ-Media/ScriptZ";
 
 export interface SettingsDialogProps {
   open: boolean;

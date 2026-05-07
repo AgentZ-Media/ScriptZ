@@ -146,7 +146,7 @@ App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Tel
 
 > **macOS Apple Silicon** — getestet auf macOS 26 Tahoe.
 
-1. Aktuelles `.dmg` von [Releases](https://github.com/ibimspumo/ScriptZ/releases/latest) laden.
+1. Aktuelles `.dmg` von [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest) laden.
 2. Installieren, in `/Applications` ziehen.
 3. Beim ersten Start einmal:
    ```bash

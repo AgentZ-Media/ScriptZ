@@ -50,22 +50,17 @@
 .paper-stack {
   position: relative;
   width: var(--paper-w);
+  /* All real children are position:absolute, so the stack's intrinsic
+     min-content height is 0. Without flex-shrink:0 a tall script in a
+     short window collapses the stack in flex layout, which moves the
+     in-flow .paper-canvas-tail UP into the absolute pages' Y range and
+     kills the breathing room below the last sheet. */
+  flex-shrink: 0;
   /* --page-count and --page-gap are set inline from ScriptView. */
   height: calc(
     var(--paper-h) * var(--page-count, 1)
     + var(--page-gap, 18px) * (var(--page-count, 1) - 1)
   );
-}
-
-/* Breathing room below the last paper sheet — sits as a real flex item
-   *after* the stack inside `.paper-canvas`, so it's guaranteed to be
-   counted into the canvas's scroll height. CSS margin/padding alone
-   doesn't work here in WebKit because the stack has a fixed calculated
-   height and the editor lives inside it as an absolute overlay. */
-.paper-canvas-tail {
-  flex-shrink: 0;
-  width: 1px;
-  height: 120px;
 }
 
 .paper-page-bg {

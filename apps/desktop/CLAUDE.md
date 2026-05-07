@@ -263,7 +263,7 @@ Repo-Root-`CLAUDE.md` hat eine vollständige Liste der Auslöser.
 - **No localStorage for script content.** Persistence is SQLite.
 - **No telemetry.** App works fully offline. The only network call is
   the hourly updater poll to
-  `https://github.com/ibimspumo/ScriptZ/releases/latest/download/latest.json`
+  `https://github.com/AgentZ-Media/ScriptZ/releases/latest/download/latest.json`
   (no body, no identifier) plus the manifest-driven binary download
   when the user clicks the update pill.
 - **Don't reintroduce global characters, projects, tags, aliases,

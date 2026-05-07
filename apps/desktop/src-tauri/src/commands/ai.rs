@@ -50,7 +50,7 @@ const OPENROUTER_BASE: &str = "https://openrouter.ai/api/v1";
 
 static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
     reqwest::Client::builder()
-        .user_agent("ScriptZ/0.1 (https://github.com/ibimspumo/ScriptZ)")
+        .user_agent("ScriptZ/0.1 (https://github.com/AgentZ-Media/ScriptZ)")
         .timeout(std::time::Duration::from_secs(60))
         .build()
         .expect("reqwest client")
@@ -206,7 +206,7 @@ pub async fn ai_list_models(
     );
     let resp = HTTP
         .get(&url)
-        .header("HTTP-Referer", "https://github.com/ibimspumo/ScriptZ")
+        .header("HTTP-Referer", "https://github.com/AgentZ-Media/ScriptZ")
         .header("X-Title", "ScriptZ")
         .send()
         .await
@@ -291,7 +291,7 @@ pub async fn ai_test_connection() -> Result<String> {
     let resp = HTTP
         .get(format!("{}/key", OPENROUTER_BASE))
         .bearer_auth(&key)
-        .header("HTTP-Referer", "https://github.com/ibimspumo/ScriptZ")
+        .header("HTTP-Referer", "https://github.com/AgentZ-Media/ScriptZ")
         .header("X-Title", "ScriptZ")
         .send()
         .await
@@ -494,7 +494,7 @@ async fn call_openrouter_once(
     let resp = HTTP
         .post(format!("{}/chat/completions", OPENROUTER_BASE))
         .bearer_auth(api_key)
-        .header("HTTP-Referer", "https://github.com/ibimspumo/ScriptZ")
+        .header("HTTP-Referer", "https://github.com/AgentZ-Media/ScriptZ")
         .header("X-Title", "ScriptZ")
         .json(&body)
         .send()

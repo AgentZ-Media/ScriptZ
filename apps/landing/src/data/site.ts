@@ -13,10 +13,10 @@ export const site = {
   url: "https://write-scriptz.com",
   description:
     "Skripte schreiben, ohne dass die App im Weg steht. Lokal, kostenlos, Open Source. Für Creators, die viele Skripte am Tag schreiben.",
-  github: "https://github.com/ibimspumo/ScriptZ",
-  releasesPage: "https://github.com/ibimspumo/ScriptZ/releases/latest",
+  github: "https://github.com/AgentZ-Media/ScriptZ",
+  releasesPage: "https://github.com/AgentZ-Media/ScriptZ/releases/latest",
   // Fallback, wenn die GitHub-API beim Build nicht erreichbar ist.
-  fallbackVersion: "0.4.0",
+  fallbackVersion: "0.4.1",
   contactEmail: "kontakt@agent-z.de",
 } as const;
 
@@ -45,7 +45,7 @@ interface GhRelease {
 export async function getLatestRelease(): Promise<ReleaseInfo> {
   try {
     const res = await fetch(
-      "https://api.github.com/repos/ibimspumo/ScriptZ/releases/latest",
+      "https://api.github.com/repos/AgentZ-Media/ScriptZ/releases/latest",
       {
         headers: {
           Accept: "application/vnd.github+json",
