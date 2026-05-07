@@ -16,7 +16,7 @@ export const site = {
   github: "https://github.com/ibimspumo/ScriptZ",
   releasesPage: "https://github.com/ibimspumo/ScriptZ/releases/latest",
   // Fallback, wenn die GitHub-API beim Build nicht erreichbar ist.
-  fallbackVersion: "0.3.2",
+  fallbackVersion: "0.4.0",
   contactEmail: "kontakt@agent-z.de",
 } as const;
 
