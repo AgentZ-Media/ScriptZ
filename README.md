@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.2-e0791f?style=flat-square" alt="version" />
-  <img src="https://img.shields.io/badge/platform-macOS-e0791f?style=flat-square" alt="macOS" />
-  <img src="https://img.shields.io/badge/license-MIT-e0791f?style=flat-square" alt="license" />
+  <img src="https://img.shields.io/badge/version-0.3.3-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
+  <img src="https://img.shields.io/badge/license-MIT-1c1814?style=flat-square" alt="license" />
 </p>
 
 ---

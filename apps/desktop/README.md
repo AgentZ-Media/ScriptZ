@@ -10,12 +10,12 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.2-e0791f?style=flat-square" alt="version" />
-  <img src="https://img.shields.io/badge/platform-macOS-e0791f?style=flat-square" alt="macOS" />
-  <img src="https://img.shields.io/badge/Apple_Silicon-native-e0791f?style=flat-square" alt="Apple Silicon" />
-  <img src="https://img.shields.io/badge/storage-local_only-e0791f?style=flat-square" alt="local-only" />
-  <img src="https://img.shields.io/badge/telemetry-none-e0791f?style=flat-square" alt="no telemetry" />
-  <img src="https://img.shields.io/badge/license-MIT-e0791f?style=flat-square" alt="license" />
+  <img src="https://img.shields.io/badge/version-0.3.3-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
+  <img src="https://img.shields.io/badge/Apple_Silicon-native-1c1814?style=flat-square" alt="Apple Silicon" />
+  <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
+  <img src="https://img.shields.io/badge/telemetry-none-1c1814?style=flat-square" alt="no telemetry" />
+  <img src="https://img.shields.io/badge/license-MIT-1c1814?style=flat-square" alt="license" />
 </p>
 
 ---
