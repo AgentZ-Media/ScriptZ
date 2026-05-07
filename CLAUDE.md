@@ -42,7 +42,7 @@ Auslöser, bei denen die Landing **mit** angepasst werden muss:
 | `app_icon`, Branding | Icons in `apps/landing/public/img/` neu setzen. |
 | Plattform-Support erweitert (z.B. Windows-Build) | Hero-Meta, Download-Sektion, Compare-Tabelle, "First-Run"-Anleitung anpassen. |
 | Lizenzmodell, Tracking-Verhalten, Konto-Verhalten | OpenSource-Sektion und Datenschutzerklärung gegenchecken. |
-| Versionsnummer | **Nichts manuell tun** - die Landing fetcht die Version zur Build-Zeit aus GitHub Releases ([src/data/site.ts](apps/landing/src/data/site.ts)). Sobald der Release-Tag publiziert ist, baut Vercel die Landing neu. |
+| Versionsnummer | Siehe Release-Checkliste unten. |
 
 Praktisch heißt das: nach jeder nicht-trivialen Desktop-Änderung mit
 einem Blick durch [apps/landing/src/](apps/landing/src/) gehen und
@@ -71,6 +71,31 @@ werden (`cd apps/desktop && pnpm tauri:dev`).
   Release-Artefakte. Auto-Updater im laufenden Client poll't `latest.json`.
 - **Landing**: Vercel-Project mit `Root Directory` = `apps/landing`.
   Deploy auf jeden Push zu `main`. Eigene Domain write-scriptz.com.
+
+### Release-Checkliste (jedes Mal!)
+
+Bei einem neuen Release `vX.Y.Z` müssen **vier** Stellen synchron
+gehalten werden, sonst bleibt entweder die Landing oder der
+Auto-Updater auf der alten Version hängen:
+
+1. [`apps/desktop/package.json`](apps/desktop/package.json) - `version`
+2. [`apps/desktop/src-tauri/tauri.conf.json`](apps/desktop/src-tauri/tauri.conf.json) - `version`
+3. [`apps/desktop/src-tauri/Cargo.toml`](apps/desktop/src-tauri/Cargo.toml) +
+   [`Cargo.lock`](apps/desktop/src-tauri/Cargo.lock) (Lock-Eintrag
+   `name = "scriptz"` mitziehen, sonst bricht der CI-Build mit
+   `--frozen-lockfile`)
+4. [`apps/landing/src/data/site.ts`](apps/landing/src/data/site.ts) -
+   `fallbackVersion`. Die Landing fetcht zwar zur Build-Zeit aus der
+   GitHub-Releases-API, aber `fallbackVersion` greift, falls die API
+   beim Build down ist - und sollte daher zum aktuellen Tag passen.
+
+Danach: commit, `git tag vX.Y.Z`, `git push origin main vX.Y.Z`. Der
+Release-Workflow triggert nach erfolgreichem Build automatisch einen
+Vercel-Rebuild via Deploy-Hook (Secret `VERCEL_DEPLOY_HOOK_URL`),
+damit die Landing die frisch publizierte Version aus der
+GitHub-Releases-API zieht. Ohne diesen Hook würde die Landing auf
+der vorherigen Version hängenbleiben, weil Vercel nur auf Git-Push
+reagiert - und der Push passiert *vor* dem Release-Publish.
 
 ## Deutsche Texte
 

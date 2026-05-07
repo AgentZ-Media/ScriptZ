@@ -43,9 +43,24 @@ public/               Schrift, Icons, robots
 
 Wird zur Build-Zeit von der GitHub-Releases-API geholt
 ([`src/data/site.ts`](src/data/site.ts) → `getLatestRelease()`).
-Fail-soft mit Fallback `site.fallbackVersion`. Vercel baut die
-Landing bei jedem Push, GitHub bei jedem neuen Release-Tag indirekt
-über den nächsten Vercel-Build.
+Fail-soft mit Fallback `site.fallbackVersion`.
+
+**Wichtig:** Vercel reagiert nur auf Git-Push, nicht auf
+GitHub-Release-Events. Ein Push, der einen Tag mitschickt, triggert
+Vercel **sofort** - bevor der Release-Workflow auf macOS-26 fertig
+gebaut und den Release publiziert hat. Der Vercel-Build sieht zu dem
+Zeitpunkt also noch die *vorherige* Version in der Releases-API und
+backt die in die statische Site ein.
+
+Damit das funktioniert, ruft [`/.github/workflows/release.yml`](../../.github/workflows/release.yml)
+am Ende des Build-Jobs einen Vercel-Deploy-Hook auf
+(Secret `VERCEL_DEPLOY_HOOK_URL`). Dadurch baut Vercel die Landing
+ein zweites Mal - jetzt mit der frisch publizierten Release-Version.
+
+Bei jedem Release auch [`fallbackVersion`](src/data/site.ts) auf den
+neuen Tag bumpen, sonst zeigt die Landing bei einem GitHub-API-Ausfall
+während des Builds eine veraltete Version. Details: Release-Checkliste
+in [`/CLAUDE.md`](../../CLAUDE.md).
 
 ## Spiegelung der Desktop-App
 

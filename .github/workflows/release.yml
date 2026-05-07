@@ -95,3 +95,15 @@ jobs:
           prerelease: false
           projectPath: apps/desktop
           args: --target aarch64-apple-darwin
+
+      - name: Trigger Vercel rebuild for landing
+        # Vercel only rebuilds on git push, not on GitHub release events.
+        # Without this, the landing keeps serving the previous version
+        # until the next push to main, because its build-time fetch from
+        # the GitHub Releases API ran before this release was published.
+        # The deploy hook URL is created in Vercel under Project Settings
+        # -> Git -> Deploy Hooks (branch: main).
+        if: ${{ env.VERCEL_DEPLOY_HOOK_URL != '' }}
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: curl -fsSL -X POST "$VERCEL_DEPLOY_HOOK_URL"
