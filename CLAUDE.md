@@ -97,6 +97,44 @@ GitHub-Releases-API zieht. Ohne diesen Hook würde die Landing auf
 der vorherigen Version hängenbleiben, weil Vercel nur auf Git-Push
 reagiert - und der Push passiert *vor* dem Release-Publish.
 
+### Was bei einem Release alles automatisch passiert
+
+Sobald der Tag-Push erfolgreich gebaut hat, läuft alles weitere ohne
+manuelle Schritte:
+
+1. GitHub Actions baut `.dmg` + `.app.tar.gz` auf `macos-26`
+2. Signiert den Updater-Bundle mit `TAURI_SIGNING_PRIVATE_KEY`
+3. Legt das GitHub-Release-Objekt an, lädt Assets hoch
+   (`latest.json` für Auto-Updater, `.dmg`, `.app.tar.gz`, `.sig`)
+4. Triggert den Vercel-Deploy-Hook (`VERCEL_DEPLOY_HOOK_URL`)
+5. Vercel rebuildet die Landing, fetcht die neue Version aus der
+   GitHub-Releases-API, deployed write-scriptz.com
+6. Bestehende User sehen innerhalb von ~60 Min die grüne Update-Pille
+   im File-Browser-Footer (stündlicher `latest.json`-Poll)
+
+### Wenn der Release-Workflow fehlschlägt
+
+**Re-Run via `gh run rerun` reicht oft nicht**, weil GitHub den
+`GITHUB_TOKEN`-Kontext vom ursprünglichen Trigger cached. Wenn der
+Fehler etwas mit Permissions zu tun hatte (z.B. nach einem
+Org-Transfer oder einer geänderten Workflow-Permission-Setting),
+muss ein **frischer** Run her:
+
+```bash
+git push --delete origin vX.Y.Z   # Remote-Tag entfernen
+git tag -d vX.Y.Z                 # lokal entfernen
+git tag -a vX.Y.Z -m "ScriptZ vX.Y.Z"  # neu setzen
+git push origin vX.Y.Z            # frischer Workflow-Trigger
+```
+
+Das Release-Objekt selbst wird dabei nicht doppelt - der gefailte
+Run hatte ja noch keins erstellt. Der historische Failed-Run bleibt
+in der Actions-History stehen, das ist OK.
+
+Bei wiederholten Permission-Fehlern: prüfen, dass auf **Org- und
+Repo-Ebene** unter Settings → Actions → General → "Workflow
+permissions" jeweils "Read and write permissions" aktiv ist.
+
 ## Workflow nach jeder Änderung (wichtig)
 
 Nach **jeder** abgeschlossenen Aufgabe (Feature, Fix, Refactor,
