@@ -1,30 +1,39 @@
 /* =========================================================================
-   ScriptZ — design tokens (paper-aesthetic, single source of truth)
+   ScriptZ — design tokens (monochrom, parchment-frei)
 
-   The whole app reads as a sheet of paper sitting on a parchment desk:
-   warm cream surfaces, white paper, near-black warm ink, brand orange.
-   The "dark theme" is a coherent dim variant for late-night work, but
-   the parchment look is the default and what the screenshots target.
+   Light: reines Weiss als Untergrund, Tinten-Schwarz als Akzent.
+   Dark:  mittel-dunkles, leicht warm getoentes Grau (~#222), kein Schwarz.
 
-   Tokens with multiple aliases (--font-sans / --font-mono / --font-paper)
-   intentionally resolve to the same family today. They are kept apart so
-   future overrides (e.g. user-pickable paper font) can be wired through a
-   single var without touching component CSS.
+   Brand-Tokens existieren weiter, sind aber jetzt Graustufen. Selektoren,
+   die `var(--brand-500)` als Akzent nutzen, bekommen automatisch
+   Tinten-Schwarz (Light) bzw. Tinten-Weiss (Dark).
+
+   Charakter-Palette (--char-1..5) bleibt farbig — sie speist das
+   optionale Highlighting-Feature und ist die einzige bewusste Farbquelle
+   im Editor (siehe highlight.ts).
    ========================================================================= */
 
 :root {
-  /* ---- Brand ---- */
-  --brand-50:  #fff7ec;
-  --brand-100: #ffe8c9;
-  --brand-200: #ffd194;
-  --brand-300: #f8b15d;
-  --brand-400: #ee9a39;
-  --brand-500: #e0791f;
-  --brand-600: #c45f15;
-  --brand-700: #9a4a13;
-  --brand-800: #6f3514;
-  --brand-900: #432212;
-  --brand-soft: #fce4cc;     /* tint for primary buttons over cream */
+  /* ---- Tinte (Akzent, vorher Brand Orange) ----
+     Light: #1c1814  (Tinte)
+     Dark:  ueberschrieben im [data-theme="dark"]-Block weiter unten. */
+  --brand-50:  #f5f5f4;
+  --brand-100: #ebebea;
+  --brand-200: #d4d4d2;
+  --brand-300: #a8a8a4;
+  --brand-400: #5b5b58;
+  --brand-500: #1c1814;       /* Akzent (Buttons, Cursor, Focus-Ring) */
+  --brand-600: #0f0d0a;       /* Hover des Akzents */
+  --brand-700: #1c1814;
+  --brand-800: #0f0d0a;
+  --brand-soft: #ebebea;
+
+  /* ---- Charakter-Palette (Highlighting-Feature, bleibt farbig) ---- */
+  --char-1: #e0791f;
+  --char-2: #3a8ed4;
+  --char-3: #7a4ad4;
+  --char-4: #2fa56b;
+  --char-5: #d04141;
 
   /* ---- Type ---- */
   --font-sans:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
@@ -93,37 +102,37 @@
 }
 
 /* ============================================================
-   Light theme — the parchment look (default).
+   Light theme — Schwarz auf Weiss, kein Cream mehr.
    ============================================================ */
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Surfaces */
-  --bg:         #efeae0;     /* parchment desk */
-  --bg-elev-1: #f5f1e8;     /* slightly raised surface (cards) */
-  --bg-elev-2: #ebe6da;     /* recessed surface (toolbars) */
-  --bg-elev-3: #e2dccb;     /* deepest cream */
+  /* Surfaces (alle weiss; Layering ueber subtile Graustufen) */
+  --bg:         #ffffff;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #f6f6f5;
+  --bg-elev-3: #efefee;
 
   /* Ink */
-  --fg:         #1c1814;     /* warm near-black */
-  --fg-muted:  #5b554c;     /* warm grey */
-  --fg-subtle: #8a8276;     /* faded ink */
-  --fg-disabled: #b9b3a6;
+  --fg:         #1c1814;
+  --fg-muted:  #5b554c;
+  --fg-subtle: #8a8276;
+  --fg-disabled: #c0bcb3;
 
   /* Borders */
   --border:        rgba(28, 24, 20, 0.10);
   --border-strong: rgba(28, 24, 20, 0.18);
-  --border-focus:  var(--brand-500);
+  --border-focus:  var(--fg);
 
-  /* Paper */
-  --paper-bg:        #fbfaf6;
+  /* Paper - das eigentliche Skript-Sheet */
+  --paper-bg:        #ffffff;
   --paper-fg:       #1c1814;
   --paper-fg-muted: rgba(28, 24, 20, 0.65);
   --paper-fg-faint: rgba(28, 24, 20, 0.45);
 
   --hover:    rgba(28, 24, 20, 0.05);
-  --selected: rgba(224, 121, 31, 0.12);
+  --selected: rgba(28, 24, 20, 0.08);
 
   --shadow-paper:
     0 1px 1px rgba(0, 0, 0, 0.03),
@@ -141,7 +150,7 @@
     0 2px 6px rgba(28, 24, 20, 0.08);
 
   --backdrop:  rgba(28, 24, 20, 0.32);
-  --modal-bg:  #fbfaf6;
+  --modal-bg:  #ffffff;
 
   --pill-bg:  rgba(28, 24, 20, 0.05);
   --pill-fg:  var(--fg);
@@ -153,54 +162,57 @@
   --danger-soft-strong: rgba(196, 74, 74, 0.14);
   --danger-border:      rgba(196, 74, 74, 0.35);
 
-  --highlight-mark: rgba(224, 121, 31, 0.25);
+  --highlight-mark: rgba(28, 24, 20, 0.18);
 
-  /* Focus ring + paper selection — tokenized so dark theme can shift them. */
-  --ring-brand:        rgba(224, 121, 31, 0.16);
-  --ring-brand-strong: rgba(224, 121, 31, 0.6);
-  --selection-paper:   rgba(224, 121, 31, 0.22);
-  --char-tint-default: rgba(224, 121, 31, 0.10);
+  /* Focus-Ring + Paper-Selection — monochrom. */
+  --ring-brand:        rgba(28, 24, 20, 0.12);
+  --ring-brand-strong: rgba(28, 24, 20, 0.4);
+  --selection-paper:   rgba(28, 24, 20, 0.14);
+  --char-tint-default: rgba(28, 24, 20, 0.08);
   --page-break-line:   rgba(28, 24, 20, 0.18);
 
-  /* Brand button surfaces (tinted, not saturated) */
-  --primary-bg:        var(--brand-soft);
-  --primary-fg:        var(--brand-700);
-  --primary-border:    rgba(224, 121, 31, 0.35);
-  --primary-bg-hover:  #fbd6b6;
+  /* Primary-Button: Tinten-Schwarz mit weisser Schrift. */
+  --primary-bg:        #1c1814;
+  --primary-fg:        #ffffff;
+  --primary-border:    rgba(0, 0, 0, 0.0);
+  --primary-bg-hover:  #0f0d0a;
 }
 
 /* ============================================================
-   Dark theme — coherent dim variant for night work.
+   Dark theme — Mittel-dunkles Grau (~#222), nicht Schwarz.
+   Akzent ist warmes Off-White, harmoniert mit der Tinten-Schrift.
    ============================================================ */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg:         #15130f;
-  --bg-elev-1: #1c1a15;
-  --bg-elev-2: #221f19;
-  --bg-elev-3: #2a261f;
+  --bg:         #222222;
+  --bg-elev-1: #2a2a2a;
+  --bg-elev-2: #1c1c1c;
+  --bg-elev-3: #181818;
 
-  --fg:         #ece7da;
-  --fg-muted:  #a8a293;
-  --fg-subtle: #75705f;
-  --fg-disabled: #4d4a40;
+  --fg:         #ececec;
+  --fg-muted:  #a8a8a4;
+  --fg-subtle: #75736e;
+  --fg-disabled: #4a4845;
 
-  --border:        rgba(255, 245, 220, 0.07);
-  --border-strong: rgba(255, 245, 220, 0.14);
-  --border-focus:  var(--brand-400);
+  --border:        rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus:  var(--fg);
 
-  --paper-bg:        #f5f1e8;
+  /* Paper bleibt hell — auch im Dark-Mode wirkt das Skript wie ein
+     beleuchtetes Blatt. */
+  --paper-bg:        #f6f6f5;
   --paper-fg:       #1c1814;
   --paper-fg-muted: rgba(28, 24, 20, 0.65);
   --paper-fg-faint: rgba(28, 24, 20, 0.45);
 
-  --hover:    rgba(255, 245, 220, 0.05);
-  --selected: rgba(224, 121, 31, 0.14);
+  --hover:    rgba(255, 255, 255, 0.06);
+  --selected: rgba(255, 255, 255, 0.10);
 
   --shadow-paper:
-    0 1px 4px rgba(0, 0, 0, 0.6),
-    0 22px 56px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(0, 0, 0, 0.3);
+    0 1px 4px rgba(0, 0, 0, 0.55),
+    0 22px 56px rgba(0, 0, 0, 0.50),
+    0 0 0 1px rgba(0, 0, 0, 0.30);
   --shadow-popover:
     0 12px 32px rgba(0, 0, 0, 0.5),
     0 2px 6px rgba(0, 0, 0, 0.3);
@@ -212,10 +224,10 @@
     0 8px 24px rgba(0, 0, 0, 0.4),
     0 2px 6px rgba(0, 0, 0, 0.25);
 
-  --backdrop: rgba(15, 13, 10, 0.6);
-  --modal-bg: #1c1a15;
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --modal-bg: #2a2a2a;
 
-  --pill-bg: rgba(255, 245, 220, 0.06);
+  --pill-bg: rgba(255, 255, 255, 0.06);
   --pill-fg: var(--fg);
 
   --status-ok:   #6cc28e;
@@ -225,50 +237,73 @@
   --danger-soft-strong: rgba(224, 112, 112, 0.20);
   --danger-border:      rgba(224, 112, 112, 0.45);
 
-  --highlight-mark: rgba(255, 184, 77, 0.32);
+  --highlight-mark: rgba(255, 255, 255, 0.20);
 
-  --ring-brand:        rgba(224, 121, 31, 0.22);
-  --ring-brand-strong: rgba(224, 121, 31, 0.7);
-  --selection-paper:   rgba(224, 121, 31, 0.28);
-  --char-tint-default: rgba(224, 121, 31, 0.16);
-  --page-break-line:   rgba(255, 245, 220, 0.16);
+  --ring-brand:        rgba(255, 255, 255, 0.16);
+  --ring-brand-strong: rgba(255, 255, 255, 0.55);
+  --selection-paper:   rgba(28, 24, 20, 0.16);
+  --char-tint-default: rgba(28, 24, 20, 0.12);
+  --page-break-line:   rgba(255, 255, 255, 0.16);
 
-  --primary-bg:        rgba(224, 121, 31, 0.18);
-  --primary-fg:        var(--brand-200);
-  --primary-border:    rgba(224, 121, 31, 0.45);
-  --primary-bg-hover:  rgba(224, 121, 31, 0.28);
+  /* Primary-Button im Dark: helles Off-White auf dunklem Grund,
+     fuehrt das monochrome Schema fort. */
+  --primary-bg:        #ececec;
+  --primary-fg:        #1c1814;
+  --primary-border:    rgba(0, 0, 0, 0.0);
+  --primary-bg-hover:  #ffffff;
+
+  /* Brand-Tokens im Dark fuer Selektoren wie `color: var(--brand-700)` —
+     mappen auf helles Off-White, sodass Akzente lesbar bleiben. */
+  --brand-50:  #2a2a2a;
+  --brand-100: #333333;
+  --brand-200: #4a4a4a;
+  --brand-300: #6e6e6e;
+  --brand-400: #9a9a9a;
+  --brand-500: #ececec;
+  --brand-600: #ffffff;
+  --brand-700: #ececec;
+  --brand-800: #ffffff;
+  --brand-soft: #333333;
 }
 
-/* Auto theme follows system preference */
+/* Auto theme folgt dem System. */
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
     color-scheme: dark;
-    --bg:         #15130f;
-    --bg-elev-1: #1c1a15;
-    --bg-elev-2: #221f19;
-    --bg-elev-3: #2a261f;
-    --fg:         #ece7da;
-    --fg-muted:  #a8a293;
-    --fg-subtle: #75705f;
-    --paper-bg:   #f5f1e8;
+    --bg:         #222222;
+    --bg-elev-1: #2a2a2a;
+    --bg-elev-2: #1c1c1c;
+    --bg-elev-3: #181818;
+    --fg:         #ececec;
+    --fg-muted:  #a8a8a4;
+    --fg-subtle: #75736e;
+    --fg-disabled: #4a4845;
+    --border:        rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --paper-bg:   #f6f6f5;
     --paper-fg:  #1c1814;
     --paper-fg-muted: rgba(28, 24, 20, 0.65);
     --paper-fg-faint: rgba(28, 24, 20, 0.45);
-    --hover:    rgba(255, 245, 220, 0.05);
-    --selected: rgba(224, 121, 31, 0.14);
-    --backdrop: rgba(15, 13, 10, 0.6);
-    --modal-bg: #1c1a15;
-    --pill-bg: rgba(255, 245, 220, 0.06);
-    --highlight-mark: rgba(255, 184, 77, 0.32);
-    --ring-brand:        rgba(224, 121, 31, 0.22);
-    --ring-brand-strong: rgba(224, 121, 31, 0.7);
-    --selection-paper:   rgba(224, 121, 31, 0.28);
-    --char-tint-default: rgba(224, 121, 31, 0.16);
-    --page-break-line:   rgba(255, 245, 220, 0.16);
-    --primary-bg:        rgba(224, 121, 31, 0.18);
-    --primary-fg:        var(--brand-200);
-    --primary-border:    rgba(224, 121, 31, 0.45);
-    --primary-bg-hover:  rgba(224, 121, 31, 0.28);
+    --hover:    rgba(255, 255, 255, 0.06);
+    --selected: rgba(255, 255, 255, 0.10);
+    --backdrop: rgba(0, 0, 0, 0.55);
+    --modal-bg: #2a2a2a;
+    --pill-bg: rgba(255, 255, 255, 0.06);
+    --highlight-mark: rgba(255, 255, 255, 0.20);
+    --ring-brand:        rgba(255, 255, 255, 0.16);
+    --ring-brand-strong: rgba(255, 255, 255, 0.55);
+    --selection-paper:   rgba(28, 24, 20, 0.16);
+    --char-tint-default: rgba(28, 24, 20, 0.12);
+    --page-break-line:   rgba(255, 255, 255, 0.16);
+    --primary-bg:        #ececec;
+    --primary-fg:        #1c1814;
+    --primary-border:    rgba(0, 0, 0, 0.0);
+    --primary-bg-hover:  #ffffff;
+    --brand-500: #ececec;
+    --brand-600: #ffffff;
+    --brand-700: #ececec;
+    --brand-800: #ffffff;
+    --brand-soft: #333333;
   }
 }
 

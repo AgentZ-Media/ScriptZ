@@ -105,8 +105,8 @@ a:hover { text-decoration: underline; }
 
 /* ============================================================
    Buttons — three flavours.
-   .btn          neutral, paper-cream
-   .btn-primary  brand-tinted (orange soft) — main CTA
+   .btn          neutral, weiss / dunkelgrau je nach Theme
+   .btn-primary  Tinten-Schwarz auf Weiss (light) / Off-White auf Grau (dark)
    .btn-danger   muted destructive
    ============================================================ */
 .btn {
