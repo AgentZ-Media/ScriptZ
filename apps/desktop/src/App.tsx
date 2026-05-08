@@ -27,6 +27,7 @@ import ToastHost from "~/components/Common/ToastHost";
 import { ensureWelcomeContent } from "~/lib/welcome";
 import { printScript } from "~/lib/print";
 import { flushAll } from "~/lib/saveFlush";
+import { healthCheck as dbHealthCheck, termLog } from "~/lib/db";
 
 import "./components/Common/Common.css";
 
@@ -123,6 +124,27 @@ export default function App() {
     } finally {
       setBootReady(true);
     }
+    // Phase 0 smoke test: confirm the TS-side SQLite connection (via
+    // @tauri-apps/plugin-sql) sees the same DB Rust opened. Read-only;
+    // if it ever fails, the migration plumbing is misconfigured. We log
+    // both to the WebKit console AND through the frontend_log bridge so
+    // the result shows up in the terminal where tauri:dev runs.
+    console.log("[scriptz][db] phase 0 smoke test: calling dbHealthCheck()");
+    void termLog("info", "[phase0] frontend reached the smoke-test code path");
+    void dbHealthCheck()
+      .then((h) => {
+        const msg = `[phase0] TS DB connection OK — user_version=${h.userVersion}, journal=${h.walMode}, scripts=${h.scriptCount}`;
+        console.log(
+          `%c${msg}`,
+          "color:#3a8ed4;font-weight:bold",
+        );
+        void termLog("info", msg);
+      })
+      .catch((err) => {
+        const msg = `[phase0] TS DB connection FAILED: ${(err as Error)?.message ?? String(err)}`;
+        console.error(msg, err);
+        void termLog("error", msg);
+      });
   });
 
   // Wire window-close-request → drain all pending writes (auto-save,

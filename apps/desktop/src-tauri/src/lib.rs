@@ -37,7 +37,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .setup(|app| {
+            tracing::info!("======== ScriptZ booting (migration build, plugin-sql wired) ========");
             let db_path = resolve_db_path(app.handle())?;
             tracing::info!("opening database: {:?}", db_path);
             let db = Db::open(&db_path)
@@ -46,6 +48,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // debug (migration-only — frontend → terminal log bridge)
+            commands::debug::frontend_log,
             // scripts
             commands::scripts::create_script,
             commands::scripts::get_script,
