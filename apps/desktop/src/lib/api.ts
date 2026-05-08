@@ -19,6 +19,13 @@ import {
   moveScripts as foldersMoveScripts,
   renameFolder as foldersRename,
 } from "./folders";
+import {
+  createSnapshot as snapsCreate,
+  deleteSnapshot as snapsDelete,
+  getSnapshot as snapsGet,
+  listSnapshots as snapsList,
+  restoreSnapshot as snapsRestore,
+} from "./snapshots";
 import type {
   AiModelInfo,
   AiState,
@@ -130,21 +137,21 @@ export const api = {
     return foldersMoveScripts(scriptIds, folderId);
   },
 
-  // Snapshots
+  // Snapshots — TS-side via plugin-sql since Migration Phase 5.
   async createSnapshot(scriptId: string, trigger: "auto" | "manual"): Promise<SnapshotMeta> {
-    return invoke("create_snapshot", { scriptId, trigger });
+    return snapsCreate(scriptId, trigger);
   },
   async listSnapshots(scriptId: string): Promise<SnapshotMeta[]> {
-    return invoke("list_snapshots", { scriptId });
+    return snapsList(scriptId);
   },
   async getSnapshot(id: string): Promise<Snapshot> {
-    return invoke("get_snapshot", { id });
+    return snapsGet(id);
   },
   async restoreSnapshot(snapshotId: string): Promise<void> {
-    return invoke("restore_snapshot", { snapshotId });
+    return snapsRestore(snapshotId);
   },
   async deleteSnapshot(id: string): Promise<void> {
-    return invoke("delete_snapshot", { id });
+    return snapsDelete(id);
   },
 
   // Search

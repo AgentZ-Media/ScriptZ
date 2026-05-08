@@ -39,23 +39,7 @@ pub struct Script {
 }
 
 // Folder model moved to TS in Migration Phase 4
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Snapshot {
-    pub id: String,
-    pub script_id: String,
-    pub content_json: String,
-    pub trigger: String,
-    pub created_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SnapshotMeta {
-    pub id: String,
-    pub script_id: String,
-    pub trigger: String,
-    pub created_at: i64,
-}
+// Snapshot + SnapshotMeta moved to TS in Migration Phase 5
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateScriptInput {

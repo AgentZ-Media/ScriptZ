@@ -62,12 +62,7 @@ pub fn run() {
             commands::scripts::duplicate_script,
             commands::scripts::rename_script,
             // folders moved to TS in Migration Phase 4
-            // snapshots
-            commands::snapshots::create_snapshot,
-            commands::snapshots::list_snapshots,
-            commands::snapshots::get_snapshot,
-            commands::snapshots::restore_snapshot,
-            commands::snapshots::delete_snapshot,
+            // snapshots moved to TS in Migration Phase 5
             // search
             commands::search::global_search,
             // settings + app_state moved to TS in Migration Phase 2

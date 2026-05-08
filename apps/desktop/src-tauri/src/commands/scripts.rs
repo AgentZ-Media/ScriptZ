@@ -184,10 +184,6 @@ fn refresh_fts(conn: &Connection, script_id: &str) -> Result<()> {
     upsert_script_fts(conn, script_id, &title, &content_text)
 }
 
-pub fn refresh_fts_for_script(conn: &Connection, script_id: &str) -> Result<()> {
-    refresh_fts(conn, script_id)
-}
-
 fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
     let s = conn
         .query_row(
