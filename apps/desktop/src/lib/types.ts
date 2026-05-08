@@ -5,6 +5,13 @@ export interface ScriptCharacter {
   color: string;
 }
 
+export interface CharacterColorRecord {
+  name: string;
+  default_color: string | null;
+  override_color: string | null;
+  updated_at: number;
+}
+
 export interface ScriptSummary {
   id: string;
   title: string;

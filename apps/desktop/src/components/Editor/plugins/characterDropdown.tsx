@@ -33,6 +33,9 @@ function findCharacterAncestor(
 
 export interface InstallCharacterDropdownArgs {
   scriptCharacters: () => ScriptCharacter[];
+  /** Open the colour picker for an existing character, anchored at a
+   * viewport coordinate. Wired to the colour dot in each dropdown row. */
+  openColorPicker?: (name: string, anchor: { x: number; y: number }) => void;
 }
 
 export function installCharacterDropdown(
@@ -159,13 +162,31 @@ export function installCharacterDropdown(
                   applySelection(entry, true);
                 }}
               >
-                <span
+                <button
+                  type="button"
+                  class="scriptz-color-picker-trigger"
+                  aria-label={`Farbe von ${entry.name} ändern`}
+                  title={`Farbe von ${entry.name} ändern`}
                   style={{
-                    width: "10px",
-                    height: "10px",
+                    width: "12px",
+                    height: "12px",
+                    padding: 0,
+                    border: "none",
                     "border-radius": "999px",
                     background: entry.color,
                     "flex-shrink": 0,
+                    cursor: "pointer",
+                  }}
+                  onMouseDown={(ev) => {
+                    // Beat the dropdown row's mouseDown (which would commit
+                    // the entry). We just want to open the picker.
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+                    getArgs().openColorPicker?.(entry.name, {
+                      x: r.right + 8,
+                      y: r.top,
+                    });
                   }}
                 />
                 <span style={{ "flex": 1, "font-weight": 600 }}>{entry.name}</span>

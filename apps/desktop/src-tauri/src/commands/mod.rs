@@ -6,3 +6,4 @@ pub mod settings;
 pub mod app_state;
 pub mod export;
 pub mod ai;
+pub mod character_colors;

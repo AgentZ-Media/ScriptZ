@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rusqlite::{params, Connection, OptionalExtension};
 use tauri::{AppHandle, State};
 
@@ -10,10 +12,67 @@ use crate::models::{
     CreateScriptInput, ListScriptsQuery, Script, ScriptCharacter, ScriptSummary, UpdateScriptInput,
 };
 
-const DEFAULT_PALETTE: &[&str] = &[
+pub const DEFAULT_PALETTE: &[&str] = &[
     "#e0791f", "#3a8ed4", "#7a4ad4", "#2fa56b", "#d04141",
     "#c87b00", "#1a9aa0", "#a855f7", "#d946ef", "#0ea5e9",
 ];
+
+#[derive(Debug, Clone, Default)]
+pub struct ColorRecord {
+    pub default_color: Option<String>,
+    pub override_color: Option<String>,
+}
+
+/// Load all per-name colour records (default + override). Keys are upper-cased
+/// so callers can do straight lookups without re-normalising.
+pub fn load_color_records(conn: &Connection) -> Result<HashMap<String, ColorRecord>> {
+    let mut stmt = conn
+        .prepare("SELECT name, default_color, override_color FROM character_colors")?;
+    let rows: HashMap<String, ColorRecord> = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, Option<String>>(1)?,
+                r.get::<_, Option<String>>(2)?,
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .map(|(n, d, o)| {
+            (
+                n.to_uppercase(),
+                ColorRecord {
+                    default_color: d,
+                    override_color: o,
+                },
+            )
+        })
+        .collect();
+    Ok(rows)
+}
+
+/// Insert or update a `default_color` entry for `name`. Existing
+/// `default_color` is preserved (the very first auto-assigned colour wins
+/// forever — that's the whole point), and `override_color` is left
+/// completely alone.
+pub fn upsert_default_color(
+    conn: &Connection,
+    name: &str,
+    default_color: &str,
+    now: i64,
+) -> Result<()> {
+    conn.execute(
+        "INSERT INTO character_colors (name, default_color, updated_at)
+         VALUES (?1, ?2, ?3)
+         ON CONFLICT(name) DO UPDATE SET
+           default_color = COALESCE(character_colors.default_color, excluded.default_color),
+           updated_at = CASE
+             WHEN character_colors.default_color IS NULL THEN excluded.updated_at
+             ELSE character_colors.updated_at
+           END",
+        params![name, default_color, now],
+    )?;
+    Ok(())
+}
 
 fn empty_lexical_state() -> String {
     serde_json::json!({
@@ -39,46 +98,75 @@ fn empty_lexical_state() -> String {
     .to_string()
 }
 
-fn parse_chars_meta(raw: &str) -> Vec<ScriptCharacter> {
+pub fn parse_chars_meta(raw: &str) -> Vec<ScriptCharacter> {
     serde_json::from_str(raw).unwrap_or_default()
 }
 
-fn serialize_chars_meta(list: &[ScriptCharacter]) -> String {
+pub fn serialize_chars_meta(list: &[ScriptCharacter]) -> String {
     serde_json::to_string(list).unwrap_or_else(|_| "[]".to_string())
 }
 
 /// Reconcile the per-script character list with the names actually present
-/// in the latest content. Existing entries keep their color (sticky); new
-/// names get the next palette color not already in use.
-fn reconcile_chars_from_content(existing: &[ScriptCharacter], content_json: &str) -> Vec<ScriptCharacter> {
+/// in the latest content. Resolution priority per name:
+///   1. App-wide override (`override_color`)
+///   2. Existing per-script entry (sticky — preserves colours from before
+///      the global registry existed)
+///   3. App-wide default (`default_color`)
+///   4. Next palette colour not already claimed in this script
+///
+/// Returns `(chars, defaults_to_register)` — the second tuple lists names
+/// whose `default_color` is still NULL in the registry alongside the
+/// colour they should be backfilled to. Callers must persist these so the
+/// global default converges.
+pub fn reconcile_chars_from_content(
+    existing: &[ScriptCharacter],
+    content_json: &str,
+    records: &HashMap<String, ColorRecord>,
+) -> (Vec<ScriptCharacter>, Vec<(String, String)>) {
     let names = extract_character_names(content_json);
     let mut out: Vec<ScriptCharacter> = Vec::with_capacity(names.len());
+    let mut new_defaults: Vec<(String, String)> = Vec::new();
     for name in names {
-        let found = existing
+        let upper = name.to_uppercase();
+        let rec = records.get(&upper);
+
+        let chosen = if let Some(o) = rec.and_then(|r| r.override_color.as_ref()) {
+            o.clone()
+        } else if let Some(c) = existing
             .iter()
-            .find(|c| c.name.eq_ignore_ascii_case(&name));
-        if let Some(c) = found {
-            out.push(ScriptCharacter {
-                name,
-                color: c.color.clone(),
-            });
+            .find(|c| c.name.eq_ignore_ascii_case(&name))
+        {
+            c.color.clone()
+        } else if let Some(d) = rec.and_then(|r| r.default_color.as_ref()) {
+            d.clone()
         } else {
             let used: std::collections::HashSet<&str> =
                 out.iter().map(|c| c.color.as_str()).collect();
             let used_existing: std::collections::HashSet<&str> =
                 existing.iter().map(|c| c.color.as_str()).collect();
-            let color = DEFAULT_PALETTE
+            DEFAULT_PALETTE
                 .iter()
                 .find(|p| !used.contains(*p) && !used_existing.contains(*p))
                 .copied()
-                .unwrap_or(DEFAULT_PALETTE[0]);
-            out.push(ScriptCharacter {
-                name,
-                color: color.to_string(),
-            });
+                .unwrap_or(DEFAULT_PALETTE[0])
+                .to_string()
+        };
+
+        // Backfill the default registry whenever we touch a name whose
+        // default isn't recorded yet — handles both "brand new name" and
+        // "old name from before the registry existed" in one branch. We
+        // dedupe by name so a script with the same character twice only
+        // queues one upsert.
+        let needs_default = rec.map(|r| r.default_color.is_none()).unwrap_or(true);
+        if needs_default
+            && !new_defaults.iter().any(|(n, _)| n.eq_ignore_ascii_case(&upper))
+        {
+            new_defaults.push((upper, chosen.clone()));
         }
+
+        out.push(ScriptCharacter { name, color: chosen });
     }
-    out
+    (out, new_defaults)
 }
 
 fn refresh_fts(conn: &Connection, script_id: &str) -> Result<()> {
@@ -148,7 +236,11 @@ pub fn create_script(db: State<Db>, input: CreateScriptInput) -> Result<ScriptSu
         .initial_content_json
         .clone()
         .unwrap_or_else(empty_lexical_state);
-    let chars = reconcile_chars_from_content(&[], &content_json);
+    let records = load_color_records(&conn)?;
+    let (chars, new_defaults) = reconcile_chars_from_content(&[], &content_json, &records);
+    for (n, c) in &new_defaults {
+        upsert_default_color(&conn, n, c, now)?;
+    }
     let chars_json = serialize_chars_meta(&chars);
     if let Some(fid) = &input.folder_id {
         let exists: i64 = conn
@@ -258,7 +350,12 @@ pub fn update_script(
             |r| r.get(0),
         )?;
         let existing = parse_chars_meta(&existing_meta);
-        let chars = reconcile_chars_from_content(&existing, content_json);
+        let records = load_color_records(&tx)?;
+        let (chars, new_defaults) =
+            reconcile_chars_from_content(&existing, content_json, &records);
+        for (n, c) in &new_defaults {
+            upsert_default_color(&tx, n, c, now)?;
+        }
         let chars_json = serialize_chars_meta(&chars);
         tx.execute(
             "UPDATE scripts SET content_json = ?1, characters_meta = ?2, updated_at = ?3 WHERE id = ?4",

@@ -70,11 +70,22 @@ impl Db {
         // Migration v5: additive — folders (single, flat level) and
         //   scripts.folder_id with ON DELETE SET NULL so deleting a folder
         //   leaves its scripts intact in "Alle".
+        // Migration v6: additive — `character_colors` table holding
+        //   app-wide name → color overrides. Consulted on every reconcile
+        //   so the same character name keeps its colour across scripts.
+        // Migration v7: split `color` into `default_color` (the first-ever
+        //   auto-assigned palette colour, written once and never touched
+        //   again) and `override_color` (nullable manual override). Reset
+        //   propagates `default_color` instead of picking next-free-palette
+        //   per script, so the same name lands on the same colour
+        //   everywhere after a reset.
         let migrations: &[(i64, &str)] = &[
             (2, MIGRATION_002),
             (3, MIGRATION_003),
             (4, MIGRATION_004),
             (5, MIGRATION_005),
+            (6, MIGRATION_006),
+            (7, MIGRATION_007),
         ];
         let tx = conn.transaction()?;
         for (version, sql) in migrations {
@@ -251,4 +262,40 @@ CREATE TABLE folders (
 );
 ALTER TABLE scripts ADD COLUMN folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL;
 CREATE INDEX idx_scripts_folder ON scripts(folder_id);
+"#;
+
+// v6: app-wide character-colour overrides. `name` is stored exactly as the
+// writer typed it (uppercased like in `characters_meta`) and matched
+// case-insensitively via COLLATE NOCASE. `color` is a "#rrggbb" string,
+// matching the format used everywhere else.
+const MIGRATION_006: &str = r#"
+CREATE TABLE character_colors (
+  name TEXT PRIMARY KEY COLLATE NOCASE,
+  color TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+"#;
+
+// v7: split `color` into `default_color` (write-once "this is what the
+// palette assigned the first time the name showed up") and
+// `override_color` (nullable manual user override). Reset goes back to
+// the default instead of picking next-free per script, so the same
+// character lands on the same colour app-wide after a reset.
+//
+// SQLite can't widen a column from NOT NULL to nullable in place, so we
+// recreate the table. Existing v6 rows held only manual overrides
+// (`set_character_color` was the only writer), so we copy `color` into
+// `override_color` and leave `default_color` NULL — defaults will be
+// back-filled on the next save of any script that mentions the name.
+const MIGRATION_007: &str = r#"
+CREATE TABLE character_colors_v7 (
+  name TEXT PRIMARY KEY COLLATE NOCASE,
+  default_color TEXT,
+  override_color TEXT,
+  updated_at INTEGER NOT NULL
+);
+INSERT INTO character_colors_v7 (name, default_color, override_color, updated_at)
+SELECT name, NULL, color, updated_at FROM character_colors;
+DROP TABLE character_colors;
+ALTER TABLE character_colors_v7 RENAME TO character_colors;
 "#;

@@ -24,6 +24,7 @@ import { installInlineFormat } from "./plugins/inlineFormat";
 import { installBlockHotkeys } from "./plugins/blockHotkeys";
 import { installCharacterDropdown } from "./plugins/characterDropdown";
 import { installHighlight } from "./plugins/highlight";
+import { installColorPicker } from "./plugins/colorPicker";
 import { api } from "../../lib/api";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { registerFlusher } from "../../lib/saveFlush";
@@ -209,10 +210,24 @@ export function Editor(props: EditorProps) {
     const teardownInlineFmt = installInlineFormat(editor);
     const teardownBlockHK = installBlockHotkeys(editor);
     const teardownBlockDD = installBlockDropdown(editor, hostRef);
+    // Highlight first so we can pass its `refresh` to the colour picker —
+    // the picker mutates `liveCharacters` outside any editor state change,
+    // and without an explicit refresh the tint wouldn't repaint until the
+    // next keystroke / selection change.
+    const highlight = installHighlight(editor, () => liveCharacters());
+    const colorPicker = installColorPicker(editor, hostRef, () => ({
+      scriptId: props.scriptId,
+      getCharacters: () => liveCharacters(),
+      setCharacters: (next) => {
+        setLiveCharacters(next);
+        props.onCharactersChange?.(next);
+        highlight.refresh();
+      },
+    }));
     const teardownCharDD = installCharacterDropdown(editor, hostRef, () => ({
       scriptCharacters: () => liveCharacters(),
+      openColorPicker: colorPicker.openFor,
     }));
-    const teardownHighlight = installHighlight(editor, () => liveCharacters());
 
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let dirtySinceSnapshot = false;
@@ -531,8 +546,9 @@ export function Editor(props: EditorProps) {
       clearInterval(snapshotTimer);
       resizeObserver.disconnect();
       teardownUpdate();
-      teardownHighlight();
+      highlight.teardown();
       teardownCharDD();
+      colorPicker.teardown();
       teardownBlockDD();
       teardownBlockHK();
       teardownInlineFmt();

@@ -144,3 +144,130 @@
 .editor-root ::selection {
   background: var(--selection-paper);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Character-colour picker
+   - .scriptz-color-overlay: full-bleed transparent layer inside the host
+     that holds the marge swatch + the popover. pointer-events:none on the
+     overlay so the editor stays clickable; the swatch + popover re-enable
+     pointer events on themselves.
+   - .scriptz-marge-swatch: the gutter dot. Hidden by default; the plugin
+     toggles visibility via inline opacity. Kept always-mounted so we don't
+     pay the create/destroy cost on every caret movement.
+   - .scriptz-color-popover: the picker itself.                              */
+.scriptz-color-overlay {
+  /* set inline by the plugin; styles here only define visual look */
+}
+
+.scriptz-marge-swatch {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 120ms ease, opacity 120ms ease;
+  z-index: 5;
+}
+.scriptz-marge-swatch:hover {
+  transform: scale(1.18);
+}
+.scriptz-marge-swatch:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.scriptz-color-popover {
+  background: var(--modal-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-popover);
+  padding: 10px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  z-index: 1100;
+  pointer-events: auto;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.scriptz-color-popover-title {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+.scriptz-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.scriptz-color-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--r-2);
+  cursor: pointer;
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+.scriptz-color-swatch:hover {
+  transform: scale(1.08);
+}
+.scriptz-color-swatch.is-current {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.scriptz-color-hex-row {
+  display: flex;
+  gap: 6px;
+}
+.scriptz-color-hex-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  background: var(--bg-elev-2);
+  color: var(--fg);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+.scriptz-color-hex-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+.scriptz-color-hex-apply {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  background: var(--bg-elev-1);
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+}
+.scriptz-color-hex-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.scriptz-color-hex-apply:not(:disabled):hover {
+  background: var(--bg-elev-3);
+}
+.scriptz-color-reset {
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.scriptz-color-reset:hover {
+  background: var(--selected);
+  color: var(--fg);
+}

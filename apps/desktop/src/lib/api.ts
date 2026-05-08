@@ -2,6 +2,7 @@ import { invoke } from "./tauri";
 import type {
   AiModelInfo,
   AiState,
+  CharacterColorRecord,
   Folder,
   Script,
   ScriptCharacter,
@@ -145,6 +146,27 @@ export const api = {
   },
   async setAppState(key: string, value: string): Promise<void> {
     return invoke("set_app_state", { key, value });
+  },
+
+  // Character-colour records (app-wide)
+  async listCharacterColors(): Promise<CharacterColorRecord[]> {
+    return invoke("list_character_colors", {});
+  },
+  async setCharacterColor(name: string, color: string): Promise<string[]> {
+    return invoke("set_character_color", { name, color });
+  },
+  /** Clear the manual override and fall back to the recorded default. The
+   * `activeScriptId` is the palette context used when no default has been
+   * recorded yet — so the freshly-picked colour avoids colliding with
+   * other characters in the script the writer is currently looking at. */
+  async clearCharacterColor(
+    name: string,
+    activeScriptId?: string,
+  ): Promise<string[]> {
+    return invoke("clear_character_color", {
+      name,
+      activeScriptId: activeScriptId ?? null,
+    });
   },
 
   // Export

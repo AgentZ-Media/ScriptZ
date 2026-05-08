@@ -37,10 +37,19 @@ function hexToTint(hex: string, alpha: number): string {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
+export interface HighlightHandle {
+  teardown: () => void;
+  /** Re-paint tints right now without waiting for the next editor update.
+   * Used by the colour picker after an optimistic character-list mutation
+   * — the editor itself didn't change, so registerUpdateListener wouldn't
+   * fire and the new colour would only show up on the next keystroke. */
+  refresh: () => void;
+}
+
 export function installHighlight(
   editor: LexicalEditor,
   getCharacters: () => ScriptCharacter[],
-): () => void {
+): HighlightHandle {
   let lastApplied = new WeakMap<HTMLElement, string>();
 
   const apply = () => {
@@ -98,10 +107,13 @@ export function installHighlight(
     apply();
   });
 
-  return () => {
-    cancelAnimationFrame(raf);
-    teardownUpdate();
-    // Drop refs so GC can reclaim DOM nodes once detached.
-    lastApplied = new WeakMap();
+  return {
+    teardown: () => {
+      cancelAnimationFrame(raf);
+      teardownUpdate();
+      // Drop refs so GC can reclaim DOM nodes once detached.
+      lastApplied = new WeakMap();
+    },
+    refresh: apply,
   };
 }
