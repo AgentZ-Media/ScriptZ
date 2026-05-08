@@ -1,232 +1,192 @@
 ---
-// Vergleichstabelle: warum ScriptZ und nicht Notion / Final Draft / Apple Notes.
+// Vergleichstabelle: ScriptZ vs. Word/Docs, Notion, ChatGPT, Final Draft, Apple Notes.
+type Mark = { kind: "yes" | "no" | "meh"; label: string };
+type Row = { crit: string; us: Mark; word: Mark; notion: Mark; gpt: Mark; finalDraft: Mark; notes: Mark };
+
+const rows: Row[] = [
+  {
+    crit: "Format passiert ohne dich",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "no", label: "Nein" },
+    notion: { kind: "no", label: "Nein" },
+    gpt: { kind: "no", label: "Nein" },
+    finalDraft: { kind: "meh", label: "Für Spielfilm" },
+    notes: { kind: "no", label: "Nein" },
+  },
+  {
+    crit: "Charaktere automatisch erkannt",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "no", label: "Nein" },
+    notion: { kind: "no", label: "Nein" },
+    gpt: { kind: "no", label: "Nein" },
+    finalDraft: { kind: "yes", label: "Ja" },
+    notes: { kind: "no", label: "Nein" },
+  },
+  {
+    crit: "Auf Short-Form ausgelegt",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "no", label: "Nein" },
+    notion: { kind: "no", label: "Nein" },
+    gpt: { kind: "no", label: "Nein" },
+    finalDraft: { kind: "no", label: "Nein, Spielfilm" },
+    notes: { kind: "no", label: "Nein" },
+  },
+  {
+    crit: "Kostenlos & lokal",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "no", label: "Nein" },
+    notion: { kind: "no", label: "Cloud, Plan" },
+    gpt: { kind: "no", label: "Cloud, Plan" },
+    finalDraft: { kind: "no", label: "Bezahl" },
+    notes: { kind: "meh", label: "Ja, Apple-only" },
+  },
+  {
+    crit: "Auf in < 1 s",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "meh", label: "Naja" },
+    notion: { kind: "no", label: "Nein" },
+    gpt: { kind: "no", label: "Nein" },
+    finalDraft: { kind: "no", label: "Nein" },
+    notes: { kind: "yes", label: "Ja" },
+  },
+];
+
+const cols: { key: keyof Row; label: string }[] = [
+  { key: "word", label: "Word / Docs" },
+  { key: "notion", label: "Notion" },
+  { key: "gpt", label: "ChatGPT" },
+  { key: "finalDraft", label: "Final Draft" },
+  { key: "notes", label: "Apple Notes" },
+];
 ---
 
-<section class="cmp section-tight" id="vergleich">
+<section class="compare" id="vergleich">
   <div class="container">
-    <div class="cmp-head reveal">
-      <span class="eyebrow">ScriptZ vs. der Rest</span>
-      <h2 class="h-section">
-        Wir haben die Tabelle ausgefüllt,<br />
-        <span class="cmp-head-em">die du sonst selbst zusammensuchen müsstest.</span>
-      </h2>
-      <p class="lead cmp-lead">
-        Die meisten Programme machen entweder zu viel oder zu wenig.
-        ScriptZ ist genau das Werkzeug für kurze Skripte, das wir
-        selbst gebraucht haben.
+    <div class="compare-head">
+      <span class="eyebrow">Im Vergleich</span>
+      <h2 class="h-section">Andere Tools können vieles. Wir können <em>das hier</em>.</h2>
+      <p class="lead">
+        Word, Notion, Final Draft - alles tolle Programme. Keins davon
+        ist für „heute drei TikTok-Skripte raushauen" gebaut.
       </p>
     </div>
 
-    <div class="cmp-table reveal">
-      <div class="cmp-row cmp-head-row" role="rowheader">
-        <div class="cmp-cell-feat" aria-hidden="true"></div>
-        <div class="cmp-cell cmp-self">
-          <img src="/img/icon.png" alt="" width="22" height="22" />
-          <span>ScriptZ</span>
-        </div>
-        <div class="cmp-cell">Notion</div>
-        <div class="cmp-cell">Final Draft</div>
-        <div class="cmp-cell">Apple Notes</div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Startet in unter einer Sekunde</div>
-        <div class="cmp-cell"><span class="ic ic-yes" aria-label="Ja">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no" aria-label="Nein">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no" aria-label="Nein">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes" aria-label="Ja">✓</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Funktioniert komplett offline</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-warn" aria-label="Eingeschränkt">~</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Ohne Konto, ohne Login</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-warn">~</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Charaktere mit eigener Farbe</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Eigene Block-Typen für Skripte</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Auf kurze Skripte zugeschnitten</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Versionsverlauf pro Skript</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Alles bleibt auf deinem Gerät</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-warn">~</span></div>
-        <div class="cmp-cell"><span class="ic ic-warn">~</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Kostenlos, ohne Sternchen</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-warn">~</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-      </div>
-
-      <div class="cmp-row">
-        <div class="cmp-cell-feat">Quellcode öffentlich</div>
-        <div class="cmp-cell"><span class="ic ic-yes">✓</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-        <div class="cmp-cell"><span class="ic ic-no">−</span></div>
-      </div>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Was du brauchst</th>
+            <th class="us">ScriptZ</th>
+            {cols.map((c) => <th>{c.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr>
+              <td class="crit">{row.crit}</td>
+              <td class="us">
+                <span class={`mark ${row.us.kind}`}>
+                  {row.us.kind === "yes" && (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  )}
+                  {row.us.label}
+                </span>
+              </td>
+              {cols.map((c) => {
+                const cell = row[c.key] as Mark;
+                return (
+                  <td>
+                    <span class={`mark ${cell.kind}`}>{cell.label}</span>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
-
-    <p class="cmp-footnote">
-      Notion und Google Docs sind super Tools, aber für Datenbanken
-      und Textdokumente, nicht für Skripte. Final Draft und Celtx
-      sind großartig, wenn du am 110-seitigen Spielfilm sitzt.
-      ScriptZ füllt die Lücke dazwischen.
-    </p>
   </div>
 </section>
 
 <style>
-  .cmp-head {
-    text-align: center;
-    margin-bottom: var(--sp-9);
+  .compare {
+    padding: var(--sp-12) 0;
   }
-  .cmp-head-em {
-    color: var(--fg-muted);
+  .compare-head {
+    max-width: 64ch;
   }
-  .cmp-lead {
-    margin: var(--sp-4) auto 0;
-    text-align: center;
+  .compare-head h2 {
+    margin-top: var(--sp-4);
+  }
+  .compare-head .lead {
+    margin-top: var(--sp-5);
   }
 
-  .cmp-table {
-    background: var(--bg-elev-1);
+  .compare-wrap {
+    margin-top: var(--sp-8);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .compare-table {
+    width: 100%;
+    min-width: 760px;
+    background: #fff;
     border: 1px solid var(--border);
     border-radius: var(--r-5);
     overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
   }
-
-  .cmp-row {
-    display: grid;
-    grid-template-columns: minmax(200px, 1.6fr) repeat(4, 1fr);
-    align-items: center;
-  }
-  .cmp-row + .cmp-row {
-    border-top: 1px solid var(--border);
-  }
-  .cmp-row:nth-child(even) {
-    background: rgba(28, 24, 20, 0.015);
-  }
-
-  .cmp-head-row {
-    background: var(--bg-elev-2) !important;
-    font-weight: 700;
-    font-size: var(--fs-14);
-    color: var(--fg);
-  }
-
-  .cmp-cell-feat,
-  .cmp-cell {
-    padding: var(--sp-4) var(--sp-5);
-    text-align: center;
-    color: var(--fg-muted);
-    font-size: var(--fs-14);
-  }
-  .cmp-cell-feat {
+  .compare-table th,
+  .compare-table td {
     text-align: left;
-    color: var(--fg);
-    font-weight: 500;
-  }
-
-  .cmp-self {
-    color: var(--fg);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
-    font-weight: 700;
-  }
-  .cmp-self img { border-radius: 5px; }
-
-  .cmp-table .cmp-row > .cmp-cell:nth-child(2),
-  .cmp-table .cmp-row > .cmp-self {
-    background: rgba(28, 24, 20, 0.04);
-  }
-
-  .ic {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1;
-  }
-  .ic-yes {
-    background: rgba(79, 154, 108, 0.15);
-    color: #2f7050;
-  }
-  .ic-no {
-    background: rgba(28, 24, 20, 0.06);
-    color: var(--fg-faint);
-  }
-  .ic-warn {
-    background: rgba(200, 123, 0, 0.15);
-    color: #8a5400;
-  }
-
-  .cmp-footnote {
-    margin-top: var(--sp-5);
+    padding: var(--sp-4);
     font-size: var(--fs-13);
-    color: var(--fg-subtle);
-    text-align: center;
-    line-height: 1.6;
-    max-width: 60ch;
-    margin-left: auto;
-    margin-right: auto;
+    border-bottom: 1px solid var(--border-paper);
+    vertical-align: middle;
+  }
+  .compare-table th:first-child,
+  .compare-table td:first-child {
+    padding-left: var(--sp-6);
+  }
+  .compare-table th:last-child,
+  .compare-table td:last-child {
+    padding-right: var(--sp-6);
+  }
+  .compare-table thead th {
+    font-weight: 700;
+    color: var(--fg);
+    background: var(--bg-elev-2);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--fs-13);
+  }
+  .compare-table thead th.us {
+    background: var(--brand-500);
+    color: #fff;
+  }
+  .compare-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .compare-table td.crit {
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .compare-table td.us {
+    background: rgba(28, 24, 20, 0.025);
   }
 
-  @media (max-width: 760px) {
-    .cmp-table { overflow-x: auto; }
-    .cmp-row { min-width: 640px; }
-    .cmp-cell-feat, .cmp-cell {
-      padding: var(--sp-3) var(--sp-4);
-      font-size: var(--fs-13);
-    }
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-13);
+    color: var(--fg-muted);
+  }
+  .mark.yes { color: #0c7a4a; }
+  .mark.no { color: #9a4040; }
+  .mark.meh { color: #9a7a3c; }
+  .mark svg {
+    width: 14px;
+    height: 14px;
   }
 </style>

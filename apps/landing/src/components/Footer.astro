@@ -3,149 +3,127 @@ import { site } from "../data/site";
 const year = new Date().getFullYear();
 ---
 
-<footer class="ft">
-  <div class="container ft-inner">
-    <div class="ft-brand">
-      <a href="/" class="ft-logo">
-        <img src="/img/icon.png" alt="" width="22" height="22" />
-        <span>ScriptZ</span>
-      </a>
-      <p class="ft-tagline">
-        Entwickelt von <a href="https://linktr.ee/deragentz"
-        target="_blank" target="_blank" rel="noopener noreferrer">AgentZ</a> in Schwerin.
-      </p>
-    </div>
+<footer class="foot2">
+  <div class="container">
+    <div class="foot2-grid">
+      <div class="foot2-brand">
+        <a class="logo" href="/" aria-label="Startseite">
+          <img src="/img/icon.png" alt="" width="22" height="22" />
+          <span>ScriptZ</span>
+        </a>
+        <p>
+          Der minimalistische Skripteditor für Short-Form-Creator.
+          Gebaut von <a href="https://linktr.ee/deragentz" target="_blank" rel="noopener noreferrer">AgentZ</a> in Schwerin.
+        </p>
+      </div>
 
-    <nav class="ft-cols" aria-label="Footer-Navigation">
-      <div class="ft-col">
-        <h3 class="ft-h">Produkt</h3>
+      <div>
+        <h5>Produkt</h5>
         <ul>
-          <li><a href="#warum">Warum ScriptZ</a></li>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#vergleich">Vergleich</a></li>
-          <li><a href="#download">Download</a></li>
+          <li><a href="/#funktionen">Funktionen</a></li>
+          <li><a href="/#vergleich">Vergleich</a></li>
+          <li><a href="/#download">Download</a></li>
+          <li><a href={site.releasesPage} target="_blank" rel="noopener noreferrer">Changelog</a></li>
         </ul>
       </div>
-      <div class="ft-col">
-        <h3 class="ft-h">Open Source</h3>
+
+      <div>
+        <h5>Über</h5>
         <ul>
-          <li><a href={site.github} target="_blank" rel="noopener noreferrer">GitHub-Repo</a></li>
-          <li><a href={site.releasesPage} target="_blank" rel="noopener noreferrer">Releases</a></li>
+          <li><a href="/#ueber-uns">Über uns</a></li>
+          <li><a href={site.github} target="_blank" rel="noopener noreferrer">GitHub</a></li>
           <li><a href={`${site.github}/issues`} target="_blank" rel="noopener noreferrer">Bug melden</a></li>
         </ul>
       </div>
-      <div class="ft-col">
-        <h3 class="ft-h">Rechtliches</h3>
+
+      <div>
+        <h5>Kontakt &amp; Recht</h5>
         <ul>
+          <li><a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a></li>
           <li><a href="/impressum">Impressum</a></li>
           <li><a href="/datenschutz">Datenschutz</a></li>
         </ul>
       </div>
-      <div class="ft-col">
-        <h3 class="ft-h">Kontakt</h3>
-        <ul>
-          <li><a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a></li>
-          <li><a href="https://www.tiktok.com/@deragentz" target="_blank" rel="noopener noreferrer">@deragentz auf TikTok</a></li>
-          <li><a href="https://www.agent-z.de" target="_blank" rel="noopener noreferrer">agent-z.de</a></li>
-        </ul>
-      </div>
-    </nav>
-  </div>
+    </div>
 
-  <div class="container ft-bottom">
-    <p class="ft-copy">© {year} AgentZ Media · Alle Rechte vorbehalten.</p>
-    <p class="ft-techline">
-      Made with iA Writer Quattro, Tauri, Solid und Astro. Auf Vercel gehostet,
-      keine Tracker.
-    </p>
+    <div class="foot2-meta">
+      <div>© {year} AgentZ - ScriptZ ist Open Source unter MIT.</div>
+      <div>Made in Germany. Lokal. Ohne Tracking.</div>
+    </div>
   </div>
 </footer>
 
 <style>
-  .ft {
-    background: var(--bg);
+  .foot2 {
+    padding: var(--sp-11) 0 var(--sp-9);
     border-top: 1px solid var(--border);
-    padding: var(--sp-10) 0 var(--sp-7);
-    margin-top: var(--sp-12);
+    color: var(--fg-subtle);
+    font-size: var(--fs-13);
   }
-
-  .ft-inner {
+  .foot2-grid {
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: var(--sp-10);
-    margin-bottom: var(--sp-8);
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: var(--sp-7);
+  }
+  @media (max-width: 760px) {
+    .foot2-grid { grid-template-columns: 1fr 1fr; gap: var(--sp-7); }
+  }
+  @media (max-width: 480px) {
+    .foot2-grid { grid-template-columns: 1fr; }
   }
 
-  .ft-logo {
-    display: inline-flex;
+  .foot2-grid h5 {
+    font-size: var(--fs-13);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    font-weight: 700;
+  }
+  .foot2-grid ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: var(--sp-4);
+  }
+  .foot2-grid a {
+    color: var(--fg-muted);
+    font-size: var(--fs-14);
+  }
+  .foot2-grid a:hover { color: var(--fg); }
+
+  .foot2-brand {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .foot2-brand .logo {
+    display: flex;
     align-items: center;
     gap: var(--sp-3);
     font-weight: 700;
     color: var(--fg);
-    margin-bottom: var(--sp-3);
   }
-  .ft-logo img { border-radius: 5px; }
-  .ft-tagline {
+  .foot2-brand .logo img { border-radius: 5px; }
+  .foot2-brand p {
     color: var(--fg-muted);
-    font-size: var(--fs-14);
-    line-height: 1.6;
+    font-size: var(--fs-13);
     max-width: 32ch;
+    line-height: 1.55;
   }
-  .ft-tagline a {
+  .foot2-brand p a {
     color: var(--fg);
     border-bottom: 1px solid var(--border-strong);
   }
-  .ft-tagline a:hover { color: var(--fg); }
 
-  .ft-cols {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--sp-6);
-  }
-  .ft-h {
-    font-size: var(--fs-12);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--fg);
-    margin-bottom: var(--sp-3);
-  }
-  .ft-col ul {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .ft-col a {
-    color: var(--fg-muted);
-    font-size: var(--fs-14);
-    transition: color var(--t-fast);
-  }
-  .ft-col a:hover { color: var(--fg); }
-
-  .ft-bottom {
+  .foot2-meta {
+    margin-top: var(--sp-9);
+    padding-top: var(--sp-5);
     border-top: 1px solid var(--border);
-    padding-top: var(--sp-6);
     display: flex;
     justify-content: space-between;
+    gap: var(--sp-5);
     flex-wrap: wrap;
-    gap: var(--sp-3);
-  }
-  .ft-copy, .ft-techline {
-    color: var(--fg-faint);
-    font-size: var(--fs-12);
-  }
-
-  @media (max-width: 880px) {
-    .ft-inner {
-      grid-template-columns: 1fr;
-      gap: var(--sp-7);
-    }
-    .ft-cols {
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--sp-6) var(--sp-5);
-    }
-  }
-  @media (max-width: 480px) {
-    .ft-cols { grid-template-columns: 1fr; }
+    color: var(--fg-subtle);
+    font-size: var(--fs-13);
   }
 </style>

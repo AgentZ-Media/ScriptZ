@@ -2,11 +2,10 @@
 import Base from "../layouts/Base.astro";
 import Nav from "../components/Nav.astro";
 import Hero from "../components/Hero.astro";
-import Workflow from "../components/Workflow.astro";
-import Story from "../components/Story.astro";
+import WirBar from "../components/WirBar.astro";
 import Features from "../components/Features.astro";
+import Steps from "../components/Steps.astro";
 import Compare from "../components/Compare.astro";
-import OpenSource from "../components/OpenSource.astro";
 import Download from "../components/Download.astro";
 import Footer from "../components/Footer.astro";
 import { getLatestRelease } from "../data/site";
@@ -18,11 +17,10 @@ const release = await getLatestRelease();
   <Nav version={release.version} />
   <main>
     <Hero release={release} />
-    <Workflow />
-    <Story />
+    <WirBar />
     <Features />
+    <Steps />
     <Compare />
-    <OpenSource />
     <Download release={release} />
   </main>
   <Footer />

@@ -1,6 +1,4 @@
 ---
-import { site } from "../data/site";
-
 interface Props {
   version: string;
 }
@@ -9,21 +7,19 @@ const { version } = Astro.props;
 
 <nav class="nav" aria-label="Hauptnavigation">
   <div class="container nav-inner">
-    <a href="/" class="logo" aria-label="Startseite">
-      <img src="/img/icon.png" alt="" width="28" height="28" />
-      <span class="logo-name">ScriptZ</span>
-      <span class="logo-version">v{version}</span>
+    <a class="nav-brand" href="/" aria-label="Startseite">
+      <img src="/img/icon.png" alt="" width="22" height="22" />
+      <span>ScriptZ</span>
+      <span class="ver">v{version}</span>
     </a>
 
     <div class="nav-links">
-      <a href="#workflow" class="nav-link">Workflow</a>
-      <a href="#warum" class="nav-link">Warum</a>
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#vergleich" class="nav-link">Vergleich</a>
-      <a href={site.github} class="nav-link" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="/#fuer-wen">Für wen?</a>
+      <a href="/#funktionen">Funktionen</a>
+      <a href="/#vergleich">Vergleich</a>
+      <a href="/#ueber-uns">Über uns</a>
+      <a href="/#download" class="btn btn-primary btn-sm download-btn">Jetzt herunterladen</a>
     </div>
-
-    <a href="#download" class="btn btn-primary btn-sm download-btn">Kostenlos laden</a>
   </div>
 </nav>
 
@@ -31,42 +27,31 @@ const { version } = Astro.props;
   .nav {
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 30;
     height: var(--header-h);
-    backdrop-filter: saturate(140%) blur(12px);
-    -webkit-backdrop-filter: saturate(140%) blur(12px);
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
-    border-bottom: 1px solid transparent;
-    transition: border-color var(--t-med), background var(--t-med);
-  }
-  /* Subtile Linie sobald gescrollt - JS setzt data-scrolled. */
-  :global(html.is-scrolled) .nav {
-    border-bottom-color: var(--border);
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
   }
 
   .nav-inner {
-    height: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--sp-6);
+    height: 100%;
   }
 
-  .logo {
-    display: inline-flex;
+  .nav-brand {
+    display: flex;
     align-items: center;
     gap: var(--sp-3);
-    color: var(--fg);
     font-weight: 700;
     letter-spacing: -0.01em;
+    color: var(--fg);
   }
-  .logo img {
-    border-radius: 7px;
-  }
-  .logo-name {
-    font-size: var(--fs-16);
-  }
-  .logo-version {
+  .nav-brand img { border-radius: 5px; }
+  .nav-brand .ver {
     color: var(--fg-faint);
     font-size: var(--fs-12);
     font-weight: 500;
@@ -76,35 +61,31 @@ const { version } = Astro.props;
 
   .nav-links {
     display: flex;
-    gap: var(--sp-7);
+    align-items: center;
+    gap: var(--sp-5);
   }
-  .nav-link {
+  .nav-links a {
     color: var(--fg-muted);
     font-size: var(--fs-14);
-    font-weight: 500;
-    transition: color var(--t-fast);
   }
-  .nav-link:hover {
-    color: var(--fg);
+  .nav-links a:hover { color: var(--fg); }
+
+  /* Dunkler CTA-Button im Nav (V2-Mockup).
+     Selektor bewusst spezifischer als ".nav-links a", sonst zieht
+     der Muted-Color-Default oben den Textfarb-Wert wieder runter. */
+  .nav-links a.download-btn,
+  .nav-links a.download-btn:hover {
+    background-color: #1c1814;
+    color: #fff;
+  }
+  .nav-links a.download-btn:hover {
+    background-color: #0f0d0a;
   }
 
-  @media (max-width: 720px) {
-    .nav-links { display: none; }
+  @media (max-width: 760px) {
+    .nav-links a:not(.download-btn) { display: none; }
   }
   @media (max-width: 480px) {
-    .logo-version { display: none; }
+    .nav-brand .ver { display: none; }
   }
 </style>
-
-<script>
-  // Subtile Linie unter der Nav, wenn gescrollt wird.
-  const onScroll = () => {
-    if (window.scrollY > 8) {
-      document.documentElement.classList.add("is-scrolled");
-    } else {
-      document.documentElement.classList.remove("is-scrolled");
-    }
-  };
-  onScroll();
-  window.addEventListener("scroll", onScroll, { passive: true });
-</script>

@@ -8,15 +8,14 @@ Astro-Landing für ScriptZ, Vercel-Deploy, statisch. Hosting unter
 ```
 src/
   components/        Astro-Komponenten der Sektionen
-    Nav.astro
-    Hero.astro
-    Workflow.astro         Vier-Schritt-Tour mit interaktiver Editor-Demo in Schritt 3
-    Story.astro            "Warum ScriptZ" + AgentZ-Hintergrund
-    Features.astro         Top-3-Features
-    Compare.astro          Vergleichstabelle gegen andere Tools
-    OpenSource.astro       Lizenz, Versprechen
-    Download.astro         CTA, First-Run-Anleitung
-    Footer.astro
+    Nav.astro              Sticky Top-Bar mit dunklem CTA
+    Hero.astro             Zentriertes Layout: H1 + CTA + 4 Mini-Features + App-Screenshot
+    WirBar.astro           AgentZ-Eigenreferenz: 240k Follower, 4.000+ Videos
+    Features.astro         4-Card-Grid "Schreiben, statt formatieren"
+    Steps.astro            3-Schritt-Prozess auf grauem Streifen
+    Compare.astro          Vergleichstabelle gegen Word/Notion/ChatGPT/Final Draft/Notes
+    Download.astro         Schmale Download-CTA mit Live-Versions-Pille
+    Footer.astro           4-Spalten-Grid inkl. Impressum/Datenschutz
   data/site.ts        zentrale Site-Konstanten + GitHub-Release-Fetch
   layouts/Base.astro  Head, Meta, Reveal-Observer
   pages/              index, impressum, datenschutz
@@ -70,14 +69,15 @@ passen, sonst zeigt sie ein Produkt, das es so nicht gibt.
 
 Wenn du **hier** etwas änderst, weil die App sich verändert hat:
 
-- Editor-Demo (Schritt 3 in [`Workflow.astro`](src/components/Workflow.astro))
-  muss das echte Editor-Layout 1:1 spiegeln. Referenz: die Block-CSS in
-  [`apps/desktop/src/components/Editor/Editor.css`](../desktop/src/components/Editor/Editor.css).
-- Versprechen in [`OpenSource.astro`](src/components/OpenSource.astro)
-  und der Abschnitt "Die Desktop-App ScriptZ selbst" in
-  [`pages/datenschutz.astro`](src/pages/datenschutz.astro) müssen mit
-  dem tatsächlichen Verhalten der App übereinstimmen (Telemetrie,
-  Konto, Cloud, Tracking).
+- App-Screenshots im Hero und in zukünftigen Demo-Sektionen
+  ([`public/img/app/`](public/img/app/)) müssen aus der aktuellen
+  Desktop-App stammen. Bei UI-Refresh in der App: neu aufnehmen.
+- Versprechen "lokal, kein Konto, kein Tracking" tauchen in
+  [`Hero.astro`](src/components/Hero.astro) (Mini-Feature-Row),
+  [`Download.astro`](src/components/Download.astro) (Install-Hinweis)
+  und im Abschnitt "Die Desktop-App ScriptZ selbst" in
+  [`pages/datenschutz.astro`](src/pages/datenschutz.astro) auf -
+  alle drei müssen mit dem tatsächlichen App-Verhalten übereinstimmen.
 - Vergleichstabelle in [`Compare.astro`](src/components/Compare.astro)
   - Häkchen müssen ehrlich sein.
 
