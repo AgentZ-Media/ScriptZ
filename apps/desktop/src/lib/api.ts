@@ -1,5 +1,10 @@
 import { invoke } from "./tauri";
 import {
+  clearCharacterColor as ccClear,
+  listCharacterColors as ccList,
+  setCharacterColor as ccSet,
+} from "./characterColors";
+import {
   getAppState as dbGetAppState,
   getSetting as dbGetSetting,
   setAppState as dbSetAppState,
@@ -154,12 +159,13 @@ export const api = {
     return dbSetAppState(key, value);
   },
 
-  // Character-colour records (app-wide)
+  // Character-colour records (app-wide) — TS-side via plugin-sql since
+  // Migration Phase 3.
   async listCharacterColors(): Promise<CharacterColorRecord[]> {
-    return invoke("list_character_colors", {});
+    return ccList();
   },
   async setCharacterColor(name: string, color: string): Promise<string[]> {
-    return invoke("set_character_color", { name, color });
+    return ccSet(name, color);
   },
   /** Clear the manual override and fall back to the recorded default. The
    * `activeScriptId` is the palette context used when no default has been
@@ -169,10 +175,7 @@ export const api = {
     name: string,
     activeScriptId?: string,
   ): Promise<string[]> {
-    return invoke("clear_character_color", {
-      name,
-      activeScriptId: activeScriptId ?? null,
-    });
+    return ccClear(name, activeScriptId ?? null);
   },
 
   // Export

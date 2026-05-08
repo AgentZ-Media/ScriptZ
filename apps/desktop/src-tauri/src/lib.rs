@@ -81,10 +81,7 @@ pub fn run() {
             // export
             commands::export::export_pdf,
             commands::export::export_plaintext,
-            // character colors (app-wide overrides)
-            commands::character_colors::list_character_colors,
-            commands::character_colors::set_character_color,
-            commands::character_colors::clear_character_color,
+            // character_colors moved to TS in Migration Phase 3
             // ai (OpenRouter — opt-in)
             commands::ai::ai_get_state,
             commands::ai::ai_set_api_key,

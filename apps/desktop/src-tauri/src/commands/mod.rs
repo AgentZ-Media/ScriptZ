@@ -6,4 +6,4 @@ pub mod search;
 // settings + app_state moved to TS in Migration Phase 2
 pub mod export;
 pub mod ai;
-pub mod character_colors;
+// character_colors moved to TS in Migration Phase 3
