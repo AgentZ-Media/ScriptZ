@@ -1,4 +1,10 @@
 import { invoke } from "./tauri";
+import {
+  getAppState as dbGetAppState,
+  getSetting as dbGetSetting,
+  setAppState as dbSetAppState,
+  setSetting as dbSetSetting,
+} from "./db";
 import type {
   AiModelInfo,
   AiState,
@@ -132,20 +138,20 @@ export const api = {
     return invoke("global_search", { query, limit });
   },
 
-  // Settings
+  // Settings — TS-side via plugin-sql since Migration Phase 2.
   async getSetting(key: string): Promise<string | null> {
-    return invoke("get_setting", { key });
+    return dbGetSetting(key);
   },
   async setSetting(key: string, value: string): Promise<void> {
-    return invoke("set_setting", { key, value });
+    return dbSetSetting(key, value);
   },
 
-  // App-State
+  // App-State — TS-side via plugin-sql since Migration Phase 2.
   async getAppState(key: string): Promise<string | null> {
-    return invoke("get_app_state", { key });
+    return dbGetAppState(key);
   },
   async setAppState(key: string, value: string): Promise<void> {
-    return invoke("set_app_state", { key, value });
+    return dbSetAppState(key, value);
   },
 
   // Character-colour records (app-wide)

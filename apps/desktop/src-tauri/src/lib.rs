@@ -77,13 +77,7 @@ pub fn run() {
             commands::snapshots::delete_snapshot,
             // search
             commands::search::global_search,
-            // settings
-            commands::settings::get_setting,
-            commands::settings::set_setting,
-            commands::settings::list_settings,
-            // app_state
-            commands::app_state::get_app_state,
-            commands::app_state::set_app_state,
+            // settings + app_state moved to TS in Migration Phase 2
             // export
             commands::export::export_pdf,
             commands::export::export_plaintext,

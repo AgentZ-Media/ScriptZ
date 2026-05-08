@@ -3,8 +3,7 @@ pub mod folders;
 pub mod scripts;
 pub mod snapshots;
 pub mod search;
-pub mod settings;
-pub mod app_state;
+// settings + app_state moved to TS in Migration Phase 2
 pub mod export;
 pub mod ai;
 pub mod character_colors;
