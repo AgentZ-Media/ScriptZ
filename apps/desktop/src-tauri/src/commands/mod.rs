@@ -1,5 +1,5 @@
 pub mod debug;
-pub mod folders;
+// folders moved to TS in Migration Phase 4
 pub mod scripts;
 pub mod snapshots;
 pub mod search;

@@ -38,14 +38,7 @@ pub struct Script {
     pub folder_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Folder {
-    pub id: String,
-    pub name: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub script_count: i64,
-}
+// Folder model moved to TS in Migration Phase 4
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {

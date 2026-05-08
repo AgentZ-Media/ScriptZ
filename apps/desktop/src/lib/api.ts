@@ -10,6 +10,15 @@ import {
   setAppState as dbSetAppState,
   setSetting as dbSetSetting,
 } from "./db";
+import {
+  countLiveScripts as foldersCountLive,
+  createFolder as foldersCreate,
+  deleteFolder as foldersDelete,
+  listFolders as foldersList,
+  moveScript as foldersMoveScript,
+  moveScripts as foldersMoveScripts,
+  renameFolder as foldersRename,
+} from "./folders";
 import type {
   AiModelInfo,
   AiState,
@@ -98,27 +107,27 @@ export const api = {
     return invoke("rename_script", { id, title });
   },
 
-  // Folders
+  // Folders — TS-side via plugin-sql since Migration Phase 4.
   async listFolders(): Promise<Folder[]> {
-    return invoke("list_folders", {});
+    return foldersList();
   },
   async countLiveScripts(): Promise<number> {
-    return invoke("count_live_scripts", {});
+    return foldersCountLive();
   },
   async createFolder(name: string): Promise<Folder> {
-    return invoke("create_folder", { name });
+    return foldersCreate(name);
   },
   async renameFolder(id: string, name: string): Promise<Folder> {
-    return invoke("rename_folder", { id, name });
+    return foldersRename(id, name);
   },
   async deleteFolder(id: string): Promise<void> {
-    return invoke("delete_folder", { id });
+    return foldersDelete(id);
   },
   async moveScript(scriptId: string, folderId: string | null): Promise<void> {
-    return invoke("move_script", { scriptId, folderId });
+    return foldersMoveScript(scriptId, folderId);
   },
   async moveScripts(scriptIds: string[], folderId: string | null): Promise<void> {
-    return invoke("move_scripts", { scriptIds, folderId });
+    return foldersMoveScripts(scriptIds, folderId);
   },
 
   // Snapshots
