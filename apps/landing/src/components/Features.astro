@@ -1,20 +1,30 @@
 ---
-// 4-Card Feature-Grid (V2-Stil).
+// 6-Card Feature-Grid (V2-Stil).
 const features = [
   {
-    title: "Fokus auf das, was zählt",
-    body: "Keine Ablenkung. Kein Schnickschnack. Nur du, deine Gedanken und ein leeres Skript.",
+    title: "Fokus aufs Schreiben",
+    body: "Keine Ablenkung, kein Schnickschnack. Nur du, deine Gedanken und ein leeres Skript.",
     svg: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/>',
   },
   {
     title: "Automatisch formatiert",
-    body: "Charaktere, Zeilen, Seiten - ScriptZ übernimmt das für dich. Immer.",
+    body: "Charaktere, Zeilen, Seiten - ScriptZ übernimmt das für dich. Charakter-Farben sind im PDF wie im Editor.",
     svg: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>',
   },
   {
-    title: "Schneller von der Idee zum Video",
-    body: "Weniger Klicks. Weniger Denken. Mehr Umsetzung. Dein Workflow, nur besser.",
-    svg: '<path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/>',
+    title: "Streak + Tagesziel",
+    body: "Heatmap zeigt jeden Schreibtag des Jahres. Streak und Tagesziel halten dich im Flow - ganz ohne Push-Benachrichtigung.",
+    svg: '<rect x="3" y="4" width="4" height="4" rx="1"/><rect x="9" y="4" width="4" height="4" rx="1"/><rect x="15" y="4" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="9" y="10" width="4" height="4" rx="1"/><rect x="15" y="10" width="4" height="4" rx="1"/><rect x="3" y="16" width="4" height="4" rx="1"/><rect x="9" y="16" width="4" height="4" rx="1"/><rect x="15" y="16" width="4" height="4" rx="1"/>',
+  },
+  {
+    title: "Sprint-Timer eingebaut",
+    body: "5, 15 oder 25 Minuten Pomodoro fürs Schreiben - direkt unten im Editor, mit Wort-Tracking.",
+    svg: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/>',
+  },
+  {
+    title: "Ideen-Inbox",
+    body: "⌘I aus jeder Ansicht. Idee rein, Enter, weitermachen. Später per Klick zum fertigen Skript - mit Notizen schon im ersten Block.",
+    svg: '<path d="M9 21h6"/><path d="M12 17v4"/><path d="M12 3a6 6 0 0 0-3.3 11.02c.5.34.8.92.8 1.53V17h5v-1.45c0-.61.3-1.19.8-1.53A6 6 0 0 0 12 3z"/>',
   },
   {
     title: "Für kurze Videos gemacht",
@@ -59,7 +69,7 @@ const features = [
   }
   .feat4-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--sp-4);
   }
   @media (max-width: 980px) {
