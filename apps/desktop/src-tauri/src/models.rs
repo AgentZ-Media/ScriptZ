@@ -23,30 +23,13 @@ pub struct ScriptSummary {
     pub folder_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Script {
-    pub id: String,
-    pub title: String,
-    pub highlighting_enabled: Option<i64>,
-    pub content_json: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub archived_at: Option<i64>,
-    pub page_count: i64,
-    pub characters: Vec<ScriptCharacter>,
-    pub summary: Option<String>,
-    pub folder_id: Option<String>,
-}
-
+// Script model moved to TS in Migration Phase 7a (only get_script
+// returned the full row)
 // Folder model moved to TS in Migration Phase 4
 // Snapshot + SnapshotMeta moved to TS in Migration Phase 5
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateScriptInput {
-    pub title: Option<String>,
-    pub initial_content_json: Option<String>,
-    pub folder_id: Option<String>,
-}
+// SearchHit moved to TS in Migration Phase 6
+// CreateScriptInput moved to TS in Migration Phase 7b
+// ListScriptsQuery moved to TS in Migration Phase 7a
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateScriptInput {
@@ -58,22 +41,4 @@ pub struct UpdateScriptInput {
     /// Replace the per-script character list. Names are matched case-insensitively
     /// against existing entries to preserve color stickiness.
     pub characters: Option<Vec<ScriptCharacter>>,
-}
-
-// SearchHit moved to TS in Migration Phase 6
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListScriptsQuery {
-    pub include_archived: Option<bool>,
-    pub only_archived: Option<bool>,
-    pub sort: Option<String>,
-    pub query: Option<String>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-    /// When `Some(id)`, restrict to scripts in that folder. When `None`,
-    /// no folder filter is applied (= "Alle"). There is no explicit
-    /// "ungrouped" filter on purpose: the UI surfaces every script under
-    /// "Alle" and individual folders, nothing in between.
-    pub folder_id: Option<String>,
 }

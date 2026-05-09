@@ -125,9 +125,9 @@ pub fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-pub fn new_id() -> String {
-    uuid::Uuid::new_v4().to_string()
-}
+// new_id moved to TS (crypto.randomUUID) in Migration Phase 4+; the
+// remaining Rust writers (update_script, archive flow) only update
+// existing rows, so no fresh UUID is generated server-side anymore.
 
 /// Heuristic: is it safe to apply the destructive v2 migration here?
 ///   - YES if the DB has no `scripts` table at all (fresh DB).

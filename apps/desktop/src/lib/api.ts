@@ -21,6 +21,13 @@ import {
 } from "./folders";
 import { globalSearch as searchGlobal } from "./search";
 import {
+  createScript as scriptsCreate,
+  duplicateScript as scriptsDuplicate,
+  getScript as scriptsGet,
+  listScripts as scriptsList,
+  renameScript as scriptsRename,
+} from "./scripts";
+import {
   createSnapshot as snapsCreate,
   deleteSnapshot as snapsDelete,
   getSnapshot as snapsGet,
@@ -41,22 +48,22 @@ import type {
 } from "./types";
 
 export const api = {
-  // Scripts
+  // Scripts — read paths + create/duplicate/rename moved to TS in Migration
+  // Phase 7a + 7b. update_script and archive/restore/purge/empty_trash
+  // still go through Rust and join 7c + 7d later.
   async createScript(input: {
     title?: string;
     initialContentJson?: string;
     folderId?: string | null;
   }): Promise<ScriptSummary> {
-    return invoke("create_script", {
-      input: {
-        title: input.title ?? null,
-        initial_content_json: input.initialContentJson ?? null,
-        folder_id: input.folderId ?? null,
-      },
-    });
+    return scriptsCreate(
+      input.title ?? null,
+      input.initialContentJson ?? null,
+      input.folderId ?? null,
+    );
   },
   async getScript(id: string): Promise<Script> {
-    return invoke("get_script", { id });
+    return scriptsGet(id);
   },
   async updateScript(input: {
     id: string;
@@ -84,16 +91,14 @@ export const api = {
     offset?: number;
     folderId?: string | null;
   } = {}): Promise<ScriptSummary[]> {
-    return invoke("list_scripts", {
-      query: {
-        includeArchived: query.includeArchived ?? null,
-        onlyArchived: query.onlyArchived ?? null,
-        sort: query.sort ?? null,
-        query: query.query ?? null,
-        limit: query.limit ?? null,
-        offset: query.offset ?? null,
-        folderId: query.folderId ?? null,
-      },
+    return scriptsList({
+      includeArchived: query.includeArchived ?? null,
+      onlyArchived: query.onlyArchived ?? null,
+      sort: query.sort ?? null,
+      query: query.query ?? null,
+      limit: query.limit ?? null,
+      offset: query.offset ?? null,
+      folderId: query.folderId ?? null,
     });
   },
   async archiveScript(id: string): Promise<void> {
@@ -109,10 +114,10 @@ export const api = {
     return invoke("empty_trash", {});
   },
   async duplicateScript(id: string): Promise<ScriptSummary> {
-    return invoke("duplicate_script", { id });
+    return scriptsDuplicate(id);
   },
   async renameScript(id: string, title: string): Promise<ScriptSummary> {
-    return invoke("rename_script", { id, title });
+    return scriptsRename(id, title);
   },
 
   // Folders — TS-side via plugin-sql since Migration Phase 4.

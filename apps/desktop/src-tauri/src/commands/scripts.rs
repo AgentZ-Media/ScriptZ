@@ -4,13 +4,20 @@ use rusqlite::{params, Connection, OptionalExtension};
 use tauri::{AppHandle, State};
 
 use crate::commands::ai;
-use crate::db::{new_id, now_ms, Db};
+use crate::db::{now_ms, Db};
 use crate::error::{Result, ScriptzError};
 use crate::fts::{delete_script_fts, upsert_script_fts};
 use crate::lex::{extract_character_names, extract_plain_text};
-use crate::models::{
-    CreateScriptInput, ListScriptsQuery, Script, ScriptCharacter, ScriptSummary, UpdateScriptInput,
-};
+use crate::models::{ScriptCharacter, ScriptSummary, UpdateScriptInput};
+
+// Migration status (2026-05-09):
+//   - get_script, list_scripts, create_script, duplicate_script,
+//     rename_script → moved to TS in Phase 7a + 7b (src/lib/scripts.ts)
+//   - update_script + archive/restore/purge/empty_trash → still here,
+//     scheduled for Phase 7c + 7d
+// Helper functions below stay in Rust until update_script joins them
+// in TS, since the reconcile + FTS logic is shared between create
+// (TS) and update (Rust) and the two sides MUST agree byte-for-byte.
 
 pub const DEFAULT_PALETTE: &[&str] = &[
     "#e0791f", "#3a8ed4", "#7a4ad4", "#2fa56b", "#d04141",
@@ -72,30 +79,6 @@ pub fn upsert_default_color(
         params![name, default_color, now],
     )?;
     Ok(())
-}
-
-fn empty_lexical_state() -> String {
-    serde_json::json!({
-        "root": {
-            "children": [
-                {
-                    "type": "scriptz-character",
-                    "version": 1,
-                    "characterName": "",
-                    "direction": null,
-                    "format": "",
-                    "indent": 0,
-                    "children": []
-                }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "root",
-            "version": 1
-        }
-    })
-    .to_string()
 }
 
 pub fn parse_chars_meta(raw: &str) -> Vec<ScriptCharacter> {
@@ -223,84 +206,6 @@ fn row_to_summary(conn: &Connection, id: String) -> Result<ScriptSummary> {
 }
 
 #[tauri::command]
-pub fn create_script(db: State<Db>, input: CreateScriptInput) -> Result<ScriptSummary> {
-    let conn = db.conn()?;
-    let id = new_id();
-    let now = now_ms();
-    let title = input.title.clone().unwrap_or_else(|| "Unbenannt".into());
-    let content_json = input
-        .initial_content_json
-        .clone()
-        .unwrap_or_else(empty_lexical_state);
-    let records = load_color_records(&conn)?;
-    let (chars, new_defaults) = reconcile_chars_from_content(&[], &content_json, &records);
-    for (n, c) in &new_defaults {
-        upsert_default_color(&conn, n, c, now)?;
-    }
-    let chars_json = serialize_chars_meta(&chars);
-    if let Some(fid) = &input.folder_id {
-        let exists: i64 = conn
-            .query_row("SELECT COUNT(*) FROM folders WHERE id = ?1", params![fid], |r| {
-                r.get(0)
-            })
-            .unwrap_or(0);
-        if exists == 0 {
-            return Err(ScriptzError::NotFound(format!("folder {fid}")));
-        }
-    }
-    conn.execute(
-        "INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                              created_at, updated_at, page_count, folder_id)
-         VALUES (?1, ?2, NULL, ?3, ?4, ?5, ?5, 1, ?6)",
-        params![id, title, content_json, chars_json, now, input.folder_id],
-    )?;
-    refresh_fts(&conn, &id)?;
-    row_to_summary(&conn, id)
-}
-
-#[tauri::command]
-pub fn get_script(db: State<Db>, id: String) -> Result<Script> {
-    let conn = db.conn()?;
-    let s = conn
-        .query_row(
-            "SELECT id, title, highlighting_enabled, content_json, characters_meta,
-                    created_at, updated_at, archived_at, page_count, summary, folder_id
-             FROM scripts WHERE id = ?1",
-            params![id],
-            |r| {
-                Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, String>(1)?,
-                    r.get::<_, Option<i64>>(2)?,
-                    r.get::<_, String>(3)?,
-                    r.get::<_, String>(4)?,
-                    r.get::<_, i64>(5)?,
-                    r.get::<_, i64>(6)?,
-                    r.get::<_, Option<i64>>(7)?,
-                    r.get::<_, i64>(8)?,
-                    r.get::<_, Option<String>>(9)?,
-                    r.get::<_, Option<String>>(10)?,
-                ))
-            },
-        )
-        .optional()?
-        .ok_or_else(|| ScriptzError::NotFound(format!("script {id}")))?;
-    Ok(Script {
-        id: s.0,
-        title: s.1,
-        highlighting_enabled: s.2,
-        content_json: s.3,
-        characters: parse_chars_meta(&s.4),
-        created_at: s.5,
-        updated_at: s.6,
-        archived_at: s.7,
-        page_count: s.8,
-        summary: s.9,
-        folder_id: s.10,
-    })
-}
-
-#[tauri::command]
 pub fn update_script(
     app: AppHandle,
     db: State<Db>,
@@ -384,59 +289,6 @@ pub fn update_script(
 }
 
 #[tauri::command]
-pub fn list_scripts(db: State<Db>, query: ListScriptsQuery) -> Result<Vec<ScriptSummary>> {
-    let conn = db.conn()?;
-    let include_archived = query.include_archived.unwrap_or(false);
-    let only_archived = query.only_archived.unwrap_or(false);
-
-    let mut sql = String::from("SELECT id FROM scripts WHERE 1=1");
-    let mut args: Vec<Box<dyn rusqlite::ToSql>> = vec![];
-    if only_archived {
-        sql.push_str(" AND archived_at IS NOT NULL");
-    } else if !include_archived {
-        sql.push_str(" AND archived_at IS NULL");
-    }
-    if let Some(q) = &query.query {
-        let trimmed = q.trim();
-        if !trimmed.is_empty() {
-            sql.push_str(" AND title LIKE ?");
-            args.push(Box::new(format!("%{}%", trimmed)));
-        }
-    }
-    if let Some(folder_id) = &query.folder_id {
-        sql.push_str(" AND folder_id = ?");
-        args.push(Box::new(folder_id.clone()));
-    }
-    let sort = query.sort.as_deref().unwrap_or("updated");
-    match sort {
-        "created" => sql.push_str(" ORDER BY created_at DESC"),
-        "title" => sql.push_str(" ORDER BY title COLLATE NOCASE ASC"),
-        _ => sql.push_str(" ORDER BY updated_at DESC"),
-    }
-    if let Some(limit) = query.limit {
-        sql.push_str(&format!(" LIMIT {}", limit));
-        if let Some(offset) = query.offset {
-            sql.push_str(&format!(" OFFSET {}", offset));
-        }
-    }
-
-    let arg_refs: Vec<&dyn rusqlite::ToSql> = args.iter().map(|b| b.as_ref()).collect();
-    let mut stmt = conn.prepare(&sql)?;
-    let ids: Vec<String> = stmt
-        .query_map(rusqlite::params_from_iter(arg_refs.iter()), |r| {
-            r.get::<_, String>(0)
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
-
-    let mut out = Vec::with_capacity(ids.len());
-    for id in ids {
-        out.push(row_to_summary(&conn, id)?);
-    }
-    Ok(out)
-}
-
-#[tauri::command]
 pub fn archive_script(db: State<Db>, id: String) -> Result<()> {
     let conn = db.conn()?;
     let now = now_ms();
@@ -485,43 +337,4 @@ pub fn empty_trash(db: State<Db>) -> Result<()> {
     }
     tx.commit()?;
     Ok(())
-}
-
-#[tauri::command]
-pub fn duplicate_script(db: State<Db>, id: String) -> Result<ScriptSummary> {
-    let src = get_script(db.clone(), id.clone())?;
-    let conn = db.conn()?;
-    let new_id = new_id();
-    let now = now_ms();
-    let new_title = format!("{} (Kopie)", src.title);
-    let chars_json = serialize_chars_meta(&src.characters);
-    conn.execute(
-        "INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                              created_at, updated_at, page_count, folder_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7, ?8)",
-        params![
-            new_id,
-            new_title,
-            src.highlighting_enabled,
-            src.content_json,
-            chars_json,
-            now,
-            src.page_count,
-            src.folder_id,
-        ],
-    )?;
-    refresh_fts(&conn, &new_id)?;
-    row_to_summary(&conn, new_id)
-}
-
-#[tauri::command]
-pub fn rename_script(db: State<Db>, id: String, title: String) -> Result<ScriptSummary> {
-    let conn = db.conn()?;
-    let now = now_ms();
-    conn.execute(
-        "UPDATE scripts SET title = ?1, updated_at = ?2 WHERE id = ?3",
-        params![title, now, id],
-    )?;
-    refresh_fts(&conn, &id)?;
-    row_to_summary(&conn, id)
 }

@@ -50,17 +50,14 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // debug (migration-only — frontend → terminal log bridge)
             commands::debug::frontend_log,
-            // scripts
-            commands::scripts::create_script,
-            commands::scripts::get_script,
+            // scripts: read paths + create/duplicate/rename moved to TS in
+            // Migration Phase 7a + 7b. update_script and archive flow still
+            // here; they join in 7c + 7d.
             commands::scripts::update_script,
-            commands::scripts::list_scripts,
             commands::scripts::archive_script,
             commands::scripts::restore_script,
             commands::scripts::purge_script,
             commands::scripts::empty_trash,
-            commands::scripts::duplicate_script,
-            commands::scripts::rename_script,
             // folders moved to TS in Migration Phase 4
             // snapshots moved to TS in Migration Phase 5
             // search moved to TS in Migration Phase 6

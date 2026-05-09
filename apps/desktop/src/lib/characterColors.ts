@@ -16,8 +16,9 @@
 //
 // `parseCharsMeta`, `serializeCharsMeta`, `DEFAULT_PALETTE`, and
 // `upsertDefaultColor` mirror helpers that still live in
-// commands/scripts.rs. They are duplicated here on purpose; Phase 7 retires
-// the Rust copy and this module becomes the single source of truth.
+// commands/scripts.rs. They are duplicated there on purpose while
+// update_script remains in Rust; Phase 7 retires the rest of the
+// duplicates and this module becomes the single source of truth.
 
 import { getDb } from "./db";
 import type { CharacterColorRecord, ScriptCharacter } from "./types";
@@ -59,6 +60,67 @@ export async function listCharacterColors(): Promise<CharacterColorRecord[]> {
     `SELECT name, default_color, override_color, updated_at
      FROM character_colors ORDER BY name`,
   );
+}
+
+/** Per-name resolution input for the reconcile pass: which colour is
+ *  forced (override) and which one was first auto-assigned (default). */
+export interface ColorRecord {
+  default_color: string | null;
+  override_color: string | null;
+}
+
+/** Load every per-name colour record into a map keyed by uppercase name.
+ *  Used by the Phase-7 script create/update paths to avoid re-querying
+ *  per character on every save. */
+export async function loadColorRecords(): Promise<Map<string, ColorRecord>> {
+  const db = await getDb();
+  const rows = await db.select<
+    { name: string; default_color: string | null; override_color: string | null }[]
+  >("SELECT name, default_color, override_color FROM character_colors");
+  const m = new Map<string, ColorRecord>();
+  for (const r of rows) {
+    m.set(r.name.toUpperCase(), {
+      default_color: r.default_color,
+      override_color: r.override_color,
+    });
+  }
+  return m;
+}
+
+/** Upsert a `default_color` for `name`. Existing default is preserved
+ *  (the very first auto-assigned colour wins forever); override is left
+ *  alone. Mirrors the SQL Rust uses in commands/scripts.rs. */
+export async function upsertDefaultColor(
+  name: string,
+  defaultColor: string,
+  now: number,
+): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    `INSERT INTO character_colors (name, default_color, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(name) DO UPDATE SET
+       default_color = COALESCE(character_colors.default_color, excluded.default_color),
+       updated_at = CASE
+         WHEN character_colors.default_color IS NULL THEN excluded.updated_at
+         ELSE character_colors.updated_at
+       END`,
+    [name, defaultColor, now],
+  );
+}
+
+/** ASCII case-insensitive equality. Unicode-aware comparisons aren't
+ *  needed here — character names are uppercased Latin by reconcile. */
+export function eqIgnoreAsciiCase(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    let ca = a.charCodeAt(i);
+    let cb = b.charCodeAt(i);
+    if (ca >= 65 && ca <= 90) ca += 32;
+    if (cb >= 65 && cb <= 90) cb += 32;
+    if (ca !== cb) return false;
+  }
+  return true;
 }
 
 /** Set the manual override and propagate it into every script that already
@@ -213,33 +275,3 @@ function pickPaletteInScript(
   return DEFAULT_PALETTE[0];
 }
 
-async function upsertDefaultColor(
-  name: string,
-  defaultColor: string,
-  now: number,
-): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `INSERT INTO character_colors (name, default_color, updated_at)
-     VALUES ($1, $2, $3)
-     ON CONFLICT(name) DO UPDATE SET
-       default_color = COALESCE(character_colors.default_color, excluded.default_color),
-       updated_at = CASE
-         WHEN character_colors.default_color IS NULL THEN excluded.updated_at
-         ELSE character_colors.updated_at
-       END`,
-    [name, defaultColor, now],
-  );
-}
-
-function eqIgnoreAsciiCase(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    let ca = a.charCodeAt(i);
-    let cb = b.charCodeAt(i);
-    if (ca >= 65 && ca <= 90) ca += 32;
-    if (cb >= 65 && cb <= 90) cb += 32;
-    if (ca !== cb) return false;
-  }
-  return true;
-}
