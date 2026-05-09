@@ -48,6 +48,45 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build release body
+        # Liest die per-Version-Changelog-Datei aus
+        # `docs/release-notes/<tag>.md` und hängt die statische
+        # Install-Footer dran. Fehlt die Datei, bricht der Workflow
+        # mit einem klaren Error ab - so kann ein Release nicht
+        # versehentlich mit der vorherigen Beschreibung rausgehen.
+        id: notes
+        run: |
+          NOTES_FILE="docs/release-notes/${GITHUB_REF_NAME}.md"
+          if [ ! -f "$NOTES_FILE" ]; then
+            echo "::error::Missing $NOTES_FILE - create it before tagging (see /CLAUDE.md release-checklist)."
+            exit 1
+          fi
+          {
+            echo "body<<EOF_RELEASE_BODY"
+            cat "$NOTES_FILE"
+            echo
+            cat <<'INSTALL_FOOTER'
+## Install (first time only)
+
+1. Download the `.dmg` below and open it.
+2. Drag **ScriptZ.app** into your **Applications** folder.
+3. The app is **unsigned** (no Apple Developer account), so macOS
+   will refuse to open it. Run this once in Terminal to remove the
+   quarantine flag:
+
+   ```bash
+   xattr -cr /Applications/ScriptZ.app
+   ```
+
+4. Open ScriptZ from Applications — it will now launch normally.
+
+If you skip step 3, you'll see "ScriptZ is damaged and can't be
+opened" or "cannot be opened because the developer cannot be
+verified". That's macOS Gatekeeper, not the app.
+INSTALL_FOOTER
+            echo "EOF_RELEASE_BODY"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -63,34 +102,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'ScriptZ ${{ github.ref_name }}'
-          releaseBody: |
-            ScriptZ ${{ github.ref_name }} — Apple Silicon only.
-
-            ## Install (first time only)
-
-            1. Download the `.dmg` below and open it.
-            2. Drag **ScriptZ.app** into your **Applications** folder.
-            3. The app is **unsigned** (no Apple Developer account), so macOS
-               will refuse to open it. Run this once in Terminal to remove the
-               quarantine flag:
-
-               ```bash
-               xattr -cr /Applications/ScriptZ.app
-               ```
-
-            4. Open ScriptZ from Applications — it will now launch normally.
-
-            If you skip step 3, you'll see "ScriptZ is damaged and can't be
-            opened" or "cannot be opened because the developer cannot be
-            verified". That's macOS Gatekeeper, not the app.
-
-            ## Updating
-
-            From this release onward, ScriptZ checks GitHub once an hour for
-            new versions. When one is available you'll see a small green pill
-            in the file browser footer — click it to download and install in
-            place. The `xattr` step is **not** required for in-app updates
-            (only for the very first install).
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           projectPath: apps/desktop

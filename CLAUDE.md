@@ -88,6 +88,10 @@ Auto-Updater auf der alten Version hängen:
    `fallbackVersion`. Die Landing fetcht zwar zur Build-Zeit aus der
    GitHub-Releases-API, aber `fallbackVersion` greift, falls die API
    beim Build down ist - und sollte daher zum aktuellen Tag passen.
+5. [`docs/release-notes/vX.Y.Z.md`](docs/release-notes/) **neu anlegen**
+   mit dem Changelog seit dem letzten Tag (siehe nächster Abschnitt).
+   Der Release-Workflow liest diese Datei und bricht ab, wenn sie
+   fehlt - kein Release geht mit der vorherigen Beschreibung raus.
 
 Danach: commit, `git tag vX.Y.Z`, `git push origin main vX.Y.Z`. Der
 Release-Workflow triggert nach erfolgreichem Build automatisch einen
@@ -96,6 +100,44 @@ damit die Landing die frisch publizierte Version aus der
 GitHub-Releases-API zieht. Ohne diesen Hook würde die Landing auf
 der vorherigen Version hängenbleiben, weil Vercel nur auf Git-Push
 reagiert - und der Push passiert *vor* dem Release-Publish.
+
+### Release-Notes schreiben
+
+Pro Release **eine** Markdown-Datei unter
+[`docs/release-notes/vX.Y.Z.md`](docs/release-notes/) anlegen. Inhalt:
+
+- **Erste Zeile:** kurzes Headline-Statement, was dieses Release
+  ausmacht. `ScriptZ vX.Y.Z - <ein-Satz-Tagline>.`
+- **`## Was ist neu`** mit den User-sichtbaren Features seit dem
+  vorherigen Tag. Knackig, in Bullets gruppiert nach Themen.
+  Keine Refactor-Listen. Keine internen Migration-Phasen. Was würde
+  ein User merken, der die App benutzt?
+- **`## Bug-Fixes`** wenn vorhanden. Kurz beschreiben, was sich für
+  den User ändert (nicht *welche Datei* gefixt wurde).
+- **`## Updating`** als letzter inhaltlicher Abschnitt mit ein bis
+  zwei Sätzen, wie die Auto-Update-Pille funktioniert.
+
+Die statische **Install-Footer** ("Install (first time only)" mit
+`xattr -cr`-Hinweis) hängt der Release-Workflow automatisch dran -
+**niemals** in die per-Version-Datei kopieren. Die kommt aus
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+**Die Landing hat in den Release-Notes nichts zu suchen.** Die Notes
+beschreiben die App, nicht die Marketing-Site. Änderungen an
+`write-scriptz.com` wandern nicht ins Release.
+
+Als Vorlage: [`docs/release-notes/v0.6.0.md`](docs/release-notes/v0.6.0.md).
+
+Workflow-Verhalten: ist die Datei vor dem Tag-Push commited, baut der
+Release-Workflow Body = Datei-Inhalt + Install-Footer. Vergisst man
+sie, **bricht der Workflow mit klarem Error ab** statt mit der
+vorherigen Beschreibung weiterzumachen.
+
+Wer einen bereits publizierten Release retroaktiv mit den richtigen
+Notes nachziehen will: Body-Datei manuell zusammensetzen
+(per-Version-Notes + Install-Footer aus dem Workflow-YAML einmalig
+copy/pasten) und mit `gh release edit vX.Y.Z --notes-file <datei>`
+überschreiben.
 
 ### Was bei einem Release alles automatisch passiert
 
