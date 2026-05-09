@@ -6,16 +6,19 @@
 // The model list fetched from OpenRouter is cached as JSON in `settings` for
 // 24 h to avoid hammering their API every time the user opens the picker.
 //
-// Summary generation is triggered by `commands::scripts::update_script` after
-// each save and runs on a background tokio task. We never block the save
-// itself on the network round-trip.
+// Summary generation is triggered by the TS-side `updateScript` after
+// each save (via `invoke("ai_generate_summary", ...)` fire-and-forget)
+// and runs on a background tokio task. We never block the save itself
+// on the network round-trip. `trigger_summary_async` is no longer
+// called from inside the Rust crate; only the Tauri command path
+// remains.
 
 use once_cell::sync::Lazy;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, State};
+use tauri::State;
 
 use crate::db::{now_ms, Db};
 use crate::error::{Result, ScriptzError};
@@ -671,14 +674,7 @@ async fn generate_summary_inner(
     Ok(Some(summary))
 }
 
-/// Fire-and-forget trigger called from `update_script` after each save. Eats
-/// errors after logging — a transient OpenRouter blip should never surface to
-/// the editor.
-pub fn trigger_summary_async(app: AppHandle, script_id: String) {
-    tauri::async_runtime::spawn(async move {
-        let db = app.state::<Db>().inner().clone();
-        if let Err(e) = generate_summary_inner(&db, &script_id, false).await {
-            tracing::debug!(target: "ai", "background summary for {script_id} failed: {e}");
-        }
-    });
-}
+// `trigger_summary_async` removed in Migration Phase 7d: the trigger
+// now goes through `invoke("ai_generate_summary", ...)` from the
+// TS-side updateScript, which lands in `ai_generate_summary` above and
+// runs through the same `generate_summary_inner` heuristics.

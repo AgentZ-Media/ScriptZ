@@ -21,11 +21,16 @@ import {
 } from "./folders";
 import { globalSearch as searchGlobal } from "./search";
 import {
+  archiveScript as scriptsArchive,
   createScript as scriptsCreate,
   duplicateScript as scriptsDuplicate,
+  emptyTrash as scriptsEmptyTrash,
   getScript as scriptsGet,
   listScripts as scriptsList,
+  purgeScript as scriptsPurge,
   renameScript as scriptsRename,
+  restoreScript as scriptsRestore,
+  updateScript as scriptsUpdate,
 } from "./scripts";
 import {
   createSnapshot as snapsCreate,
@@ -48,9 +53,7 @@ import type {
 } from "./types";
 
 export const api = {
-  // Scripts — read paths + create/duplicate/rename moved to TS in Migration
-  // Phase 7a + 7b. update_script and archive/restore/purge/empty_trash
-  // still go through Rust and join 7c + 7d later.
+  // Scripts — fully TS-side since Migration Phase 7d.
   async createScript(input: {
     title?: string;
     initialContentJson?: string;
@@ -73,14 +76,7 @@ export const api = {
     pageCount?: number;
     characters?: ScriptCharacter[];
   }): Promise<ScriptSummary> {
-    const payload: Record<string, unknown> = { id: input.id };
-    if (input.title !== undefined) payload.title = input.title;
-    if (input.highlightingEnabled !== undefined)
-      payload.highlighting_enabled = input.highlightingEnabled;
-    if (input.contentJson !== undefined) payload.content_json = input.contentJson;
-    if (input.pageCount !== undefined) payload.page_count = input.pageCount;
-    if (input.characters !== undefined) payload.characters = input.characters;
-    return invoke("update_script", { input: payload });
+    return scriptsUpdate(input);
   },
   async listScripts(query: {
     includeArchived?: boolean;
@@ -102,16 +98,16 @@ export const api = {
     });
   },
   async archiveScript(id: string): Promise<void> {
-    return invoke("archive_script", { id });
+    return scriptsArchive(id);
   },
   async restoreScript(id: string): Promise<void> {
-    return invoke("restore_script", { id });
+    return scriptsRestore(id);
   },
   async purgeScript(id: string): Promise<void> {
-    return invoke("purge_script", { id });
+    return scriptsPurge(id);
   },
   async emptyTrash(): Promise<void> {
-    return invoke("empty_trash", {});
+    return scriptsEmptyTrash();
   },
   async duplicateScript(id: string): Promise<ScriptSummary> {
     return scriptsDuplicate(id);

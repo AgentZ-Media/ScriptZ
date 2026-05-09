@@ -1,18 +1,27 @@
-// Script CRUD — read paths plus create/duplicate/rename.
+// Script CRUD — full module since Migration Phase 7a-d.
 //
-// TS port of src-tauri/src/commands/scripts.rs (Migration Phase 7a + 7b).
-// Phase 7c will absorb update_script and Phase 7d the archive/restore/
-// purge/trash handlers; until then those still live in Rust and write
-// the same tables this module reads.
+// TS port of src-tauri/src/commands/scripts.rs. Replaces the Rust
+// implementation entirely as of Phase 7d; scripts.rs is gone.
 //
-// Reconciliation parity: every save (create here, update on the Rust
-// side) walks the content for character names, picks colours by the
-// override > sticky > default > palette priority, and back-fills the
-// app-wide default registry for unseen names. The two sides MUST agree
-// on this logic byte-for-byte, otherwise the same name could land on
-// different colours depending on which path saved last. The TS
-// reconcile is a literal port of `reconcile_chars_from_content` so
-// either side produces the same output for the same inputs.
+// Reconciliation: every content save walks the JSON for character
+// names and picks colours by the override > sticky > default > palette
+// priority, back-filling the app-wide default registry for unseen
+// names. Identical algorithm to what Rust used to run, so existing
+// scripts keep their colour assignments across the migration.
+//
+// FK behaviour: tauri-plugin-sql opens connections via sqlx-sqlite,
+// which sets `PRAGMA foreign_keys = ON` by default. DELETEs on
+// `scripts` therefore cascade into `snapshots` (declared ON DELETE
+// CASCADE in migration v2) without an explicit pre-delete here.
+//
+// Transaction caveat: plugin-sql exposes no JS transaction API, so
+// multi-statement updates run as independent auto-committed
+// statements. For update_script that means a concurrent save can
+// interleave field writes — in practice all callers go through the
+// debounced save in Editor.tsx, so the race window is small. FTS
+// refresh runs after the row update; a search hit landing in the
+// micro-window between can show stale snippets, which the next save
+// corrects.
 
 import {
   DEFAULT_PALETTE,
@@ -24,8 +33,9 @@ import {
   type ColorRecord,
 } from "./characterColors";
 import { getDb } from "./db";
-import { refreshFtsForScript } from "./fts";
+import { deleteScriptFts, refreshFtsForScript } from "./fts";
 import { extractCharacterNames } from "./lex";
+import { invoke } from "./tauri";
 import type { Script, ScriptCharacter, ScriptSummary } from "./types";
 
 interface SummaryRow {
@@ -239,6 +249,136 @@ export async function renameScript(id: string, title: string): Promise<ScriptSum
   );
   await refreshFtsForScript(id);
   return rowToSummary(id);
+}
+
+export interface UpdateScriptInput {
+  id: string;
+  title?: string;
+  /** `null` clears the override (= follow global default). `undefined` =
+   *  no change. The Rust `Option<Option<i64>>` shape collapses to this
+   *  in JS because `undefined` simply isn't sent. */
+  highlightingEnabled?: number | null;
+  contentJson?: string;
+  pageCount?: number;
+  /** Caller-supplied override of the per-script character list (e.g.
+   *  the user picked a colour). Replaces characters_meta directly,
+   *  bypassing the reconcile step. */
+  characters?: ScriptCharacter[];
+}
+
+export async function updateScript(input: UpdateScriptInput): Promise<ScriptSummary> {
+  const db = await getDb();
+  const now = Date.now();
+
+  const existRows = await db.select<{ n: number }[]>(
+    "SELECT COUNT(*) AS n FROM scripts WHERE id = $1",
+    [input.id],
+  );
+  if ((existRows[0]?.n ?? 0) === 0) {
+    throw new Error(`not found: script ${input.id}`);
+  }
+  const contentChanged = input.contentJson !== undefined;
+
+  if (input.title !== undefined) {
+    await db.execute(
+      "UPDATE scripts SET title = $1, updated_at = $2 WHERE id = $3",
+      [input.title, now, input.id],
+    );
+  }
+  if (input.highlightingEnabled !== undefined) {
+    await db.execute(
+      "UPDATE scripts SET highlighting_enabled = $1, updated_at = $2 WHERE id = $3",
+      [input.highlightingEnabled, now, input.id],
+    );
+  }
+  if (input.contentJson !== undefined) {
+    // Reconcile characters_meta against the new content.
+    const metaRows = await db.select<{ characters_meta: string }[]>(
+      "SELECT characters_meta FROM scripts WHERE id = $1",
+      [input.id],
+    );
+    const existing = parseCharsMeta(metaRows[0]?.characters_meta ?? "[]");
+    const records = await loadColorRecords();
+    const { chars, newDefaults } = reconcileCharsFromContent(
+      existing,
+      input.contentJson,
+      records,
+    );
+    for (const [n, c] of newDefaults) {
+      await upsertDefaultColor(n, c, now);
+    }
+    const charsJson = serializeCharsMeta(chars);
+    await db.execute(
+      "UPDATE scripts SET content_json = $1, characters_meta = $2, updated_at = $3 WHERE id = $4",
+      [input.contentJson, charsJson, now, input.id],
+    );
+  }
+  if (input.pageCount !== undefined) {
+    await db.execute(
+      "UPDATE scripts SET page_count = $1 WHERE id = $2",
+      [input.pageCount, input.id],
+    );
+  }
+  if (input.characters !== undefined) {
+    const charsJson = serializeCharsMeta(input.characters);
+    await db.execute(
+      "UPDATE scripts SET characters_meta = $1, updated_at = $2 WHERE id = $3",
+      [charsJson, now, input.id],
+    );
+  }
+  await refreshFtsForScript(input.id);
+
+  const summary = await rowToSummary(input.id);
+
+  if (contentChanged) {
+    // Fire-and-forget background summary trigger. AI command still
+    // lives in Rust until Phase 9; the heuristics inside (rate-limit,
+    // Jaccard threshold, opt-in flag) decide whether to actually call
+    // OpenRouter.
+    void invoke<unknown>("ai_generate_summary", {
+      scriptId: input.id,
+      force: false,
+    }).catch(() => {
+      // Background error — never surface to the editor.
+    });
+  }
+  return summary;
+}
+
+export async function archiveScript(id: string): Promise<void> {
+  const db = await getDb();
+  const now = Date.now();
+  await db.execute(
+    "UPDATE scripts SET archived_at = $1 WHERE id = $2",
+    [now, id],
+  );
+}
+
+export async function restoreScript(id: string): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE scripts SET archived_at = NULL WHERE id = $1",
+    [id],
+  );
+}
+
+/** Hard-delete a script. Snapshots cascade via the FK; FTS row is
+ *  removed explicitly because the virtual table has no FK link. */
+export async function purgeScript(id: string): Promise<void> {
+  const db = await getDb();
+  await db.execute("DELETE FROM scripts WHERE id = $1", [id]);
+  await deleteScriptFts(id);
+}
+
+export async function emptyTrash(): Promise<void> {
+  const db = await getDb();
+  const ids = await db.select<{ id: string }[]>(
+    "SELECT id FROM scripts WHERE archived_at IS NOT NULL",
+  );
+  for (const { id } of ids) {
+    await db.execute("DELETE FROM scripts WHERE id = $1", [id]);
+    await deleteScriptFts(id);
+  }
 }
 
 // ---------- internal helpers ----------

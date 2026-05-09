@@ -166,21 +166,6 @@ pub fn jaccard_similarity(
     if union == 0.0 { 1.0 } else { inter / union }
 }
 
-/// Collect unique character names (uppercase) used in the script's content.
-pub fn extract_character_names(content_json: &str) -> Vec<String> {
-    let blocks = extract_blocks(content_json);
-    let mut seen = std::collections::HashSet::new();
-    let mut out: Vec<String> = Vec::new();
-    for b in blocks {
-        if b.kind == "scriptz-character" {
-            let name = b.text.trim().to_uppercase();
-            if name.is_empty() {
-                continue;
-            }
-            if seen.insert(name.clone()) {
-                out.push(name);
-            }
-        }
-    }
-    out
-}
+// extract_character_names retired in Migration Phase 7d — only the
+// Rust-side reconcile used it, and the reconcile now runs in TS via
+// src/lib/lex.ts (see Phase 1 byte-equivalence proof).

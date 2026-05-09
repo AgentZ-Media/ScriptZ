@@ -1,7 +1,7 @@
 mod commands;
 mod db;
 mod error;
-mod fts;
+// fts module retired in Migration Phase 7d (no Rust writer left).
 mod lex;
 mod models;
 
@@ -50,14 +50,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // debug (migration-only — frontend → terminal log bridge)
             commands::debug::frontend_log,
-            // scripts: read paths + create/duplicate/rename moved to TS in
-            // Migration Phase 7a + 7b. update_script and archive flow still
-            // here; they join in 7c + 7d.
-            commands::scripts::update_script,
-            commands::scripts::archive_script,
-            commands::scripts::restore_script,
-            commands::scripts::purge_script,
-            commands::scripts::empty_trash,
+            // scripts module fully moved to TS in Migration Phase 7d
             // folders moved to TS in Migration Phase 4
             // snapshots moved to TS in Migration Phase 5
             // search moved to TS in Migration Phase 6
