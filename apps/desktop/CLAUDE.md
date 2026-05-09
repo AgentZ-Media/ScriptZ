@@ -1,8 +1,11 @@
 # ScriptZ — Claude context
 
 Fast, local script editor for TikTok creators and sketch teams. Tauri 2
-+ Rust backend + Solid + TypeScript + Lexical editor (vanilla, no
-React). Mac-first; Windows/Linux possible later.
+shell + Solid + TypeScript + Lexical editor (vanilla, no React). All
+persistence, search, export and CRUD lives in TypeScript via
+`@tauri-apps/plugin-sql`; the Rust crate is reduced to plugin wiring +
+schema migrations after the Phase 0–11 Rust → TS migration finished
+in 2026-05. Mac-first; Windows/Linux possible later.
 
 This codebase was deliberately stripped down to a minimal feature set in
 2026-05. The original spec (`ScriptZ-Projektplan.md`) describes a much
@@ -33,30 +36,75 @@ vite.config.ts
 src-tauri/
   src/
     main.rs                entry → scriptz_lib::run()
-    lib.rs                 Tauri Builder, plugin wiring, command registration
-    db.rs                  SQLite pool (r2d2 + rusqlite, bundled), WAL,
-                           page_size 8192, single migration v2
-    error.rs               ScriptzError + Serialize for tauri::command
-    models.rs              Rust structs (Script, ScriptSummary, ScriptCharacter,
-                           Snapshot, ListScriptsQuery, …)
-    fts.rs                 FTS5 index helpers (sanitize_fts_query, upsert)
-    lex.rs                 Server-side Lexical-state walkers:
-                           extract_blocks, extract_plain_text,
-                           extract_teleprompter_text, extract_character_names
-    commands/
-      scripts.rs           CRUD + duplicate + archive/restore/purge.
-                           Reconciles characters_meta from content_json
-                           on every update. Sticky color via DEFAULT_PALETTE.
-      snapshots.rs         Auto + manual snapshots, 50-per-script cap
-      search.rs            FTS5 BM25 over scripts (title + content_text)
-      settings.rs          Generic key/value
-      app_state.rs         Generic key/value (open tabs etc.)
-      export.rs            PDF (printpdf, A4, widow/orphan in render loop)
-                           + plain-text (teleprompter) export. Char tinting
-                           via name lookup against characters_meta.
-      updates.rs           GitHub Releases poll (hourly, no payload)
+    lib.rs                 ~45 lines: Tauri Builder + plugin wiring +
+                           plugin-sql migration list. No commands, no
+                           business logic, no setup-closure.
+  migrations/
+    001_baseline.sql       Idempotent post-Phase-7 schema (CREATE TABLE
+                           IF NOT EXISTS …). Includes the AI summary
+                           cols on purpose so 002 can DROP them
+                           uniformly on fresh + existing DBs.
+    002_ai_cleanup.sql     ALTER TABLE DROP COLUMN x5 + DELETE
+                           ai.* settings.
+  capabilities/default.json  Tauri permission scope (sql, fs, dialog, …)
+  tauri.conf.json          Window geometry, bundle ID, updater endpoint
+  Cargo.toml               11 deps: tauri + 9 plugins + serde_json (only
+                           because tauri::generate_context!() expands to
+                           code that references it).
 
-src/                Solid frontend
+src/                Solid frontend (TypeScript) — owns all persistence
+  lib/
+    db.ts              Lazy plugin-sql connection (Database.load("sqlite:scriptz.db")).
+    scripts.ts         CRUD + duplicate + archive/restore/purge. Reconciles
+                       characters_meta from content_json on every update.
+                       Sticky color via DEFAULT_PALETTE in characterColors.ts.
+    snapshots.ts       Auto + manual snapshots, 50-per-script cap.
+    search.ts          FTS5 BM25 over scripts_fts (title + content_text).
+    folders.ts         Flat one-level folders.
+    characterColors.ts App-wide name → colour overrides + palette logic.
+    fts.ts             FTS5 helpers (sanitize, refresh-on-save).
+    lex.ts             Lexical state → text extraction (extract_blocks,
+                       extract_teleprompter_text, extract_character_names).
+                       Powers FTS, plain-text export, and character-meta
+                       reconciliation on every save.
+    exportPdf.ts       PDF export via pdf-lib + @pdf-lib/fontkit. A4,
+                       widow/orphan control, char tinting via name lookup
+                       against the script's characters_meta.
+    exportPlaintext.ts Teleprompter plain-text export (Char/Dialog/Paren).
+    api.ts             Single `api.*` facade exposing the modules above
+                       as a typed object. Used by every component.
+    types.ts           TS-side data types (Script, ScriptSummary, Folder,
+                       Snapshot, ScriptCharacter, SearchHit …).
+    tauri.ts           thin invoke wrapper, isTauri flag (rare — most
+                       code now goes through plugin-sql, not commands).
+    colors.ts          tint() helper (rgba blend)
+    format.ts          relativeTime, formatAbsolute, debounce
+    saveFlush.ts       central registry for "drain pending writes"
+                       hooks (editor auto-save, tab-state persist) so
+                       the window-close handler in App.tsx can wait for
+                       all buffered work before destroying the window
+    welcome.ts         first-run welcome script seeder (generic tutorial)
+  index.tsx              entry, mounts <App>, imports global CSS
+  App.tsx                tabs + overlays (CmdK, Settings, NewScript)
+  components/
+    TabBar.tsx           rounded tabs with App-icon + +-button
+    Editor/
+      ScriptView.tsx     paper canvas + char pillbar (read-only) + status strip
+      Editor.tsx         Lexical mount: createEditor, registerRichText,
+                         registerHistory, all custom plugins
+      ExportDialog.tsx   PDF + Plain Text export modal
+      SnapshotsDialog.tsx history browser with restore
+      nodes/             7 ElementNode subclasses
+        BaseScriptzNode  shared base, getBlockType()
+        Scriptz{Action,Character,Dialog,Parenthetical,Camera,Caption,Sfx}Node
+      plugins/
+        smartEnter.ts          Enter/Backspace state machine
+        blockHotkeys.ts        Cmd+1..7 → block-type swap
+        blockDropdown.tsx      Tab opens block-type picker
+        characterDropdown.tsx  cursor-anchored autocomplete; entries are
+                               sorted by predict.ts ranking so the visual
+                               order mirrors the prediction
+        parentheticalLive.ts   live ( … ) detection in Dialog
   index.tsx              entry, mounts <App>, imports global CSS
   App.tsx                tabs + overlays (CmdK, Settings, NewScript)
   components/
@@ -97,30 +145,23 @@ src/                Solid frontend
     settings.ts        theme, highlightingDefault, updateCheck flags
     tabs.ts            open tabs, persistence in app_state.open_tabs
     toasts.ts          push-toast helper
-  lib/
-    api.ts             typed `invoke` wrappers for every Rust command
-    types.ts           TS types mirrored from src-tauri/src/models.rs
-    tauri.ts           thin invoke wrapper, isTauri flag
-    colors.ts          tint() helper (rgba blend)
-    format.ts          relativeTime, formatAbsolute, debounce
-    saveFlush.ts       central registry for "drain pending writes"
-                       hooks (editor auto-save, tab-state persist) so
-                       the window-close handler in App.tsx can wait for
-                       all buffered work before destroying the window
-    welcome.ts         first-run welcome script seeder (generic tutorial)
   styles/
     tokens.css         design tokens (brand orange #e0791f, A4 mm geometry)
     fonts.css          iA Writer Quattro @font-face
     global.css         resets, .btn / .modal / .toast etc.
+public/fonts/          iA Writer Quattro TTFs (loaded at runtime by
+                       exportPdf.ts via fetch + pdf-lib embedFont)
 ```
 
 ## Conventions
 
-- **Rust holds the truth.** Frontend never writes SQL. All persistence goes
-  through `#[tauri::command]` functions in `commands/*.rs`.
+- **TypeScript owns persistence.** All SQL goes through plugin-sql via
+  the modules in `src/lib/` (db, scripts, snapshots, folders, …).
+  There are no Tauri commands for data access — the Rust side opens
+  no DB connections.
 - **All entities use UUIDv4 string IDs.** Never auto-increment integers.
-- **Timestamps** are `i64` Unix-millis (`chrono::Utc::now().timestamp_millis()`).
-- **No `any` in TypeScript.** Backend types in `src/lib/types.ts`.
+- **Timestamps** are JS Unix-millis (`Date.now()`).
+- **No `any` in TypeScript.** Data types in `src/lib/types.ts`.
 - **Lexical: vanilla only.** No `@lexical/react`. We `editor.setRootElement(ref)`
   and **must** call `registerRichText(editor)` — without it,
   `CONTROLLED_TEXT_INSERTION_COMMAND` has no default handler and typing
@@ -144,12 +185,13 @@ global character table.
 
 - The Lexical state contains `scriptz-character` blocks with a
   `characterName` attribute (uppercased, kept in sync by `allcaps.ts`).
-- On every save, Rust walks the JSON via `lex::extract_character_names`,
-  reconciles the result against `scripts.characters_meta` (a JSON array
-  of `{name, color}`), and writes the merged list back. Names are matched
-  case-insensitively; **colors are sticky** — a name that already has a
-  color keeps it. New names get the next free color from `DEFAULT_PALETTE`
-  in `commands/scripts.rs`.
+- On every save, `src/lib/scripts.ts` walks the JSON via
+  `extractCharacterNames` (in `src/lib/lex.ts`), reconciles the result
+  against `scripts.characters_meta` (a JSON array of `{name, color}`),
+  and writes the merged list back. Names are matched case-insensitively;
+  **colors are sticky** — a name that already has a color keeps it.
+  New names get the next free color from `DEFAULT_PALETTE` in
+  `src/lib/characterColors.ts`.
 - The frontend reads `script.characters` (the parsed array) for the
   pillbar and the in-editor autocomplete dropdown. There is no
   "create character" UI — it happens implicitly when you type a new
@@ -159,18 +201,21 @@ global character table.
 
 - Editor mounts on script load → registers all plugins → `onUpdate`
   debounced 250 ms → serialises Lexical state to JSON →
-  `api.updateScript` → Rust writes `scripts.content_json`, refreshes
-  FTS5, reconciles `characters_meta`.
+  `api.updateScript` → `src/lib/scripts.ts` writes `scripts.content_json`
+  via plugin-sql, refreshes FTS5 (`refreshFtsForScript`), reconciles
+  `characters_meta` against `character_colors`.
 - `onSaved` callback fires after each successful save → `ScriptView`
   refetches the script → pillbar re-renders with the latest character
   list.
 - Auto-snapshot fires every 5 min while dirty (`api.createSnapshot(id, "auto")`).
-  Manual via `Cmd+Shift+S`. Cap is 50 per script (oldest is dropped).
+  Manual via `Cmd+Shift+S`. Cap is 50 per script (oldest is dropped),
+  enforced in both `createSnapshot` and `restoreSnapshot`.
 - Search: frontend → `api.globalSearch(query)` → FTS5 BM25 over
   `scripts_fts` → `SearchHit[]` with `<mark>` snippets.
-- PDF export: frontend `api.exportPdf({ scriptId, path, ... })` → Rust
-  parses `content_json`, walks blocks, lays out on A4 with widow/orphan
-  control, writes via `printpdf`. The frontend never assembles PDF bytes.
+- PDF export: frontend `api.exportPdf({ scriptId, path, … })` →
+  `src/lib/exportPdf.ts` reads the script via plugin-sql, walks blocks,
+  lays out on A4 with widow/orphan control via pdf-lib, writes the
+  bytes via `@tauri-apps/plugin-fs::writeFile`. No Rust code involved.
 
 ## Commands
 
@@ -210,11 +255,15 @@ metadata at runtime — no `VITE_APP_VERSION` constant to keep in sync.
 
 To cut a release:
 
-1. Bump the version in **all four** places (they must agree, or
-   `tauri build` warns and `latest.json` will mislabel the release):
+1. Bump the version in **all six** places (they must agree, or
+   `tauri build` warns, the CI build breaks on `--frozen-lockfile`,
+   or the landing shows the previous version after a GitHub-API blip):
    - `apps/desktop/package.json` → `version`
    - `apps/desktop/src-tauri/Cargo.toml` → `[package] version`
+   - `apps/desktop/src-tauri/Cargo.lock` → the `name = "scriptz"` entry
+     (cargo auto-rewrites this when you edit Cargo.toml, but commit it)
    - `apps/desktop/src-tauri/tauri.conf.json` → `version`
+   - `apps/landing/src/data/site.ts` → `fallbackVersion`
    - `/README.md` (Repo-Root) → the `version-X.Y.Z` shields.io badge
      near the top (the only displayed version humans see before
      installing)
@@ -258,8 +307,10 @@ Repo-Root-`CLAUDE.md` hat eine vollständige Liste der Auslöser.
   `pnpm typecheck` and `cargo check` for verification, and describe what
   to look for if a manual UI check is needed.
 - **No `@lexical/react`.** Solid + React don't mix.
-- **No `tauri-plugin-sql`.** We own the schema in Rust (richer than the
-  plugin allows for FTS5 + reconcile-on-save).
+- **No new Tauri commands for data.** Persistence runs through
+  `@tauri-apps/plugin-sql` from `src/lib/`. The Rust crate intentionally
+  has no `invoke_handler`; if you find yourself wanting one for CRUD,
+  you're probably reinventing what plugin-sql already gives you.
 - **No localStorage for script content.** Persistence is SQLite.
 - **No telemetry.** App works fully offline. The only network call is
   the hourly updater poll to

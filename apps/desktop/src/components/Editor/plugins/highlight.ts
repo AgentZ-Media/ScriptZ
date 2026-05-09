@@ -8,9 +8,9 @@
 // colour. The Editor.css rule paints `background: var(--char-tint, …)`
 // when `data-highlighting="on"` is set on the editor root.
 //
-// PDF export already does the equivalent walk in Rust (see export.rs).
-// This brings the live editor in line with the rendered output the user
-// sees on save/share.
+// PDF export does the equivalent walk in TS (see src/lib/exportPdf.ts,
+// `computeTint` + `hexToRgbTint`). This brings the live editor in line
+// with the rendered output the user sees on save/share.
 
 import type { LexicalEditor } from "lexical";
 import { $getRoot } from "lexical";
@@ -24,7 +24,7 @@ const TINT_BLOCKS = new Set([
 ]);
 
 /** Convert "#rrggbb" plus an alpha factor (0..1) into a "rgb(r,g,b)"
- * blended toward white — matches the formula used by export.rs so
+ * blended toward white — matches the formula used by exportPdf.ts so
  * editor / PDF tints look identical. */
 function hexToTint(hex: string, alpha: number): string {
   const s = hex.replace("#", "");

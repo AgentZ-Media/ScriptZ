@@ -220,14 +220,17 @@ function simpleWrap(text: string, width: number): string[] {
 // Lighten an RGB hex toward white by `(1 - alphaFactor)` — matches
 // Rust `hex_to_rgb_tint(hex, 0.28)`.
 function hexToRgbTint(hex: string, alphaFactor: number): [number, number, number] {
+  // Neutral grey fallback for any malformed hex. Rust used two different
+  // greys here (240,240,240 vs 160,160,160) which made debugging harder;
+  // collapsed to one because both branches are practically dead — character
+  // colours come from DEFAULT_PALETTE which is well-formed.
+  const FALLBACK: [number, number, number] = [160, 160, 160];
   const s = hex.startsWith("#") ? hex.slice(1) : hex;
-  if (s.length !== 6) return [240, 240, 240];
+  if (s.length !== 6) return FALLBACK;
   const r = parseInt(s.slice(0, 2), 16);
   const g = parseInt(s.slice(2, 4), 16);
   const b = parseInt(s.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
-    return [160, 160, 160];
-  }
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return FALLBACK;
   const mix = (c: number) =>
     Math.max(0, Math.min(255, Math.round(255 - (255 - c) * alphaFactor)));
   return [mix(r), mix(g), mix(b)];
@@ -440,13 +443,22 @@ export async function exportPdf(
   if (parent) {
     try {
       await mkdir(parent, { recursive: true });
-    } catch {
-      // mkdir errors when the directory exists — recursive doesn't always
-      // suppress that; the actual writeFile below will surface real failures.
+    } catch (err) {
+      // recursive: true should make this idempotent, but plugin-fs
+      // surfaces "already exists" as an error on some OS variants.
+      // Anything else (permission denied, invalid path, …) we want to
+      // see — the writeFile below would fail too, but with a less
+      // helpful message.
+      if (!isAlreadyExistsError(err)) throw err;
     }
   }
   await writeFile(input.path, bytes);
   return { path: input.path };
+}
+
+function isAlreadyExistsError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /already exists|EEXIST|file exists/i.test(msg);
 }
 
 function parentDir(path: string): string | null {

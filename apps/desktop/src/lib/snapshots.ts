@@ -110,6 +110,17 @@ export async function restoreSnapshot(snapshotId: string): Promise<void> {
     "INSERT INTO snapshots (id, script_id, content_json, trigger, created_at) VALUES ($1, $2, $3, 'auto', $4)",
     [backupId, scriptId, curRows[0].content_json, now],
   );
+  // Restore counts as a snapshot insert; honour the 50-per-script cap so
+  // repeated restores (or restore-after-many-saves) can't grow the table
+  // unbounded. Mirrors createSnapshot's trim DELETE.
+  await db.execute(
+    `DELETE FROM snapshots WHERE id IN (
+       SELECT id FROM snapshots WHERE script_id = $1
+       ORDER BY created_at DESC
+       LIMIT -1 OFFSET $2
+     )`,
+    [scriptId, MAX_SNAPSHOTS_PER_SCRIPT],
+  );
 
   await db.execute(
     "UPDATE scripts SET content_json = $1, updated_at = $2 WHERE id = $3",

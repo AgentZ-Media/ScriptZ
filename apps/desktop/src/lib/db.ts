@@ -9,10 +9,19 @@ import Database from "@tauri-apps/plugin-sql";
 
 let dbPromise: Promise<Database> | null = null;
 
-/** Lazily open (and cache) the connection to scriptz.db. */
+/** Lazily open (and cache) the connection to scriptz.db.
+ *
+ * On rejection we clear the cache so the next caller retries Database.load
+ * — otherwise a transient open failure (file locked mid-write, plugin-sql
+ * not yet ready in early boot, …) would poison every subsequent DB call
+ * for the lifetime of the app. */
 export function getDb(): Promise<Database> {
   if (!dbPromise) {
-    dbPromise = Database.load("sqlite:scriptz.db");
+    const p = Database.load("sqlite:scriptz.db");
+    p.catch(() => {
+      if (dbPromise === p) dbPromise = null;
+    });
+    dbPromise = p;
   }
   return dbPromise;
 }

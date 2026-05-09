@@ -148,10 +148,15 @@ export async function moveScripts(
     }
   }
   const now = Date.now();
+  const missing: string[] = [];
   for (const sid of scriptIds) {
-    await db.execute(
+    const res = await db.execute(
       "UPDATE scripts SET folder_id = $1, updated_at = $2 WHERE id = $3",
       [folderId, now, sid],
     );
+    if ((res.rowsAffected ?? 0) === 0) missing.push(sid);
+  }
+  if (missing.length > 0) {
+    throw new Error(`not found: script(s) ${missing.join(", ")}`);
   }
 }

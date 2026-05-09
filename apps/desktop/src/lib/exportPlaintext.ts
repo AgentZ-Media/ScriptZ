@@ -28,8 +28,14 @@ export async function exportPlaintext(
   if (parent) {
     try {
       await mkdir(parent, { recursive: true });
-    } catch {
-      // Errors here are surfaced by the writeTextFile call below.
+    } catch (err) {
+      // Tolerate "already exists" (recursive: true should suppress it
+      // but plugin-fs leaks it on some OS variants). Surface anything
+      // else — permission denied / invalid path would otherwise hide
+      // behind a misleading writeTextFile error.
+      if (!/already exists|EEXIST|file exists/i.test(
+        err instanceof Error ? err.message : String(err),
+      )) throw err;
     }
   }
   await writeTextFile(input.path, text);

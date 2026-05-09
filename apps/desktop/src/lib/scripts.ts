@@ -310,11 +310,16 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
   }
   if (input.pageCount !== undefined) {
     await db.execute(
-      "UPDATE scripts SET page_count = $1 WHERE id = $2",
-      [input.pageCount, input.id],
+      "UPDATE scripts SET page_count = $1, updated_at = $2 WHERE id = $3",
+      [input.pageCount, now, input.id],
     );
   }
-  if (input.characters !== undefined) {
+  // characters_meta is already reconciled from input.contentJson above.
+  // If a caller passed both, the contentJson reconciliation wins —
+  // overwriting it with input.characters here would silently revert the
+  // sticky-color logic. Only honour input.characters when no contentJson
+  // change accompanies it (e.g. colour-picker edits without body change).
+  if (input.characters !== undefined && input.contentJson === undefined) {
     const charsJson = serializeCharsMeta(input.characters);
     await db.execute(
       "UPDATE scripts SET characters_meta = $1, updated_at = $2 WHERE id = $3",

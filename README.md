@@ -66,12 +66,6 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 - Alle 5 Minuten ein automatischer Snapshot, manuell per ⌘⇧S.
 - Bis zu 50 Versionen pro Skript, jederzeit per ⌘⇧H wiederherstellbar.
 
-### KI-Zusammenfassungen (Opt-in)
-
-- Optional: OpenRouter-API-Key in der Keychain, freie Modellwahl.
-- Pro Skript erscheint eine ein-Satz-Zusammenfassung in der Übersicht.
-- Komplett deaktivierbar — App funktioniert vollständig ohne KI.
-
 ### Tab-Workflow wie im Browser
 
 - **Quick-Switcher** oben in der Titelleiste: Suche + zuletzt bearbeitete Skripte.
