@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.5.0-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/version-0.6.0-1c1814?style=flat-square" alt="version" />
   <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Apple_Silicon-native-1c1814?style=flat-square" alt="Apple Silicon" />
   <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
@@ -72,6 +72,25 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 - **⌘⌥← / ⌘⌥→** zwischen Skripten wechseln.
 - Geschlossene Tabs werden automatisch aufgeräumt, wenn das Skript gelöscht wird.
 
+### Schreibmotivation, ohne Druck
+
+- **Tagesziel** ("X Wörter heute") oben rechts in der Tab-Bar mit live-aktualisiertem Zähler — anpassbar in den Einstellungen.
+- **Streak-Pille** zählt aufeinanderfolgende Schreibtage; Klick öffnet die **Aktivitäts-Übersicht** mit GitHub-Style-Heatmap über die letzten 365 Tage.
+- **Momentum-Strip** auf der Übersicht zeigt aktuellen Streak, Tagesfortschritt und einen "weiterschreiben"-Knopf zum letzten offenen Skript.
+- **Sprint-Timer** unten rechts im Editor: 5 / 15 / 25 Minuten, mit Fortschrittsbalken und Wortzähler — Pomodoro fürs Schreiben, ohne extra App.
+
+### Ideen-Inbox
+
+- **Quick-Capture** per `⌘I` aus jeder Ansicht — Idee tippen, Enter, weiter im aktuellen Skript.
+- **Ideen-Drawer** mit drei Reitern: Offen, Alle, Verwendet — sortiert nach Heute / Gestern / Diese Woche / Älter.
+- **Ein-Klick-Konvertierung** Idee → neues Skript (`⌘↵`); die Notizen landen optional direkt im ersten ACTION-Block.
+
+### Cast-Panel im Editor
+
+- **Cast-Tab** in der rechten Editor-Schiene zeigt jeden Charakter mit Dialog-Wortanteil als getöntem Balken (gleiche Farbe wie im Editor und im PDF).
+- **Skript-Statistik**: geschätzte Spielzeit, Gesamtwortzahl, A4-Seiten, reine Dialog-Wörter.
+- **Versionen-Tab** im selben Panel — Snapshot-Verlauf nicht mehr im Modal versteckt, sondern direkt neben dem Text.
+
 ---
 
 ## Vergleich
@@ -88,6 +107,9 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 | Charakter-Farben | ✅ | ❌ | ❌ | ✅ |
 | Quick-Modus für 2-Personen | ✅ | ❌ | ❌ | ❌ |
 | Bigramm-Predict für Charaktere | ✅ | ❌ | ❌ | ❌ |
+| Streak / Tagesziel / Heatmap | ✅ | ❌ | ❌ | ❌ |
+| Sprint-Timer eingebaut | ✅ | ❌ | ❌ | ❌ |
+| Ideen-Inbox mit Quick-Capture | ✅ | ❌ | ❌ | ❌ |
 | Kostenlos | ✅ | ❌ | ✅ | ⚠️ |
 
 ---
@@ -110,6 +132,12 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 | `⌘E` | Export-Dialog |
 | `⌘⇧S` | Manueller Snapshot |
 | `⌘⇧H` | Snapshot-Verlauf |
+
+### Ideen
+| Shortcut | Aktion |
+|---|---|
+| `⌘I` | Quick-Capture (Idee tippen, Enter speichert) |
+| `⌘↵` | Idee in neues Skript konvertieren (im Drawer) |
 
 ### Editor
 | Shortcut | Aktion |

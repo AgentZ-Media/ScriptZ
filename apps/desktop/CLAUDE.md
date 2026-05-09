@@ -46,6 +46,12 @@ src-tauri/
                            uniformly on fresh + existing DBs.
     002_ai_cleanup.sql     ALTER TABLE DROP COLUMN x5 + DELETE
                            ai.* settings.
+    003_redesign.sql       v0.6 redesign: daily_word_log table for
+                           streak/heatmap aggregation, ideas table for
+                           the inbox, scripts.last_word_count sentinel.
+    004_word_count_sentinel.sql  Backfill sentinel for existing scripts
+                           so the first save after upgrade doesn't
+                           double-count words into daily_word_log.
   capabilities/default.json  Tauri permission scope (sql, fs, dialog, …)
   tauri.conf.json          Window geometry, bundle ID, updater endpoint
   Cargo.toml               11 deps: tauri + 9 plugins + serde_json (only
@@ -84,37 +90,37 @@ src/                Solid frontend (TypeScript) — owns all persistence
                        the window-close handler in App.tsx can wait for
                        all buffered work before destroying the window
     welcome.ts         first-run welcome script seeder (generic tutorial)
+    dailyWords.ts      day-bucketing + word-delta accounting; writes
+                       to daily_word_log on every save (positive
+                       deltas only, sentinel-protected).
+    dailyStats.ts      reads daily_word_log → streak, today's words,
+                       365-day heatmap series.
+    dailyStatsBus.ts   pub/sub for stats changes (wakes Heatmap +
+                       MomentumStrip + EditorToolbar's "X W heute"
+                       counter without polling).
+    ideas.ts           CRUD for the ideas inbox (open / used) +
+                       convert-to-script.
+    ideasBus.ts        pub/sub for ideas list changes.
   index.tsx              entry, mounts <App>, imports global CSS
-  App.tsx                tabs + overlays (CmdK, Settings, NewScript)
+  App.tsx                tabs + overlays (CmdK, Settings, NewScript,
+                         IdeaQuickCapture)
   components/
-    TabBar.tsx           rounded tabs with App-icon + +-button
+    TabBar.tsx           rounded tabs with App-icon + +-button +
+                         daily-goal pill ("X W heute") + streak pill
     Editor/
-      ScriptView.tsx     paper canvas + char pillbar (read-only) + status strip
+      ScriptView.tsx     paper canvas, hosts EditorRail + SprintPill
       Editor.tsx         Lexical mount: createEditor, registerRichText,
                          registerHistory, all custom plugins
+      EditorToolbar.tsx  inline title editor + 7 block-type pills +
+                         quick-mode + highlight + focus + export
+      EditorRail.tsx     right sidebar: Cast tab (per-char dialog %)
+                         + Versions tab (snapshot history inline)
+      SprintPill.tsx     bottom-right Pomodoro pill (5/15/25 min)
+                         with progress bar + word-tracker
       ExportDialog.tsx   PDF + Plain Text export modal
-      SnapshotsDialog.tsx history browser with restore
-      nodes/             7 ElementNode subclasses
-        BaseScriptzNode  shared base, getBlockType()
-        Scriptz{Action,Character,Dialog,Parenthetical,Camera,Caption,Sfx}Node
-      plugins/
-        smartEnter.ts          Enter/Backspace state machine
-        blockHotkeys.ts        Cmd+1..7 → block-type swap
-        blockDropdown.tsx      Tab opens block-type picker
-        characterDropdown.tsx  cursor-anchored autocomplete; entries are
-                               sorted by predict.ts ranking so the visual
-                               order mirrors the prediction
-        parentheticalLive.ts   live ( … ) detection in Dialog
-  index.tsx              entry, mounts <App>, imports global CSS
-  App.tsx                tabs + overlays (CmdK, Settings, NewScript)
-  components/
-    TabBar.tsx           rounded tabs with App-icon + +-button
-    Editor/
-      ScriptView.tsx     paper canvas + char pillbar (read-only) + status strip
-      Editor.tsx         Lexical mount: createEditor, registerRichText,
-                         registerHistory, all custom plugins
-      ExportDialog.tsx   PDF + Plain Text export modal
-      SnapshotsDialog.tsx history browser with restore
+      SnapshotsDialog.tsx history browser with restore (still used
+                          from CmdK; the rail's Versions tab is the
+                          new primary surface)
       nodes/             7 ElementNode subclasses
         BaseScriptzNode  shared base, getBlockType()
         Scriptz{Action,Character,Dialog,Parenthetical,Camera,Caption,Sfx}Node
@@ -135,16 +141,32 @@ src/                Solid frontend (TypeScript) — owns all persistence
     Browser/
       Browser.tsx           file browser: scripts grid, search, sort,
                             paginated by 200 with "load more" button
+      MomentumStrip.tsx     dashboard top row: streak + today's progress
+                            + "weiterschreiben" CTA to last open script.
+      Heatmap.tsx           365-day GitHub-style writing heatmap.
+      ActivityModal.tsx     full activity panel: today meter, streak,
+                            year totals, big heatmap.
+      FolderChips.tsx       flat folder filter row above the grid
       TrashView.tsx
       NewScriptDialog.tsx + ScriptContextMenu.tsx
+    Ideas/
+      IdeaQuickCapture.tsx  ⌘I overlay: tippen, Enter speichert.
+                            Auto-closes; no script-context required.
+      IdeasDrawer.tsx       side drawer with Open/Alle/Verwendet tabs;
+                            click → convert idea to new script (⌘↵).
+      IdeasToggle.tsx       browser-side toggle button for the drawer.
     CommandBar/CommandBar.tsx     Cmd+K Spotlight modal (scripts only)
-    Settings/SettingsDialog.tsx
+    Settings/SettingsDialog.tsx   incl. daily-goal field for tab-bar pill
     Common/
       Modal, ConfirmDialog, ToastHost, UpdateIndicator
   stores/
-    settings.ts        theme, highlightingDefault, updateCheck flags
+    settings.ts        theme, highlightingDefault, updateCheck flags,
+                       dailyWordGoal
     tabs.ts            open tabs, persistence in app_state.open_tabs
     toasts.ts          push-toast helper
+    dailyStats.ts      cached today/streak/heatmap, invalidated by
+                       dailyStatsBus on every save
+    ideas.ts           cached ideas list, invalidated by ideasBus
   styles/
     tokens.css         design tokens (brand orange #e0791f, A4 mm geometry)
     fonts.css          iA Writer Quattro @font-face
