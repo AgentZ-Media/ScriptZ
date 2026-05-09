@@ -158,6 +158,31 @@ export function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return inter / union;
 }
 
+/** Dialog-Wörter pro Charakter — gleicher Algorithmus wie im EditorRail
+ *  Cast-Tab: Wörter aus `scriptz-dialog`-Blöcken werden dem zuletzt
+ *  davor gesehenen `scriptz-character`-Block zugeordnet. Charaktere
+ *  ohne Dialog haben einen Eintrag mit `0` (damit Aufrufer wissen,
+ *  dass es sie gibt). Schlüssel sind UPPERCASE, weil Charakter-Namen
+ *  app-weit case-insensitive matchen.
+ *
+ *  Eine einzige Quelle für diese Berechnung — siehe `scripts.ts`
+ *  (für `characters_meta.share` beim Speichern) und `EditorRail.tsx`
+ *  (für den Cast-Tab). */
+export function dialogWordsByCharacter(contentJson: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  let last: string | null = null;
+  for (const b of extractBlocks(contentJson)) {
+    if (b.kind === "scriptz-character") {
+      last = b.text.trim().toUpperCase();
+      if (last && !(last in out)) out[last] = 0;
+    } else if (b.kind === "scriptz-dialog" && last) {
+      const w = b.text.trim().split(/\s+/).filter(Boolean).length;
+      out[last] = (out[last] ?? 0) + w;
+    }
+  }
+  return out;
+}
+
 /** Collect unique character names (uppercase) used in the script's content. */
 export function extractCharacterNames(contentJson: string): string[] {
   const blocks = extractBlocks(contentJson);

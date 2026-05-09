@@ -3,6 +3,7 @@ import { dailyStatsStore } from "~/stores/dailyStats";
 import { settingsStore } from "~/stores/settings";
 import { ActivityModal } from "./ActivityModal";
 import type { ScriptSummary } from "~/lib/types";
+import { stripeBackground } from "~/lib/stripe";
 import "./MomentumStrip.css";
 
 export interface MomentumStripProps {
@@ -26,10 +27,14 @@ export function MomentumStrip(props: MomentumStripProps) {
   const wordsToday = () => stats().wordsToday;
   const goalMet = () => wordsToday() >= goal();
   const streak = () => stats().streakDays;
-  const stripeColor = createMemo(() => {
-    const cs = props.lastScript?.characters ?? [];
-    return cs.length > 0 ? cs[0].color : "var(--ink-300)";
-  });
+  /** Cast-Streifen wie im File-Browser: nach Dialog-Anteil sortiert,
+   *  harte Segmente. Fällt auf eine dezente Linie zurück, wenn das
+   *  Skript noch keinen Cast hat. */
+  const stripeBg = createMemo(
+    () =>
+      stripeBackground(props.lastScript?.characters ?? [], "to bottom") ??
+      "var(--ink-300)",
+  );
 
   const [activityOpen, setActivityOpen] = createSignal(false);
 
@@ -53,7 +58,7 @@ export function MomentumStrip(props: MomentumStripProps) {
               onClick={() => props.onContinue(s())}
               title={`„${s().title}" weiterschreiben`}
             >
-              <span class="mom-strip-stripe" style={`background:${stripeColor()};`} />
+              <span class="mom-strip-stripe" style={`background:${stripeBg()};`} />
               <span class="mom-strip-label">Weiterschreiben</span>
               <span class="mom-strip-title">{s().title || "Unbenannt"}</span>
               <span class="mom-strip-cta" aria-hidden="true">→</span>

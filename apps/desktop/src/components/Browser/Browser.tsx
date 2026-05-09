@@ -9,6 +9,7 @@ import {
   Show,
 } from "solid-js";
 import type { Folder, ScriptSummary } from "~/lib/types";
+import { stripeBackground } from "~/lib/stripe";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
@@ -908,7 +909,7 @@ interface ScriptCardProps {
   onContextMenu: (e: MouseEvent) => void;
 }
 function ScriptCard(props: ScriptCardProps) {
-  const charColor = () => props.script.characters[0]?.color ?? null;
+  const bg = () => stripeBackground(props.script.characters, "to right");
   return (
     <article
       class="card-v2"
@@ -926,8 +927,8 @@ function ScriptCard(props: ScriptCardProps) {
     >
       <div
         class="card-v2-strip"
-        classList={{ "is-empty": charColor() === null }}
-        style={charColor() ? `background:${charColor()};` : ""}
+        classList={{ "is-empty": bg() === null }}
+        style={bg() ? `background: ${bg()};` : ""}
         aria-hidden="true"
       />
       <div class="card-v2-body">
@@ -965,7 +966,7 @@ interface ScriptRowProps {
   onContextMenu: (e: MouseEvent) => void;
 }
 function ScriptRow(props: ScriptRowProps) {
-  const charColor = () => props.script.characters[0]?.color ?? null;
+  const bg = () => stripeBackground(props.script.characters, "to bottom");
   return (
     <div
       class="row-v2"
@@ -984,8 +985,8 @@ function ScriptRow(props: ScriptRowProps) {
     >
       <div
         class="row-stripe"
-        classList={{ "row-stripe-empty": charColor() === null }}
-        style={charColor() ? `background:${charColor()};` : ""}
+        classList={{ "row-stripe-empty": bg() === null }}
+        style={bg() ? `background: ${bg()};` : ""}
       />
       <div class="row-v2-title">{props.script.title || "Unbenannt"}</div>
       <div class="row-v2-chars">

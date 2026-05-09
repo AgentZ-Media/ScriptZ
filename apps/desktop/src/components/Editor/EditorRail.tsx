@@ -1,5 +1,5 @@
 import { For, Show, createSignal, createMemo } from "solid-js";
-import { extractBlocks } from "~/lib/lex";
+import { dialogWordsByCharacter, extractBlocks } from "~/lib/lex";
 import type { ScriptCharacter } from "~/lib/types";
 import "./EditorRail.css";
 
@@ -30,24 +30,12 @@ export function EditorRail(props: EditorRailProps) {
     extractBlocks(props.contentJson ?? "")
   );
 
-  /** Wörter pro Charakter — gleicher Algorithmus wie im Design:
-   *  Wörter zwischen einem `character`-Block und dem nächsten
-   *  `character`-Block (oder Skript-Ende) werden dem letzten Charakter
-   *  zugeordnet, aber NUR wenn sie aus `dialog`-Blöcken stammen. */
-  const wordsByChar = createMemo(() => {
-    const out: Record<string, number> = {};
-    let last: string | null = null;
-    for (const b of blocks()) {
-      if (b.kind === "scriptz-character") {
-        last = b.text.trim().toUpperCase();
-        if (last && !(last in out)) out[last] = 0;
-      } else if (b.kind === "scriptz-dialog" && last) {
-        const w = b.text.trim().split(/\s+/).filter(Boolean).length;
-        out[last] = (out[last] ?? 0) + w;
-      }
-    }
-    return out;
-  });
+  /** Wörter pro Charakter — geteilte Logik mit `scripts.ts`
+   *  (`characters_meta.share` beim Save). Quelle ist
+   *  `dialogWordsByCharacter` in `lib/lex.ts`. */
+  const wordsByChar = createMemo(() =>
+    dialogWordsByCharacter(props.contentJson ?? ""),
+  );
 
   /** Summe Dialog-Wörter (für Prozent-Berechnung). */
   const totalDialog = createMemo(() => {

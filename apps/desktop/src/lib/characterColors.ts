@@ -47,11 +47,17 @@ export function parseCharsMeta(raw: string): ScriptCharacter[] {
 }
 
 export function serializeCharsMeta(list: ScriptCharacter[]): string {
-  // Force `{name, color}` key order so the on-disk bytes match what
-  // serde produces in Rust. Stickiness of the format also lets the LIKE
-  // prefilter in `affectedScripts` find rows reliably.
+  // Force `{name, color, share?}` key order so the on-disk bytes are
+  // stable. The LIKE prefilter in `affectedScripts` searches for
+  // `%"NAME"%`, which still matches no matter how many trailing fields
+  // we add. `share` is omitted when undefined to keep older rows
+  // bit-identical until the next save reconciles them.
   return JSON.stringify(
-    list.map((c) => ({ name: c.name, color: c.color })),
+    list.map((c) =>
+      c.share === undefined
+        ? { name: c.name, color: c.color }
+        : { name: c.name, color: c.color, share: c.share },
+    ),
   );
 }
 

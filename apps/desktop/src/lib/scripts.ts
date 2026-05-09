@@ -35,7 +35,7 @@ import {
 import { countWordsInContent, recordWordDelta } from "./dailyWords";
 import { getDb } from "./db";
 import { deleteScriptFts, refreshFtsForScript } from "./fts";
-import { extractCharacterNames } from "./lex";
+import { dialogWordsByCharacter, extractCharacterNames } from "./lex";
 import type { Script, ScriptCharacter, ScriptSummary } from "./types";
 
 interface SummaryRow {
@@ -490,6 +490,9 @@ function reconcileCharsFromContent(
   records: Map<string, ColorRecord>,
 ): { chars: ScriptCharacter[]; newDefaults: [string, string][] } {
   const names = extractCharacterNames(contentJson);
+  const wordsByChar = dialogWordsByCharacter(contentJson);
+  let totalDialog = 0;
+  for (const v of Object.values(wordsByChar)) totalDialog += v;
   const out: ScriptCharacter[] = [];
   const newDefaults: [string, string][] = [];
   for (const name of names) {
@@ -528,7 +531,10 @@ function reconcileCharsFromContent(
     ) {
       newDefaults.push([upper, chosen]);
     }
-    out.push({ name, color: chosen });
+    const upperName = name.toUpperCase();
+    const words = wordsByChar[upperName] ?? 0;
+    const share = totalDialog > 0 ? words / totalDialog : 0;
+    out.push({ name, color: chosen, share });
   }
   return { chars: out, newDefaults };
 }
