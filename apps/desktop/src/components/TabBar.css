@@ -1,285 +1,245 @@
 /* =========================================================================
-   ScriptZ — title bar.
-   44px tall, drag region. Hosts brand, centered active-title dropdown,
-   and a single + action.
+   ScriptZ — title bar / tab bar (Chrome-style).
+   38px tall, drag region. Hosts traffic-light gap, tab row, status strip.
    ========================================================================= */
 
+/* ── Titlebar: Maße eng aufeinander abgestimmt ──
+   Höhe 34 px (kompakt, NoteZ hatte 44 px für ihr breiteres Layout).
+   Drei Dinge müssen vertikal zueinander passen:
+
+     1. Trafficlight-Dots (12 px hoch) → mittig: y=11..23, Center y=17
+        - Wert lebt in `tauri.conf.json` (`trafficLightPosition.y: 11`).
+          Bewusst KEIN Runtime-Reposition aus Rust — NoteZ-Erkenntnis:
+          feste Conf-Werte halten Dev↔Build stabil, Tauri-API-Calls
+          driften zwischen Build-Modi.
+     2. Status-Strip (22 px hoch) → vertikal zentriert: y=6..28, Center y=17
+     3. Tabs (26 px hoch) → bottom-anchored für Chrome-Look:
+        Tab-Top y=8, Tab-Bottom y=34. Tab-Tops haben 8 px Abstand
+        zur Bar-Oberkante (kein "abgeschnitten"-Gefühl).
+
+   Spalte 1 (78 px) ist Spacer für die OS-Trafficlights, danach Tabs,
+   dann Status-Strip. */
 .titlebar {
   position: relative;
   z-index: 5;
-  display: flex;
+  display: grid;
+  grid-template-columns: 78px 1fr auto;
   align-items: center;
-  height: 44px;
-  padding: 0 14px 0 88px;          /* room for traffic lights */
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-/* ----- Brand ----- */
-.titlebar-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: 0 var(--sp-3);
-  border-right: 1px solid var(--border);
-  margin-right: var(--sp-4);
-  height: 28px;
-  background: transparent;
-  border-top: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-  border-left: 1px solid transparent;
-  border-radius: var(--r-2) 0 0 var(--r-2);
-  cursor: pointer;
-  transition: background var(--t-fast);
-}
-.titlebar-brand:hover {
-  background: var(--hover);
-}
-.titlebar-brand:focus-visible {
-  outline: 2px solid var(--brand-500);
-  outline-offset: 2px;
-}
-.titlebar-logo {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  display: block;
-}
-.titlebar-wordmark {
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--fg);
-}
-
-/* ----- Centered title button ----- */
-.titlebar-center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-}
-
-.titlebar-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
+  height: 34px;
   padding: 0 12px;
-  border-radius: var(--r-pill);
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  font-weight: 500;
-  color: var(--fg);
-  border: 1px solid transparent;
-  background: transparent;
-  transition: background var(--t-fast), border-color var(--t-fast);
-  max-width: 360px;
-}
-.titlebar-title:hover {
-  background: var(--hover);
-}
-.titlebar-title[aria-expanded="true"] {
-  background: var(--bg-elev-1);
-  border-color: var(--border);
-}
-
-.titlebar-title-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.titlebar-caret {
-  color: var(--fg-subtle);
-  font-size: 11px;
-  line-height: 1;
-  transform: translateY(-1px);
-}
-
-/* ----- Quick-switch popover ----- */
-.titlebar-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 320px;
-  max-width: 420px;
-  background: var(--modal-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-3);
-  box-shadow: var(--shadow-popover);
-  padding: 6px;
-  z-index: 30;
-  /* Dediziertes Keyframe statt scale-in: das Menue zentriert sich
-     ueber translateX(-50%) und scale-in's to-Frame wuerde die Cascade
-     ueberschreiben, was bei animation-fill-mode:none zu einem Snap
-     beim Animations-Ende fuehrt (Sprung um halbe Menue-Breite). */
-  animation: titlebar-menu-pop var(--t-fast);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-@keyframes titlebar-menu-pop {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-}
-.titlebar-menu-search {
-  padding: 4px 6px 6px;
-  border-bottom: 1px solid var(--border);
-}
-.titlebar-menu-search-input {
-  width: 100%;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: var(--r-2);
-  background: var(--bg-elev-1);
-  border: 1px solid var(--border);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  outline: none;
-  transition: border-color var(--t-fast);
-}
-.titlebar-menu-search-input:focus {
-  border-color: var(--border-focus);
-}
-.titlebar-menu-search-input::placeholder {
-  color: var(--fg-subtle);
-}
-.titlebar-menu-list {
-  max-height: 360px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.titlebar-menu-empty {
-  padding: 14px 12px;
-  text-align: center;
-  font-size: var(--fs-12);
-  color: var(--fg-muted);
-}
-.titlebar-menu-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--r-2);
-  cursor: pointer;
-  font-size: var(--fs-13);
-  color: var(--fg);
-  transition: background var(--t-fast), transform var(--t-fast);
-}
-.titlebar-menu-row:active {
-  transform: scale(0.985);
-  transition-duration: 80ms;
-}
-.titlebar-menu-row:hover,
-.titlebar-menu-row.is-keyboard {
-  background: var(--hover);
-}
-.titlebar-menu-row.is-active {
-  background: var(--selected);
-}
-.titlebar-menu-row:focus,
-.titlebar-menu-row:focus-visible {
-  outline: none;
-  background: var(--selected);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-}
-.titlebar-menu-dot {
-  width: 14px;
-  text-align: center;
-  color: transparent;
-  font-size: 9px;
-  line-height: 1;
-}
-.titlebar-menu-dot.is-open {
-  color: var(--brand-500);
-}
-.titlebar-menu-time {
-  font-size: var(--fs-11);
-  color: var(--fg-subtle);
+  background: linear-gradient(to bottom, #efece6, #e7e3da);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
+  user-select: none;
 }
-.titlebar-menu-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+[data-theme="dark"] .titlebar {
+  background: linear-gradient(to bottom, #2a2a2a, #232323);
+  border-bottom-color: rgba(255, 255, 255, 0.10);
 }
-.titlebar-menu-close {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  font-size: 14px;
-  color: var(--fg-subtle);
-  opacity: 0;
-  transition: opacity var(--t-fast), background var(--t-fast),
-    color var(--t-fast);
-}
-.titlebar-menu-row:hover .titlebar-menu-close {
-  opacity: 1;
-}
-.titlebar-menu-close:hover {
-  background: var(--danger-soft-strong);
-  color: var(--status-err);
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .titlebar {
+    background: linear-gradient(to bottom, #2a2a2a, #232323);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+  }
 }
 
-/* ----- Trailing action (+) ----- */
-.titlebar-trailing {
-  display: inline-flex;
+/* Spacer für die macOS-Trafficlights (78 px nativ, +12 px Atemluft). */
+.titlebar-traffic { width: 78px; height: 34px; }
+
+/* ----- Tab-Reihe ----- */
+.tabs {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  align-self: end;     /* an die Unterkante der Titlebar — Chrome-Look */
+  height: 34px;
+  -webkit-app-region: no-drag;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+  /* Sanftes Fade-out rechts wenn Tabs überlaufen */
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
-  margin-left: auto;
+  height: 26px;        /* in 34 px Bar bottom-aligned → Top y=8 (8 px Atemluft) */
+  padding: 0 10px;
+  border-radius: 7px 7px 0 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-subtle);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  /* Chrome-Logik: alle Skript-Tabs teilen sich die Breite gleichmäßig
+     (flex 1 1 0), wachsen bis 200 px, schrumpfen bis 52 px. */
+  flex: 1 1 0;
+  min-width: 52px;
+  max-width: 200px;
+  position: relative;
+  overflow: hidden;
+  transition: background var(--t-fast), color var(--t-fast);
 }
-.titlebar-action {
-  width: 28px;
-  height: 28px;
+.tab:hover { background: rgba(28, 24, 20, 0.05); color: var(--text); }
+[data-theme="dark"] .tab:hover { background: rgba(255, 255, 255, 0.06); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .tab:hover { background: rgba(255, 255, 255, 0.06); }
+}
+.tab.is-active {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow:
+    -0.5px 0 0 var(--border-strong),
+    0.5px 0 0 var(--border-strong),
+    0 1px 0 var(--bg);
+}
+
+/* Home-Tab: 40 px fix, nur Icon, niemals flex. */
+.tab-home {
+  flex: 0 0 auto;
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  max-width: none;
+  min-width: 40px;
+}
+.tab-home-ic {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-3);
-  color: var(--fg-muted);
-  font-size: 16px;
-  line-height: 1;
-  transition: background var(--t-fast), color var(--t-fast),
-    transform var(--t-fast);
+  color: var(--ink-500);
 }
-.titlebar-action:hover {
-  background: var(--hover);
-  color: var(--fg);
+.tab-home.is-active .tab-home-ic { color: var(--ink-700); }
+
+.tab-doc {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--text-subtle);
 }
-.titlebar-action:active {
-  transform: scale(0.9);
-  transition-duration: 80ms;
+.tab-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
 }
-.titlebar-action:focus-visible {
-  outline: 2px solid var(--brand-500);
-  outline-offset: 2px;
-  background: var(--hover);
-  color: var(--fg);
+
+/* Container-Query: schmaler Tab → Titel + ✕ unsichtbar, nur Doc-Icon. */
+.tab:not(.tab-home) { container-type: inline-size; }
+@container (max-width: 80px) {
+  .tab-title, .tab-x { display: none; }
 }
-/* Lit state for toggle buttons (e.g. character highlighting on). The
-   coloured dots in the highlight icon already encode "what" — the orange
-   ring just signals "currently active" at a glance. */
-.titlebar-action.is-on {
-  background: var(--bg-elev-2);
-  box-shadow: inset 0 0 0 1px var(--brand-500);
-  color: var(--fg);
+
+.tab-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  padding: 2px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  color: inherit;
+  transition: all var(--t-fast);
 }
-.titlebar-action.is-on:hover {
-  background: var(--bg-elev-2);
-  box-shadow: inset 0 0 0 1px var(--brand-500);
+.tab-x:hover { opacity: 1; background: rgba(28, 24, 20, 0.10); }
+[data-theme="dark"] .tab-x:hover { background: rgba(255, 255, 255, 0.10); }
+
+.tab-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  border-radius: 6px;
+  color: var(--text-subtle);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+  -webkit-app-region: no-drag;
+  transition: all var(--t-fast);
+}
+.tab-new:hover {
+  background: rgba(28, 24, 20, 0.07);
+  color: var(--text);
+}
+[data-theme="dark"] .tab-new:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* ----- Schreib-Status-Strip rechts -----
+   Drei kleine Pills (Wörter heute / Streak / Saved) in einer Pille
+   eingefasst. Awareness-Anzeiger; klickbar nur über Mouseover-Tooltips. */
+.status-strip {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;  /* vertikal zentriert im Titlebar-Grid (Center y=17) */
+  height: 22px;
+  padding: 0 4px;
+  background: rgba(28, 24, 20, 0.04);
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  -webkit-app-region: no-drag;
+}
+[data-theme="dark"] .status-strip { background: rgba(255, 255, 255, 0.06); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .status-strip { background: rgba(255, 255, 255, 0.06); }
+}
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  cursor: default;
+  transition: background var(--t-fast);
+}
+.status-cell:hover { background: rgba(28, 24, 20, 0.05); }
+[data-theme="dark"] .status-cell:hover { background: rgba(255, 255, 255, 0.08); }
+.status-cell strong {
+  color: var(--ink-700, var(--fg));
+  font-weight: 600;
+}
+.status-cell strong.is-met { color: var(--status-ok); }
+.status-cell-label {
+  color: var(--text-faint, var(--fg-subtle));
+}
+.status-flame {
+  display: inline-flex;
+  color: var(--char-1);
+}
+.status-cell-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot-ok {
+  background: var(--status-ok);
+  box-shadow: 0 0 0 2px rgba(79, 154, 108, 0.16);
+}
+
+/* ----- Focus-Mode dimmt die Titlebar, Hover stellt sie wieder her. ----- */
+.app-root.is-focus .titlebar {
+  opacity: 0.4;
+  transition: opacity var(--t-med);
+}
+.app-root.is-focus .titlebar:hover {
+  opacity: 1;
 }

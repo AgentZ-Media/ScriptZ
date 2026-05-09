@@ -32,6 +32,7 @@ import {
   upsertDefaultColor,
   type ColorRecord,
 } from "./characterColors";
+import { countWordsInContent, recordWordDelta } from "./dailyWords";
 import { getDb } from "./db";
 import { deleteScriptFts, refreshFtsForScript } from "./fts";
 import { extractCharacterNames } from "./lex";
@@ -116,7 +117,14 @@ export interface ListScriptsQuery {
 
 export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]> {
   const db = await getDb();
-  let sql = "SELECT id FROM scripts WHERE 1=1";
+  // Single round-trip: alle Spalten in einem SELECT statt N+1
+  // (vorher: erst SELECT id …, dann für jede Zeile ein eigenes SELECT
+  // via rowToSummary). Bei jedem Boot ging dadurch pro Skript ein
+  // Tauri-IPC-Hop drauf — bei 3 Skripten waren das 4 Calls statt 1.
+  let sql =
+    "SELECT id, title, highlighting_enabled, characters_meta, " +
+    "created_at, updated_at, archived_at, page_count, folder_id " +
+    "FROM scripts WHERE 1=1";
   const args: (string | number)[] = [];
   let p = 1;
 
@@ -161,15 +169,18 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
     }
   }
 
-  const idRows = await db.select<{ id: string }[]>(sql, args);
-  const out: ScriptSummary[] = [];
-  // N+1 mirrors the Rust path. With the 200-row UI cap and SQLite WAL
-  // this is fine; can be folded into one SELECT later if it becomes a
-  // bottleneck.
-  for (const { id } of idRows) {
-    out.push(await rowToSummary(id));
-  }
-  return out;
+  const rows = await db.select<SummaryRow[]>(sql, args);
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    highlighting_enabled: r.highlighting_enabled,
+    characters: parseCharsMeta(r.characters_meta),
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+    archived_at: r.archived_at,
+    page_count: r.page_count,
+    folder_id: r.folder_id,
+  }));
 }
 
 export async function createScript(
@@ -200,11 +211,20 @@ export async function createScript(
     }
   }
 
+  // Initial-Wortcount des Seed-Inhalts. Wir wollen nicht, dass der
+  // erste echte Save den vollen Welcome-Text als „heute geschrieben"
+  // zählt; deshalb wird last_word_count direkt auf den Wortcount des
+  // Seeds gesetzt. Eine Idee-zu-Skript-Konvertierung mit Notiz-Action
+  // wird damit auch korrekt eingerechnet (die paar Notiz-Wörter
+  // zählen nicht als Schreib-Aktivität, weil sie nicht beim Save
+  // hinzukamen).
+  const initialWordCount = countWordsInContent(contentJson);
+
   await db.execute(
     `INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                          created_at, updated_at, page_count, folder_id)
-     VALUES ($1, $2, NULL, $3, $4, $5, $5, 1, $6)`,
-    [id, finalTitle, contentJson, charsJson, now, folderId],
+                          created_at, updated_at, page_count, folder_id, last_word_count)
+     VALUES ($1, $2, NULL, $3, $4, $5, $5, 1, $6, $7)`,
+    [id, finalTitle, contentJson, charsJson, now, folderId, initialWordCount],
   );
   await refreshFtsForScript(id);
   return rowToSummary(id);
@@ -217,10 +237,15 @@ export async function duplicateScript(id: string): Promise<ScriptSummary> {
   const now = Date.now();
   const newTitle = `${src.title} (Kopie)`;
   const charsJson = serializeCharsMeta(src.characters);
+  // Duplikat: last_word_count auf den aktuellen Wortcount der Quelle
+  // setzen, damit ein direktes Bearbeiten danach nur den Delta zählt
+  // (sonst würde die erste Speicherung den ganzen kopierten Text als
+  // „heute geschrieben" einrechnen).
+  const wc = countWordsInContent(src.content_json);
   await db.execute(
     `INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                          created_at, updated_at, page_count, folder_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8)`,
+                          created_at, updated_at, page_count, folder_id, last_word_count)
+     VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9)`,
     [
       newId,
       newTitle,
@@ -230,6 +255,7 @@ export async function duplicateScript(id: string): Promise<ScriptSummary> {
       now,
       src.page_count,
       src.folder_id,
+      wc,
     ],
   );
   await refreshFtsForScript(newId);
@@ -288,11 +314,15 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
   }
   if (input.contentJson !== undefined) {
     // Reconcile characters_meta against the new content.
-    const metaRows = await db.select<{ characters_meta: string }[]>(
-      "SELECT characters_meta FROM scripts WHERE id = $1",
+    const metaRows = await db.select<{
+      characters_meta: string;
+      last_word_count: number | null;
+    }[]>(
+      "SELECT characters_meta, last_word_count FROM scripts WHERE id = $1",
       [input.id],
     );
     const existing = parseCharsMeta(metaRows[0]?.characters_meta ?? "[]");
+    const lastWordCount = metaRows[0]?.last_word_count ?? 0;
     const records = await loadColorRecords();
     const { chars, newDefaults } = reconcileCharsFromContent(
       existing,
@@ -303,10 +333,34 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
       await upsertDefaultColor(n, c, now);
     }
     const charsJson = serializeCharsMeta(chars);
+
+    // Diff-on-Save: positive Wortzunahme wird ins heutige Bucket im
+    // daily_word_log geschrieben. Löschungen senken last_word_count
+    // ebenfalls, damit der nächste Anstieg wieder korrekt zählt -
+    // aber sie addieren keine negativen Wörter zur Statistik.
+    //
+    // last_word_count === -1 ist der Sentinel aus Migration 003 für
+    // Bestandsskripte: der erste Save nach dem Update normalisiert nur
+    // den Count, ohne den ganzen bisherigen Wortbestand als "heute
+    // geschrieben" zu buchen.
+    const newWordCount = countWordsInContent(input.contentJson);
+    const isFirstMeasurement = lastWordCount < 0;
+    const delta = isFirstMeasurement ? 0 : newWordCount - lastWordCount;
+
     await db.execute(
-      "UPDATE scripts SET content_json = $1, characters_meta = $2, updated_at = $3 WHERE id = $4",
-      [input.contentJson, charsJson, now, input.id],
+      `UPDATE scripts
+         SET content_json = $1, characters_meta = $2, updated_at = $3, last_word_count = $4
+         WHERE id = $5`,
+      [input.contentJson, charsJson, now, newWordCount, input.id],
     );
+    if (delta > 0) {
+      try {
+        await recordWordDelta(delta);
+      } catch (err) {
+        // Statistik-Schreibfehler dürfen den Save nicht killen.
+        console.warn("[scriptz] daily word log update failed", err);
+      }
+    }
   }
   if (input.pageCount !== undefined) {
     await db.execute(
@@ -357,13 +411,16 @@ export async function purgeScript(id: string): Promise<void> {
 
 export async function emptyTrash(): Promise<void> {
   const db = await getDb();
-  const ids = await db.select<{ id: string }[]>(
-    "SELECT id FROM scripts WHERE archived_at IS NOT NULL",
+  // FTS-Reihen müssen vor dem Skript-DELETE weg, weil die scripts_fts-
+  // Tabelle keinen FK-Cascade hat (FTS5 contentless table). Zwei
+  // Statements statt N+1: ein DELETE FROM scripts_fts (sub-query gegen
+  // scripts), ein DELETE FROM scripts. Bei 50 archivierten Skripten
+  // waren das vorher 100 Round-Trips, jetzt sind es 2.
+  await db.execute(
+    "DELETE FROM scripts_fts WHERE script_id IN " +
+      "(SELECT id FROM scripts WHERE archived_at IS NOT NULL)",
   );
-  for (const { id } of ids) {
-    await db.execute("DELETE FROM scripts WHERE id = $1", [id]);
-    await deleteScriptFts(id);
-  }
+  await db.execute("DELETE FROM scripts WHERE archived_at IS NOT NULL");
 }
 
 // ---------- internal helpers ----------

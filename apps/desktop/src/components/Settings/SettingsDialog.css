@@ -1,55 +1,207 @@
-.settings-sections {
+/* =========================================================================
+   Settings Modal — 2-Spalten-Layout (links Nav, rechts Pane).
+   Visualisiert nach Re-Design `modals.jsx::SettingsModal`.
+   ========================================================================= */
+
+/* Nimmt die Modal-Body-Padding wieder weg, wir wollen das Grid randlos. */
+.modal-body:has(.settings-grid) {
+  padding: 0;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  min-height: 460px;
+}
+
+.settings-nav {
+  border-right: 1px solid var(--border);
+  padding: 14px 8px;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-5);
+  gap: 2px;
+  background: var(--paper-2);
 }
-.settings-section h3 {
-  margin: 0 0 var(--sp-3) 0;
+.settings-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
   font-family: var(--font-sans);
-  font-size: var(--fs-11);
-  font-weight: 600;
-  color: var(--fg-subtle);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  color: var(--text-subtle);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--t-fast);
 }
-.settings-section {
+.settings-nav-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.settings-nav-btn.is-active {
+  background: var(--paper);
+  color: var(--ink-700);
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgba(28, 24, 20, 0.08);
+}
+.settings-nav-btn.is-active .settings-nav-ic {
+  color: var(--ink-500);
+}
+.settings-nav-ic {
+  display: inline-flex;
+  color: var(--text-faint);
+}
+
+.settings-pane {
+  padding: 22px 24px;
+}
+.settings-pane h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-700);
+  letter-spacing: -0.005em;
+}
+.settings-pane-sub {
+  font-size: 12px;
+  color: var(--text-subtle);
+  margin-bottom: 14px;
+}
+
+.settings-row {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-.settings-section + .settings-section {
-  padding-top: var(--sp-5);
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
   border-top: 1px solid var(--border);
+  gap: 16px;
+}
+.settings-row-label {
+  flex: 1;
+  min-width: 0;
+}
+.settings-row-label .row-label {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+.settings-row-label .row-help {
+  font-size: 12px;
+  color: var(--text-subtle);
+  margin-top: 2px;
 }
 
-/* .settings-radio + .settings-toggle live in global.css — used in
-   ExportDialog too. Only the row container is local. */
-.settings-radio-row {
+/* ---- Custom Toggle (Pill mit Knubbel) ---- */
+.s-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: rgba(28, 24, 20, 0.18);
+  border: 0;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--t-fast);
+  flex-shrink: 0;
+}
+[data-theme="dark"] .s-toggle { background: rgba(255, 255, 255, 0.20); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .s-toggle { background: rgba(255, 255, 255, 0.20); }
+}
+.s-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(28, 24, 20, 0.18);
+  transition: transform var(--t-fast);
+}
+.s-toggle.is-on { background: var(--ink-500); }
+.s-toggle.is-on::after { transform: translateX(16px); }
+.s-toggle.is-disabled,
+.s-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- Segmented control (Theme) ---- */
+.seg {
   display: inline-flex;
-  gap: var(--sp-4);
-  align-items: center;
-  flex-wrap: wrap;
+  background: rgba(28, 24, 20, 0.05);
+  border-radius: var(--r-3);
+  padding: 2px;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .seg { background: rgba(255, 255, 255, 0.06); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .seg { background: rgba(255, 255, 255, 0.06); }
+}
+.seg button {
+  height: 26px;
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-subtle);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.seg button:hover { color: var(--text); }
+.seg button.is-on {
+  background: var(--paper);
+  color: var(--ink-700);
+  box-shadow: 0 1px 2px rgba(28, 24, 20, 0.10);
 }
 
-.settings-update-row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-}
-.settings-update-result {
+/* ---- Tagesziel-Input ---- */
+.settings-goal-input {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-2);
-  font-size: var(--fs-13);
-  color: var(--fg);
+  gap: 8px;
+  flex-shrink: 0;
+}
+.settings-goal-input input {
+  width: 90px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.settings-goal-input input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 4px var(--ring-brand);
+  outline: none;
+}
+.settings-goal-unit {
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
-.settings-about {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--fs-13);
-  color: var(--fg);
+/* ---- Update-Sektion: Aktion-Cluster rechts ---- */
+.settings-update-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
+/* ---- "About"-Text-Mono (Repo-URL) ---- */
+.settings-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

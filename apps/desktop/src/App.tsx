@@ -2,7 +2,6 @@ import {
   Show,
   createSignal,
   createEffect,
-  createResource,
   onMount,
   onCleanup,
   Switch,
@@ -14,6 +13,7 @@ import { settingsStore } from "~/stores/settings";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
 import { scriptsBus } from "~/lib/scriptsBus";
+import { dailyStatsBus } from "~/lib/dailyStatsBus";
 import { api } from "~/lib/api";
 import TabBar from "~/components/TabBar";
 import ScriptView from "~/components/Editor/ScriptView";
@@ -23,14 +23,14 @@ import { SettingsDialog } from "~/components/Settings/SettingsDialog";
 import { NewScriptDialog } from "~/components/Browser/NewScriptDialog";
 import { ExportDialog } from "~/components/Editor/ExportDialog";
 import ToastHost from "~/components/Common/ToastHost";
+import { IdeasDrawer } from "~/components/Ideas/IdeasDrawer";
+import { IdeasToggle } from "~/components/Ideas/IdeasToggle";
+import { IdeaQuickCapture } from "~/components/Ideas/IdeaQuickCapture";
+import "~/components/Ideas/IdeasDrawer.css";
 import { ensureWelcomeContent } from "~/lib/welcome";
 import { flushAll } from "~/lib/saveFlush";
 
 import "./components/Common/Common.css";
-
-type FocusedView =
-  | { kind: "browser" }
-  | { kind: "script"; scriptId: string };
 
 export default function App() {
   const [bootReady, setBootReady] = createSignal(false);
@@ -39,66 +39,33 @@ export default function App() {
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
   const [newScriptFolder, setNewScriptFolder] = createSignal<string | null>(null);
   const [exportOpen, setExportOpen] = createSignal(false);
+  const [ideasOpen, setIdeasOpen] = createSignal(false);
+  const [ideaCaptureOpen, setIdeaCaptureOpen] = createSignal(false);
+  const [focusMode, setFocusMode] = createSignal(false);
 
-  const activeScriptId = (): string | null => {
-    const t = tabsStore.active();
-    return t?.kind === "script" ? t.scriptId ?? null : null;
-  };
-  const activeScriptTitle = (): string => {
-    const t = tabsStore.active();
-    return t?.kind === "script" ? (t.scriptTitle || "Unbenannt") : "";
-  };
+  const activeScriptId = (): string | null => tabsStore.activeScript()?.scriptId ?? null;
+  const activeScriptTitle = (): string =>
+    tabsStore.activeScript()?.scriptTitle || "Unbenannt";
 
   const openExport = () => {
     if (activeScriptId()) setExportOpen(true);
   };
 
-  // Lightweight read of the active script's highlighting flag, separate
-  // from ScriptView's createResource so the TabBar can render the toggle
-  // state without prop-drilling through the editor tree. Refetches when
-  // the active script changes OR when scriptsBus bumps (covers the
-  // post-toggle save).
-  const [activeHighlightFlag] = createResource(
-    () => ({ id: activeScriptId(), v: scriptsBus.version() }),
-    async ({ id }) => {
-      if (!id) return null;
-      try {
-        const s = await api.getScript(id);
-        return s.highlighting_enabled;
-      } catch {
-        return null;
-      }
-    },
-    { initialValue: null },
-  );
-
-  const highlightOn = (): boolean => {
-    const flag = activeHighlightFlag();
-    if (flag === 1) return true;
-    if (flag === 0) return false;
-    return settingsStore.highlightingDefault();
-  };
-
-  const toggleHighlight = async () => {
-    const id = activeScriptId();
-    if (!id) return;
-    const next = !highlightOn();
-    try {
-      await api.updateScript({ id, highlightingEnabled: next ? 1 : 0 });
-      scriptsBus.bump();
-    } catch (err) {
-      pushToast(
-        `Highlight-Wechsel fehlgeschlagen: ${(err as Error).message ?? err}`,
-        "error",
-      );
-    }
-  };
-
   onMount(async () => {
     try {
-      await settingsStore.load();
-      await ensureWelcomeContent();
-      await tabsStore.load();
+      // Die drei Boot-Schritte sind voneinander unabhängig:
+      // - settingsStore.load liest 6 settings-Rows (eigenes Promise.all)
+      // - ensureWelcomeContent prüft den Seed-Marker und legt ggf. das
+      //   Tutorial-Skript an
+      // - tabsStore.load liest die persistierten Tab-IDs und filtert sie
+      //   gegen die Skript-Liste
+      // Sequentiell waren das ~3× IPC-Roundtrip-Latenz; parallel halbiert
+      // sich die "schwarzer Bildschirm"-Zeit beim Start.
+      await Promise.all([
+        settingsStore.load(),
+        ensureWelcomeContent(),
+        tabsStore.load(),
+      ]);
     } catch (err) {
       console.error("[scriptz] boot failed", err);
       pushToast(`Start fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
@@ -107,10 +74,8 @@ export default function App() {
     }
   });
 
-  // Wire window-close-request → drain all pending writes (auto-save,
-  // tab-state, etc.) before letting Tauri destroy the window. Without
-  // this, Cmd+Q / red-traffic-light within 250 ms of a keystroke loses
-  // the buffered save.
+  // Wire window-close-request → drain all pending writes before letting
+  // Tauri destroy the window.
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let closing = false;
@@ -119,7 +84,7 @@ export default function App() {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const win = getCurrentWindow();
         unlisten = await win.onCloseRequested(async (event) => {
-          if (closing) return; // already in flight — let it through
+          if (closing) return;
           event.preventDefault();
           closing = true;
           try {
@@ -128,33 +93,20 @@ export default function App() {
             try {
               await win.destroy();
             } catch {
-              // Fallback: if destroy() isn't allowed for some reason,
-              // tear down via close() so the user isn't stuck.
-              try {
-                await win.close();
-              } catch {
-                /* nothing left to do */
-              }
+              try { await win.close(); } catch { /* nothing left */ }
             }
           }
         });
       } catch (err) {
-        // Non-Tauri env (vite preview) or older API — non-fatal.
         console.warn("[scriptz] close-flush hook unavailable", err);
       }
     })();
     onCleanup(() => {
-      try {
-        unlisten?.();
-      } catch {
-        /* ignore */
-      }
+      try { unlisten?.(); } catch { /* ignore */ }
     });
   });
 
-  // Whenever the script list changes (archive / purge / restore / create /
-  // duplicate / rename) reconcile open tabs against the DB so dead tabs
-  // disappear from the dropdown and ⌘1-9 navigation.
+  // Reconcile tabs against the live script list whenever the list changes.
   createEffect(() => {
     scriptsBus.version();
     void (async () => {
@@ -162,10 +114,14 @@ export default function App() {
         const list = await api.listScripts({});
         const live = new Set(list.map((s) => s.id));
         tabsStore.reconcile(live);
-      } catch {
-        /* silent */
-      }
+      } catch { /* silent */ }
     })();
+  });
+
+  // Initial-Refresh der Schreibstatistik beim Boot.
+  createEffect(() => {
+    if (!bootReady()) return;
+    dailyStatsBus.bump();
   });
 
   onMount(() => {
@@ -182,6 +138,7 @@ export default function App() {
         ev.preventDefault();
         const id = tabsStore.activeTabId();
         if (id) tabsStore.closeTab(id);
+        // Auf Home tut ⌘W bewusst nichts — Home ist nicht schließbar.
         return;
       }
       if (ev.key.toLowerCase() === "k" && !ev.shiftKey) {
@@ -200,6 +157,11 @@ export default function App() {
         setNewScriptOpen(true);
         return;
       }
+      if (ev.key.toLowerCase() === "i" && !ev.shiftKey) {
+        ev.preventDefault();
+        setIdeaCaptureOpen(true);
+        return;
+      }
       if (ev.key.toLowerCase() === "e" && !ev.shiftKey) {
         if (activeScriptId()) {
           ev.preventDefault();
@@ -207,11 +169,13 @@ export default function App() {
         }
         return;
       }
-      // Tab cycling. ⌘Tab is captured by macOS system, so we use the
-      // browser/Slack/VS Code convention: ⌘⌥← / ⌘⌥→. Works inside the
-      // contenteditable editor and doesn't shadow any text-editing
-      // shortcut. We also keep ⌘Tab as a best-effort fallback for
-      // non-Mac builds.
+      // Fokus-Modus ⇧⌘F (nur sinnvoll im Skript-Tab; toggelt sonst still).
+      if (ev.shiftKey && ev.key.toLowerCase() === "f") {
+        ev.preventDefault();
+        setFocusMode((f) => !f);
+        return;
+      }
+      // Tab cycling: ⌘⌥← / ⌘⌥→
       if (ev.altKey && (ev.key === "ArrowLeft" || ev.key === "ArrowRight")) {
         ev.preventDefault();
         tabsStore.cycle(ev.key === "ArrowRight" ? 1 : -1);
@@ -222,120 +186,115 @@ export default function App() {
         tabsStore.cycle(ev.shiftKey ? -1 : 1);
         return;
       }
-      if (/^[1-9]$/.test(ev.key) && !ev.shiftKey && !ev.altKey) {
+      // ⌘0 → Home, ⌘1..⌘9 → Skript-Tabs
+      if (/^[0-9]$/.test(ev.key) && !ev.shiftKey && !ev.altKey) {
         const target = ev.target as HTMLElement | null;
         const isTextField =
           target instanceof HTMLInputElement ||
           target instanceof HTMLTextAreaElement ||
           target instanceof HTMLSelectElement ||
           (target?.isContentEditable ?? false);
-        // Inside the editor ⌘1–7 are owned by blockHotkeys (block-type
-        // swap). Outside (Browser, dialogs) they activate the tab at
-        // that index.
         if (isTextField) return;
         ev.preventDefault();
-        tabsStore.activateByIndex(parseInt(ev.key, 10) - 1);
+        tabsStore.activateByIndex(parseInt(ev.key, 10));
       }
     };
     window.addEventListener("keydown", handler);
     onCleanup(() => window.removeEventListener("keydown", handler));
   });
 
-  const activeView = (): FocusedView | null => {
-    const t = tabsStore.active();
-    if (!t) return null;
-    if (t.kind === "browser") return { kind: "browser" };
-    return { kind: "script", scriptId: t.scriptId! };
-  };
+  // Beim Wechsel auf Home automatisch Fokus-Modus aus (sonst verstecken
+  // wir die Titlebar im Browser unnötig).
+  createEffect(() => {
+    if (tabsStore.isHome() && focusMode()) setFocusMode(false);
+  });
 
   const onCreatedScript = () => {
     setNewScriptOpen(false);
   };
 
-  // ---- View-Transition: Tab-Wechsel & Browser <-> Editor ---------------
-  // Richtungsbasierter Slide statt Cross-Fade. Vier Modi:
-  //   forward         neuer Tab liegt rechts vom alten           -> Slide von rechts
-  //   backward        neuer Tab liegt links vom alten            -> Slide von links
-  //   into-script     Browser-Tab wird zum Skript-Tab            -> Skript "hebt sich"
-  //   back-to-browser Skript-Tab wird zum Browser-Tab            -> Zoom-Out auf die Uebersicht
-  //
-  // Das Triggern passiert via Klassen-Toggle + erzwungenes Reflow auf dem
-  // Inner-Wrapper, damit die CSS-Animation jedes Mal neu startet (auch
-  // wenn die Direction gleich bleibt, z.B. zweimal hintereinander Tab
-  // weiter nach rechts).
+  // ---- View-Transition: Tab-Wechsel & Home <-> Editor ----
   let appMainRef: HTMLElement | undefined;
   let viewFrameRef: HTMLDivElement | undefined;
-  let prevTab: { id: string; kind: "browser" | "script" } | null = null;
+  let prevState: { route: "home" | "script"; id: string | null } | null = null;
   createEffect(() => {
-    const list = tabsStore.tabs();
-    const id = tabsStore.activeTabId();
-    if (!id || !appMainRef || !viewFrameRef) return;
-    const cur = list.find((t) => t.id === id);
-    if (!cur) return;
-    if (prevTab === null) {
-      // Erster Mount nach Boot — keine Animation.
-      prevTab = { id: cur.id, kind: cur.kind };
+    const tabId = tabsStore.activeTabId();
+    const isHome = tabsStore.isHome();
+    if (!appMainRef || !viewFrameRef) return;
+    const cur: { route: "home" | "script"; id: string | null } = isHome
+      ? { route: "home", id: null }
+      : { route: "script", id: tabId };
+    if (prevState === null) {
+      prevState = cur;
       return;
     }
-    if (prevTab.id === cur.id && prevTab.kind === cur.kind) return;
+    if (prevState.route === cur.route && prevState.id === cur.id) return;
 
     let dir: "forward" | "backward" | "into-script" | "back-to-browser";
-    if (prevTab.kind === "browser" && cur.kind === "script") {
+    if (prevState.route === "home" && cur.route === "script") {
       dir = "into-script";
-    } else if (prevTab.kind === "script" && cur.kind === "browser") {
+    } else if (prevState.route === "script" && cur.route === "home") {
       dir = "back-to-browser";
-    } else {
-      const oldIdx = list.findIndex((t) => t.id === prevTab!.id);
+    } else if (prevState.route === "script" && cur.route === "script") {
+      const list = tabsStore.tabs();
+      const oldIdx = list.findIndex((t) => t.id === prevState!.id);
       const newIdx = list.findIndex((t) => t.id === cur.id);
-      // Wenn der alte Tab inzwischen geschlossen wurde (oldIdx === -1),
-      // defaulten wir auf forward — wirkt im Zweifel "weiter".
       dir = oldIdx === -1 || newIdx === -1 || newIdx >= oldIdx
         ? "forward"
         : "backward";
+    } else {
+      dir = "forward";
     }
-    prevTab = { id: cur.id, kind: cur.kind };
+    prevState = cur;
 
     appMainRef.dataset.viewDir = dir;
     viewFrameRef.classList.remove("is-animating");
-    // Reflow erzwingen, damit der Browser den Klassen-Wechsel registriert
-    // und die Animation tatsaechlich neu triggert.
     void viewFrameRef.offsetWidth;
     viewFrameRef.classList.add("is-animating");
   });
 
   return (
-    <div class="app-root">
+    <div
+      class="app-root"
+      classList={{ "is-focus": focusMode() && !tabsStore.isHome() }}
+    >
       <Show when={bootReady()} fallback={<BootScreen />}>
         <TabBar
-          onOpenSettings={() => setSettingsOpen(true)}
-          onOpenExport={openExport}
-          onToggleHighlight={() => void toggleHighlight()}
-          highlightOn={highlightOn}
+          onNewScript={() => {
+            setNewScriptFolder(null);
+            setNewScriptOpen(true);
+          }}
         />
 
         <main class="app-main" ref={appMainRef}>
           <div class="view-frame" ref={viewFrameRef}>
-            <Show when={activeView()}>
-              {(v) => (
-                <Switch>
-                  <Match when={v().kind === "browser"}>
-                    <Browser
-                      onNewScript={(folderId) => {
-                        setNewScriptFolder(folderId ?? null);
-                        setNewScriptOpen(true);
-                      }}
-                    />
-                  </Match>
-                  <Match when={v().kind === "script"}>
-                    <ErrorBoundary fallback={(err) => <div class="error-pane">Fehler: {String(err)}</div>}>
-                      <Suspense fallback={<div class="loading-pane">Lade Skript…</div>}>
-                        <ScriptView scriptId={(v() as { scriptId: string }).scriptId} />
-                      </Suspense>
-                    </ErrorBoundary>
-                  </Match>
-                </Switch>
-              )}
-            </Show>
+            <Switch>
+              <Match when={tabsStore.isHome()}>
+                <Browser
+                  onNewScript={(folderId) => {
+                    setNewScriptFolder(folderId ?? null);
+                    setNewScriptOpen(true);
+                  }}
+                  onOpenSettings={() => setSettingsOpen(true)}
+                  onOpenCmdK={() => setCmdkOpen(true)}
+                />
+              </Match>
+              <Match when={tabsStore.activeScript()}>
+                {(t) => (
+                  <ErrorBoundary fallback={(err) => <div class="error-pane">Fehler: {String(err)}</div>}>
+                    <Suspense fallback={<div class="loading-pane">Lade Skript…</div>}>
+                      <ScriptView
+                        scriptId={t().scriptId}
+                        focusMode={focusMode()}
+                        onToggleFocus={() => setFocusMode((f) => !f)}
+                        onBackToHome={() => tabsStore.openBrowser()}
+                        onOpenExport={openExport}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
+              </Match>
+            </Switch>
           </div>
         </main>
 
@@ -356,6 +315,25 @@ export default function App() {
             scriptTitle={activeScriptTitle()}
           />
         </Show>
+        {/* Im Editor läuft die Ideen-Pille auf der LINKEN Seite, weil
+            die rechte Bildschirmkante vom Editor-Rail belegt ist. Auf
+            Home bleibt sie rechts (passt besser zur "+ Neu"-Ecke). */}
+        <Show when={!focusMode()}>
+          <IdeasToggle
+            open={ideasOpen()}
+            onClick={() => setIdeasOpen(true)}
+            position={tabsStore.isHome() ? "right" : "left"}
+          />
+        </Show>
+        <IdeasDrawer
+          open={ideasOpen()}
+          onClose={() => setIdeasOpen(false)}
+          position={tabsStore.isHome() ? "right" : "left"}
+        />
+        <IdeaQuickCapture
+          open={ideaCaptureOpen()}
+          onClose={() => setIdeaCaptureOpen(false)}
+        />
         <ToastHost />
       </Show>
     </div>

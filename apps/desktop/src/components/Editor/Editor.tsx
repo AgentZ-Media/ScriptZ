@@ -50,6 +50,14 @@ export interface EditorProps {
    * editor will NOT mount (and will NOT auto-overwrite the broken state)
    * — the parent is expected to render a recovery UI instead. */
   onParseError?: (rawJson: string) => void;
+  /** Liefert die `LexicalEditor`-Instanz nach Mount nach oben — die
+   *  Editor-Toolbar braucht sie, um per Klick auf eine Block-Pille
+   *  `setBlockType(editor, "scriptz-character")` aufrufen zu können. */
+  onEditorReady?: (editor: LexicalEditor) => void;
+  /** Fires whenever the cursor moves into a different block type (or out
+   *  of any Scriptz-Block, in which case the value is `null`). Treibt das
+   *  `is-active`-Highlighting der Block-Pillen in der Toolbar. */
+  onActiveBlockChange?: (blockType: string | null) => void;
 }
 
 const THEME: EditorThemeClasses = {};
@@ -106,6 +114,9 @@ export function Editor(props: EditorProps) {
     } as unknown as Parameters<typeof createEditor>[0]);
 
     editor.setRootElement(rootRef);
+
+    // Expose editor instance to parent (Editor-Toolbar braucht sie).
+    props.onEditorReady?.(editor);
 
     // Lexical's default text-insertion handlers live in @lexical/rich-text.
     // Without this, beforeinput dispatches CONTROLLED_TEXT_INSERTION_COMMAND
@@ -364,6 +375,28 @@ export function Editor(props: EditorProps) {
     // First pass after the initial render settles.
     requestAnimationFrame(() => paginate());
 
+    /** Heuristik: ist `contentJson` ein "leerer" Lexical-Doc?
+     *  Verwendet, um zu erkennen ob `persist()` versucht, durch einen
+     *  Race (Editor wird torn down während eine debounced/onCleanup
+     *  persist() läuft) leeren State über echte Inhalte zu schreiben. */
+    function isContentEffectivelyEmpty(json: string): boolean {
+      try {
+        const root = (JSON.parse(json) as { root?: { children?: unknown[] } })?.root;
+        if (!root || !Array.isArray(root.children) || root.children.length === 0) return true;
+        let totalText = 0;
+        const walk = (n: unknown): void => {
+          if (typeof n !== "object" || n === null) return;
+          const o = n as { type?: string; text?: string; children?: unknown[] };
+          if (o.type === "text" && typeof o.text === "string") totalText += o.text.length;
+          if (Array.isArray(o.children)) o.children.forEach(walk);
+        };
+        walk(root);
+        return totalText === 0;
+      } catch {
+        return true;
+      }
+    }
+
     const persist = async () => {
       let contentJson = "";
       const seenNames: string[] = [];
@@ -424,6 +457,26 @@ export function Editor(props: EditorProps) {
       // The visual page count is owned by the ResizeObserver loop above
       // (recomputePages); reuse the latest measurement for the DB save.
       const pageCount = Math.max(1, lastReportedPages);
+
+      // Sicherheitsnetz gegen Datenverlust: wenn der Editor-State JETZT
+      // leer aussieht, das vorher eingelesene `props.initialContentJson`
+      // aber Inhalt hatte, ist das ein klares Race-Symptom (Editor wurde
+      // torn down während ein debounced/onCleanup persist() lief, oder
+      // setEditorState() ist aus irgendeinem Grund nicht durchgekommen).
+      // Lieber NICHTS schreiben als die echten Daten zu überschreiben.
+      // Ein nachfolgender Tipp-Vorgang triggert ohnehin einen neuen Save.
+      if (
+        isContentEffectivelyEmpty(contentJson) &&
+        props.initialContentJson &&
+        !isContentEffectivelyEmpty(props.initialContentJson)
+      ) {
+        console.warn(
+          "[scriptz] persist() abgebrochen: Editor-State ist leer, " +
+          "ursprünglicher Content war nicht leer - vermutlich " +
+          "Unmount-Race. Keine Überschreibung.",
+        );
+        return;
+      }
 
       props.onSavingChange?.(true);
       try {
@@ -492,7 +545,38 @@ export function Editor(props: EditorProps) {
       }
     };
 
+    // Aktiven Block-Typ tracken — sowohl bei Selection-Wechseln (Cursor
+    // wandert per Tastatur/Klick) als auch bei Inhaltsänderungen (z.B.
+    // ⌘1..⌘7 ersetzt den Block-Typ unter dem Cursor).
+    let lastActiveBlock: string | null = null;
+    const reportActiveBlock = () => {
+      if (!props.onActiveBlockChange) return;
+      let kind: string | null = null;
+      editor.getEditorState().read(() => {
+        const sel = $getSelection();
+        if (!$isRangeSelection(sel)) return;
+        let cur: LexicalNode | null = sel.anchor.getNode();
+        while (cur) {
+          if (cur instanceof BaseScriptzNode) {
+            kind = cur.getBlockType();
+            break;
+          }
+          cur = cur.getParent();
+        }
+      });
+      if (kind !== lastActiveBlock) {
+        lastActiveBlock = kind;
+        props.onActiveBlockChange?.(kind);
+      }
+    };
+    // Initial-Wert nach Mount.
+    requestAnimationFrame(reportActiveBlock);
+
     const teardownUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+      // Selection-Tracking unabhängig von dirty-State — der Cursor kann
+      // sich bewegen ohne dass etwas getippt wurde.
+      reportActiveBlock();
+
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
       dirtySinceSnapshot = true;
       if (saveTimer) clearTimeout(saveTimer);

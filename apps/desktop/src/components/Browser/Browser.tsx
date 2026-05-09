@@ -14,19 +14,29 @@ import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
 import {
   relativeTime,
-  formatAbsolute,
-  formatPageCount,
   debounce,
 } from "~/lib/format";
-import { UpdateIndicator } from "~/components/Common/UpdateIndicator";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { TrashView } from "./TrashView";
 import { Modal } from "~/components/Common/Modal";
 import { ConfirmDialog } from "~/components/Common/ConfirmDialog";
 import { scriptsBus } from "~/lib/scriptsBus";
 import { foldersBus } from "~/lib/foldersBus";
-import { FolderChips, SCRIPT_DRAG_MIME } from "./FolderChips";
+import { FolderChips } from "./FolderChips";
+import { MomentumStrip } from "./MomentumStrip";
 import "./Browser.css";
+
+/** Tageszeitabhängige Begrüßung. Greift bewusst NICHT auf einen
+ *  Vornamen zu (kein Onboarding mit Namensabfrage). */
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 5)  return "Noch wach";
+  if (h < 11) return "Guten Morgen";
+  if (h < 14) return "Mittag";
+  if (h < 18) return "Hallo";
+  if (h < 22) return "Guten Abend";
+  return "Späte Stunde";
+}
 
 type Region = "scripts" | "trash";
 type SortKey = "updated" | "created" | "title";
@@ -34,21 +44,73 @@ type ViewMode = "grid" | "list";
 
 const VIEW_STATE_KEY = "browser.view_mode";
 const ACTIVE_FOLDER_STATE_KEY = "browser.active_folder";
-const RECENT_GRID_COUNT = 4;
 const PAGE_SIZE = 200;
+
+/** Zeit-Buckets für die Gruppierung der Liste — übersetzt aus dem Design
+ *  (`bucket()` in `data.jsx`). */
+type BucketKey = "heute" | "gestern" | "diese-woche" | "diesen-monat" | "aelter";
+const BUCKET_ORDER: BucketKey[] = [
+  "heute",
+  "gestern",
+  "diese-woche",
+  "diesen-monat",
+  "aelter",
+];
+const BUCKET_LABEL: Record<BucketKey, string> = {
+  "heute":         "Heute",
+  "gestern":       "Gestern",
+  "diese-woche":   "Diese Woche",
+  "diesen-monat": "Diesen Monat",
+  "aelter":        "Älter",
+};
+
+function bucketOf(updatedAt: number): BucketKey {
+  const ageDays = (Date.now() - updatedAt) / 86_400_000;
+  if (ageDays < 1)  return "heute";
+  if (ageDays < 2)  return "gestern";
+  if (ageDays < 7)  return "diese-woche";
+  if (ageDays < 31) return "diesen-monat";
+  return "aelter";
+}
+
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: "updated", label: "Geändert" },
+  { id: "created", label: "Erstellt" },
+  { id: "title",   label: "Titel" },
+];
 
 export interface BrowserProps {
   /** Called with the currently active folder filter so the App-level
    * NewScriptDialog can pre-select it. */
   onNewScript?: (folderId: string | null) => void;
+  /** Opens the Settings modal. */
+  onOpenSettings?: () => void;
+  /** Opens the global command palette (⌘K). */
+  onOpenCmdK?: () => void;
 }
 
+/**
+ * Home / Browser — komplett überarbeitet nach Re-Design `home.jsx`:
+ *
+ *   1. Greeting (tageszeitabhängig + "Was schreibst du heute?")
+ *   2. MomentumStrip (Weiterschreiben + Streak + Heute + Aktivität ↗)
+ *   3. Header-Zeile: runde Suche · Liste/Raster-Toggle · Trash-Icon ·
+ *      Settings-Icon · "+ Neu" Primary-Button
+ *   4. Folder-Chips (Alle | divider | User-Folders | + Ordner)
+ *   5. Sortbar (Count links, Sortierung rechts)
+ *   6. Body: EINE Liste/Grid, gruppiert nach Heute/Gestern/Diese Woche/
+ *      Diesen Monat/Älter (kein "Recent + Older"-Split mehr)
+ *   7. Liste ist Default — Grid via Toggle
+ *
+ * Die alte `browser-topbar` (ScriptZ-Brand + Search + Actions) ist raus —
+ * Brand und Status liegen jetzt in der TabBar oben.
+ */
 export function Browser(props: BrowserProps = {}) {
   const [activeRegion, setActiveRegion] = createSignal<Region>("scripts");
   const [searchInput, setSearchInput] = createSignal("");
   const [debouncedSearch, setDebouncedSearch] = createSignal("");
   const [sort, setSort] = createSignal<SortKey>("updated");
-  const [viewMode, setViewMode] = createSignal<ViewMode>("grid");
+  const [viewMode, setViewMode] = createSignal<ViewMode>("list"); // Liste ist Default
   const [activeFolderId, setActiveFolderId] = createSignal<string | null>(null);
 
   const [contextMenu, setContextMenu] = createSignal<{
@@ -58,19 +120,14 @@ export function Browser(props: BrowserProps = {}) {
   } | null>(null);
   const [renameTarget, setRenameTarget] = createSignal<ScriptSummary | null>(null);
   const [renameValue, setRenameValue] = createSignal("");
-  const [folderRenameTarget, setFolderRenameTarget] = createSignal<Folder | null>(
-    null,
-  );
+  const [folderRenameTarget, setFolderRenameTarget] = createSignal<Folder | null>(null);
   const [folderRenameValue, setFolderRenameValue] = createSignal("");
   const [folderCreateOpen, setFolderCreateOpen] = createSignal(false);
   const [folderCreateValue, setFolderCreateValue] = createSignal("");
-  const [folderDeleteTarget, setFolderDeleteTarget] = createSignal<Folder | null>(
-    null,
-  );
+  const [folderDeleteTarget, setFolderDeleteTarget] = createSignal<Folder | null>(null);
+  const [sortMenuOpen, setSortMenuOpen] = createSignal<{ x: number; y: number } | null>(null);
 
-  // Restore persisted view mode + active folder. Active folder is
-  // remembered across launches so the user lands in the same place; if
-  // the folder was deleted we fall back to "Alle".
+  // Restore persisted view mode + active folder.
   onMount(async () => {
     try {
       const v = await api.getAppState(VIEW_STATE_KEY);
@@ -103,7 +160,6 @@ export function Browser(props: BrowserProps = {}) {
 
   const [pageLimit, setPageLimit] = createSignal(PAGE_SIZE);
 
-  // Reset paging whenever the query, sort or folder changes.
   createEffect(() => {
     void debouncedSearch();
     void sort();
@@ -131,9 +187,6 @@ export function Browser(props: BrowserProps = {}) {
     { initialValue: [] },
   );
 
-  // Folders + total count for the "Alle" chip. Both refetch whenever
-  // folders OR scripts change (counts move when scripts are added,
-  // archived, moved or purged).
   const folderKey = createMemo(() => ({
     fv: foldersBus.version(),
     sv: scriptsBus.version(),
@@ -145,7 +198,7 @@ export function Browser(props: BrowserProps = {}) {
     initialValue: 0,
   });
 
-  // If the active folder was deleted out from under us, fall back to "Alle".
+  // Falls aktiver Ordner gelöscht wurde → "Alle".
   createEffect(() => {
     const id = activeFolderId();
     const list = folders() ?? [];
@@ -157,24 +210,28 @@ export function Browser(props: BrowserProps = {}) {
   });
 
   const list = createMemo(() => scripts() ?? []);
-
   const hasMore = createMemo(() => list().length >= pageLimit());
-
   const isSearching = createMemo(() => debouncedSearch().trim().length > 0);
-
-  const recent = createMemo(() => {
-    if (isSearching()) return [];
-    return list().slice(0, RECENT_GRID_COUNT);
-  });
-  const older = createMemo(() => {
-    if (isSearching()) return list();
-    return list().slice(RECENT_GRID_COUNT);
-  });
-
   const activeFolderName = createMemo(() => {
     const id = activeFolderId();
     if (!id) return null;
     return folders()?.find((f) => f.id === id)?.name ?? null;
+  });
+
+  /** Gruppiert die Liste in Zeit-Buckets. Nur wenn nach `updated`
+   *  sortiert wird; bei anderen Sortierungen eine Gruppe. */
+  const groups = createMemo(() => {
+    const items = list();
+    if (sort() !== "updated" || isSearching()) {
+      return [{ key: "all" as const, label: null, items }];
+    }
+    const buckets: Record<BucketKey, ScriptSummary[]> = {
+      "heute": [], "gestern": [], "diese-woche": [], "diesen-monat": [], "aelter": [],
+    };
+    for (const s of items) buckets[bucketOf(s.updated_at)].push(s);
+    return BUCKET_ORDER
+      .map((k) => ({ key: k as string, label: BUCKET_LABEL[k], items: buckets[k] }))
+      .filter((g) => g.items.length > 0);
   });
 
   // ---- Row actions ----
@@ -262,9 +319,6 @@ export function Browser(props: BrowserProps = {}) {
     moveChildren.push({
       label: "Neuer Ordner…",
       onClick: () => {
-        // Open the create-folder modal; once created, move the script there.
-        // We thread the script through a one-shot pending state so the
-        // create flow knows what to do next.
         setPendingMoveAfterCreate(s);
         setFolderCreateValue("");
         setFolderCreateOpen(true);
@@ -285,7 +339,6 @@ export function Browser(props: BrowserProps = {}) {
     ];
   }
 
-  // Right-click on a folder chip → rename / delete.
   function folderChipMenu(folder: Folder, ev: MouseEvent) {
     setContextMenu({
       x: ev.clientX,
@@ -362,7 +415,6 @@ export function Browser(props: BrowserProps = {}) {
     try {
       await api.deleteFolder(target.id);
       pushToast(`Ordner „${target.name}" gelöscht`, "ok");
-      // ON DELETE SET NULL leaves scripts intact in "Alle" — refresh both.
       if (activeFolderId() === target.id) setActiveFolderId(null);
       foldersBus.bump();
       scriptsBus.bump();
@@ -375,17 +427,14 @@ export function Browser(props: BrowserProps = {}) {
 
   function isWelcome() {
     return (
-      !scripts.loading &&
       !isSearching() &&
       list().length === 0 &&
       activeFolderId() === null &&
       (folders() ?? []).length === 0
     );
   }
-
   function isEmptyFolder() {
     return (
-      !scripts.loading &&
       !isSearching() &&
       list().length === 0 &&
       activeFolderId() !== null
@@ -406,56 +455,96 @@ export function Browser(props: BrowserProps = {}) {
   });
 
   return (
-    <div class="browser-root">
-      <header class="browser-topbar">
-        <div class="browser-brand">
-          <span class="browser-brand-icon" aria-hidden="true">
-            <BrandIcon />
-          </span>
-          <span class="browser-brand-name">ScriptZ</span>
-        </div>
-
-        <div class="browser-search-wrap">
-          <span class="browser-search-icon" aria-hidden="true">
-            <SearchIcon />
-          </span>
-          <input
-            ref={searchInputRef}
-            type="search"
-            class="browser-search-input"
-            placeholder="Skripte suchen…"
-            value={searchInput()}
-            onInput={(e) => setSearchInput(e.currentTarget.value)}
-            spellcheck={false}
-            autocomplete="off"
-          />
-          <kbd class="browser-search-kbd" aria-hidden="true">⌘F</kbd>
-        </div>
-
-        <div class="browser-topbar-actions">
-          <UpdateIndicator />
-          <button
-            class="btn btn-primary browser-new"
-            onClick={() => openNewScript()}
-          >
-            <span class="browser-new-plus" aria-hidden="true">+</span>
-            <span>Neues Skript</span>
-          </button>
-          <button
-            class="icon-btn"
-            classList={{ "is-active": activeRegion() === "trash" }}
-            onClick={() =>
-              setActiveRegion((r) => (r === "trash" ? "scripts" : "trash"))
-            }
-            title={activeRegion() === "trash" ? "Skripte" : "Papierkorb"}
-            aria-label="Papierkorb"
-          >
-            <TrashIcon />
-          </button>
-        </div>
-      </header>
-
+    <div class="home">
       <Show when={activeRegion() === "scripts"}>
+        <div class="home-header">
+          <div class="home-greet">
+            <h1 class="home-greet-h">{greeting()}.</h1>
+            <p class="home-greet-sub">Was schreibst du heute?</p>
+          </div>
+
+          <MomentumStrip
+            lastScript={list()[0] ?? null}
+            onContinue={(s) => openScript(s)}
+          />
+
+          <div class="home-header-row">
+            <label class="home-search">
+              <span class="home-search-ic" aria-hidden="true"><SearchIcon /></span>
+              <input
+                ref={searchInputRef}
+                type="search"
+                placeholder="Skripte, Charaktere, Inhalte durchsuchen ..."
+                value={searchInput()}
+                onInput={(e) => setSearchInput(e.currentTarget.value)}
+                spellcheck={false}
+                autocomplete="off"
+              />
+              <button
+                class="home-search-kbd"
+                title="Befehle (⌘K)"
+                onClick={(e) => {
+                  e.preventDefault();
+                  props.onOpenCmdK?.();
+                }}
+              >
+                ⌘K
+              </button>
+            </label>
+
+            <div class="viewseg" role="group" aria-label="Ansicht">
+              <button
+                type="button"
+                classList={{ "is-on": viewMode() === "list" }}
+                onClick={() => setViewMode("list")}
+                title="Liste"
+                aria-label="Liste"
+              >
+                <ListIcon />
+              </button>
+              <button
+                type="button"
+                classList={{ "is-on": viewMode() === "grid" }}
+                onClick={() => setViewMode("grid")}
+                title="Raster"
+                aria-label="Raster"
+              >
+                <GridIcon />
+              </button>
+            </div>
+
+            <button
+              class="icon-btn"
+              classList={{ "is-active": activeRegion() === "trash" }}
+              onClick={() => setActiveRegion((r) => (r === "trash" ? "scripts" : "trash"))}
+              title="Papierkorb"
+              aria-label="Papierkorb"
+              type="button"
+            >
+              <TrashIcon />
+            </button>
+
+            <button
+              class="icon-btn"
+              onClick={() => props.onOpenSettings?.()}
+              title="Einstellungen (⌘,)"
+              aria-label="Einstellungen"
+              type="button"
+            >
+              <GearIcon />
+            </button>
+
+            <button
+              class="btn btn-primary home-new"
+              onClick={() => openNewScript()}
+              type="button"
+            >
+              <span class="home-new-plus" aria-hidden="true">+</span>
+              <span>Neu</span>
+            </button>
+          </div>
+        </div>
+
         <FolderChips
           folders={folders() ?? []}
           activeFolderId={activeFolderId()}
@@ -475,179 +564,144 @@ export function Browser(props: BrowserProps = {}) {
           }}
         />
 
-        <div class="browser-body">
-          <Show
-            when={!isWelcome()}
-            fallback={
-              <div class="welcome">
-                <button
-                  class="btn btn-primary welcome-btn"
-                  onClick={() => openNewScript()}
-                >
-                  Erstes Skript erstellen
-                </button>
-                <div class="welcome-hint subtle">
-                  <span class="kbd">⌘</span>
-                  <span class="kbd">N</span> für ein neues Skript
-                </div>
-              </div>
-            }
-          >
-            <Show
-              when={!isEmptyFolder()}
-              fallback={
-                <div class="empty-folder">
-                  <p class="muted">
-                    „{activeFolderName()}" ist leer.
-                  </p>
-                  <p class="muted small">
-                    Skripte hierher ziehen oder per Rechtsklick „In Ordner
-                    verschieben" zuweisen.
-                  </p>
-                </div>
-              }
+        <Show when={!isWelcome()} fallback={
+          <div class="home-welcome">
+            <div class="home-empty-mark">z</div>
+            <div class="home-empty-h">Schreib dein erstes Skript</div>
+            <div class="home-empty-sub">
+              Eine Idee in fünf Minuten zu einem ausgedruckten Skript.
+              Lokal, schnell, ohne Anmeldung.
+            </div>
+            <div class="home-empty-actions">
+              <button class="btn btn-primary" onClick={() => openNewScript()}>
+                <span aria-hidden="true">+</span> Neues Skript
+              </button>
+            </div>
+            <div class="home-empty-hint">
+              Drück <span class="kbd kbd-inline">⌘N</span> um zu beginnen
+            </div>
+          </div>
+        }>
+          <div class="home-sortbar">
+            <span class="home-count-line">
+              {list().length} {list().length === 1 ? "Skript" : "Skripte"}
+              <Show when={activeFolderName()}> · {activeFolderName()}</Show>
+              <Show when={isSearching()}> · „{debouncedSearch()}"</Show>
+            </span>
+            <button
+              type="button"
+              class="home-sort"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setSortMenuOpen({ x: r.right - 200, y: r.bottom + 4 });
+              }}
             >
-              <Show when={list().length > 0 || scripts.loading}>
-                <Show when={!isSearching() && recent().length > 0}>
-                  <section class="browser-section">
-                    <div class="browser-section-head">
-                      <h2 class="browser-section-title">
-                        <Show
-                          when={activeFolderName()}
-                          fallback={"Zuletzt bearbeitet"}
-                        >
-                          Zuletzt in „{activeFolderName()}"
+              <SortIcon />
+              <span>Sortieren · {SORTS.find((x) => x.id === sort())?.label}</span>
+              <ChevronDownIcon />
+            </button>
+          </div>
+
+          <div class="home-body">
+            <Show when={isEmptyFolder()} fallback={
+              <Show when={list().length > 0 || isSearching()}>
+                <Show when={list().length > 0} fallback={
+                  <div class="home-empty">
+                    <div class="home-empty-mark home-empty-mark-search"><SearchIcon /></div>
+                    <div class="home-empty-h">Nichts gefunden für „{debouncedSearch()}"</div>
+                    <div class="home-empty-sub">
+                      Tipp: Suche schließt Titel und Charaktere ein.
+                    </div>
+                  </div>
+                }>
+                  <For each={groups()}>
+                    {(g) => (
+                      <section class="home-group">
+                        <Show when={g.label}>
+                          <div class="home-group-label">{g.label}</div>
                         </Show>
-                      </h2>
-                      <div class="browser-section-tools">
-                        <select
-                          class="browser-sort"
-                          value={sort()}
-                          onChange={(e) =>
-                            setSort(e.currentTarget.value as SortKey)
-                          }
-                          title="Sortierung"
-                        >
-                          <option value="updated">Letzte Bearbeitung</option>
-                          <option value="created">Erstelldatum</option>
-                          <option value="title">Alphabetisch</option>
-                        </select>
-                        <ViewToggle value={viewMode()} onChange={setViewMode} />
-                      </div>
-                    </div>
+                        <Show when={viewMode() === "list"} fallback={
+                          <div class="home-cards">
+                            <For each={g.items}>
+                              {(s) => (
+                                <ScriptCard
+                                  script={s}
+                                  folderName={
+                                    folders()?.find((f) => f.id === s.folder_id)?.name ?? ""
+                                  }
+                                  onClick={() => openScript(s)}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    setContextMenu({
+                                      x: e.clientX, y: e.clientY,
+                                      items: ctxMenuItems(s),
+                                    });
+                                  }}
+                                />
+                              )}
+                            </For>
+                          </div>
+                        }>
+                          <div class="home-list">
+                            <For each={g.items}>
+                              {(s) => (
+                                <ScriptRow
+                                  script={s}
+                                  isContext={false}
+                                  onOpen={() => openScript(s)}
+                                  onMore={(e) => {
+                                    const r = e.currentTarget.getBoundingClientRect();
+                                    setContextMenu({
+                                      x: r.right - 240, y: r.bottom + 4,
+                                      items: ctxMenuItems(s),
+                                    });
+                                  }}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    setContextMenu({
+                                      x: e.clientX, y: e.clientY,
+                                      items: ctxMenuItems(s),
+                                    });
+                                  }}
+                                />
+                              )}
+                            </For>
+                          </div>
+                        </Show>
+                      </section>
+                    )}
+                  </For>
 
-                    <Show
-                      when={viewMode() === "grid"}
-                      fallback={
-                        <ScriptList
-                          items={recent()}
-                          onOpen={openScript}
-                          onMore={(s, e) =>
-                            setContextMenu({
-                              x: e.clientX,
-                              y: e.clientY,
-                              items: ctxMenuItems(s),
-                            })
-                          }
-                        />
-                      }
-                    >
-                      <div class="card-grid">
-                        <For each={recent()}>
-                          {(s) => (
-                            <ScriptCard
-                              script={s}
-                              onClick={() => openScript(s)}
-                              onMiddleClick={() => openScript(s, true)}
-                              onContextMenu={(e) => {
-                                e.preventDefault();
-                                setContextMenu({
-                                  x: e.clientX,
-                                  y: e.clientY,
-                                  items: ctxMenuItems(s),
-                                });
-                              }}
-                              onMore={(e) =>
-                                setContextMenu({
-                                  x: e.clientX,
-                                  y: e.clientY,
-                                  items: ctxMenuItems(s),
-                                })
-                              }
-                            />
-                          )}
-                        </For>
-                      </div>
-                    </Show>
-                  </section>
-                </Show>
-
-                <Show when={older().length > 0 || isSearching()}>
-                  <section class="browser-section">
-                    <div class="browser-section-head">
-                      <h2 class="browser-section-title">
-                        {isSearching() ? "Suchergebnisse" : "Ältere Skripte"}
-                      </h2>
-                      <Show when={isSearching()}>
-                        <div class="browser-section-tools">
-                          <span class="muted small">
-                            {list().length}{" "}
-                            {list().length === 1 ? "Treffer" : "Treffer"}
-                          </span>
-                        </div>
-                      </Show>
-                    </div>
-                    <Show
-                      when={older().length > 0}
-                      fallback={
-                        <div class="empty-state muted">
-                          Keine Skripte gefunden.
-                        </div>
-                      }
-                    >
-                      <ScriptList
-                        items={older()}
-                        onOpen={openScript}
-                        onMore={(s, e) =>
-                          setContextMenu({
-                            x: e.clientX,
-                            y: e.clientY,
-                            items: ctxMenuItems(s),
-                          })
-                        }
-                        withHeader
-                      />
-                    </Show>
-                  </section>
-                </Show>
-
-                <Show when={list().length > 0}>
-                  <div class="browser-footer muted small">
-                    <span>
-                      {list().length}{" "}
-                      {list().length === 1 ? "Skript" : "Skripte"}
-                      <Show when={activeFolderName()}>
-                        {" "}
-                        in „{activeFolderName()}"
-                      </Show>
-                    </span>
-                    <Show when={hasMore()}>
+                  <Show when={hasMore()}>
+                    <div class="home-loadmore-row">
                       <button
-                        class="btn btn-ghost browser-load-more"
+                        class="btn btn-ghost"
                         onClick={() => setPageLimit((n) => n + PAGE_SIZE)}
                       >
                         {PAGE_SIZE} weitere laden
                       </button>
-                    </Show>
-                  </div>
+                    </div>
+                  </Show>
                 </Show>
               </Show>
+            }>
+              <div class="home-empty">
+                <div class="home-empty-h">„{activeFolderName()}" ist leer.</div>
+                <div class="home-empty-sub">
+                  Skripte hierher ziehen oder per Rechtsklick „In Ordner verschieben" zuweisen.
+                </div>
+              </div>
             </Show>
-          </Show>
-        </div>
+          </div>
+        </Show>
       </Show>
 
       <Show when={activeRegion() === "trash"}>
+        <div class="trash-header">
+          <button class="btn btn-ghost" onClick={() => setActiveRegion("scripts")}>
+            ← Übersicht
+          </button>
+        </div>
         <TrashView />
       </Show>
 
@@ -658,6 +712,18 @@ export function Browser(props: BrowserProps = {}) {
             y={cm().y}
             onClose={() => setContextMenu(null)}
             items={cm().items}
+          />
+        )}
+      </Show>
+
+      <Show when={sortMenuOpen()}>
+        {(at) => (
+          <SortPopover
+            x={at().x}
+            y={at().y}
+            current={sort()}
+            onPick={(id) => { setSort(id); setSortMenuOpen(null); }}
+            onClose={() => setSortMenuOpen(null)}
           />
         )}
       </Show>
@@ -705,13 +771,10 @@ export function Browser(props: BrowserProps = {}) {
         title="Neuer Ordner"
         footer={
           <>
-            <button
-              class="btn"
-              onClick={() => {
-                setFolderCreateOpen(false);
-                setPendingMoveAfterCreate(null);
-              }}
-            >
+            <button class="btn" onClick={() => {
+              setFolderCreateOpen(false);
+              setPendingMoveAfterCreate(null);
+            }}>
               Abbrechen
             </button>
             <button class="btn btn-primary" onClick={commitFolderCreate}>
@@ -794,304 +857,233 @@ export function Browser(props: BrowserProps = {}) {
 
 export default Browser;
 
-// ---- Card grid ----
+/* ---------- Sort-Popover ---------- */
+
+function SortPopover(props: {
+  x: number; y: number;
+  current: SortKey;
+  onPick: (id: SortKey) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div class="popover-scrim" onClick={() => props.onClose()} />
+      <div class="popover-menu" style={`left:${props.x}px;top:${props.y}px;`}>
+        <For each={SORTS}>
+          {(o) => (
+            <button
+              type="button"
+              class="popover-item"
+              onClick={() => props.onPick(o.id)}
+            >
+              <span class="popover-ic">
+                <Show when={props.current === o.id}><CheckIcon /></Show>
+              </span>
+              <span>{o.label}</span>
+            </button>
+          )}
+        </For>
+      </div>
+    </>
+  );
+}
+
+/* ---------- Script-Card (Grid) ---------- */
 
 interface ScriptCardProps {
   script: ScriptSummary;
+  folderName: string;
   onClick: () => void;
-  onMiddleClick: () => void;
   onContextMenu: (e: MouseEvent) => void;
-  onMore: (e: MouseEvent) => void;
 }
-
 function ScriptCard(props: ScriptCardProps) {
-  const [dragging, setDragging] = createSignal(false);
+  const charColor = () => props.script.characters[0]?.color ?? null;
   return (
     <article
-      class="card"
-      classList={{ "is-dragging": dragging() }}
-      draggable={true}
-      onDragStart={(e) => {
-        if (!e.dataTransfer) return;
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
-        // Plain-text fallback so OS-level drop feedback isn't empty.
-        e.dataTransfer.setData("text/plain", props.script.title);
-        setDragging(true);
-      }}
-      onDragEnd={() => setDragging(false)}
-      onClick={(e) => {
-        if (e.metaKey || e.ctrlKey) props.onMiddleClick();
-        else props.onClick();
-      }}
-      onAuxClick={(e) => {
-        if (e.button === 1) props.onMiddleClick();
-      }}
+      class="card-v2"
+      onClick={props.onClick}
       onContextMenu={props.onContextMenu}
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") props.onClick();
-      }}
     >
-      <div class="card-head">
-        <span class="card-icon" aria-hidden="true">
-          <DocIcon />
-        </span>
-        <button
-          class="card-more"
-          aria-label="Mehr Aktionen"
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onMore(e);
-          }}
-        >
-          ⋯
-        </button>
-      </div>
-      <h3 class="card-title">{props.script.title}</h3>
-      <Show
-        when={props.script.characters.length > 0}
-        fallback={<div class="card-chars muted small">Keine Charaktere</div>}
-      >
-        <div class="card-chars">
-          <For each={props.script.characters}>
-            {(c, i) => (
-              <Show when={i() < 4}>
-                <span class="card-char">{c.name}</span>
-              </Show>
-            )}
-          </For>
-          <Show when={props.script.characters.length > 4}>
-            <span class="card-char muted">
-              +{props.script.characters.length - 4}
-            </span>
-          </Show>
+      <div
+        class="card-v2-strip"
+        classList={{ "is-empty": charColor() === null }}
+        style={charColor() ? `background:${charColor()};` : ""}
+        aria-hidden="true"
+      />
+      <div class="card-v2-body">
+        <div class="card-v2-head">
+          <div class="card-v2-folder">{props.folderName}</div>
         </div>
-      </Show>
-      <div class="card-meta">
-        <span class="card-time">
-          <ClockIcon /> {relativeTime(props.script.updated_at)}
-        </span>
-        <span class="card-pages muted">
-          {formatPageCount(props.script.page_count)}
-        </span>
+        <div class="card-v2-title">{props.script.title || "Unbenannt"}</div>
+        <div class="card-v2-meta-row">
+          <span class="card-v2-meta">
+            {relativeTime(props.script.updated_at)} · {props.script.page_count} S.
+          </span>
+          <span class="card-v2-cast">
+            <For each={props.script.characters.slice(0, 4)}>
+              {(c) => (
+                <span class="cast-dot" title={c.name} style={`background:${c.color};`} />
+              )}
+            </For>
+            <Show when={props.script.characters.length === 0}>
+              <span class="card-v2-meta-faint">Notiz</span>
+            </Show>
+          </span>
+        </div>
       </div>
     </article>
   );
 }
 
-// ---- List ----
+/* ---------- Script-Row (List) ---------- */
 
-function ScriptList(props: {
-  items: ScriptSummary[];
-  onOpen: (s: ScriptSummary, newTab?: boolean) => void;
-  onMore: (s: ScriptSummary, e: MouseEvent) => void;
-  withHeader?: boolean;
-}) {
-  return (
-    <div class="list-table" role="table">
-      <Show when={props.withHeader}>
-        <div class="list-row list-head" role="row">
-          <span class="list-col list-col-title" role="columnheader">
-            Titel
-          </span>
-          <span class="list-col list-col-time" role="columnheader">
-            Zuletzt bearbeitet
-          </span>
-          <span class="list-col list-col-pages" role="columnheader">
-            Seiten
-          </span>
-          <span class="list-col list-col-more" />
-        </div>
-      </Show>
-      <For each={props.items}>
-        {(s) => (
-          <ListRow
-            script={s}
-            onOpen={(e) => props.onOpen(s, e.metaKey || e.ctrlKey)}
-            onMore={(e) => props.onMore(s, e)}
-          />
-        )}
-      </For>
-    </div>
-  );
-}
-
-function ListRow(props: {
+interface ScriptRowProps {
   script: ScriptSummary;
-  onOpen: (e: MouseEvent) => void;
-  onMore: (e: MouseEvent) => void;
-}) {
-  const [dragging, setDragging] = createSignal(false);
-  const charSummary = () => {
-    const cs = props.script.characters;
-    if (cs.length === 0) return "Keine Charaktere";
-    return cs
-      .slice(0, 5)
-      .map((c) => c.name)
-      .join(" · ");
-  };
+  isContext: boolean;
+  onOpen: () => void;
+  onMore: (e: MouseEvent & { currentTarget: HTMLElement }) => void;
+  onContextMenu: (e: MouseEvent) => void;
+}
+function ScriptRow(props: ScriptRowProps) {
+  const charColor = () => props.script.characters[0]?.color ?? null;
   return (
     <div
-      class="list-row"
-      classList={{ "is-dragging": dragging() }}
-      role="row"
+      class="row-v2"
+      classList={{ "is-context": props.isContext }}
+      onClick={props.onOpen}
+      onContextMenu={props.onContextMenu}
       tabIndex={0}
-      draggable={true}
-      onDragStart={(e) => {
-        if (!e.dataTransfer) return;
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
-        e.dataTransfer.setData("text/plain", props.script.title);
-        setDragging(true);
-      }}
-      onDragEnd={() => setDragging(false)}
-      onClick={(e) => props.onOpen(e)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") props.onOpen(e as unknown as MouseEvent);
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        props.onMore(e);
-      }}
+      onKeyDown={(e) => { if (e.key === "Enter") props.onOpen(); }}
     >
-      <span class="list-col list-col-title" role="cell">
-        <span class="list-icon" aria-hidden="true">
-          <DocIcon />
-        </span>
-        <span class="list-text">
-          <span class="list-title">{props.script.title}</span>
-          <span class="list-sub muted">{charSummary()}</span>
-        </span>
-      </span>
-      <span class="list-col list-col-time muted" role="cell">
-        {formatAbsolute(props.script.updated_at)}
-      </span>
-      <span class="list-col list-col-pages muted" role="cell">
-        {props.script.page_count}
-      </span>
-      <span class="list-col list-col-more" role="cell">
-        <button
-          class="icon-btn icon-btn-ghost"
-          aria-label="Mehr Aktionen"
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onMore(e);
-          }}
-        >
-          ⋯
-        </button>
-      </span>
-    </div>
-  );
-}
-
-// ---- View toggle ----
-
-function ViewToggle(props: {
-  value: ViewMode;
-  onChange: (v: ViewMode) => void;
-}) {
-  return (
-    <div class="view-toggle" role="tablist" aria-label="Ansicht">
+      <div
+        class="row-stripe"
+        classList={{ "row-stripe-empty": charColor() === null }}
+        style={charColor() ? `background:${charColor()};` : ""}
+      />
+      <div class="row-v2-title">{props.script.title || "Unbenannt"}</div>
+      <div class="row-v2-chars">
+        <For each={props.script.characters.slice(0, 2)}>
+          {(c) => (
+            <span class="char-pill" style={`color:${c.color};--char-color:${c.color};`}>
+              {c.name}
+            </span>
+          )}
+        </For>
+        <Show when={props.script.characters.length > 2}>
+          <span class="row-v2-chars-more">
+            +{props.script.characters.length - 2}
+          </span>
+        </Show>
+      </div>
+      <div class="row-v2-meta">{relativeTime(props.script.updated_at)}</div>
+      <div class="row-v2-pages">
+        {props.script.page_count} {props.script.page_count === 1 ? "Seite" : "Seiten"}
+      </div>
       <button
-        class="view-toggle-btn"
-        classList={{ "is-active": props.value === "grid" }}
-        onClick={() => props.onChange("grid")}
-        title="Karten"
-        aria-label="Karten"
+        class="row-v2-more"
+        aria-label="Mehr Aktionen"
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onMore(e as MouseEvent & { currentTarget: HTMLElement });
+        }}
       >
-        <GridIcon />
-      </button>
-      <button
-        class="view-toggle-btn"
-        classList={{ "is-active": props.value === "list" }}
-        onClick={() => props.onChange("list")}
-        title="Liste"
-        aria-label="Liste"
-      >
-        <ListIcon />
+        <MoreIcon />
       </button>
     </div>
   );
 }
 
-// ---- Icons ----
-
-function BrandIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M5 4h10l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-      <path d="M15 4v4h4" />
-      <path d="M8 13l3-3 3 3" />
-      <path d="M11 10v6" />
-    </svg>
-  );
-}
-
-function DocIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M5 3h7l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-      <path d="M12 3v3h3" />
-    </svg>
-  );
-}
+/* ---------- Icons ---------- */
 
 function SearchIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
     </svg>
   );
 }
-
 function TrashIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 6h18" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       <path d="M10 11v6" />
       <path d="M14 11v6" />
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
     </svg>
   );
 }
-
-function GridIcon() {
+function GearIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-         stroke-width="1.5">
-      <rect x="2" y="2" width="5" height="5" rx="1" />
-      <rect x="9" y="2" width="5" height="5" rx="1" />
-      <rect x="2" y="9" width="5" height="5" rx="1" />
-      <rect x="9" y="9" width="5" height="5" rx="1" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }
-
 function ListIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-         stroke-width="1.5" stroke-linecap="round">
-      <path d="M3 4h10" />
-      <path d="M3 8h10" />
-      <path d="M3 12h10" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
   );
 }
-
-function ClockIcon() {
+function GridIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-         stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M8 5v3l2 1.5" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+function MoreIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="6" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="12" cy="18" r="1" />
+    </svg>
+  );
+}
+function SortIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="11 9 8 6 5 9" />
+      <polyline points="19 15 16 18 13 15" />
+      <line x1="8" y1="6" x2="8" y2="18" />
+      <line x1="16" y1="18" x2="16" y2="6" />
+    </svg>
+  );
+}
+function ChevronDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

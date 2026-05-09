@@ -11,13 +11,27 @@ const [hourlyUpdateCheck, setHourlyUpdateCheck] = createSignal<boolean>(true);
 // Per-script manual toggle still wins — once the writer overrides it on a
 // script, that decision sticks across character-count changes.
 const [quickModeAutoEnable, setQuickModeAutoEnable] = createSignal<boolean>(false);
+// Tagesziel in Wörtern. Default 250 (laut Re-Design-Chat). Wird vom
+// Momentum-Strip auf der Home-Seite und vom (geplanten) Editor-Ribbon
+// gelesen. Bewusst eine zentrale Quelle, damit Home und Editor sich
+// nie unterscheiden.
+const DAILY_WORD_GOAL_DEFAULT = 250;
+const DAILY_WORD_GOAL_MIN = 50;
+const DAILY_WORD_GOAL_MAX = 5000;
+const [dailyWordGoal, setDailyWordGoal] = createSignal<number>(DAILY_WORD_GOAL_DEFAULT);
 const [loaded, setLoaded] = createSignal(false);
+
+function clampGoal(n: number): number {
+  if (!Number.isFinite(n)) return DAILY_WORD_GOAL_DEFAULT;
+  return Math.max(DAILY_WORD_GOAL_MIN, Math.min(DAILY_WORD_GOAL_MAX, Math.round(n)));
+}
 
 export const settingsStore = {
   theme,
   setTheme: async (v: Theme) => {
     setTheme(v);
-    document.documentElement.dataset.theme = v;
+    // dataset.theme wird vom createEffect unten gesetzt — kein redundantes
+    // Schreiben hier mehr.
     await api.setSetting("theme", v);
   },
   highlightingDefault,
@@ -40,27 +54,42 @@ export const settingsStore = {
     setQuickModeAutoEnable(v);
     await api.setSetting("quick_mode_auto_enable", v ? "1" : "0");
   },
+  dailyWordGoal,
+  setDailyWordGoal: async (v: number) => {
+    const next = clampGoal(v);
+    setDailyWordGoal(next);
+    await api.setSetting("daily_word_goal", String(next));
+  },
+  DAILY_WORD_GOAL_MIN,
+  DAILY_WORD_GOAL_MAX,
+  DAILY_WORD_GOAL_DEFAULT,
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae] = await Promise.all([
+    const [t, hd, uce, huc, qmae, dwg] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
       api.getSetting("hourly_update_check"),
       api.getSetting("quick_mode_auto_enable"),
+      api.getSetting("daily_word_goal"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
     if (uce) setUpdateCheckEnabled(uce === "1");
     if (huc) setHourlyUpdateCheck(huc === "1");
     if (qmae) setQuickModeAutoEnable(qmae === "1");
+    if (dwg) {
+      const parsed = Number(dwg);
+      if (Number.isFinite(parsed)) setDailyWordGoal(clampGoal(parsed));
+    }
     setLoaded(true);
-    document.documentElement.dataset.theme = theme();
   },
 };
 
+// Theme aufs Document anwenden — wir lassen den Effekt das einzige
+// Schreib-Target sein (statt zusätzlich in setTheme + load() zu setzen).
+// Solid trackt theme() als Dependency und feuert auf jeden Wechsel,
+// inkl. dem ersten Lese-Setzen am Ende von load().
 createEffect(() => {
-  if (loaded()) {
-    document.documentElement.dataset.theme = theme();
-  }
+  document.documentElement.dataset.theme = theme();
 });

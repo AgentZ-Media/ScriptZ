@@ -1,0 +1,637 @@
+/* Ideen-Schicht - Toggle, Drawer, Quick-Capture-Overlay.
+   Alle drei Komponenten teilen sich dieselben CSS-Regeln. */
+
+/* ---- Floating-Toggle (Bildschirmrand) ---- */
+.ideas-toggle {
+  position: fixed;
+  /* 34 px Titlebar + 46 px Editor-Toolbar + 14 px Atemluft = 94 px.
+     Auf Home gibt's keine Editor-Toolbar; die Pille schwebt einfach
+     etwas tiefer in den Body rein - bewusst eine Position für beide
+     Routen, damit beim Tab-Wechsel kein Sprung entsteht. */
+  top: 94px;
+  z-index: 28;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px 0 10px;
+  background: var(--paper, var(--bg-elev-1));
+  color: var(--text-2, var(--fg));
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(28, 24, 20, 0.06),
+    0 4px 14px rgba(28, 24, 20, 0.06);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t-med), color var(--t-med),
+    border-color var(--t-med), transform var(--t-med),
+    opacity var(--t-med);
+}
+.ideas-toggle-right {
+  right: 0;
+  border-right: 0;
+  border-radius: var(--r-pill) 0 0 var(--r-pill);
+  padding: 0 14px 0 10px;
+}
+.ideas-toggle-left {
+  left: 0;
+  border-left: 0;
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  padding: 0 10px 0 14px;
+}
+.ideas-toggle:hover {
+  background: var(--ink-500);
+  color: var(--paper, #fff);
+  border-color: var(--ink-500);
+  box-shadow: 0 2px 6px rgba(28, 24, 20, 0.18);
+}
+.ideas-toggle.is-open {
+  opacity: 0;
+  pointer-events: none;
+}
+.ideas-toggle-right.is-open { transform: translateX(8px); }
+.ideas-toggle-left.is-open { transform: translateX(-8px); }
+.ideas-toggle-ic {
+  display: inline-flex;
+}
+.ideas-toggle-label {
+  white-space: nowrap;
+}
+.ideas-toggle-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--ink-500);
+  color: var(--paper, #fff);
+  border-radius: var(--r-pill);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+.ideas-toggle:hover .ideas-toggle-count {
+  background: var(--paper, #fff);
+  color: var(--ink-700);
+}
+
+/* ---- Scrim (sanft, über der ganzen App) ---- */
+.ideas-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 24, 20, 0);
+  z-index: 30;
+  pointer-events: none;
+  transition: background var(--t-med);
+}
+.ideas-scrim.is-on {
+  pointer-events: auto;
+  background: rgba(28, 24, 20, 0.06);
+}
+
+/* ---- Drawer ---- */
+.ideas-drawer {
+  --idw: 360px;
+  position: fixed;
+  top: 34px;
+  bottom: 0;
+  width: var(--idw);
+  max-width: 92vw;
+  z-index: 31;
+  background: var(--paper-2, var(--bg-elev-2));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform var(--t-slow), box-shadow var(--t-med);
+  will-change: transform;
+}
+.ideas-drawer-right {
+  right: 0;
+  transform: translateX(calc(100% + 12px));
+  border-left: 1px solid var(--border-strong);
+}
+.ideas-drawer-left {
+  left: 0;
+  transform: translateX(calc(-100% - 12px));
+  border-right: 1px solid var(--border-strong);
+}
+.ideas-drawer.is-open {
+  transform: translateX(0);
+}
+.ideas-drawer-right.is-open {
+  box-shadow: -16px 0 40px rgba(28, 24, 20, 0.10);
+}
+.ideas-drawer-left.is-open {
+  box-shadow: 16px 0 40px rgba(28, 24, 20, 0.10);
+}
+.ideas-drawer .icon-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ideas-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 12px 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(to bottom, var(--paper, var(--bg-elev-1)), var(--paper-2, var(--bg-elev-2)));
+}
+.ideas-head-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ideas-head-title h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-700);
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.ideas-bulb {
+  display: inline-flex;
+  color: var(--char-5);
+}
+.ideas-head-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  background: var(--hover-strong, rgba(0, 0, 0, 0.06));
+  color: var(--text-2, var(--fg));
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+
+/* ---- Capture-Input ---- */
+.ideas-capture {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 14px 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.ideas-capture:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 4px var(--ring-brand);
+}
+.ideas-capture-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint, var(--fg-subtle));
+  font-size: 16px;
+  width: 16px;
+}
+.ideas-capture input {
+  flex: 1;
+  font-size: var(--fs-13);
+  height: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  outline: none;
+  color: inherit;
+}
+.ideas-capture input:focus {
+  border: 0;
+  box-shadow: none;
+}
+.ideas-capture input::placeholder {
+  color: var(--text-faint, var(--fg-subtle));
+}
+.ideas-capture-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--ink-500);
+  color: var(--paper, #fff);
+  border-radius: var(--r-2);
+  border: 0;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background var(--t-fast);
+}
+.ideas-capture-go:hover { background: var(--ink-700); }
+
+/* ---- Tab-Segmented ---- */
+.ideas-segs {
+  display: flex;
+  gap: 4px;
+  margin: 6px 14px 4px;
+  padding: 3px;
+  background: rgba(28, 24, 20, 0.04);
+  border-radius: var(--r-3);
+}
+.ideas-segs button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  font-size: var(--fs-12);
+  color: var(--text-subtle, var(--fg-muted));
+  border-radius: var(--r-2);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.ideas-segs button:hover { color: var(--text, var(--fg)); }
+.ideas-segs button.is-on {
+  background: var(--paper, var(--bg-elev-1));
+  color: var(--ink-700);
+  box-shadow: 0 1px 2px rgba(28, 24, 20, 0.10);
+  font-weight: 600;
+}
+.ideas-seg-n {
+  font-size: 10px;
+  color: var(--text-faint, var(--fg-subtle));
+  font-variant-numeric: tabular-nums;
+}
+.ideas-segs button.is-on .ideas-seg-n {
+  color: var(--text-subtle, var(--fg-muted));
+}
+
+/* ---- Body / Liste ---- */
+.ideas-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px 12px;
+}
+.ideas-group { margin-top: 12px; }
+.ideas-group:first-child { margin-top: 6px; }
+.ideas-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint, var(--fg-subtle));
+  padding: 4px 8px 6px;
+}
+.ideas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---- Idee-Reihe ---- */
+.idea-row {
+  position: relative;
+  padding: 10px 10px 10px 8px;
+  border-radius: var(--r-3);
+  cursor: default;
+  transition: background var(--t-fast);
+}
+.idea-row:hover { background: var(--hover); }
+.idea-row-main {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 10px;
+}
+.idea-row-text {
+  min-width: 0;
+  padding-left: 2px;
+}
+.idea-row-title {
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--ink-700);
+  line-height: 1.45;
+  word-break: break-word;
+}
+.idea-row-check {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--text-faint, var(--fg-subtle));
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.idea-row.is-used .idea-row-title {
+  color: var(--text-faint, var(--fg-subtle));
+  text-decoration: line-through;
+  text-decoration-color: rgba(28, 24, 20, 0.18);
+  font-weight: 400;
+}
+.idea-row-preview {
+  font-size: 11.5px;
+  color: var(--text-subtle, var(--fg-muted));
+  line-height: 1.4;
+  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.idea-row-meta {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--text-faint, var(--fg-subtle));
+  font-variant-numeric: tabular-nums;
+}
+.idea-row-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-subtle, var(--fg-muted));
+  border: 0;
+  background: rgba(28, 24, 20, 0.04);
+  border-radius: var(--r-2);
+  padding: 2px 6px 2px 4px;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.idea-row-link:hover {
+  background: rgba(28, 24, 20, 0.08);
+  color: var(--text, var(--fg));
+}
+
+.idea-row-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px 0 10px;
+  background: var(--ink-500);
+  color: var(--paper, #fff);
+  border: 0;
+  border-radius: var(--r-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity var(--t-fast), transform var(--t-fast),
+    background var(--t-fast);
+}
+.idea-row:hover .idea-row-cta,
+.idea-row:focus-within .idea-row-cta {
+  opacity: 1;
+  transform: translateX(0);
+}
+.idea-row-cta:hover { background: var(--ink-700); }
+
+@media (hover: none) {
+  .idea-row-cta { opacity: 1; transform: none; }
+}
+
+/* ---- Editing-Form ---- */
+.idea-row-editing {
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border-strong);
+  padding: 12px;
+}
+.idea-row-editing:hover { background: var(--paper, var(--bg-elev-1)); }
+.idea-row-title-input {
+  width: 100%;
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--ink-700);
+  padding: 4px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  outline: none;
+}
+.idea-row-title-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: none;
+}
+.idea-row-notes-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-size: var(--fs-12);
+  color: var(--text-2, var(--fg));
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+.idea-row-notes-input:focus { box-shadow: none; }
+.idea-row-notes-input::placeholder {
+  color: var(--text-faint, var(--fg-subtle));
+}
+.idea-row-edit-foot {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+.idea-row-edit-foot .btn {
+  height: 28px;
+  padding: 0 12px;
+  font-size: var(--fs-12);
+}
+.idea-row-edit-del {
+  background: transparent;
+  color: var(--text-faint, var(--fg-subtle));
+  border: 0;
+  padding: 4px 8px;
+  border-radius: var(--r-2);
+  font-size: var(--fs-12);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.idea-row-edit-del:hover {
+  background: var(--danger-soft);
+  color: var(--status-err);
+}
+
+/* ---- Empty-State ---- */
+.ideas-empty {
+  text-align: center;
+  padding: 36px 24px;
+  color: var(--text-subtle, var(--fg-muted));
+}
+.ideas-empty-mark {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--char-5);
+}
+.ideas-empty-h {
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--ink-700);
+  margin-bottom: 4px;
+}
+.ideas-empty-sub {
+  font-size: var(--fs-12);
+  text-wrap: pretty;
+  max-width: 240px;
+  margin: 0 auto;
+}
+.ideas-empty-cta {
+  margin-top: 14px;
+  height: 32px;
+  padding: 0 14px;
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ideas-empty-cta:hover { background: var(--hover); }
+
+/* ---- Footer ---- */
+.ideas-foot {
+  display: flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--paper-2, var(--bg-elev-2));
+}
+.ideas-foot-hint {
+  font-size: 11px;
+  color: var(--text-faint, var(--fg-subtle));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.kbd-inline {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-subtle, var(--fg-muted));
+  font-family: var(--font-mono);
+}
+
+/* ---- ⌘I Quick-Capture-Overlay ---- */
+.qcap-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 24, 20, 0.20);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 110;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18vh;
+  animation: fade-in var(--t-med);
+}
+.qcap {
+  width: min(560px, calc(100% - 40px));
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-radius: var(--r-5);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: scale-in var(--t-med);
+}
+.qcap-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 0;
+  font-size: 11px;
+  color: var(--text-subtle, var(--fg-muted));
+}
+.qcap-bulb {
+  display: inline-flex;
+  color: var(--char-5);
+}
+.qcap-label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.qcap-spacer { flex: 1; }
+.qcap-input {
+  font-size: 22px;
+  padding: 14px 18px 18px;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-700);
+  letter-spacing: -0.005em;
+  font-weight: 500;
+  outline: none;
+}
+.qcap-input:hover,
+.qcap-input:focus {
+  background: transparent;
+  border-bottom-color: var(--border);
+  box-shadow: none;
+}
+.qcap-input::placeholder {
+  color: var(--text-faint, var(--fg-subtle));
+  font-weight: 400;
+}
+.qcap-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--paper-2, var(--bg-elev-2));
+}
+.qcap-foot .btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: var(--fs-12);
+  gap: 6px;
+}
+.qcap-foot .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ideas-drawer { transition: none; }
+}

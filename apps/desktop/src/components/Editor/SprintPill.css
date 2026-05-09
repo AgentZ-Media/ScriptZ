@@ -1,0 +1,129 @@
+/* Schreib-Sprint - schwebt unten rechts im Editor. */
+
+.sprint {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.sprint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  box-shadow: 0 4px 12px rgba(28, 24, 20, 0.08),
+    0 1px 2px rgba(28, 24, 20, 0.06);
+  font-size: var(--fs-13);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color var(--t-fast), transform var(--t-fast);
+}
+.sprint-pill:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.sprint-pill.is-running {
+  color: var(--ink-700);
+}
+.sprint-pill-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--ink-500);
+  color: var(--paper, #fff);
+  border-radius: 50%;
+}
+.sprint-pill.is-running .sprint-pill-ic {
+  background: var(--char-1);
+  animation: sprint-pulse 1.4s var(--t-med) infinite;
+}
+@keyframes sprint-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 121, 31, 0.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(224, 121, 31, 0); }
+}
+
+.sprint-panel {
+  width: 240px;
+  background: var(--paper, var(--bg-elev-1));
+  border: 1px solid var(--border);
+  border-radius: var(--r-4);
+  box-shadow: var(--shadow-popover);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sprint-clock {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ink-700);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.sprint-bar {
+  height: 4px;
+  background: rgba(28, 24, 20, 0.06);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.sprint-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--char-1);
+  border-radius: var(--r-pill);
+  transition: width 1s linear;
+}
+.sprint-presets {
+  display: flex;
+  gap: 4px;
+}
+.sprint-presets button {
+  flex: 1;
+  height: 26px;
+  font-size: var(--fs-12);
+  color: var(--text-subtle, var(--fg-muted));
+  border-radius: var(--r-2);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.sprint-presets button:hover {
+  background: var(--hover);
+  color: var(--text, var(--fg));
+}
+.sprint-presets button.is-on {
+  background: var(--paper, var(--bg-elev-1));
+  color: var(--ink-700);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.sprint-meta {
+  font-size: 11px;
+  color: var(--text-faint, var(--fg-subtle));
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.sprint-actions {
+  display: flex;
+  gap: 6px;
+}
+.sprint-actions .btn {
+  flex: 1;
+  justify-content: center;
+  height: 30px;
+  padding: 0;
+}

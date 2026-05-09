@@ -20,6 +20,7 @@
 // update_script remains in Rust; Phase 7 retires the rest of the
 // duplicates and this module becomes the single source of truth.
 
+import { isValidHexColor, normalizeHexColor } from "./colors";
 import { getDb } from "./db";
 import type { CharacterColorRecord, ScriptCharacter } from "./types";
 
@@ -89,12 +90,20 @@ export async function loadColorRecords(): Promise<Map<string, ColorRecord>> {
 
 /** Upsert a `default_color` for `name`. Existing default is preserved
  *  (the very first auto-assigned colour wins forever); override is left
- *  alone. Mirrors the SQL Rust uses in commands/scripts.rs. */
+ *  alone. Mirrors the SQL Rust uses in commands/scripts.rs.
+ *
+ *  Validates the color shape — same rationale as `setCharacterColor`:
+ *  the persistence layer should never store a value that the renderer
+ *  pastes into an inline `style` attribute. */
 export async function upsertDefaultColor(
   name: string,
   defaultColor: string,
   now: number,
 ): Promise<void> {
+  if (!isValidHexColor(defaultColor)) {
+    throw new Error(`invalid default color: ${defaultColor}`);
+  }
+  const normalized = normalizeHexColor(defaultColor);
   const db = await getDb();
   await db.execute(
     `INSERT INTO character_colors (name, default_color, updated_at)
@@ -105,7 +114,7 @@ export async function upsertDefaultColor(
          WHEN character_colors.default_color IS NULL THEN excluded.updated_at
          ELSE character_colors.updated_at
        END`,
-    [name, defaultColor, now],
+    [name, normalized, now],
   );
 }
 
@@ -124,14 +133,22 @@ export function eqIgnoreAsciiCase(a: string, b: string): boolean {
 }
 
 /** Set the manual override and propagate it into every script that already
- *  references the name. Returns the IDs of scripts that actually changed. */
+ *  references the name. Returns the IDs of scripts that actually changed.
+ *
+ *  Rejects malformed hex strings — the value lands in inline CSS template
+ *  literals (`background:${color}`) on multiple render paths, so this is
+ *  the persistence-layer line of defense in case a future caller forgets
+ *  the UI-side `isValidHexColor` check. */
 export async function setCharacterColor(
   name: string,
   color: string,
 ): Promise<string[]> {
   const trimmed = name.trim().toUpperCase();
-  const trimmedColor = color.trim();
-  if (trimmed.length === 0 || trimmedColor.length === 0) return [];
+  if (trimmed.length === 0) return [];
+  if (!isValidHexColor(color)) {
+    throw new Error(`invalid color: ${color}`);
+  }
+  const normalized = normalizeHexColor(color);
   const now = Date.now();
   const db = await getDb();
 
@@ -141,7 +158,7 @@ export async function setCharacterColor(
      ON CONFLICT(name) DO UPDATE SET
        override_color = excluded.override_color,
        updated_at = excluded.updated_at`,
-    [trimmed, trimmedColor, now],
+    [trimmed, normalized, now],
   );
 
   const affected = await affectedScripts(trimmed);
@@ -150,8 +167,8 @@ export async function setCharacterColor(
     const chars = parseCharsMeta(row.characters_meta);
     let touched = false;
     for (const c of chars) {
-      if (eqIgnoreAsciiCase(c.name, trimmed) && c.color !== trimmedColor) {
-        c.color = trimmedColor;
+      if (eqIgnoreAsciiCase(c.name, trimmed) && c.color !== normalized) {
+        c.color = normalized;
         touched = true;
       }
     }

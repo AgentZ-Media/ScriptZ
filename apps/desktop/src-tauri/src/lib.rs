@@ -7,6 +7,9 @@ use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
 
 const MIGRATION_001_BASELINE: &str = include_str!("../migrations/001_baseline.sql");
 const MIGRATION_002_AI_CLEANUP: &str = include_str!("../migrations/002_ai_cleanup.sql");
+const MIGRATION_003_REDESIGN: &str = include_str!("../migrations/003_redesign.sql");
+const MIGRATION_004_WORD_COUNT_SENTINEL: &str =
+    include_str!("../migrations/004_word_count_sentinel.sql");
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -21,6 +24,18 @@ pub fn run() {
             version: 2,
             description: "drop AI columns and ai.* settings",
             sql: MIGRATION_002_AI_CLEANUP,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "redesign: tags, ideas, daily word log",
+            sql: MIGRATION_003_REDESIGN,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 4,
+            description: "last_word_count: 0 -> -1 sentinel",
+            sql: MIGRATION_004_WORD_COUNT_SENTINEL,
             kind: MigrationKind::Up,
         },
     ];
