@@ -912,9 +912,17 @@ function ScriptCard(props: ScriptCardProps) {
   return (
     <article
       class="card-v2"
+      role="button"
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          props.onClick();
+        }
+      }}
       tabIndex={0}
+      aria-label={props.script.title || "Unbenannt"}
     >
       <div
         class="card-v2-strip"
@@ -961,11 +969,18 @@ function ScriptRow(props: ScriptRowProps) {
   return (
     <div
       class="row-v2"
+      role="button"
       classList={{ "is-context": props.isContext }}
       onClick={props.onOpen}
       onContextMenu={props.onContextMenu}
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") props.onOpen(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          props.onOpen();
+        }
+      }}
+      aria-label={props.script.title || "Unbenannt"}
     >
       <div
         class="row-stripe"

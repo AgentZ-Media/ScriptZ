@@ -45,12 +45,24 @@ export function TabBar(props: TabBarProps) {
 
         <For each={tabsStore.tabs()}>
           {(t) => (
-            <button
+            // Tab ist ein <div role="button"> statt <button>, damit der
+            // echte Close-<button> als Kind nicht in einem nested-
+            // interactive landet (button-in-button ist invalid HTML
+            // und gibt Screen-Readern Mischsemantik).
+            <div
               class="tab"
+              role="button"
+              tabindex={0}
               classList={{
                 "is-active": tabsStore.activeTabId() === t.id,
               }}
               onClick={() => tabsStore.activate(t.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  tabsStore.activate(t.id);
+                }
+              }}
               onAuxClick={(e) => {
                 if (e.button === 1) {
                   e.preventDefault();
@@ -58,23 +70,28 @@ export function TabBar(props: TabBarProps) {
                 }
               }}
               title={t.scriptTitle}
-              type="button"
+              aria-label={t.scriptTitle || "Unbenannt"}
             >
               <span class="tab-doc"><DocIcon /></span>
               <span class="tab-title">{t.scriptTitle || "Unbenannt"}</span>
-              <span
+              <button
+                type="button"
                 class="tab-x"
-                role="button"
                 aria-label="Tab schließen"
                 title="Tab schließen"
                 onClick={(e) => {
                   e.stopPropagation();
                   tabsStore.closeTab(t.id);
                 }}
+                onKeyDown={(e) => {
+                  // Damit Enter/Space am Close-Button nicht zusätzlich
+                  // den umgebenden Tab-Activate triggert.
+                  if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+                }}
               >
                 <CloseIcon />
-              </span>
-            </button>
+              </button>
+            </div>
           )}
         </For>
 

@@ -130,6 +130,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
           {(b) => (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               classList={{ "is-active": props.activeBlock === b.id }}
               title={`${b.label}  ${b.hint}`}
               onClick={() => clickBlock(b.id)}

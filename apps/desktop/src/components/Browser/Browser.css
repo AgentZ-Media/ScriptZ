@@ -411,7 +411,9 @@
   opacity: 0;
   transition: all var(--t-fast);
 }
-.row-v2:hover .row-v2-more { opacity: 1; }
+.row-v2:hover .row-v2-more,
+.row-v2:focus-within .row-v2-more,
+.row-v2-more:focus-visible { opacity: 1; }
 .row-v2-more:hover { background: rgba(28, 24, 20, 0.07); color: var(--text); }
 
 .char-pill {

@@ -3,7 +3,12 @@ import type { Folder } from "~/lib/types";
 
 export const SCRIPT_DRAG_MIME = "application/x-scriptz-script-id";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// UUIDv4: Version-Bit in der dritten Gruppe == "4", Variant-Bit in
+// der vierten == 8/9/a/b. Strenger als ein generisches UUID-Match,
+// damit ein fremder Drag-Source mit beliebig geformter ID nicht
+// durchrutscht. Das App-weite Invariant "alle IDs sind UUIDv4".
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface FolderChipsProps {
   folders: Folder[];
@@ -41,15 +46,18 @@ export function FolderChips(props: FolderChipsProps) {
             />
           )}
         </For>
-        <button
-          class="folder-chips-new"
-          onClick={() => props.onCreateFolder()}
-          title="Neuer Ordner"
-          type="button"
-        >
-          + Ordner
-        </button>
       </div>
+      {/* "+ Ordner" liegt bewusst außerhalb des role="tablist", weil
+          es kein Tab ist (würde sonst die ARIA-Tabs-Pattern-Semantik
+          brechen - Tablist enthält ausschließlich role="tab"). */}
+      <button
+        class="folder-chips-new"
+        onClick={() => props.onCreateFolder()}
+        title="Neuer Ordner"
+        type="button"
+      >
+        + Ordner
+      </button>
     </div>
   );
 }

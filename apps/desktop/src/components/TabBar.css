@@ -88,6 +88,11 @@
   overflow: hidden;
   transition: background var(--t-fast), color var(--t-fast);
 }
+.tab { user-select: none; }
+.tab:focus-visible {
+  outline: 2px solid var(--ink-500);
+  outline-offset: -2px;
+}
 .tab:hover { background: rgba(28, 24, 20, 0.05); color: var(--text); }
 [data-theme="dark"] .tab:hover { background: rgba(255, 255, 255, 0.06); }
 @media (prefers-color-scheme: dark) {
