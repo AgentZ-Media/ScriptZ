@@ -4,6 +4,8 @@
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": "astro",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/fonts/(.*)",
