@@ -134,16 +134,18 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 | `⌘⇧H` | Snapshot-Verlauf |
 
 ### Ideen
+
 | Shortcut | Aktion |
 |---|---|
-| `⌘I` | Quick-Capture (Idee tippen, Enter speichert) |
+| `⌘I` | Quick-Capture (Idee tippen, Enter speichert) - app-weit, auch im Editor |
 | `⌘↵` | Idee in neues Skript konvertieren (im Drawer) |
 
 ### Editor
+
 | Shortcut | Aktion |
 |---|---|
 | `⌘1` … `⌘7` | Block-Typ wechseln (Action … SFX) |
-| `⌘B` / `⌘I` / `⌘U` | Bold / Italic / Underline (Action & Dialog) |
+| `⌘B` / `⌘U` | Bold / Underline (Action & Dialog) - Italic hat kein Shortcut, weil `⌘I` app-weit für die Ideen-Inbox reserviert ist |
 | `Tab` | Block-Typ-Picker im aktuellen Block |
 | `Enter` | Smart-Advance zum nächsten Block-Typ |
 

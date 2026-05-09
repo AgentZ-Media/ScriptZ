@@ -1,4 +1,4 @@
-import { Show, createSignal, onMount, For } from "solid-js";
+import { Show, createSignal, onMount, For, type Component } from "solid-js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
 import { Modal } from "~/components/Common/Modal";
@@ -13,7 +13,7 @@ type SectionId = "appearance" | "editor" | "updates" | "about";
 interface SectionDef {
   id: SectionId;
   label: string;
-  Icon: () => any;
+  Icon: Component;
 }
 
 const SECTIONS: SectionDef[] = [
@@ -39,7 +39,7 @@ export interface SettingsDialogProps {
  */
 export function SettingsDialog(props: SettingsDialogProps) {
   const [section, setSection] = createSignal<SectionId>("appearance");
-  const [appVersion, setAppVersion] = createSignal("0.5.0");
+  const [appVersion, setAppVersion] = createSignal("0.6.0");
 
   onMount(async () => {
     try {

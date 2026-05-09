@@ -128,15 +128,22 @@ function buildGrid(daily: number[]): (Cell | null)[][] {
 const MONTH_LABELS = ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
 
 function buildMonthLabels(weeks: (Cell | null)[][]): string[] {
+  // Pro Wochenspalte ein Label - aber nur einmal pro Monat. Wenn die
+  // Woche den 1. eines Monats enthält (auch mitten in der Woche, also
+  // wenn ein Monat z. B. an einem Donnerstag startet), nehmen wir
+  // diesen Monat - sonst zieht sich das Label um eine Spalte nach
+  // hinten und der echte Monatsanfang wäre unbeschriftet.
+  let lastMonth = -1;
   return weeks.map((week) => {
-    // Erste echte Zelle der Woche bestimmt den Monat. Ein Label nur,
-    // wenn der erste Tag der Woche in den ersten 7 Tagen des Monats
-    // liegt - sonst würde jede Woche desselben Monats das Label
-    // wiederholen.
-    const firstReal = week.find((c) => c !== null);
+    const firstReal = week.find((c): c is Cell => c !== null);
     if (!firstReal) return "";
-    if (firstReal.date.getDate() > 7) return "";
-    return MONTH_LABELS[firstReal.date.getMonth()];
+    const monthMarker =
+      week.find((c): c is Cell => c !== null && c.date.getDate() === 1) ??
+      firstReal;
+    const month = monthMarker.date.getMonth();
+    if (month === lastMonth) return "";
+    lastMonth = month;
+    return MONTH_LABELS[month];
   });
 }
 

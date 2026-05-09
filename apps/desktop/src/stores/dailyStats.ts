@@ -3,10 +3,14 @@ import { api } from "~/lib/api";
 import { dailyStatsBus } from "~/lib/dailyStatsBus";
 import type { DailyStatsSummary } from "~/lib/types";
 
+// Heatmap und Streak-Bar erwarten dailyWords mit fester Länge 365
+// (ein Eintrag pro Tag der letzten 12 Monate). Ein leerer Array würde
+// das Heatmap-Grid auf 0 Zellen reduzieren und beim Refetch wieder
+// "wachsen lassen" - kosmetisch unsauber, deshalb Fallback mit Nullen.
 const EMPTY: DailyStatsSummary = {
   wordsToday: 0,
   streakDays: 0,
-  dailyWords: [],
+  dailyWords: Array(365).fill(0),
   activeDays: 0,
   totalWords: 0,
 };

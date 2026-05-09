@@ -90,6 +90,11 @@ export const settingsStore = {
 // Schreib-Target sein (statt zusätzlich in setTheme + load() zu setzen).
 // Solid trackt theme() als Dependency und feuert auf jeden Wechsel,
 // inkl. dem ersten Lese-Setzen am Ende von load().
+//
+// Bevor `load()` durchgelaufen ist, schreiben wir nichts - sonst flickert
+// der Default ("light") kurz übers persistierte Theme, weil dieser
+// Effect schon beim Modul-Import einmal feuert.
 createEffect(() => {
+  if (!loaded()) return;
   document.documentElement.dataset.theme = theme();
 });

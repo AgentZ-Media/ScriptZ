@@ -319,7 +319,10 @@
   font-weight: 500;
   color: var(--ink-700);
   line-height: 1.45;
-  word-break: break-word;
+  /* word-break: break-word ist deprecated; overflow-wrap: anywhere
+     ist der moderne Ersatz mit identischer Wirkung. */
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 .idea-row-check {
   display: inline-flex;
@@ -633,5 +636,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ideas-drawer { transition: none; }
+  .ideas-toggle,
+  .ideas-scrim,
+  .ideas-drawer,
+  .idea-row-cta,
+  .qcap-scrim,
+  .qcap {
+    transition: none;
+    animation: none;
+  }
 }

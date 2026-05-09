@@ -27,6 +27,11 @@ export function installInlineFormat(editor: LexicalEditor): () => void {
   return editor.registerCommand<KeyboardEvent>(
     KEY_DOWN_COMMAND,
     (event) => {
+      // App.tsx hat den globalen ⌘I-Listener, der die Quick-Capture
+      // öffnet und preventDefault() ruft. Wenn das Event hier ankommt
+      // und schon prevented ist, lassen wir Lexical-RichText's
+      // Italic-Default ebenfalls in Ruhe.
+      if (event.defaultPrevented) return false;
       const mod = event.metaKey || event.ctrlKey;
       if (!mod) return false;
       const k = event.key.toLowerCase();
