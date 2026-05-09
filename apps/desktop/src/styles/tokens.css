@@ -28,6 +28,20 @@
   --brand-800: #0f0d0a;
   --brand-soft: #ebebea;
 
+  /* ---- Tinte v3 (semantische Aliases, in Komponenten direkt nutzbar)
+     Decken die "ink-Skala" ab, die das Re-Design verwendet. Halten
+     sich an dieselben Werte wie --brand-* damit beide Schreibweisen
+     (legacy + v3-Komponenten) ohne Drift koexistieren. */
+  --ink-50:  #f5f5f4;
+  --ink-100: #ebebea;
+  --ink-200: #d4d4d2;
+  --ink-300: #a8a8a4;
+  --ink-400: #5b5b58;
+  --ink-500: #1c1814;
+  --ink-600: #0f0d0a;
+  --ink-700: #15110d;
+  --ink-900: #0d0a07;
+
   /* ---- Charakter-Palette (Highlighting-Feature, bleibt farbig) ---- */
   --char-1: #e0791f;
   --char-2: #3a8ed4;
@@ -102,23 +116,32 @@
 }
 
 /* ============================================================
-   Light theme — Schwarz auf Weiss, kein Cream mehr.
+   Light theme — warmes Cremeweiss als App-Bg, weisses Papier-Sheet
+   im Vordergrund (v3-Re-Design).
    ============================================================ */
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Surfaces (alle weiss; Layering ueber subtile Graustufen) */
-  --bg:         #ffffff;
+  /* Surfaces - App-Bg leicht warm, Karten/Sheets reines Weiss. */
+  --bg:         #f5f3ee;
   --bg-elev-1: #ffffff;
   --bg-elev-2: #f6f6f5;
   --bg-elev-3: #efefee;
+  --paper:     #ffffff;
+  --paper-2:   #fbfaf7;
 
   /* Ink */
   --fg:         #1c1814;
   --fg-muted:  #5b554c;
   --fg-subtle: #8a8276;
   --fg-disabled: #c0bcb3;
+  /* v3-Aliases - dieselben Werte wie die fg-Skala, aber unter den
+     Namen die das Re-Design verwendet. */
+  --text:        #1c1814;
+  --text-2:      #3a342c;
+  --text-subtle: #6b6258;
+  --text-faint:  #9a8f80;
 
   /* Borders */
   --border:        rgba(28, 24, 20, 0.10);
@@ -131,9 +154,14 @@
   --paper-fg-muted: rgba(28, 24, 20, 0.65);
   --paper-fg-faint: rgba(28, 24, 20, 0.45);
 
-  --hover:    rgba(28, 24, 20, 0.05);
-  --selected: rgba(28, 24, 20, 0.08);
+  --hover:        rgba(28, 24, 20, 0.05);
+  --hover-strong: rgba(28, 24, 20, 0.07);
+  --selected:     rgba(28, 24, 20, 0.08);
+  --selection:    rgba(28, 24, 20, 0.10);
 
+  --shadow-card-hover:
+    0 4px 12px rgba(28, 24, 20, 0.10),
+    0 1px 2px rgba(28, 24, 20, 0.06);
   --shadow-paper:
     0 1px 1px rgba(0, 0, 0, 0.03),
     0 8px 24px rgba(0, 0, 0, 0.06),
@@ -189,11 +217,20 @@
   --bg-elev-1: #2a2a2a;
   --bg-elev-2: #1c1c1c;
   --bg-elev-3: #181818;
+  /* Im Dark-Mode bleibt das Skript-Sheet hell (siehe --paper-bg);
+     Cards / Drawer brauchen aber eine Surface-Variante, die zum
+     dunklen App-Bg passt. */
+  --paper:     #2a2a2a;
+  --paper-2:   #242424;
 
   --fg:         #ececec;
   --fg-muted:  #a8a8a4;
-  --fg-subtle: #75736e;
+  --fg-subtle: #95918a;
   --fg-disabled: #4a4845;
+  --text:        #ececec;
+  --text-2:      #c5c2bc;
+  --text-subtle: #b5ada0;
+  --text-faint:  #95918a;
 
   --border:        rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
@@ -206,9 +243,14 @@
   --paper-fg-muted: rgba(28, 24, 20, 0.65);
   --paper-fg-faint: rgba(28, 24, 20, 0.45);
 
-  --hover:    rgba(255, 255, 255, 0.06);
-  --selected: rgba(255, 255, 255, 0.10);
+  --hover:        rgba(255, 255, 255, 0.06);
+  --hover-strong: rgba(255, 255, 255, 0.10);
+  --selected:     rgba(255, 255, 255, 0.10);
+  --selection:    rgba(255, 255, 255, 0.12);
 
+  --shadow-card-hover:
+    0 4px 12px rgba(0, 0, 0, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.30);
   --shadow-paper:
     0 1px 4px rgba(0, 0, 0, 0.55),
     0 22px 56px rgba(0, 0, 0, 0.50),
@@ -264,6 +306,18 @@
   --brand-700: #ececec;
   --brand-800: #ffffff;
   --brand-soft: #333333;
+  /* v3-Aliases im Dark: gespiegelte Helligkeit. Headings und
+     Pille-Werte (color: var(--ink-700)) müssen im Dark-Mode hell
+     bleiben, sonst verschwinden sie auf dem dunklen Bg. */
+  --ink-50:  #2a2a2a;
+  --ink-100: #333333;
+  --ink-200: #4a4a4a;
+  --ink-300: #6e6e6e;
+  --ink-400: #9a9a9a;
+  --ink-500: #ececec;
+  --ink-600: #ffffff;
+  --ink-700: #ffffff;
+  --ink-900: #ffffff;
 }
 
 /* Auto theme folgt dem System. */
@@ -274,18 +328,26 @@
     --bg-elev-1: #2a2a2a;
     --bg-elev-2: #1c1c1c;
     --bg-elev-3: #181818;
+    --paper:     #2a2a2a;
+    --paper-2:   #242424;
     --fg:         #ececec;
     --fg-muted:  #a8a8a4;
-    --fg-subtle: #75736e;
+    --fg-subtle: #95918a;
     --fg-disabled: #4a4845;
+    --text:        #ececec;
+    --text-2:      #c5c2bc;
+    --text-subtle: #b5ada0;
+    --text-faint:  #95918a;
     --border:        rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.16);
     --paper-bg:   #f6f6f5;
     --paper-fg:  #1c1814;
     --paper-fg-muted: rgba(28, 24, 20, 0.65);
     --paper-fg-faint: rgba(28, 24, 20, 0.45);
-    --hover:    rgba(255, 255, 255, 0.06);
-    --selected: rgba(255, 255, 255, 0.10);
+    --hover:        rgba(255, 255, 255, 0.06);
+    --hover-strong: rgba(255, 255, 255, 0.10);
+    --selected:     rgba(255, 255, 255, 0.10);
+    --selection:    rgba(255, 255, 255, 0.12);
     --backdrop: rgba(0, 0, 0, 0.55);
     --modal-bg: #2a2a2a;
     --pill-bg: rgba(255, 255, 255, 0.06);
@@ -299,11 +361,23 @@
     --primary-fg:        #1c1814;
     --primary-border:    rgba(0, 0, 0, 0.0);
     --primary-bg-hover:  #ffffff;
+    --shadow-card-hover:
+      0 4px 12px rgba(0, 0, 0, 0.45),
+      0 1px 2px rgba(0, 0, 0, 0.30);
     --brand-500: #ececec;
     --brand-600: #ffffff;
     --brand-700: #ececec;
     --brand-800: #ffffff;
     --brand-soft: #333333;
+    --ink-50:  #2a2a2a;
+    --ink-100: #333333;
+    --ink-200: #4a4a4a;
+    --ink-300: #6e6e6e;
+    --ink-400: #9a9a9a;
+    --ink-500: #ececec;
+    --ink-600: #ffffff;
+    --ink-700: #ffffff;
+    --ink-900: #ffffff;
   }
 }
 

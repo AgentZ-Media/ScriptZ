@@ -247,13 +247,41 @@ a:hover { text-decoration: underline; }
 }
 .modal h2 {
   margin: 0;
-  padding: var(--sp-6) var(--sp-6) var(--sp-2);
   font-family: var(--font-sans);
   font-size: var(--fs-16);
   font-weight: 600;
   letter-spacing: 0.005em;
 }
-.modal-body { padding: var(--sp-2) var(--sp-6) var(--sp-5); }
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-2);
+  color: var(--fg-subtle);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: all var(--t-fast);
+}
+.modal-close:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.modal-body { padding: var(--sp-5) var(--sp-6); }
+/* Settings overrides modal-body padding; let it through */
+.modal-body:has(.settings-grid) { padding: 0; }
 .modal-footer {
   display: flex;
   justify-content: flex-end;

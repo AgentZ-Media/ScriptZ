@@ -215,6 +215,33 @@
   position: relative;
 }
 
+/* ---- Fokus-Modus Eye-Toggle ----------------------------------------------
+   Wenn der Fokus-Modus aktiv ist (Toolbar + Rail blenden weg), erscheint
+   oben rechts ein dezenter Auge-Button zum Aussteigen. Bewusst kein
+   "✕" — das wirkte im Test kontraproduktiv (Chat 1). */
+.focus-toggle {
+  position: fixed;
+  /* Im Fokus-Modus blenden Editor-Toolbar + Editor-Rail weg, nur die
+     Titlebar (34 px) bleibt — der Eye-Button schwebt direkt darunter
+     mit etwas Atemluft. */
+  top: 48px;
+  right: 24px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-subtle);
+  box-shadow: var(--shadow-paper);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.focus-toggle:hover { color: var(--text); }
+
 /* ---- Recovery panel -------------------------------------------------
    Shown in place of the editor when content_json fails to parse. The
    editor stays unmounted (so auto-save doesn't overwrite the broken

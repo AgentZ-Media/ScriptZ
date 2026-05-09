@@ -20,6 +20,17 @@ import {
   moveScripts as foldersMoveScripts,
   renameFolder as foldersRename,
 } from "./folders";
+import {
+  convertIdeaToScript as ideasConvert,
+  createIdea as ideasCreate,
+  deleteIdea as ideasDelete,
+  listIdeas as ideasList,
+  updateIdea as ideasUpdate,
+} from "./ideas";
+import {
+  loadDailyWords as dwLoadEntries,
+  loadStats as dwLoadStats,
+} from "./dailyWords";
 import { globalSearch as searchGlobal } from "./search";
 import {
   archiveScript as scriptsArchive,
@@ -42,7 +53,10 @@ import {
 } from "./snapshots";
 import type {
   CharacterColorRecord,
+  DailyStatsSummary,
+  DailyWordEntry,
   Folder,
+  Idea,
   Script,
   ScriptCharacter,
   ScriptSummary,
@@ -216,5 +230,34 @@ export const api = {
       const s = await scriptsGet(id);
       return s.content_json;
     });
+  },
+
+  // Ideen-Inbox - eigenständige Tabelle, keine Berührung der Skript-CRUD.
+  async listIdeas(): Promise<Idea[]> {
+    return ideasList();
+  },
+  async createIdea(input: { title: string; notes?: string }): Promise<Idea> {
+    return ideasCreate(input);
+  },
+  async updateIdea(input: { id: string; title?: string; notes?: string }): Promise<Idea> {
+    return ideasUpdate(input);
+  },
+  async deleteIdea(id: string): Promise<void> {
+    return ideasDelete(id);
+  },
+  async convertIdeaToScript(input: {
+    ideaId: string;
+    folderId?: string | null;
+    notesAsAction?: boolean;
+  }): Promise<{ idea: Idea; script: ScriptSummary }> {
+    return ideasConvert(input);
+  },
+
+  // Tägliche Schreibstatistik (Streak / Heatmap / Tagesziel-Fortschritt).
+  async loadDailyWords(days?: number): Promise<DailyWordEntry[]> {
+    return dwLoadEntries(days);
+  },
+  async loadDailyStats(): Promise<DailyStatsSummary> {
+    return dwLoadStats();
   },
 };

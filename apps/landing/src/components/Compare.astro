@@ -49,6 +49,24 @@ const rows: Row[] = [
     finalDraft: { kind: "no", label: "Nein" },
     notes: { kind: "yes", label: "Ja" },
   },
+  {
+    crit: "Streak + Tagesziel + Heatmap",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "no", label: "Nein" },
+    notion: { kind: "no", label: "Nein" },
+    gpt: { kind: "no", label: "Nein" },
+    finalDraft: { kind: "no", label: "Nein" },
+    notes: { kind: "no", label: "Nein" },
+  },
+  {
+    crit: "Ideen-Inbox direkt drin",
+    us: { kind: "yes", label: "Ja" },
+    word: { kind: "no", label: "Nein" },
+    notion: { kind: "meh", label: "Manuell" },
+    gpt: { kind: "no", label: "Nein" },
+    finalDraft: { kind: "no", label: "Nein" },
+    notes: { kind: "meh", label: "Manuell" },
+  },
 ];
 
 const cols: { key: keyof Row; label: string }[] = [

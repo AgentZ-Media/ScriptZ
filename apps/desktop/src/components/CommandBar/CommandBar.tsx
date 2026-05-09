@@ -133,7 +133,13 @@ export function CommandBar(props: CommandBarProps) {
                 if (e.target === e.currentTarget) props.onClose();
               }}
             >
-              <div class="cmd-modal" onMouseDown={(e) => e.stopPropagation()}>
+              <div
+                class="cmd-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Befehlspalette"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <div class="cmd-search">
                   <span class="cmd-search-icon" aria-hidden="true">
                     ⌕
@@ -146,12 +152,24 @@ export function CommandBar(props: CommandBarProps) {
                     onInput={onInput}
                     autocomplete="off"
                     spellcheck={false}
+                    role="combobox"
+                    aria-expanded={hits().length > 0}
+                    aria-controls="cmd-results-list"
+                    aria-activedescendant={
+                      hits().length > 0 ? `cmd-row-${activeIdx()}` : undefined
+                    }
                   />
                   <Show when={searching()}>
                     <span class="cmd-spinner" aria-hidden="true" />
                   </Show>
                 </div>
-                <div class="cmd-results" ref={listRef}>
+                <div
+                  class="cmd-results"
+                  id="cmd-results-list"
+                  role="listbox"
+                  aria-label="Suchtreffer"
+                  ref={listRef}
+                >
                   <Show
                     when={query().trim()}
                     fallback={
@@ -165,8 +183,10 @@ export function CommandBar(props: CommandBarProps) {
                           <For each={hits()}>
                             {(hit, i) => (
                               <div
+                                id={`cmd-row-${i()}`}
                                 class={`cmd-row${i() === activeIdx() ? " is-active" : ""}`}
                                 role="option"
+                                aria-selected={i() === activeIdx()}
                                 onMouseEnter={() => setActiveIdx(i())}
                                 onClick={() => open(hit)}
                               >

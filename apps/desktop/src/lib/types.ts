@@ -67,3 +67,35 @@ export type BlockType =
   | "scriptz-camera"
   | "scriptz-caption"
   | "scriptz-sfx";
+
+/** Eine Schreib-Idee aus dem Ideen-Drawer. `usedAt` markiert die
+ *  Konvertierung in ein echtes Skript. */
+export interface Idea {
+  id: string;
+  title: string;
+  notes: string;
+  created_at: number;
+  used_at: number | null;
+  script_id: string | null;
+}
+
+/** Ein Eintrag im täglichen Wortprotokoll. `date` ist im lokalen
+ *  YYYY-MM-DD-Format (kein Zeitzonen-Drift). */
+export interface DailyWordEntry {
+  date: string;
+  words_added: number;
+}
+
+/** Aggregierte Schreibstatistik fürs Home-Strip + Activity-Modal. */
+export interface DailyStatsSummary {
+  /** Wörter, die heute (lokale Mitternacht bis jetzt) addiert wurden. */
+  wordsToday: number;
+  /** Anzahl aufeinanderfolgender Schreibtage, endet heute oder gestern. */
+  streakDays: number;
+  /** 365-Tage-Verlauf, älterster zuerst, heute zuletzt. */
+  dailyWords: number[];
+  /** Anzahl Tage in den letzten 365 mit > 0 geschriebenen Wörtern. */
+  activeDays: number;
+  /** Summe Wörter im 365-Tage-Fenster. */
+  totalWords: number;
+}

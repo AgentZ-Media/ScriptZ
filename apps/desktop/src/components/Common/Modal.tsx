@@ -68,7 +68,12 @@ export function Modal(props: ModalProps) {
   /** Focus management — runs on every open/close transition.
       Open: remember the previously-focused element, then focus the first
       focusable inside the modal on the next frame (after Solid commits).
-      Close: restore focus to the element that had it before the modal. */
+      Close: restore focus to the element that had it before the modal.
+
+      The selector is identical to the Tab-cycle selector below — so the
+      element that gets initial focus is also the one Tab+Shift wraps to,
+      no surprise edge case where the initial focus is on a disabled
+      button that Tab then skips. */
   let lastOpen = false;
   createEffect(() => {
     const isOpen = props.open;
@@ -77,7 +82,7 @@ export function Modal(props: ModalProps) {
       requestAnimationFrame(() => {
         if (!modalRef) return;
         const first = modalRef.querySelector<HTMLElement>(
-          'input, textarea, select, button, [tabindex]:not([tabindex="-1"])',
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
         );
         first?.focus();
       });
@@ -116,7 +121,18 @@ export function Modal(props: ModalProps) {
             onMouseDown={(e) => e.stopPropagation()}
           >
             <Show when={props.title}>
-              <h2>{props.title}</h2>
+              <div class="modal-head">
+                <h2>{props.title}</h2>
+                <button
+                  class="modal-close"
+                  type="button"
+                  aria-label="Schließen"
+                  title="Schließen"
+                  onClick={() => props.onClose()}
+                >
+                  ✕
+                </button>
+              </div>
             </Show>
             <div class="modal-body">{props.children}</div>
             <Show when={props.footer}>

@@ -3,6 +3,13 @@ import type { Folder } from "~/lib/types";
 
 export const SCRIPT_DRAG_MIME = "application/x-scriptz-script-id";
 
+// UUIDv4: Version-Bit in der dritten Gruppe == "4", Variant-Bit in
+// der vierten == 8/9/a/b. Strenger als ein generisches UUID-Match,
+// damit ein fremder Drag-Source mit beliebig geformter ID nicht
+// durchrutscht. Das App-weite Invariant "alle IDs sind UUIDv4".
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export interface FolderChipsProps {
   folders: Folder[];
   activeFolderId: string | null;
@@ -24,6 +31,9 @@ export function FolderChips(props: FolderChipsProps) {
           onClick={() => props.onSelect(null)}
           onDropScript={(id) => props.onDropScript(null, id)}
         />
+        <Show when={props.folders.length > 0}>
+          <span class="chip-divider" aria-hidden="true" />
+        </Show>
         <For each={props.folders}>
           {(f) => (
             <Chip
@@ -37,13 +47,16 @@ export function FolderChips(props: FolderChipsProps) {
           )}
         </For>
       </div>
+      {/* "+ Ordner" liegt bewusst außerhalb des role="tablist", weil
+          es kein Tab ist (würde sonst die ARIA-Tabs-Pattern-Semantik
+          brechen - Tablist enthält ausschließlich role="tab"). */}
       <button
-        class="btn btn-ghost folder-chips-new"
+        class="folder-chips-new"
         onClick={() => props.onCreateFolder()}
         title="Neuer Ordner"
+        type="button"
       >
-        <span aria-hidden="true">+</span>
-        <span>Neuer Ordner</span>
+        + Ordner
       </button>
     </div>
   );
@@ -92,35 +105,18 @@ function Chip(props: ChipProps) {
       onDrop={(e) => {
         const id = e.dataTransfer?.getData(SCRIPT_DRAG_MIME);
         setOver(false);
-        if (!id) return;
+        // ID-Format prüfen, bevor wir sie an die move-API geben.
+        // Verhindert, dass ein fremder Drag-Source mit demselben MIME
+        // garbage durchschiebt - die API würde es zwar nur als
+        // "not found" ablehnen, aber der Toast wäre verwirrend.
+        if (!id || !UUID_RE.test(id)) return;
         e.preventDefault();
         props.onDropScript(id);
       }}
     >
-      <span class="folder-chip-icon" aria-hidden="true">
-        <FolderIcon />
-      </span>
       <span class="folder-chip-label">{props.label}</span>
-      <Show when={props.count > 0 || props.active}>
-        <span class="folder-chip-count">{props.count}</span>
-      </Show>
+      <span class="folder-chip-count">{props.count}</span>
     </button>
   );
 }
 
-function FolderIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.4"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M2 5.5a1 1 0 0 1 1-1h3l1.5 1.5h5.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />
-    </svg>
-  );
-}

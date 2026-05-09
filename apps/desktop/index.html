@@ -4,16 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#efeae0" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#15130f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#222222" media="(prefers-color-scheme: dark)" />
     <title>ScriptZ</title>
     <style>
       /* Paint the parchment background before app CSS loads to avoid a
          white flash. The app then takes over via tokens.css. */
-      html, body { background: #efeae0; }
-      html[data-theme="dark"], html[data-theme="dark"] body { background: #15130f; }
+      html, body { background: #f5f3ee; }
+      html[data-theme="dark"], html[data-theme="dark"] body { background: #222222; }
       @media (prefers-color-scheme: dark) {
-        html[data-theme="auto"], html[data-theme="auto"] body { background: #15130f; }
+        html[data-theme="auto"], html[data-theme="auto"] body { background: #222222; }
       }
     </style>
   </head>

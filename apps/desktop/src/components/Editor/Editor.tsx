@@ -50,6 +50,14 @@ export interface EditorProps {
    * editor will NOT mount (and will NOT auto-overwrite the broken state)
    * — the parent is expected to render a recovery UI instead. */
   onParseError?: (rawJson: string) => void;
+  /** Liefert die `LexicalEditor`-Instanz nach Mount nach oben — die
+   *  Editor-Toolbar braucht sie, um per Klick auf eine Block-Pille
+   *  `setBlockType(editor, "scriptz-character")` aufrufen zu können. */
+  onEditorReady?: (editor: LexicalEditor) => void;
+  /** Fires whenever the cursor moves into a different block type (or out
+   *  of any Scriptz-Block, in which case the value is `null`). Treibt das
+   *  `is-active`-Highlighting der Block-Pillen in der Toolbar. */
+  onActiveBlockChange?: (blockType: string | null) => void;
 }
 
 const THEME: EditorThemeClasses = {};
@@ -106,6 +114,9 @@ export function Editor(props: EditorProps) {
     } as unknown as Parameters<typeof createEditor>[0]);
 
     editor.setRootElement(rootRef);
+
+    // Expose editor instance to parent (Editor-Toolbar braucht sie).
+    props.onEditorReady?.(editor);
 
     // Lexical's default text-insertion handlers live in @lexical/rich-text.
     // Without this, beforeinput dispatches CONTROLLED_TEXT_INSERTION_COMMAND
@@ -364,7 +375,35 @@ export function Editor(props: EditorProps) {
     // First pass after the initial render settles.
     requestAnimationFrame(() => paginate());
 
-    const persist = async () => {
+    /** Heuristik: ist `contentJson` ein "leerer" Lexical-Doc?
+     *  Verwendet, um zu erkennen ob `persist()` versucht, durch einen
+     *  Race (Editor wird torn down während eine debounced/onCleanup
+     *  persist() läuft) leeren State über echte Inhalte zu schreiben. */
+    function isContentEffectivelyEmpty(json: string): boolean {
+      try {
+        const root = (JSON.parse(json) as { root?: { children?: unknown[] } })?.root;
+        if (!root || !Array.isArray(root.children) || root.children.length === 0) return true;
+        let totalText = 0;
+        const walk = (n: unknown): void => {
+          if (typeof n !== "object" || n === null) return;
+          const o = n as { type?: string; text?: string; children?: unknown[] };
+          if (o.type === "text" && typeof o.text === "string") totalText += o.text.length;
+          if (Array.isArray(o.children)) o.children.forEach(walk);
+        };
+        walk(root);
+        return totalText === 0;
+      } catch {
+        return true;
+      }
+    }
+
+    // Tracks the last content we successfully wrote to the DB. Used by the
+    // teardown-race guard below: if the editor state goes empty during an
+    // unmount/flush AND the last save had real content, that's a Lexical
+    // teardown reading the wrong state, not the user clearing the script.
+    let lastPersistedContent = props.initialContentJson ?? "";
+
+    const persist = async (fromTeardown = false) => {
       let contentJson = "";
       const seenNames: string[] = [];
       const seenSet = new Set<string>();
@@ -425,6 +464,26 @@ export function Editor(props: EditorProps) {
       // (recomputePages); reuse the latest measurement for the DB save.
       const pageCount = Math.max(1, lastReportedPages);
 
+      // Sicherheitsnetz gegen Datenverlust: wenn der Editor-State JETZT
+      // leer aussieht und der letzte erfolgreich gespeicherte Stand Inhalt
+      // hatte, ist das beim Teardown ein klares Race-Symptom (Editor wurde
+      // torn down während ein onCleanup persist() lief). Wir blockieren
+      // das nur im Teardown - sonst würde ein legitimes "Skript ganz
+      // leeren" durch den User für immer scheitern.
+      if (
+        fromTeardown &&
+        isContentEffectivelyEmpty(contentJson) &&
+        lastPersistedContent &&
+        !isContentEffectivelyEmpty(lastPersistedContent)
+      ) {
+        console.warn(
+          "[scriptz] persist() abgebrochen: Teardown-Flush mit leerem " +
+          "Editor-State, letzter gespeicherter Stand war nicht leer - " +
+          "vermutlich Unmount-Race. Keine Überschreibung.",
+        );
+        return;
+      }
+
       props.onSavingChange?.(true);
       try {
         const summary = await api.updateScript({
@@ -432,6 +491,7 @@ export function Editor(props: EditorProps) {
           contentJson,
           pageCount,
         });
+        lastPersistedContent = contentJson;
         scriptsBus.bump();
 
         // Re-walk the editor state (the user may have typed during the
@@ -492,7 +552,38 @@ export function Editor(props: EditorProps) {
       }
     };
 
+    // Aktiven Block-Typ tracken — sowohl bei Selection-Wechseln (Cursor
+    // wandert per Tastatur/Klick) als auch bei Inhaltsänderungen (z.B.
+    // ⌘1..⌘7 ersetzt den Block-Typ unter dem Cursor).
+    let lastActiveBlock: string | null = null;
+    const reportActiveBlock = () => {
+      if (!props.onActiveBlockChange) return;
+      let kind: string | null = null;
+      editor.getEditorState().read(() => {
+        const sel = $getSelection();
+        if (!$isRangeSelection(sel)) return;
+        let cur: LexicalNode | null = sel.anchor.getNode();
+        while (cur) {
+          if (cur instanceof BaseScriptzNode) {
+            kind = cur.getBlockType();
+            break;
+          }
+          cur = cur.getParent();
+        }
+      });
+      if (kind !== lastActiveBlock) {
+        lastActiveBlock = kind;
+        props.onActiveBlockChange?.(kind);
+      }
+    };
+    // Initial-Wert nach Mount.
+    requestAnimationFrame(reportActiveBlock);
+
     const teardownUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+      // Selection-Tracking unabhängig von dirty-State — der Cursor kann
+      // sich bewegen ohne dass etwas getippt wurde.
+      reportActiveBlock();
+
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
       dirtySinceSnapshot = true;
       if (saveTimer) clearTimeout(saveTimer);
@@ -515,7 +606,7 @@ export function Editor(props: EditorProps) {
       clearTimeout(saveTimer);
       saveTimer = null;
       try {
-        await persist();
+        await persist(true);
       } catch (err) {
         console.warn("[scriptz] flushPending failed", err);
       }
@@ -538,7 +629,7 @@ export function Editor(props: EditorProps) {
       if (saveTimer) {
         clearTimeout(saveTimer);
         saveTimer = null;
-        void persist();
+        void persist(true);
       }
       unregisterFlusher();
       canvas?.removeEventListener("mousedown", onCanvasMousedown);

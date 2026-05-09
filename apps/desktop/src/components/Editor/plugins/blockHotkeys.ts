@@ -48,6 +48,43 @@ function findScriptzAncestor(node: LexicalNode | null): BaseScriptzNode | null {
   return null;
 }
 
+/**
+ * Wechselt den Block am Cursor zum angegebenen Typ. Wird sowohl von der
+ * Editor-Toolbar (Klick auf Block-Pille) als auch vom ⌘1..⌘7-Hotkey
+ * benutzt — eine gemeinsame Quelle der Wahrheit, damit Toolbar-Klick und
+ * Hotkey identisch wirken (inkl. Caret-Platzierung am Block-Ende).
+ *
+ * Liefert true, wenn ein Block tatsächlich gewechselt wurde, sonst false
+ * (kein Cursor in einem Scriptz-Block, oder Block ist bereits dieser Typ).
+ */
+export function setBlockType(editor: LexicalEditor, target: BlockType): boolean {
+  let didChange = false;
+  editor.update(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) return;
+    const block = findScriptzAncestor(selection.anchor.getNode());
+    if (!block) return;
+    if (block.getBlockType() === target) return;
+
+    const fresh = FACTORY[target]();
+    const text = block.getTextContent();
+    // CLAUDE.md invariant: empty blocks must stay CHILDLESS — Lexical's
+    // reconciler injects a managed <br> placeholder and WebKit can place
+    // the caret. Pre-seeding $createTextNode("") breaks caret placement.
+    if (text.length > 0) {
+      fresh.append($createTextNode(text));
+    }
+    block.replace(fresh);
+    if (fresh.getChildrenSize() > 0) {
+      fresh.selectEnd();
+    } else {
+      fresh.select(0, 0);
+    }
+    didChange = true;
+  });
+  return didChange;
+}
+
 export function installBlockHotkeys(editor: LexicalEditor): () => void {
   return editor.registerCommand<KeyboardEvent>(
     KEY_DOWN_COMMAND,
@@ -62,27 +99,16 @@ export function installBlockHotkeys(editor: LexicalEditor): () => void {
       const block = findScriptzAncestor(selection.anchor.getNode());
       if (!block) return false;
 
-      // Already this type? no-op.
+      // Already this type? swallow the event (no-op) so it doesn't bubble
+      // and trigger e.g. browser Find.
       if (block.getBlockType() === target) {
         event.preventDefault();
         return true;
       }
 
-      const fresh = FACTORY[target]();
-      const text = block.getTextContent();
-      // CLAUDE.md invariant: empty blocks must stay CHILDLESS — Lexical's
-      // reconciler injects a managed <br> placeholder and WebKit can place
-      // the caret. Pre-seeding $createTextNode("") breaks caret placement.
-      if (text.length > 0) {
-        fresh.append($createTextNode(text));
-      }
-      block.replace(fresh);
-      if (fresh.getChildrenSize() > 0) {
-        fresh.selectEnd();
-      } else {
-        fresh.select(0, 0);
-      }
+      // Defer to the shared setter (single source of truth).
       event.preventDefault();
+      setBlockType(editor, target);
       return true;
     },
     COMMAND_PRIORITY_HIGH,

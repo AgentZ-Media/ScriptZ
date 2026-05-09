@@ -1,0 +1,21 @@
+-- Sentinel-Wert für "noch nie gemessen" in scripts.last_word_count.
+--
+-- Migration 003 hatte DEFAULT 0; alle Bestandsskripte starten damit auf 0.
+-- Der Diff-Pfad in lib/scripts.ts::updateScript würde beim ersten Save
+-- nach dem Update `delta = newCount - 0 = newCount` rechnen und den
+-- vollen bisherigen Wortbestand des Skripts ins heutige Bucket des
+-- daily_word_log eintragen. Bei einem User mit zehn 1000-Wort-Skripten
+-- wären das 10.000 "heute geschriebene" Wörter beim ersten Doppelklick -
+-- die Streak/Heatmap-Statistik wäre am Update-Tag unbrauchbar.
+--
+-- Diese Migration setzt alle Reihen mit last_word_count = 0 auf -1.
+-- updateScript erkennt -1 als "noch nie gemessen" und überspringt die
+-- Delta-Buchung beim ersten Save (schreibt nur den echten Count zurück).
+--
+-- Edge Case: Skripte, die nach 003 aber vor 004 angelegt wurden, gingen
+-- durch createScript und haben dort last_word_count = countWordsInContent
+-- gesetzt - also nicht 0, ausser sie sind tatsächlich leer. Bei einem
+-- echt leeren Skript ist newCount = 0, delta = 0; das skip-on-first-save
+-- ist also entweder no-op oder genau die richtige Schonzeit.
+
+UPDATE scripts SET last_word_count = -1 WHERE last_word_count = 0;

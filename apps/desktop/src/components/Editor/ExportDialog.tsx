@@ -136,7 +136,7 @@ export function ExportDialog(props: ExportDialogProps) {
         <Show when={format() === "pdf"}>
           <div class="export-divider" />
           <div class="export-options">
-            <label class="settings-toggle">
+            <label class="export-opt">
               <input
                 type="checkbox"
                 checked={highlighting()}
@@ -144,7 +144,7 @@ export function ExportDialog(props: ExportDialogProps) {
               />
               <span>Charakter-Highlighting</span>
             </label>
-            <label class="settings-toggle">
+            <label class="export-opt">
               <input
                 type="checkbox"
                 checked={titlePage()}
