@@ -1,17 +1,17 @@
-## Install (first time only)
+## Installation (nur beim ersten Mal)
 
-1. Download the `.dmg` below and open it.
-2. Drag **ScriptZ.app** into your **Applications** folder.
-3. The app is **unsigned** (no Apple Developer account), so macOS
-   will refuse to open it. Run this once in Terminal to remove the
-   quarantine flag:
+1. Lade die `.dmg` unten herunter und öffne sie.
+2. Zieh **ScriptZ.app** in deinen **Programme**-Ordner.
+3. Die App ist **nicht signiert** (kein Apple-Developer-Account), deshalb
+   weigert sich macOS, sie zu starten. Einmal im Terminal ausführen, um
+   das Quarantäne-Flag zu entfernen:
 
    ```bash
    xattr -cr /Applications/ScriptZ.app
    ```
 
-4. Open ScriptZ from Applications — it will now launch normally.
+4. ScriptZ aus dem Programme-Ordner öffnen - jetzt startet sie normal.
 
-If you skip step 3, you'll see "ScriptZ is damaged and can't be
-opened" or "cannot be opened because the developer cannot be
-verified". That's macOS Gatekeeper, not the app.
+Ohne Schritt 3 kommt die Meldung "ScriptZ ist beschädigt und kann nicht
+geöffnet werden" oder "kann nicht geöffnet werden, weil der Entwickler
+nicht überprüft werden kann". Das ist macOS Gatekeeper, nicht die App.
