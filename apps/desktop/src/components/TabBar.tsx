@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For } from "solid-js";
 import { tabsStore } from "~/stores/tabs";
 import { dailyStatsStore } from "~/stores/dailyStats";
 import { settingsStore } from "~/stores/settings";
@@ -136,9 +136,7 @@ function StatusStrip() {
       <span class="status-cell-divider" aria-hidden="true" />
       <span class="status-cell" title="Lokal gespeichert, kein Konto, keine Cloud">
         <span class="status-dot status-dot-ok" aria-hidden="true" />
-        <Show when={true}>
-          <span class="status-cell-label">Gespeichert</span>
-        </Show>
+        <span class="status-cell-label">Gespeichert</span>
       </span>
     </div>
   );
