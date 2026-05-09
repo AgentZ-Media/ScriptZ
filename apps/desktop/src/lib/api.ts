@@ -1,9 +1,10 @@
-import { invoke } from "./tauri";
 import {
   clearCharacterColor as ccClear,
   listCharacterColors as ccList,
   setCharacterColor as ccSet,
 } from "./characterColors";
+import { exportPdf as runExportPdf } from "./exportPdf";
+import { exportPlaintext as runExportPlaintext } from "./exportPlaintext";
 import {
   getAppState as dbGetAppState,
   getSetting as dbGetSetting,
@@ -194,25 +195,26 @@ export const api = {
     return ccClear(name, activeScriptId ?? null);
   },
 
-  // Export
+  // Export — TS-side via pdf-lib + plugin-fs since Migration Phase 8.
   async exportPdf(input: {
     scriptId: string;
     path: string;
     includeHighlighting: boolean;
     includeTitlePage: boolean;
   }): Promise<{ path: string }> {
-    return invoke("export_pdf", {
-      input: {
-        script_id: input.scriptId,
-        path: input.path,
-        include_highlighting: input.includeHighlighting,
-        include_title_page: input.includeTitlePage,
-      },
+    return runExportPdf(input, async (id) => {
+      const s = await scriptsGet(id);
+      return {
+        title: s.title,
+        contentJson: s.content_json,
+        characters: s.characters ?? [],
+      };
     });
   },
   async exportPlaintext(input: { scriptId: string; path: string }): Promise<{ path: string }> {
-    return invoke("export_plaintext", {
-      input: { script_id: input.scriptId, path: input.path },
+    return runExportPlaintext(input, async (id) => {
+      const s = await scriptsGet(id);
+      return s.content_json;
     });
   },
 };

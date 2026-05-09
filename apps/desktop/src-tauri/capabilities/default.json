@@ -23,6 +23,27 @@
     "sql:allow-execute",
     "sql:allow-select",
     "opener:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "/Volumes/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "/Volumes/**" }
+      ]
+    },
     "dialog:default",
     "dialog:allow-save",
     "dialog:allow-open",

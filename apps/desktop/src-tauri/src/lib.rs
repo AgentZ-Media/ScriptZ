@@ -1,32 +1,29 @@
-mod commands;
-mod db;
-mod error;
-// fts module retired in Migration Phase 7d (no Rust writer left).
-mod lex;
-mod models;
+// Phase 11 end-state: pure plugin wiring.
+// All persistence, search, export and CRUD is handled in TypeScript.
+// The Rust crate exists only because Tauri does — it owns the window,
+// the bundled plugins, and the SQLite migration list.
 
-use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
 
-use crate::db::Db;
-
-fn resolve_db_path(app: &AppHandle) -> std::io::Result<PathBuf> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| std::io::Error::other(format!("app_data_dir: {e}")))?;
-    std::fs::create_dir_all(&dir)?;
-    Ok(dir.join("scriptz.db"))
-}
+const MIGRATION_001_BASELINE: &str = include_str!("../migrations/001_baseline.sql");
+const MIGRATION_002_AI_CLEANUP: &str = include_str!("../migrations/002_ai_cleanup.sql");
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("scriptz=debug,info")),
-        )
-        .try_init();
+    let migrations = vec![
+        Migration {
+            version: 1,
+            description: "baseline schema",
+            sql: MIGRATION_001_BASELINE,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "drop AI columns and ai.* settings",
+            sql: MIGRATION_002_AI_CLEANUP,
+            kind: MigrationKind::Up,
+        },
+    ];
 
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
@@ -37,30 +34,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_sql::Builder::default().build())
-        .setup(|app| {
-            tracing::info!("======== ScriptZ booting (migration build, plugin-sql wired) ========");
-            let db_path = resolve_db_path(app.handle())?;
-            tracing::info!("opening database: {:?}", db_path);
-            let db = Db::open(&db_path)
-                .map_err(|e| Box::<dyn std::error::Error>::from(format!("db open: {e}")))?;
-            app.manage(db);
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            // debug (migration-only — frontend → terminal log bridge)
-            commands::debug::frontend_log,
-            // scripts module fully moved to TS in Migration Phase 7d
-            // folders moved to TS in Migration Phase 4
-            // snapshots moved to TS in Migration Phase 5
-            // search moved to TS in Migration Phase 6
-            // settings + app_state moved to TS in Migration Phase 2
-            // export
-            commands::export::export_pdf,
-            commands::export::export_plaintext,
-            // character_colors moved to TS in Migration Phase 3
-            // AI / OpenRouter integration removed
-        ])
+        .plugin(tauri_plugin_fs::init())
+        .plugin(
+            SqlBuilder::default()
+                .add_migrations("sqlite:scriptz.db", migrations)
+                .build(),
+        )
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
