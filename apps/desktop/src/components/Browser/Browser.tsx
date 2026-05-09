@@ -876,18 +876,6 @@ function ScriptCard(props: ScriptCardProps) {
           {formatPageCount(props.script.page_count)}
         </span>
       </div>
-      <p class="card-summary">
-        <Show
-          when={props.script.summary && props.script.summary.length > 0}
-          fallback={
-            <span class="card-summary-placeholder muted small">
-              Beschreibung wird beim nächsten Speichern erstellt.
-            </span>
-          }
-        >
-          {props.script.summary}
-        </Show>
-      </p>
     </article>
   );
 }

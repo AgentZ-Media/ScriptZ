@@ -205,8 +205,8 @@ export function ScriptView(props: ScriptViewProps) {
   };
 
   // Hotkeys local to this script: Cmd+Shift+S snapshot, Cmd+Shift+H snapshots
-  // dialog. (⌘E export and ⌘P print live in App.tsx so the TabBar buttons
-  // and the shortcuts share the same trigger.)
+  // dialog. (⌘E export lives in App.tsx so the TabBar button and the
+  // shortcut share the same trigger.)
   onMount(() => {
     const handler = async (ev: KeyboardEvent) => {
       const cmd = ev.metaKey || ev.ctrlKey;

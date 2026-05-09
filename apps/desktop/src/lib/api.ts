@@ -1,7 +1,46 @@
-import { invoke } from "./tauri";
+import {
+  clearCharacterColor as ccClear,
+  listCharacterColors as ccList,
+  setCharacterColor as ccSet,
+} from "./characterColors";
+import { exportPdf as runExportPdf } from "./exportPdf";
+import { exportPlaintext as runExportPlaintext } from "./exportPlaintext";
+import {
+  getAppState as dbGetAppState,
+  getSetting as dbGetSetting,
+  setAppState as dbSetAppState,
+  setSetting as dbSetSetting,
+} from "./db";
+import {
+  countLiveScripts as foldersCountLive,
+  createFolder as foldersCreate,
+  deleteFolder as foldersDelete,
+  listFolders as foldersList,
+  moveScript as foldersMoveScript,
+  moveScripts as foldersMoveScripts,
+  renameFolder as foldersRename,
+} from "./folders";
+import { globalSearch as searchGlobal } from "./search";
+import {
+  archiveScript as scriptsArchive,
+  createScript as scriptsCreate,
+  duplicateScript as scriptsDuplicate,
+  emptyTrash as scriptsEmptyTrash,
+  getScript as scriptsGet,
+  listScripts as scriptsList,
+  purgeScript as scriptsPurge,
+  renameScript as scriptsRename,
+  restoreScript as scriptsRestore,
+  updateScript as scriptsUpdate,
+} from "./scripts";
+import {
+  createSnapshot as snapsCreate,
+  deleteSnapshot as snapsDelete,
+  getSnapshot as snapsGet,
+  listSnapshots as snapsList,
+  restoreSnapshot as snapsRestore,
+} from "./snapshots";
 import type {
-  AiModelInfo,
-  AiState,
   CharacterColorRecord,
   Folder,
   Script,
@@ -13,22 +52,20 @@ import type {
 } from "./types";
 
 export const api = {
-  // Scripts
+  // Scripts — fully TS-side since Migration Phase 7d.
   async createScript(input: {
     title?: string;
     initialContentJson?: string;
     folderId?: string | null;
   }): Promise<ScriptSummary> {
-    return invoke("create_script", {
-      input: {
-        title: input.title ?? null,
-        initial_content_json: input.initialContentJson ?? null,
-        folder_id: input.folderId ?? null,
-      },
-    });
+    return scriptsCreate(
+      input.title ?? null,
+      input.initialContentJson ?? null,
+      input.folderId ?? null,
+    );
   },
   async getScript(id: string): Promise<Script> {
-    return invoke("get_script", { id });
+    return scriptsGet(id);
   },
   async updateScript(input: {
     id: string;
@@ -38,14 +75,7 @@ export const api = {
     pageCount?: number;
     characters?: ScriptCharacter[];
   }): Promise<ScriptSummary> {
-    const payload: Record<string, unknown> = { id: input.id };
-    if (input.title !== undefined) payload.title = input.title;
-    if (input.highlightingEnabled !== undefined)
-      payload.highlighting_enabled = input.highlightingEnabled;
-    if (input.contentJson !== undefined) payload.content_json = input.contentJson;
-    if (input.pageCount !== undefined) payload.page_count = input.pageCount;
-    if (input.characters !== undefined) payload.characters = input.characters;
-    return invoke("update_script", { input: payload });
+    return scriptsUpdate(input);
   },
   async listScripts(query: {
     includeArchived?: boolean;
@@ -56,104 +86,103 @@ export const api = {
     offset?: number;
     folderId?: string | null;
   } = {}): Promise<ScriptSummary[]> {
-    return invoke("list_scripts", {
-      query: {
-        includeArchived: query.includeArchived ?? null,
-        onlyArchived: query.onlyArchived ?? null,
-        sort: query.sort ?? null,
-        query: query.query ?? null,
-        limit: query.limit ?? null,
-        offset: query.offset ?? null,
-        folderId: query.folderId ?? null,
-      },
+    return scriptsList({
+      includeArchived: query.includeArchived ?? null,
+      onlyArchived: query.onlyArchived ?? null,
+      sort: query.sort ?? null,
+      query: query.query ?? null,
+      limit: query.limit ?? null,
+      offset: query.offset ?? null,
+      folderId: query.folderId ?? null,
     });
   },
   async archiveScript(id: string): Promise<void> {
-    return invoke("archive_script", { id });
+    return scriptsArchive(id);
   },
   async restoreScript(id: string): Promise<void> {
-    return invoke("restore_script", { id });
+    return scriptsRestore(id);
   },
   async purgeScript(id: string): Promise<void> {
-    return invoke("purge_script", { id });
+    return scriptsPurge(id);
   },
   async emptyTrash(): Promise<void> {
-    return invoke("empty_trash", {});
+    return scriptsEmptyTrash();
   },
   async duplicateScript(id: string): Promise<ScriptSummary> {
-    return invoke("duplicate_script", { id });
+    return scriptsDuplicate(id);
   },
   async renameScript(id: string, title: string): Promise<ScriptSummary> {
-    return invoke("rename_script", { id, title });
+    return scriptsRename(id, title);
   },
 
-  // Folders
+  // Folders — TS-side via plugin-sql since Migration Phase 4.
   async listFolders(): Promise<Folder[]> {
-    return invoke("list_folders", {});
+    return foldersList();
   },
   async countLiveScripts(): Promise<number> {
-    return invoke("count_live_scripts", {});
+    return foldersCountLive();
   },
   async createFolder(name: string): Promise<Folder> {
-    return invoke("create_folder", { name });
+    return foldersCreate(name);
   },
   async renameFolder(id: string, name: string): Promise<Folder> {
-    return invoke("rename_folder", { id, name });
+    return foldersRename(id, name);
   },
   async deleteFolder(id: string): Promise<void> {
-    return invoke("delete_folder", { id });
+    return foldersDelete(id);
   },
   async moveScript(scriptId: string, folderId: string | null): Promise<void> {
-    return invoke("move_script", { scriptId, folderId });
+    return foldersMoveScript(scriptId, folderId);
   },
   async moveScripts(scriptIds: string[], folderId: string | null): Promise<void> {
-    return invoke("move_scripts", { scriptIds, folderId });
+    return foldersMoveScripts(scriptIds, folderId);
   },
 
-  // Snapshots
+  // Snapshots — TS-side via plugin-sql since Migration Phase 5.
   async createSnapshot(scriptId: string, trigger: "auto" | "manual"): Promise<SnapshotMeta> {
-    return invoke("create_snapshot", { scriptId, trigger });
+    return snapsCreate(scriptId, trigger);
   },
   async listSnapshots(scriptId: string): Promise<SnapshotMeta[]> {
-    return invoke("list_snapshots", { scriptId });
+    return snapsList(scriptId);
   },
   async getSnapshot(id: string): Promise<Snapshot> {
-    return invoke("get_snapshot", { id });
+    return snapsGet(id);
   },
   async restoreSnapshot(snapshotId: string): Promise<void> {
-    return invoke("restore_snapshot", { snapshotId });
+    return snapsRestore(snapshotId);
   },
   async deleteSnapshot(id: string): Promise<void> {
-    return invoke("delete_snapshot", { id });
+    return snapsDelete(id);
   },
 
-  // Search
+  // Search — TS-side via plugin-sql since Migration Phase 6.
   async globalSearch(query: string, limit = 50): Promise<SearchHit[]> {
-    return invoke("global_search", { query, limit });
+    return searchGlobal(query, limit);
   },
 
-  // Settings
+  // Settings — TS-side via plugin-sql since Migration Phase 2.
   async getSetting(key: string): Promise<string | null> {
-    return invoke("get_setting", { key });
+    return dbGetSetting(key);
   },
   async setSetting(key: string, value: string): Promise<void> {
-    return invoke("set_setting", { key, value });
+    return dbSetSetting(key, value);
   },
 
-  // App-State
+  // App-State — TS-side via plugin-sql since Migration Phase 2.
   async getAppState(key: string): Promise<string | null> {
-    return invoke("get_app_state", { key });
+    return dbGetAppState(key);
   },
   async setAppState(key: string, value: string): Promise<void> {
-    return invoke("set_app_state", { key, value });
+    return dbSetAppState(key, value);
   },
 
-  // Character-colour records (app-wide)
+  // Character-colour records (app-wide) — TS-side via plugin-sql since
+  // Migration Phase 3.
   async listCharacterColors(): Promise<CharacterColorRecord[]> {
-    return invoke("list_character_colors", {});
+    return ccList();
   },
   async setCharacterColor(name: string, color: string): Promise<string[]> {
-    return invoke("set_character_color", { name, color });
+    return ccSet(name, color);
   },
   /** Clear the manual override and fall back to the recorded default. The
    * `activeScriptId` is the palette context used when no default has been
@@ -163,57 +192,29 @@ export const api = {
     name: string,
     activeScriptId?: string,
   ): Promise<string[]> {
-    return invoke("clear_character_color", {
-      name,
-      activeScriptId: activeScriptId ?? null,
-    });
+    return ccClear(name, activeScriptId ?? null);
   },
 
-  // Export
+  // Export — TS-side via pdf-lib + plugin-fs since Migration Phase 8.
   async exportPdf(input: {
     scriptId: string;
     path: string;
     includeHighlighting: boolean;
     includeTitlePage: boolean;
   }): Promise<{ path: string }> {
-    return invoke("export_pdf", {
-      input: {
-        script_id: input.scriptId,
-        path: input.path,
-        include_highlighting: input.includeHighlighting,
-        include_title_page: input.includeTitlePage,
-      },
+    return runExportPdf(input, async (id) => {
+      const s = await scriptsGet(id);
+      return {
+        title: s.title,
+        contentJson: s.content_json,
+        characters: s.characters ?? [],
+      };
     });
   },
   async exportPlaintext(input: { scriptId: string; path: string }): Promise<{ path: string }> {
-    return invoke("export_plaintext", {
-      input: { script_id: input.scriptId, path: input.path },
+    return runExportPlaintext(input, async (id) => {
+      const s = await scriptsGet(id);
+      return s.content_json;
     });
-  },
-
-  // AI / OpenRouter (opt-in)
-  async aiGetState(): Promise<AiState> {
-    return invoke("ai_get_state", {});
-  },
-  async aiSetApiKey(key: string): Promise<void> {
-    return invoke("ai_set_api_key", { key });
-  },
-  async aiClearApiKey(): Promise<void> {
-    return invoke("ai_clear_api_key", {});
-  },
-  async aiSetEnabled(enabled: boolean): Promise<void> {
-    return invoke("ai_set_enabled", { enabled });
-  },
-  async aiSetModel(modelId: string): Promise<void> {
-    return invoke("ai_set_model", { modelId });
-  },
-  async aiListModels(refresh = false): Promise<AiModelInfo[]> {
-    return invoke("ai_list_models", { refresh });
-  },
-  async aiTestConnection(): Promise<string> {
-    return invoke("ai_test_connection", {});
-  },
-  async aiGenerateSummary(scriptId: string, force = false): Promise<string | null> {
-    return invoke("ai_generate_summary", { scriptId, force });
   },
 };

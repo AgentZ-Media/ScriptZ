@@ -128,8 +128,8 @@
    highlight plugin. The bg is applied to the inner text-span (Lexical
    wraps every text node in `<span data-lexical-text="true">`) with
    `box-decoration-break: clone` so multi-line text gets per-line pills
-   that hug the actual text — same look as the PDF / print output, not
-   a full block-wide bar. */
+   that hug the actual text — same look as the PDF output, not a full
+   block-wide bar. */
 .editor-root[data-highlighting="on"] .block-scriptz-character > span[data-lexical-text],
 .editor-root[data-highlighting="on"] .block-scriptz-dialog > span[data-lexical-text],
 .editor-root[data-highlighting="on"] .block-scriptz-parenthetical > span[data-lexical-text] {

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.4.3-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/version-0.5.0-1c1814?style=flat-square" alt="version" />
   <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Apple_Silicon-native-1c1814?style=flat-square" alt="Apple Silicon" />
   <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
@@ -24,7 +24,7 @@
 
 > **Final Draft** ist zu schwer. **Google Docs** zu generisch. **Arc Studio** will dein Abo. **ScriptZ ist die Mitte, die niemand sonst baut.**
 
-App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Telemetrie. Alles bleibt als eine SQLite-Datei auf deinem Mac.
+App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine Telemetrie. Alles bleibt als eine SQLite-Datei auf deinem Mac.
 
 ---
 
@@ -47,7 +47,7 @@ App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Tel
 - **Intelligente Autovervollständigung**: tippst du `A`, ist `AXEL` markiert — Enter akzeptiert.
 - **Bigramm-Vorhersage** für die nächste Sprecher-Zeile: Dropdown highlightet vor, wer als Nächstes laut Gesprächsverlauf dran ist.
 - **Quick-Modus** für Dialog-Sketches mit zwei Personen: Enter im Dialog → der andere Charakter wird automatisch eingefügt.
-- **Live-Highlight-Toggle** in der Titelleiste — schaltet die Charakter-Farben pro Skript an/aus, identisch zur PDF/Print-Darstellung (per-Zeile tight Pills, nicht block-breit).
+- **Live-Highlight-Toggle** in der Titelleiste — schaltet die Charakter-Farben pro Skript an/aus, identisch zur PDF-Darstellung (per-Zeile tight Pills, nicht block-breit).
 
 ### Echte A4-Pagination im Editor
 
@@ -55,23 +55,16 @@ App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Tel
 - **Word-Style „Keep with next"**: Charaktername wird nie vom dazugehörigen Dialog getrennt.
 - Inhalt wird über Seitengrenzen hinweg automatisch umgebrochen, kein Handarbeit nötig.
 
-### Drucken & Export 1:1 wie auf dem Papier
+### Export 1:1 wie auf dem Papier
 
 - **PDF-Export** mit eingebetteter iA Writer Quattro Schrift, optional Titelblatt und Charakter-Highlighting.
 - **Plaintext-Export** für Teleprompter.
-- **Direkt drucken** (⌘P) → System-Druckdialog erscheint sofort, ohne PDF-Umweg über Adobe oder Preview.
-- Per-Skript-Highlight-Farben im Druck genau wie im Editor — eng am Text, nicht als Block-Bänder.
+- Per-Skript-Highlight-Farben im PDF genau wie im Editor — eng am Text, nicht als Block-Bänder.
 
 ### Auto-Snapshots & Versionshistorie
 
 - Alle 5 Minuten ein automatischer Snapshot, manuell per ⌘⇧S.
 - Bis zu 50 Versionen pro Skript, jederzeit per ⌘⇧H wiederherstellbar.
-
-### KI-Zusammenfassungen (Opt-in)
-
-- Optional: OpenRouter-API-Key in der Keychain, freie Modellwahl.
-- Pro Skript erscheint eine ein-Satz-Zusammenfassung in der Übersicht.
-- Komplett deaktivierbar — App funktioniert vollständig ohne KI.
 
 ### Tab-Workflow wie im Browser
 
@@ -115,7 +108,6 @@ App auf → schreiben → drucken → fertig. Kein Login, keine Cloud, keine Tel
 | Shortcut | Aktion |
 |---|---|
 | `⌘E` | Export-Dialog |
-| `⌘P` | Drucken |
 | `⌘⇧S` | Manueller Snapshot |
 | `⌘⇧H` | Snapshot-Verlauf |
 

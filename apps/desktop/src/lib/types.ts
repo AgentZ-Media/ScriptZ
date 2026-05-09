@@ -21,7 +21,6 @@ export interface ScriptSummary {
   archived_at: number | null;
   page_count: number;
   characters: ScriptCharacter[];
-  summary: string | null;
   folder_id: string | null;
 }
 
@@ -35,23 +34,6 @@ export interface Folder {
   created_at: number;
   updated_at: number;
   script_count: number;
-}
-
-// ---- AI / OpenRouter ----
-
-export interface AiState {
-  enabled: boolean;
-  has_api_key: boolean;
-  model_id: string;
-}
-
-export interface AiModelInfo {
-  id: string;
-  name: string;
-  description: string | null;
-  context_length: number | null;
-  prompt_price: string | null;
-  completion_price: string | null;
 }
 
 export interface Snapshot {
