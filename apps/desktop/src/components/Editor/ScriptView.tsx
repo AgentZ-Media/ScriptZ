@@ -139,14 +139,22 @@ export function ScriptView(props: ScriptViewProps) {
   createEffect(() => {
     const id = props.scriptId;
     if (!id) return;
+    let cancelled = false;
     void (async () => {
       try {
         const raw = await api.getAppState(QUICK_MODE_KEY(id));
-        setManualOverride(raw === "1" || raw === "0" ? raw : null);
+        if (!cancelled && props.scriptId === id) {
+          setManualOverride(raw === "1" || raw === "0" ? raw : null);
+        }
       } catch {
-        setManualOverride(null);
+        if (!cancelled && props.scriptId === id) {
+          setManualOverride(null);
+        }
       }
     })();
+    onCleanup(() => {
+      cancelled = true;
+    });
   });
 
   const toggleQuickMode = () => {

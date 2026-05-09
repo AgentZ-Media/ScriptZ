@@ -313,46 +313,65 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
     );
   }
   if (input.contentJson !== undefined) {
-    // Reconcile characters_meta against the new content.
-    const metaRows = await db.select<{
-      characters_meta: string;
-      last_word_count: number | null;
-    }[]>(
-      "SELECT characters_meta, last_word_count FROM scripts WHERE id = $1",
-      [input.id],
-    );
-    const existing = parseCharsMeta(metaRows[0]?.characters_meta ?? "[]");
-    const lastWordCount = metaRows[0]?.last_word_count ?? 0;
-    const records = await loadColorRecords();
-    const { chars, newDefaults } = reconcileCharsFromContent(
-      existing,
-      input.contentJson,
-      records,
-    );
-    for (const [n, c] of newDefaults) {
-      await upsertDefaultColor(n, c, now);
-    }
-    const charsJson = serializeCharsMeta(chars);
-
-    // Diff-on-Save: positive Wortzunahme wird ins heutige Bucket im
-    // daily_word_log geschrieben. Löschungen senken last_word_count
-    // ebenfalls, damit der nächste Anstieg wieder korrekt zählt -
-    // aber sie addieren keine negativen Wörter zur Statistik.
-    //
-    // last_word_count === -1 ist der Sentinel aus Migration 003 für
-    // Bestandsskripte: der erste Save nach dem Update normalisiert nur
-    // den Count, ohne den ganzen bisherigen Wortbestand als "heute
-    // geschrieben" zu buchen.
+    // Compare-and-swap loop um Diff-on-Save: plugin-sql kennt keine
+    // Transaktionen, also sichern wir die Wort-Delta-Buchung über ein
+    // bedingtes UPDATE ab. Liest zwei parallele Saves denselben
+    // last_word_count, würde sonst beider delta in daily_word_log
+    // landen - der heutige Bucket ware dann doppelt gezählt.
     const newWordCount = countWordsInContent(input.contentJson);
-    const isFirstMeasurement = lastWordCount < 0;
-    const delta = isFirstMeasurement ? 0 : newWordCount - lastWordCount;
+    const records = await loadColorRecords();
+    let delta = 0;
+    let attempts = 0;
+    while (true) {
+      attempts++;
+      const metaRows = await db.select<{
+        characters_meta: string;
+        last_word_count: number | null;
+      }[]>(
+        "SELECT characters_meta, last_word_count FROM scripts WHERE id = $1",
+        [input.id],
+      );
+      if (metaRows.length === 0) {
+        throw new Error(`not found: script ${input.id}`);
+      }
+      const existing = parseCharsMeta(metaRows[0]?.characters_meta ?? "[]");
+      const lastWordCount = metaRows[0]?.last_word_count ?? 0;
+      const { chars, newDefaults } = reconcileCharsFromContent(
+        existing,
+        input.contentJson,
+        records,
+      );
+      for (const [n, c] of newDefaults) {
+        await upsertDefaultColor(n, c, now);
+      }
+      const charsJson = serializeCharsMeta(chars);
 
-    await db.execute(
-      `UPDATE scripts
-         SET content_json = $1, characters_meta = $2, updated_at = $3, last_word_count = $4
-         WHERE id = $5`,
-      [input.contentJson, charsJson, now, newWordCount, input.id],
-    );
+      // last_word_count === -1 ist der Sentinel aus Migration 003 für
+      // Bestandsskripte: der erste Save nach dem Update normalisiert nur
+      // den Count, ohne den ganzen bisherigen Wortbestand als "heute
+      // geschrieben" zu buchen.
+      const isFirstMeasurement = lastWordCount < 0;
+      const candidateDelta = isFirstMeasurement ? 0 : newWordCount - lastWordCount;
+
+      const result = await db.execute(
+        `UPDATE scripts
+           SET content_json = $1, characters_meta = $2, updated_at = $3, last_word_count = $4
+           WHERE id = $5 AND last_word_count = $6`,
+        [input.contentJson, charsJson, now, newWordCount, input.id, lastWordCount],
+      );
+      if (result.rowsAffected === 1) {
+        delta = candidateDelta;
+        break;
+      }
+      // Retry-Limit als Notbremse: in der Praxis serialisiert der
+      // 250 ms-Debounce in Editor.tsx alle Saves desselben Skripts -
+      // ein Konflikt darf hier maximal einmal auftreten.
+      if (attempts >= 5) {
+        console.warn("[scriptz] CAS-Retry-Limit erreicht beim Save", input.id);
+        break;
+      }
+    }
+
     if (delta > 0) {
       try {
         await recordWordDelta(delta);

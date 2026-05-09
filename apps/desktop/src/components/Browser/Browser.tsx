@@ -65,11 +65,22 @@ const BUCKET_LABEL: Record<BucketKey, string> = {
 };
 
 function bucketOf(updatedAt: number): BucketKey {
-  const ageDays = (Date.now() - updatedAt) / 86_400_000;
-  if (ageDays < 1)  return "heute";
-  if (ageDays < 2)  return "gestern";
-  if (ageDays < 7)  return "diese-woche";
-  if (ageDays < 31) return "diesen-monat";
+  // Kalendertag-basiertes Bucketing: vergleicht zwei Daten an
+  // lokaler Mitternacht, damit ein gestern Abend bearbeitetes Skript
+  // heute Vormittag tatsächlich unter "Gestern" steht und nicht erst
+  // nach 24 Stunden umspringt.
+  const startOfDay = (ms: number) => {
+    const d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+  const dayDiff = Math.floor(
+    (startOfDay(Date.now()) - startOfDay(updatedAt)) / 86_400_000,
+  );
+  if (dayDiff <= 0)  return "heute";
+  if (dayDiff === 1) return "gestern";
+  if (dayDiff < 7)   return "diese-woche";
+  if (dayDiff < 31)  return "diesen-monat";
   return "aelter";
 }
 

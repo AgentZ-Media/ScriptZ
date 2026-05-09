@@ -58,17 +58,11 @@ export function SprintPill() {
     return Math.max(0, Math.min(100, ((total - secondsLeft()) / total) * 100));
   };
 
-  // Esc schließt nur das Panel (nicht den Sprint).
-  function onPanelKey(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      setOpen(false);
-    }
-  }
-
   // Outside-Click schließt das Panel. Capture-Phase, damit ein Klick auf
   // die Pille selbst (toggle) sauber durchgeht ohne dass der Listener
-  // erst close-then-open feuert.
+  // erst close-then-open feuert. Esc-Listener hängt am Window, damit er
+  // auch greift, wenn der Fokus auf der Pill-Button geblieben ist (das
+  // Panel selbst nimmt selten Fokus).
   createEffect(() => {
     if (!open()) return;
     const onDown = (ev: MouseEvent) => {
@@ -76,14 +70,24 @@ export function SprintPill() {
       if (t?.closest(`.${SPRINT_ROOT_CLASS}`)) return;
       setOpen(false);
     };
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        setOpen(false);
+      }
+    };
     document.addEventListener("mousedown", onDown, true);
-    onCleanup(() => document.removeEventListener("mousedown", onDown, true));
+    window.addEventListener("keydown", onKey);
+    onCleanup(() => {
+      document.removeEventListener("mousedown", onDown, true);
+      window.removeEventListener("keydown", onKey);
+    });
   });
 
   return (
     <div class={SPRINT_ROOT_CLASS}>
       <Show when={open()}>
-        <div class="sprint-panel" onClick={(e) => e.stopPropagation()} onKeyDown={onPanelKey}>
+        <div class="sprint-panel" onClick={(e) => e.stopPropagation()}>
           <div class="sprint-clock">{fmt(secondsLeft())}</div>
           <div class="sprint-bar"><span style={`width:${progress()}%`} /></div>
           <div class="sprint-meta">Schreib-Sprint · ohne Unterbrechung</div>

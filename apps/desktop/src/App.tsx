@@ -158,6 +158,12 @@ export default function App() {
         return;
       }
       if (ev.key.toLowerCase() === "i" && !ev.shiftKey) {
+        // Im Fokus-Modus ist die Ideen-Inbox bewusst aus dem Weg -
+        // Quick-Capture greift dann auch nicht.
+        if (focusMode()) {
+          ev.preventDefault();
+          return;
+        }
         ev.preventDefault();
         setIdeaCaptureOpen(true);
         return;
@@ -207,6 +213,15 @@ export default function App() {
   // wir die Titlebar im Browser unnötig).
   createEffect(() => {
     if (tabsStore.isHome() && focusMode()) setFocusMode(false);
+  });
+
+  // Fokus-Modus räumt sämtliche Ideen-Overlays mit weg - egal ob ein
+  // bereits offener Drawer oder eine laufende Quick-Capture.
+  createEffect(() => {
+    if (focusMode()) {
+      setIdeasOpen(false);
+      setIdeaCaptureOpen(false);
+    }
   });
 
   const onCreatedScript = () => {
@@ -324,16 +339,16 @@ export default function App() {
             onClick={() => setIdeasOpen(true)}
             position={tabsStore.isHome() ? "right" : "left"}
           />
+          <IdeasDrawer
+            open={ideasOpen()}
+            onClose={() => setIdeasOpen(false)}
+            position={tabsStore.isHome() ? "right" : "left"}
+          />
+          <IdeaQuickCapture
+            open={ideaCaptureOpen()}
+            onClose={() => setIdeaCaptureOpen(false)}
+          />
         </Show>
-        <IdeasDrawer
-          open={ideasOpen()}
-          onClose={() => setIdeasOpen(false)}
-          position={tabsStore.isHome() ? "right" : "left"}
-        />
-        <IdeaQuickCapture
-          open={ideaCaptureOpen()}
-          onClose={() => setIdeaCaptureOpen(false)}
-        />
         <ToastHost />
       </Show>
     </div>

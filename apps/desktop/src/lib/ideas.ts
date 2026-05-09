@@ -112,22 +112,57 @@ export async function convertIdeaToScript(input: {
   );
   if (rows.length === 0) throw new Error(`not found: idea ${input.ideaId}`);
   const ideaRow = rows[0];
+  if (ideaRow.used_at !== null) {
+    throw new Error("Idee wurde bereits konvertiert.");
+  }
+
+  // Schritt 1: Idee per CAS reservieren, BEVOR ein Skript angelegt
+  // wird. Plugin-sql kennt keine Transaktionen, also serialisieren wir
+  // konkurrierende Conversions über ein bedingtes UPDATE - nur einer
+  // gewinnt. Verlierer bekommen einen Error statt Duplikat-Skripten.
+  const claimedAt = Date.now();
+  const claim = await db.execute(
+    `UPDATE ideas SET used_at = $1 WHERE id = $2 AND used_at IS NULL`,
+    [claimedAt, ideaRow.id],
+  );
+  if (claim.rowsAffected !== 1) {
+    throw new Error("Idee wurde bereits konvertiert.");
+  }
 
   const notesAsAction = input.notesAsAction ?? true;
   const seedJson = buildScriptSeed({
     notes: notesAsAction ? ideaRow.notes : "",
   });
-  const script = await createScript(
-    ideaRow.title,
-    seedJson,
-    input.folderId ?? null,
-  );
 
-  const now = Date.now();
-  await db.execute(
-    `UPDATE ideas SET used_at = $1, script_id = $2 WHERE id = $3`,
-    [now, script.id, ideaRow.id],
-  );
+  // Schritt 2: Skript anlegen. Schlägt das fehl, geben wir die
+  // Reservierung wieder frei, damit die Idee nicht für immer als
+  // "verwendet" ohne Link feststeckt.
+  let script: ScriptSummary;
+  try {
+    script = await createScript(
+      ideaRow.title,
+      seedJson,
+      input.folderId ?? null,
+    );
+  } catch (err) {
+    await db.execute(
+      `UPDATE ideas SET used_at = NULL, script_id = NULL WHERE id = $1 AND used_at = $2`,
+      [ideaRow.id, claimedAt],
+    );
+    throw err;
+  }
+
+  // Schritt 3: script_id nachtragen. Falls dieser Update fehlschlägt,
+  // bleibt das Skript erhalten - die Idee zeigt im "Verwendet"-Tab
+  // einfach keinen Link (siehe Migration 003-Doku, ON DELETE SET NULL).
+  try {
+    await db.execute(
+      `UPDATE ideas SET script_id = $1 WHERE id = $2`,
+      [script.id, ideaRow.id],
+    );
+  } catch (err) {
+    console.warn("[scriptz] convertIdeaToScript: script_id-Backref fehlgeschlagen", err);
+  }
 
   // Bump beider Busse: das neue Skript taucht in der Browser-Liste
   // auf, die Idee verschwindet aus „Offen" und erscheint in „Verwendet".
@@ -137,7 +172,7 @@ export async function convertIdeaToScript(input: {
 
   const updatedIdea: Idea = {
     ...rowToIdea(ideaRow),
-    used_at: now,
+    used_at: claimedAt,
     script_id: script.id,
   };
   return { idea: updatedIdea, script };

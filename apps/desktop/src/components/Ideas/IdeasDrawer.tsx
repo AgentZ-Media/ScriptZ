@@ -1,6 +1,7 @@
 import {
   For,
   Show,
+  createEffect,
   createMemo,
   createResource,
   createSignal,
@@ -319,15 +320,16 @@ function IdeaRow(props: {
   const [notesDraft, setNotesDraft] = createSignal(props.idea.notes);
   const used = () => !!props.idea.used_at;
 
-  // Re-Sync der Drafts, wenn die Idee von außen aktualisiert wird.
-  let lastId = "";
-  const sync = () => {
-    if (props.idea.id !== lastId) {
+  // Drafts werden aus den Props gespeist, solange wir NICHT im Edit-
+  // Modus sind. Dadurch reagiert die Zeile auch auf externe Updates
+  // (Bus-Refresh, parallele Conversion) und nicht nur auf einen
+  // ID-Wechsel.
+  createEffect(() => {
+    if (!props.editing) {
       setTitleDraft(props.idea.title);
       setNotesDraft(props.idea.notes);
-      lastId = props.idea.id;
     }
-  };
+  });
 
   async function save() {
     const t = titleDraft().trim();
@@ -346,7 +348,6 @@ function IdeaRow(props: {
 
   return (
     <>
-      {sync()}
       <Show
         when={!props.editing}
         fallback={

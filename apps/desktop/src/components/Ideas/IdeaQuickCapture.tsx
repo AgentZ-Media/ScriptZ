@@ -14,6 +14,7 @@ export interface IdeaQuickCaptureProps {
  *  daraus (ein Klick weniger als „erst speichern, dann konvertieren"). */
 export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
   const [val, setVal] = createSignal("");
+  const [saving, setSaving] = createSignal(false);
   let inputRef: HTMLInputElement | undefined;
 
   // Fokus beim Aufgehen + Reset des Werts.
@@ -22,17 +23,20 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
     const isOpen = props.open;
     if (isOpen && !lastOpen) {
       setVal("");
+      setSaving(false);
       setTimeout(() => inputRef?.focus(), 30);
     }
     lastOpen = isOpen;
   });
 
   async function save(convertToScript = false) {
+    if (saving()) return; // Reentrancy-Guard: kein Doppel-Submit.
     const t = val().trim();
     if (!t) {
       props.onClose();
       return;
     }
+    setSaving(true);
     try {
       const idea = await api.createIdea({ title: t });
       if (convertToScript) {
@@ -42,10 +46,13 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
       } else {
         pushToast(`Idee „${idea.title}" gemerkt`, "ok");
       }
+      // Erfolg: erst dann schließen, damit der User bei Fehlern den
+      // getippten Text nicht verliert und neu tippen muss.
+      props.onClose();
     } catch (err) {
       pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
     } finally {
-      props.onClose();
+      setSaving(false);
     }
   }
 
@@ -85,7 +92,7 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
               <div style="flex:1" />
               <button
                 class="btn"
-                disabled={!val().trim()}
+                disabled={!val().trim() || saving()}
                 onClick={() => void save(true)}
                 title="Idee speichern und sofort als Skript öffnen"
               >
@@ -93,7 +100,7 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
               </button>
               <button
                 class="btn btn-primary"
-                disabled={!val().trim()}
+                disabled={!val().trim() || saving()}
                 onClick={() => void save(false)}
                 title="Idee merken"
               >

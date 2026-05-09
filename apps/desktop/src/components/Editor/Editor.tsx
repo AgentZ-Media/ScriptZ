@@ -397,7 +397,13 @@ export function Editor(props: EditorProps) {
       }
     }
 
-    const persist = async () => {
+    // Tracks the last content we successfully wrote to the DB. Used by the
+    // teardown-race guard below: if the editor state goes empty during an
+    // unmount/flush AND the last save had real content, that's a Lexical
+    // teardown reading the wrong state, not the user clearing the script.
+    let lastPersistedContent = props.initialContentJson ?? "";
+
+    const persist = async (fromTeardown = false) => {
       let contentJson = "";
       const seenNames: string[] = [];
       const seenSet = new Set<string>();
@@ -459,21 +465,21 @@ export function Editor(props: EditorProps) {
       const pageCount = Math.max(1, lastReportedPages);
 
       // Sicherheitsnetz gegen Datenverlust: wenn der Editor-State JETZT
-      // leer aussieht, das vorher eingelesene `props.initialContentJson`
-      // aber Inhalt hatte, ist das ein klares Race-Symptom (Editor wurde
-      // torn down während ein debounced/onCleanup persist() lief, oder
-      // setEditorState() ist aus irgendeinem Grund nicht durchgekommen).
-      // Lieber NICHTS schreiben als die echten Daten zu überschreiben.
-      // Ein nachfolgender Tipp-Vorgang triggert ohnehin einen neuen Save.
+      // leer aussieht und der letzte erfolgreich gespeicherte Stand Inhalt
+      // hatte, ist das beim Teardown ein klares Race-Symptom (Editor wurde
+      // torn down während ein onCleanup persist() lief). Wir blockieren
+      // das nur im Teardown - sonst würde ein legitimes "Skript ganz
+      // leeren" durch den User für immer scheitern.
       if (
+        fromTeardown &&
         isContentEffectivelyEmpty(contentJson) &&
-        props.initialContentJson &&
-        !isContentEffectivelyEmpty(props.initialContentJson)
+        lastPersistedContent &&
+        !isContentEffectivelyEmpty(lastPersistedContent)
       ) {
         console.warn(
-          "[scriptz] persist() abgebrochen: Editor-State ist leer, " +
-          "ursprünglicher Content war nicht leer - vermutlich " +
-          "Unmount-Race. Keine Überschreibung.",
+          "[scriptz] persist() abgebrochen: Teardown-Flush mit leerem " +
+          "Editor-State, letzter gespeicherter Stand war nicht leer - " +
+          "vermutlich Unmount-Race. Keine Überschreibung.",
         );
         return;
       }
@@ -485,6 +491,7 @@ export function Editor(props: EditorProps) {
           contentJson,
           pageCount,
         });
+        lastPersistedContent = contentJson;
         scriptsBus.bump();
 
         // Re-walk the editor state (the user may have typed during the
@@ -599,7 +606,7 @@ export function Editor(props: EditorProps) {
       clearTimeout(saveTimer);
       saveTimer = null;
       try {
-        await persist();
+        await persist(true);
       } catch (err) {
         console.warn("[scriptz] flushPending failed", err);
       }
@@ -622,7 +629,7 @@ export function Editor(props: EditorProps) {
       if (saveTimer) {
         clearTimeout(saveTimer);
         saveTimer = null;
-        void persist();
+        void persist(true);
       }
       unregisterFlusher();
       canvas?.removeEventListener("mousedown", onCanvasMousedown);
