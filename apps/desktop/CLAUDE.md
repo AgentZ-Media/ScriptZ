@@ -82,7 +82,7 @@ src/                Solid frontend
         allcaps.ts             characterName attribute sync (visual UPPER
                                is CSS-only — text-transform on the block)
         highlight.ts           per-block --char-tint CSS variable; Editor
-                               highlighting now matches PDF/Print output
+                               highlighting now matches PDF output
                                (per-character colour, not a single tint)
     Browser/
       Browser.tsx           file browser: scripts grid, search, sort,

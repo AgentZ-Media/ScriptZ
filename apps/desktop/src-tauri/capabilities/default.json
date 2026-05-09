@@ -12,7 +12,6 @@
     "core:window:allow-close",
     "core:window:allow-destroy",
     "core:webview:default",
-    "core:webview:allow-print",
     "global-shortcut:default",
     "clipboard-manager:default",
     "os:default",

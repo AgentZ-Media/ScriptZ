@@ -24,7 +24,6 @@ import { NewScriptDialog } from "~/components/Browser/NewScriptDialog";
 import { ExportDialog } from "~/components/Editor/ExportDialog";
 import ToastHost from "~/components/Common/ToastHost";
 import { ensureWelcomeContent } from "~/lib/welcome";
-import { printScript } from "~/lib/print";
 import { flushAll } from "~/lib/saveFlush";
 import { healthCheck as dbHealthCheck, termLog } from "~/lib/db";
 
@@ -53,21 +52,6 @@ export default function App() {
 
   const openExport = () => {
     if (activeScriptId()) setExportOpen(true);
-  };
-  const triggerPrint = async () => {
-    const id = activeScriptId();
-    if (!id) return;
-    try {
-      // Browser-native printing through a hidden iframe — the OS shows its
-      // real print sheet directly, no PDF round-trip, no third-party
-      // viewer (Adobe / Preview) launching in front of it.
-      await printScript(id, {
-        highlighting: settingsStore.printHighlighting(),
-        titlePage: settingsStore.printTitlePage(),
-      });
-    } catch (err) {
-      pushToast(`Druck fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
-    }
   };
 
   // Lightweight read of the active script's highlighting flag, separate
@@ -245,13 +229,6 @@ export default function App() {
         }
         return;
       }
-      if (ev.key.toLowerCase() === "p" && !ev.shiftKey) {
-        if (activeScriptId()) {
-          ev.preventDefault();
-          void triggerPrint();
-        }
-        return;
-      }
       // Tab cycling. ⌘Tab is captured by macOS system, so we use the
       // browser/Slack/VS Code convention: ⌘⌥← / ⌘⌥→. Works inside the
       // contenteditable editor and doesn't shadow any text-editing
@@ -354,7 +331,6 @@ export default function App() {
         <TabBar
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenExport={openExport}
-          onPrint={() => void triggerPrint()}
           onToggleHighlight={() => void toggleHighlight()}
           highlightOn={highlightOn}
         />

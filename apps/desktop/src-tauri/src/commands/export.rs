@@ -463,8 +463,3 @@ pub fn export_pdf(db: State<Db>, input: ExportPdfInput) -> Result<ExportResult> 
     .map_err(ScriptzError::Other)?;
     Ok(ExportResult { path: input.path })
 }
-
-// In-app print is handled entirely on the frontend now: it builds an HTML
-// view of the script in a hidden iframe and calls `window.print()` so the
-// browser engine surfaces the native OS print sheet. No PDF detour, no
-// Preview/Adobe popping in front, no AppleScript.

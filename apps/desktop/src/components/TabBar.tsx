@@ -22,7 +22,6 @@ const RECENT_LIMIT = 8;
 export interface TabBarProps {
   onOpenSettings?: () => void;
   onOpenExport?: () => void;
-  onPrint?: () => void;
   onToggleHighlight?: () => void;
   highlightOn?: () => boolean;
 }
@@ -30,12 +29,12 @@ export interface TabBarProps {
 /**
  * Top header (44px, drag region):
  *
- *   [traffic-lights gap]  [icon | ScriptZ]   [ Active title ⌄ ]   [ ⎙ ⤓ ⚙ ]
+ *   [traffic-lights gap]  [icon | ScriptZ]   [ Active title ⌄ ]   [ ⤓ ⚙ ]
  *
  * The centered button shows the currently focused tab's title and opens
  * a "quick switcher" popover: a search field plus the most recently
  * edited scripts (live from the DB, refetched whenever scriptsBus bumps).
- * Trailing actions: print + export (only while a script is active),
+ * Trailing actions: export (only while a script is active),
  * settings (always).
  */
 export function TabBar(props: TabBarProps) {
@@ -300,14 +299,6 @@ export function TabBar(props: TabBarProps) {
           </button>
           <button
             class="titlebar-action"
-            aria-label="Drucken"
-            title="Drucken (⌘P)"
-            onClick={() => props.onPrint?.()}
-          >
-            <PrintIcon />
-          </button>
-          <button
-            class="titlebar-action"
             aria-label="Exportieren"
             title="Exportieren (⌘E)"
             onClick={() => props.onOpenExport?.()}
@@ -336,17 +327,6 @@ function HighlightIcon() {
       <circle cx="6" cy="12" r="3.2" fill="#e0791f" />
       <circle cx="12" cy="12" r="3.2" fill="#3a8ed4" />
       <circle cx="18" cy="12" r="3.2" fill="#7a4ad4" />
-    </svg>
-  );
-}
-
-function PrintIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6 9V3h12v6" />
-      <rect x="4" y="9" width="16" height="9" rx="2" />
-      <path d="M7 18h10v3H7z" />
     </svg>
   );
 }
