@@ -49,41 +49,29 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build release body
-        # Liest die per-Version-Changelog-Datei aus
-        # `docs/release-notes/<tag>.md` und hängt die statische
-        # Install-Footer dran. Fehlt die Datei, bricht der Workflow
-        # mit einem klaren Error ab - so kann ein Release nicht
-        # versehentlich mit der vorherigen Beschreibung rausgehen.
+        # Setzt zusammen: per-Version-Changelog + statische Install-Footer.
+        # Beide kommen aus checked-in Files (docs/release-notes/), damit
+        # die Release-Beschreibung versionierbar bleibt und nicht im
+        # Workflow-YAML verstaut. Fehlt die Tag-spezifische Datei,
+        # bricht der Workflow mit klarem Error ab - so kann ein Release
+        # nicht versehentlich mit der vorherigen Beschreibung rausgehen.
         id: notes
         run: |
           NOTES_FILE="docs/release-notes/${GITHUB_REF_NAME}.md"
+          FOOTER_FILE="docs/release-notes/_install_footer.md"
           if [ ! -f "$NOTES_FILE" ]; then
             echo "::error::Missing $NOTES_FILE - create it before tagging (see /CLAUDE.md release-checklist)."
+            exit 1
+          fi
+          if [ ! -f "$FOOTER_FILE" ]; then
+            echo "::error::Missing $FOOTER_FILE."
             exit 1
           fi
           {
             echo "body<<EOF_RELEASE_BODY"
             cat "$NOTES_FILE"
             echo
-            cat <<'INSTALL_FOOTER'
-## Install (first time only)
-
-1. Download the `.dmg` below and open it.
-2. Drag **ScriptZ.app** into your **Applications** folder.
-3. The app is **unsigned** (no Apple Developer account), so macOS
-   will refuse to open it. Run this once in Terminal to remove the
-   quarantine flag:
-
-   ```bash
-   xattr -cr /Applications/ScriptZ.app
-   ```
-
-4. Open ScriptZ from Applications — it will now launch normally.
-
-If you skip step 3, you'll see "ScriptZ is damaged and can't be
-opened" or "cannot be opened because the developer cannot be
-verified". That's macOS Gatekeeper, not the app.
-INSTALL_FOOTER
+            cat "$FOOTER_FILE"
             echo "EOF_RELEASE_BODY"
           } >> "$GITHUB_OUTPUT"
 
