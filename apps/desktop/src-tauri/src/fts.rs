@@ -2,36 +2,7 @@ use rusqlite::{params, Connection};
 
 use crate::error::Result;
 
-/// Sanitize FTS5 query: wrap each token in quotes (avoid syntax errors from
-/// punctuation), append `*` to last token for prefix matching, fold to lower.
-pub fn sanitize_fts_query(input: &str) -> String {
-    use unicode_segmentation::UnicodeSegmentation;
-    let s = input.trim().to_lowercase();
-    if s.is_empty() {
-        return String::new();
-    }
-    let words: Vec<String> = s
-        .unicode_words()
-        .filter(|w| !w.is_empty())
-        .map(|w| {
-            let escaped = w.replace('"', "\"\"");
-            format!("\"{}\"", escaped)
-        })
-        .collect();
-    if words.is_empty() {
-        return String::new();
-    }
-    let mut joined: Vec<String> = Vec::with_capacity(words.len());
-    let last_idx = words.len() - 1;
-    for (i, w) in words.into_iter().enumerate() {
-        if i == last_idx {
-            joined.push(format!("{}*", w));
-        } else {
-            joined.push(w);
-        }
-    }
-    joined.join(" ")
-}
+// `sanitize_fts_query` moved to TS in Migration Phase 6.
 
 pub fn upsert_script_fts(
     conn: &Connection,

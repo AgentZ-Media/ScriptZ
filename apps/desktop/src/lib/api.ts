@@ -19,6 +19,7 @@ import {
   moveScripts as foldersMoveScripts,
   renameFolder as foldersRename,
 } from "./folders";
+import { globalSearch as searchGlobal } from "./search";
 import {
   createSnapshot as snapsCreate,
   deleteSnapshot as snapsDelete,
@@ -154,9 +155,9 @@ export const api = {
     return snapsDelete(id);
   },
 
-  // Search
+  // Search — TS-side via plugin-sql since Migration Phase 6.
   async globalSearch(query: string, limit = 50): Promise<SearchHit[]> {
-    return invoke("global_search", { query, limit });
+    return searchGlobal(query, limit);
   },
 
   // Settings — TS-side via plugin-sql since Migration Phase 2.

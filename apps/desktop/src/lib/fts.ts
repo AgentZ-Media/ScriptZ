@@ -3,11 +3,55 @@
 // During the Rust -> TS migration both sides write to the same
 // `scripts_fts` virtual table (DELETE + INSERT). The Rust scripts.rs
 // commands still own create/update writes; this module is used by the
-// TS-side snapshot restore (Phase 5) and will absorb the rest in
-// Phase 7.
+// TS-side snapshot restore (Phase 5) and global search (Phase 6), and
+// will absorb the rest in Phase 7.
 
 import { extractPlainText } from "./lex";
 import { getDb } from "./db";
+
+/** Turn a free-text query into an FTS5 MATCH expression: each word is
+ *  wrapped in quotes (so punctuation can't crash the parser), the last
+ *  word gets a `*` suffix for prefix matching, words are joined with
+ *  spaces (FTS5 treats that as implicit AND).
+ *
+ *  Mirrors Rust's `sanitize_fts_query` (UAX #29 word segmentation via
+ *  `unicode-segmentation::unicode_words`). The TS side uses
+ *  `Intl.Segmenter` with `granularity: "word"` and the same
+ *  `isWordLike` filter, which agrees with Rust on Latin/Cyrillic/etc.
+ *
+ *  CJK twist: V8/JSC's segmenter does dictionary-based grouping of Han
+ *  ideographs ("中文" → one token), but UAX #29 (and the SQLite
+ *  `unicode61` tokenizer the FTS index uses) splits them per character.
+ *  We pre-isolate each Han char with whitespace so the segmenter
+ *  produces the same per-char tokens Rust does — otherwise CJK queries
+ *  would never match any indexed row. */
+export function sanitizeFtsQuery(input: string): string {
+  const s = input.trim().toLowerCase();
+  if (s.length === 0) return "";
+
+  // Force Han ideographs to be their own segments. Hangul / Hiragana /
+  // Katakana could theoretically diverge too, but the app targets
+  // German users and isn't tested against those scripts; documenting
+  // the gap here in case it ever surfaces.
+  const prepared = s.replace(/(\p{Script=Han})/gu, " $1 ");
+
+  const seg = new Intl.Segmenter(undefined, { granularity: "word" });
+  const words: string[] = [];
+  for (const piece of seg.segment(prepared)) {
+    if (!piece.isWordLike) continue;
+    if (piece.segment.length === 0) continue;
+    const escaped = piece.segment.replaceAll('"', '""');
+    words.push(`"${escaped}"`);
+  }
+  if (words.length === 0) return "";
+
+  const lastIdx = words.length - 1;
+  const out: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    out.push(i === lastIdx ? `${words[i]}*` : words[i]);
+  }
+  return out.join(" ");
+}
 
 /** Replace the FTS row for one script with the given title + content text.
  *  Mirrors Rust's `upsert_script_fts` — DELETE then INSERT, no UPSERT

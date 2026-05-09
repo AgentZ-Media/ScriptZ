@@ -63,8 +63,7 @@ pub fn run() {
             commands::scripts::rename_script,
             // folders moved to TS in Migration Phase 4
             // snapshots moved to TS in Migration Phase 5
-            // search
-            commands::search::global_search,
+            // search moved to TS in Migration Phase 6
             // settings + app_state moved to TS in Migration Phase 2
             // export
             commands::export::export_pdf,

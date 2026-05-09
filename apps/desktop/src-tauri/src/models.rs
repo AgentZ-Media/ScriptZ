@@ -60,14 +60,7 @@ pub struct UpdateScriptInput {
     pub characters: Option<Vec<ScriptCharacter>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchHit {
-    pub kind: String,
-    pub id: String,
-    pub title: String,
-    pub snippet: String,
-    pub meta: serde_json::Value,
-}
+// SearchHit moved to TS in Migration Phase 6
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
