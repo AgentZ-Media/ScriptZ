@@ -11,7 +11,6 @@ import {
   Suspense,
 } from "solid-js";
 import { settingsStore } from "~/stores/settings";
-import { aiStore } from "~/stores/ai";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
 import { scriptsBus } from "~/lib/scriptsBus";
@@ -115,7 +114,6 @@ export default function App() {
   onMount(async () => {
     try {
       await settingsStore.load();
-      await aiStore.refresh();
       await ensureWelcomeContent();
       await tabsStore.load();
     } catch (err) {

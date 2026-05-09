@@ -59,15 +59,7 @@ pub fn run() {
             commands::export::export_pdf,
             commands::export::export_plaintext,
             // character_colors moved to TS in Migration Phase 3
-            // ai (OpenRouter — opt-in)
-            commands::ai::ai_get_state,
-            commands::ai::ai_set_api_key,
-            commands::ai::ai_clear_api_key,
-            commands::ai::ai_set_enabled,
-            commands::ai::ai_set_model,
-            commands::ai::ai_list_models,
-            commands::ai::ai_test_connection,
-            commands::ai::ai_generate_summary,
+            // AI / OpenRouter integration removed
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

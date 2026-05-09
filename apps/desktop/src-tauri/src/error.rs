@@ -12,24 +12,8 @@ pub enum ScriptzError {
     Json(#[from] serde_json::Error),
     #[error("not found: {0}")]
     NotFound(String),
-    #[error("http: {0}")]
-    Http(String),
-    #[error("ai: {0}")]
-    Ai(String),
     #[error("{0}")]
     Other(String),
-}
-
-impl From<reqwest::Error> for ScriptzError {
-    fn from(e: reqwest::Error) -> Self {
-        ScriptzError::Http(e.to_string())
-    }
-}
-
-impl From<keyring::Error> for ScriptzError {
-    fn from(e: keyring::Error) -> Self {
-        ScriptzError::Other(format!("keychain: {e}"))
-    }
 }
 
 impl Serialize for ScriptzError {

@@ -35,7 +35,6 @@ import {
 import { getDb } from "./db";
 import { deleteScriptFts, refreshFtsForScript } from "./fts";
 import { extractCharacterNames } from "./lex";
-import { invoke } from "./tauri";
 import type { Script, ScriptCharacter, ScriptSummary } from "./types";
 
 interface SummaryRow {
@@ -47,7 +46,6 @@ interface SummaryRow {
   updated_at: number;
   archived_at: number | null;
   page_count: number;
-  summary: string | null;
   folder_id: string | null;
 }
 
@@ -59,7 +57,7 @@ async function rowToSummary(id: string): Promise<ScriptSummary> {
   const db = await getDb();
   const rows = await db.select<SummaryRow[]>(
     `SELECT id, title, highlighting_enabled, characters_meta,
-            created_at, updated_at, archived_at, page_count, summary, folder_id
+            created_at, updated_at, archived_at, page_count, folder_id
      FROM scripts WHERE id = $1`,
     [id],
   );
@@ -76,7 +74,6 @@ async function rowToSummary(id: string): Promise<ScriptSummary> {
     updated_at: r.updated_at,
     archived_at: r.archived_at,
     page_count: r.page_count,
-    summary: r.summary,
     folder_id: r.folder_id,
   };
 }
@@ -85,7 +82,7 @@ export async function getScript(id: string): Promise<Script> {
   const db = await getDb();
   const rows = await db.select<FullRow[]>(
     `SELECT id, title, highlighting_enabled, content_json, characters_meta,
-            created_at, updated_at, archived_at, page_count, summary, folder_id
+            created_at, updated_at, archived_at, page_count, folder_id
      FROM scripts WHERE id = $1`,
     [id],
   );
@@ -103,7 +100,6 @@ export async function getScript(id: string): Promise<Script> {
     updated_at: r.updated_at,
     archived_at: r.archived_at,
     page_count: r.page_count,
-    summary: r.summary,
     folder_id: r.folder_id,
   };
 }
@@ -277,7 +273,6 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
   if ((existRows[0]?.n ?? 0) === 0) {
     throw new Error(`not found: script ${input.id}`);
   }
-  const contentChanged = input.contentJson !== undefined;
 
   if (input.title !== undefined) {
     await db.execute(
@@ -327,22 +322,7 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
     );
   }
   await refreshFtsForScript(input.id);
-
-  const summary = await rowToSummary(input.id);
-
-  if (contentChanged) {
-    // Fire-and-forget background summary trigger. AI command still
-    // lives in Rust until Phase 9; the heuristics inside (rate-limit,
-    // Jaccard threshold, opt-in flag) decide whether to actually call
-    // OpenRouter.
-    void invoke<unknown>("ai_generate_summary", {
-      scriptId: input.id,
-      force: false,
-    }).catch(() => {
-      // Background error — never surface to the editor.
-    });
-  }
-  return summary;
+  return rowToSummary(input.id);
 }
 
 export async function archiveScript(id: string): Promise<void> {

@@ -5,5 +5,5 @@ pub mod debug;
 // search moved to TS in Migration Phase 6
 // settings + app_state moved to TS in Migration Phase 2
 pub mod export;
-pub mod ai;
+// AI / OpenRouter integration removed entirely
 // character_colors moved to TS in Migration Phase 3

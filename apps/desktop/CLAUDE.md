@@ -280,10 +280,12 @@ Repo-Root-`CLAUDE.md` hat eine vollständige Liste der Auslöser.
 
 Drehtage / Drehplanung, Locations als Entität, Notizen-Block, Person-am-
 Charakter, Bilder, ElevenLabs, Drag&Drop, Cloud-Sync, Accounts, Telemetry,
-Kollaboration, Hook als eigener Block, AI-Features im Editor, Plugin-
-System, mehrere Skript-Layouts, Industry-Standard-Drehbuch-Layout
-(Courier 12pt). Plus removed in 2026-05: Projects, Tags, Series,
-global Characters with bible/aliases/description, per-script
+Kollaboration, Hook als eigener Block, **alle AI-Features**
+(OpenRouter-Anbindung, automatische Skript-Zusammenfassungen, KI im
+Editor — bewusst rausgenommen 2026-05-09, Gimmick mit zu wenig
+Mehrwert), Plugin-System, mehrere Skript-Layouts, Industry-Standard-
+Drehbuch-Layout (Courier 12pt). Plus removed in 2026-05: Projects, Tags,
+Series, global Characters with bible/aliases/description, per-script
 display-name/color overrides, vibrancy chrome.
 
 ## Troubleshooting

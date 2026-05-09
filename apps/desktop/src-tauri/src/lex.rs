@@ -75,34 +75,8 @@ fn collect_text_into(node: &Value, s: &mut String) {
     }
 }
 
-pub fn extract_plain_text(content_json: &str) -> String {
-    let blocks = extract_blocks(content_json);
-    let mut out = String::new();
-    for b in blocks {
-        if !out.is_empty() {
-            out.push_str("\n\n");
-        }
-        match b.kind.as_str() {
-            "scriptz-character" => {
-                out.push_str(&b.text.to_uppercase());
-            }
-            "scriptz-parenthetical" => {
-                let trimmed = b.text.trim_matches(|c| c == '(' || c == ')');
-                out.push('(');
-                out.push_str(trimmed);
-                out.push(')');
-            }
-            "scriptz-sfx" => {
-                if !b.text.to_uppercase().starts_with("SFX:") {
-                    out.push_str("SFX: ");
-                }
-                out.push_str(&b.text);
-            }
-            _ => out.push_str(&b.text),
-        }
-    }
-    out
-}
+// extract_plain_text retired — was only used by the AI summary path
+// (now removed) and the Rust-side FTS refresh (now in TS via lex.ts).
 
 pub fn extract_teleprompter_text(content_json: &str) -> String {
     // Plain-Text export per spec: only Character, Dialog, Parenthetical.
@@ -137,34 +111,8 @@ pub fn extract_teleprompter_text(content_json: &str) -> String {
     out
 }
 
-/// Word-token set for similarity comparison. Lowercased, ASCII-stripped of
-/// punctuation, ignores tokens shorter than 3 chars (drops "im", "am", "und"
-/// etc. that would dominate a Jaccard score). NOT meant for FTS — that's what
-/// `extract_plain_text` feeds.
-pub fn word_token_set(text: &str) -> std::collections::HashSet<String> {
-    let mut out = std::collections::HashSet::new();
-    for raw in text.split(|c: char| !c.is_alphanumeric()) {
-        let token: String = raw.chars().flat_map(|c| c.to_lowercase()).collect();
-        if token.chars().count() >= 3 {
-            out.insert(token);
-        }
-    }
-    out
-}
-
-/// Jaccard similarity between two word-token sets, in [0.0, 1.0].
-/// Two empty sets are defined as fully similar (1.0) — no content, no diff.
-pub fn jaccard_similarity(
-    a: &std::collections::HashSet<String>,
-    b: &std::collections::HashSet<String>,
-) -> f32 {
-    if a.is_empty() && b.is_empty() {
-        return 1.0;
-    }
-    let inter = a.intersection(b).count() as f32;
-    let union = a.union(b).count() as f32;
-    if union == 0.0 { 1.0 } else { inter / union }
-}
+// word_token_set + jaccard_similarity retired — were only used by the
+// AI summary cooldown heuristic, now removed.
 
 // extract_character_names retired in Migration Phase 7d — only the
 // Rust-side reconcile used it, and the reconcile now runs in TS via

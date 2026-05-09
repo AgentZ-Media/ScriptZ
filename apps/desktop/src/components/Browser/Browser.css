@@ -464,19 +464,6 @@
   gap: 6px;
 }
 
-.card-summary {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--fs-13);
-  line-height: var(--lh-snug);
-  color: var(--fg-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.card-summary-placeholder { font-style: italic; }
-
 /* ---- List (older) ---- */
 .list-table {
   display: flex;
