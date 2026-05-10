@@ -26,6 +26,7 @@ const SECTIONS: SectionDef[] = [
 export interface SettingsDialogProps {
   open: boolean;
   onClose(): void;
+  onStartOnboarding?(): void;
 }
 
 /**
@@ -334,6 +335,22 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 github.com/AgentZ-Media/ScriptZ
               </button>
             </div>
+            <Show when={props.onStartOnboarding}>
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <div class="row-label">Onboarding</div>
+                  <div class="row-help">
+                    Die Kurz-Tour zur App nochmal anzeigen.
+                  </div>
+                </div>
+                <button
+                  class="btn btn--sm"
+                  onClick={() => props.onStartOnboarding?.()}
+                >
+                  Nochmal anzeigen
+                </button>
+              </div>
+            </Show>
           </Show>
         </div>
       </div>

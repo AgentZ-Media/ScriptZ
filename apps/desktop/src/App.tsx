@@ -30,6 +30,7 @@ import { IdeasView } from "~/components/Ideas/IdeasView";
 import "~/components/Ideas/IdeasDrawer.css";
 import { ensureWelcomeContent } from "~/lib/welcome";
 import { flushAll } from "~/lib/saveFlush";
+import { OnboardingDialog, ONBOARDING_KEY } from "~/components/Onboarding/OnboardingDialog";
 
 import "./components/Common/Common.css";
 
@@ -42,6 +43,7 @@ export default function App() {
   const [exportOpen, setExportOpen] = createSignal(false);
   const [ideasOpen, setIdeasOpen] = createSignal(false);
   const [ideaCaptureOpen, setIdeaCaptureOpen] = createSignal(false);
+  const [onboardingOpen, setOnboardingOpen] = createSignal(false);
   // Initial true: per Default startet ein Skript im Fokus-Modus (ruhiger
   // Schreib-Modus, Toolbar + Cast-Rail aus). Wer das nicht will, deaktiviert
   // den Default in den Einstellungen → Editor.
@@ -75,6 +77,14 @@ export default function App() {
       pushToast(`Start fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
     } finally {
       setBootReady(true);
+    }
+    // Onboarding nur beim ersten Start. Nach setBootReady, damit das
+    // Overlay nicht über den Boot-Screen knallt.
+    try {
+      const done = await api.getAppState(ONBOARDING_KEY);
+      if (!done) setOnboardingOpen(true);
+    } catch {
+      /* nicht blockend */
     }
   });
 
@@ -339,7 +349,18 @@ export default function App() {
         </main>
 
         <CommandBar open={cmdkOpen()} onClose={() => setCmdkOpen(false)} />
-        <SettingsDialog open={settingsOpen()} onClose={() => setSettingsOpen(false)} />
+        <SettingsDialog
+          open={settingsOpen()}
+          onClose={() => setSettingsOpen(false)}
+          onStartOnboarding={() => {
+            setSettingsOpen(false);
+            setOnboardingOpen(true);
+          }}
+        />
+        <OnboardingDialog
+          open={onboardingOpen()}
+          onClose={() => setOnboardingOpen(false)}
+        />
         <Show when={newScriptOpen()}>
           <NewScriptDialog
             onClose={() => setNewScriptOpen(false)}
