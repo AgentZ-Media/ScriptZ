@@ -47,6 +47,24 @@ export default function App() {
   const [focusMode, setFocusMode] = createSignal(true);
 
   const activeScriptId = (): string | null => tabsStore.activeScript()?.scriptId ?? null;
+
+  // Pro-Skript-Override fuer den Fokus-Modus. Wird beim manuellen Toggle
+  // (⇧⌘F, Toolbar-Button, Eye-Floating-Button) gesetzt und beim
+  // Tab-Wechsel vorrangig vor dem globalen Default verwendet. Cache in
+  // JS-Memory, damit Tab-Wechsel innerhalb der Session sync sind und
+  // nicht jedes Mal auf den IPC-Roundtrip warten muessen.
+  const FOCUS_KEY = (id: string) => `script.${id}.focus_mode`;
+  const focusOverride = new Map<string, boolean>();
+
+  const toggleFocusMode = () => {
+    const next = !focusMode();
+    setFocusMode(next);
+    const id = activeScriptId();
+    if (id) {
+      focusOverride.set(id, next);
+      void api.setAppState(FOCUS_KEY(id), next ? "1" : "0").catch(() => {});
+    }
+  };
   const activeScriptTitle = (): string =>
     tabsStore.activeScript()?.scriptTitle || "Unbenannt";
 
@@ -214,7 +232,7 @@ export default function App() {
       // Fokus-Modus ⇧⌘F (nur sinnvoll im Skript-Tab; toggelt sonst still).
       if (ev.shiftKey && ev.key.toLowerCase() === "f") {
         ev.preventDefault();
-        setFocusMode((f) => !f);
+        toggleFocusMode();
         return;
       }
       // Tab cycling: ⌘⌥← / ⌘⌥→
@@ -252,15 +270,14 @@ export default function App() {
   });
 
   // Im Skript-Tab den Fokus-Modus pro Tab-Wechsel neu setzen:
-  //  - Default: Settings-Wert (focusModeDefault)
+  //  - Per-Skript-Override aus app_state (manuell vom User gesetzt)
+  //  - sonst Default: Settings-Wert (focusModeDefault)
   //  - Override: bei "Unbenannt"-Skripten zwingend AUS, damit die
   //    Toolbar mit dem Titel-Input sichtbar ist und der User nicht
   //    eine Liste voller "Unbenannt"-Skripte ansammelt
-  // Manueller ⇧⌘F-Toggle danach bleibt bestehen, bis der User den Tab
-  // wechselt - der Effect feuert NUR bei Tab-Wechsel, nicht bei Title-
-  // Updates auf demselben Tab. Sonst wäre ein gerade-zu-Ende-getippter
-  // Titel ein abrupter Layout-Sprung, weil die Toolbar sich plötzlich
-  // einrollt.
+  // Manueller ⇧⌘F-Toggle persistiert per Skript (toggleFocusMode), damit
+  // ein einmaliges Aus/An nach dem naechsten Tab-Wechsel nicht wieder vom
+  // Default ueberschrieben wird.
   let lastSeenTabId: string | null = null;
   createEffect(() => {
     if (!settingsStore.loaded()) return;
@@ -272,12 +289,33 @@ export default function App() {
     if (tabId === lastSeenTabId) return;
     lastSeenTabId = tabId;
 
+    const scriptId = tabsStore.activeScript()?.scriptId ?? null;
     const title = (tabsStore.activeScript()?.scriptTitle ?? "").trim();
     if (title === "" || title === "Unbenannt") {
       setFocusMode(false);
-    } else {
-      setFocusMode(settingsStore.focusModeDefault());
+      return;
     }
+    if (!scriptId) {
+      setFocusMode(settingsStore.focusModeDefault());
+      return;
+    }
+    const cached = focusOverride.get(scriptId);
+    if (cached !== undefined) {
+      setFocusMode(cached);
+      return;
+    }
+    setFocusMode(settingsStore.focusModeDefault());
+    void (async () => {
+      try {
+        const raw = await api.getAppState(FOCUS_KEY(scriptId));
+        if (tabsStore.activeScript()?.scriptId !== scriptId) return;
+        if (raw === "1" || raw === "0") {
+          const v = raw === "1";
+          focusOverride.set(scriptId, v);
+          setFocusMode(v);
+        }
+      } catch { /* ignore */ }
+    })();
   });
 
   // Fokus-Modus räumt eine laufende Quick-Capture mit weg.
@@ -371,7 +409,7 @@ export default function App() {
                       <ScriptView
                         scriptId={t().scriptId}
                         focusMode={focusMode()}
-                        onToggleFocus={() => setFocusMode((f) => !f)}
+                        onToggleFocus={toggleFocusMode}
                         onBackToHome={() => tabsStore.openBrowser()}
                         onOpenExport={openExport}
                       />
