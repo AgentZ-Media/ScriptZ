@@ -29,9 +29,71 @@ const { release } = Astro.props;
           macOS 13.0 oder neuer - keine Anmeldung, kein Tracking, lokal &amp; offline
         </span>
       </div>
+
+      <details class="firstrun">
+        <summary>
+          <span class="firstrun-q">Beim ersten Öffnen blockiert macOS die App?</span>
+          <span class="firstrun-chevron" aria-hidden="true">▾</span>
+        </summary>
+        <div class="firstrun-body">
+          <p>
+            Das ist normal - ScriptZ ist Open Source und nicht bei Apple
+            registriert. Einmal diesen Befehl im Terminal ausführen, danach
+            läuft alles normal:
+          </p>
+          <div class="firstrun-cmd">
+            <code id="firstrun-code">xattr -cr /Applications/ScriptZ.app</code>
+            <button
+              type="button"
+              class="firstrun-copy"
+              data-copy-target="firstrun-code"
+              aria-label="Befehl kopieren"
+            >
+              <span class="firstrun-copy-label">Kopieren</span>
+            </button>
+          </div>
+          <p class="firstrun-why">
+            Warum? Apple verlangt eine kostenpflichtige Signatur, die diesen
+            Schritt überflüssig machen würde. Bis sich das lohnt, ist der
+            kurze Befehl der Preis dafür, dass ScriptZ kostenlos und ohne
+            Konto bleibt.
+          </p>
+        </div>
+      </details>
     </div>
   </div>
 </section>
+
+<script is:inline>
+  document.querySelectorAll(".firstrun-copy").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-copy-target");
+      const el = id ? document.getElementById(id) : null;
+      if (!el) return;
+      const text = el.textContent || "";
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        document.execCommand("copy");
+        sel?.removeAllRanges();
+      }
+      const label = btn.querySelector(".firstrun-copy-label");
+      if (!label) return;
+      const prev = label.textContent;
+      label.textContent = "Kopiert";
+      btn.classList.add("is-copied");
+      setTimeout(() => {
+        label.textContent = prev;
+        btn.classList.remove("is-copied");
+      }, 1600);
+    });
+  });
+</script>
 
 <style>
   .download {
@@ -58,6 +120,95 @@ const { release } = Astro.props;
     gap: var(--sp-3);
   }
   .install2 {
+    font-size: var(--fs-12);
+    color: var(--fg-subtle);
+  }
+
+  .firstrun {
+    margin: var(--sp-8) auto 0;
+    max-width: 560px;
+    text-align: left;
+    border: 1px dashed var(--border-strong);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .firstrun summary {
+    list-style: none;
+    cursor: pointer;
+    padding: var(--sp-4) var(--sp-5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    font-size: var(--fs-14);
+    color: var(--fg);
+  }
+  .firstrun summary::-webkit-details-marker {
+    display: none;
+  }
+  .firstrun-q {
+    font-weight: 500;
+  }
+  .firstrun-chevron {
+    color: var(--fg-muted);
+    transition: transform 160ms ease;
+    font-size: 12px;
+  }
+  .firstrun[open] .firstrun-chevron {
+    transform: rotate(180deg);
+  }
+  .firstrun-body {
+    padding: 0 var(--sp-5) var(--sp-5);
+    border-top: 1px dashed var(--border);
+    padding-top: var(--sp-4);
+    font-size: var(--fs-14);
+    color: var(--fg-muted);
+    line-height: 1.55;
+  }
+  .firstrun-body p {
+    margin: 0;
+  }
+  .firstrun-cmd {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin: var(--sp-4) 0;
+    padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+    background: var(--bg-elev-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .firstrun-cmd code {
+    flex: 1;
+    font-size: var(--fs-13);
+    color: var(--fg);
+    overflow-x: auto;
+    white-space: nowrap;
+    background: none;
+    padding: 0;
+  }
+  .firstrun-copy {
+    flex: none;
+    font: inherit;
+    font-size: var(--fs-12);
+    font-family: var(--font-sans, inherit);
+    background: var(--fg);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .firstrun-copy:hover {
+    background: #000;
+  }
+  .firstrun-copy.is-copied {
+    background: #22a06b;
+  }
+  .firstrun-why {
+    margin-top: var(--sp-3) !important;
     font-size: var(--fs-12);
     color: var(--fg-subtle);
   }
