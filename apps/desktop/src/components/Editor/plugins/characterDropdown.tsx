@@ -254,6 +254,19 @@ export function installCharacterDropdown(
     setOpen(true);
   });
 
+  // While the dropdown is open, the page (or any scrollable ancestor) can
+  // scroll under it. Because `pos` is in viewport coords (`position: fixed`)
+  // and is only refreshed on Lexical updates, scrolling without typing would
+  // leave the dropdown glued to the original viewport spot while the
+  // anchored character block drifts. Re-anchor on every scroll/resize so the
+  // dropdown follows its character line.
+  const reanchor = () => {
+    if (!open()) return;
+    setPos(positionFromCursor(activeKey()));
+  };
+  window.addEventListener("scroll", reanchor, true);
+  window.addEventListener("resize", reanchor);
+
   const onKey = (ev: KeyboardEvent) => {
     if (!open()) return;
     const list = filteredEntries();
@@ -281,6 +294,8 @@ export function installCharacterDropdown(
 
   return () => {
     document.removeEventListener("keydown", onKey, true);
+    window.removeEventListener("scroll", reanchor, true);
+    window.removeEventListener("resize", reanchor);
     teardownUpdate();
     dispose();
     if (container.parentNode) container.parentNode.removeChild(container);
