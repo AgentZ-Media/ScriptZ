@@ -224,7 +224,7 @@
   /* Im Fokus-Modus blenden Editor-Toolbar + Editor-Rail weg, nur die
      Titlebar (34 px) bleibt — der Eye-Button sitzt direkt unter ihrer
      Unterkante, oben rechts bündig mit minimalem Atemluft-Rand. */
-  top: 20px;
+  top: 40px;
   right: 20px;
   z-index: 10;
   width: 32px;

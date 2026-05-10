@@ -1,7 +1,8 @@
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { tabsStore } from "~/stores/tabs";
 import { dailyStatsStore } from "~/stores/dailyStats";
 import { settingsStore } from "~/stores/settings";
+import { ideasStore } from "~/stores/ideas";
 
 import "./TabBar.css";
 
@@ -41,6 +42,18 @@ export function TabBar(props: TabBarProps) {
           type="button"
         >
           <span class="tab-home-ic"><HomeIcon /></span>
+        </button>
+
+        <button
+          class="tab tab-ideas"
+          classList={{ "is-active": tabsStore.isIdeas() }}
+          onClick={() => tabsStore.openIdeas()}
+          title="Ideen"
+          aria-label="Ideen"
+          type="button"
+        >
+          <span class="tab-ideas-ic"><BulbIcon /></span>
+          <IdeasBadge />
         </button>
 
         <For each={tabsStore.tabs()}>
@@ -143,6 +156,30 @@ function StatusStrip() {
 }
 
 /* ---- Icons (Lucide-style, stroke 1.75) ---- */
+
+function BulbIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" />
+    </svg>
+  );
+}
+
+/** Kleine Pille rechts vom Glühbirnen-Icon, zeigt die Anzahl offener
+ *  Ideen. Bewusst dezent — der Tab soll nicht ständig schreien. Bei 0
+ *  offenen Ideen verschwindet das Badge. */
+function IdeasBadge() {
+  const openCount = () =>
+    (ideasStore.ideas() ?? []).filter((i) => !i.used_at).length;
+  return (
+    <Show when={openCount() > 0}>
+      <span class="tab-ideas-badge">{openCount()}</span>
+    </Show>
+  );
+}
 
 function HomeIcon() {
   return (

@@ -26,6 +26,7 @@ import ToastHost from "~/components/Common/ToastHost";
 import { IdeasDrawer } from "~/components/Ideas/IdeasDrawer";
 import { IdeasToggle } from "~/components/Ideas/IdeasToggle";
 import { IdeaQuickCapture } from "~/components/Ideas/IdeaQuickCapture";
+import { IdeasView } from "~/components/Ideas/IdeasView";
 import "~/components/Ideas/IdeasDrawer.css";
 import { ensureWelcomeContent } from "~/lib/welcome";
 import { flushAll } from "~/lib/saveFlush";
@@ -212,20 +213,20 @@ export default function App() {
     onCleanup(() => window.removeEventListener("keydown", handler));
   });
 
-  // Beim Wechsel auf Home automatisch Fokus-Modus aus (sonst verstecken
-  // wir die Titlebar im Browser unnötig).
+  // Beim Wechsel auf Home oder Ideen automatisch Fokus-Modus aus
+  // (sonst dimmt sich die Titlebar in einer Listenansicht unnötig).
   createEffect(() => {
-    if (tabsStore.isHome() && focusMode()) setFocusMode(false);
+    if ((tabsStore.isHome() || tabsStore.isIdeas()) && focusMode()) setFocusMode(false);
   });
 
   // Im Skript-Tab den Fokus-Modus auf den Settings-Default zurückziehen,
-  // sobald die Settings geladen sind und immer wenn der User nicht auf
-  // Home ist. Sich-merken einer manuellen ⇧⌘F-Wahl pro Skript-Wechsel ist
-  // bewusst nicht implementiert — der Default ist die Wahrheit, ⇧⌘F kippt
-  // sie für die aktuelle Sitzung.
+  // sobald die Settings geladen sind und immer wenn der User auf einem
+  // Skript-Tab ist. Sich-merken einer manuellen ⇧⌘F-Wahl pro Skript-Wechsel
+  // ist bewusst nicht implementiert — der Default ist die Wahrheit, ⇧⌘F
+  // kippt sie für die aktuelle Sitzung.
   createEffect(() => {
     if (!settingsStore.loaded()) return;
-    if (tabsStore.isHome()) return;
+    if (tabsStore.isHome() || tabsStore.isIdeas()) return;
     setFocusMode(settingsStore.focusModeDefault());
   });
 
@@ -245,14 +246,18 @@ export default function App() {
   // ---- View-Transition: Tab-Wechsel & Home <-> Editor ----
   let appMainRef: HTMLElement | undefined;
   let viewFrameRef: HTMLDivElement | undefined;
-  let prevState: { route: "home" | "script"; id: string | null } | null = null;
+  type ViewRoute = "home" | "ideas" | "script";
+  let prevState: { route: ViewRoute; id: string | null } | null = null;
   createEffect(() => {
     const tabId = tabsStore.activeTabId();
     const isHome = tabsStore.isHome();
+    const isIdeas = tabsStore.isIdeas();
     if (!appMainRef || !viewFrameRef) return;
-    const cur: { route: "home" | "script"; id: string | null } = isHome
+    const cur: { route: ViewRoute; id: string | null } = isHome
       ? { route: "home", id: null }
-      : { route: "script", id: tabId };
+      : isIdeas
+        ? { route: "ideas", id: null }
+        : { route: "script", id: tabId };
     if (prevState === null) {
       prevState = cur;
       return;
@@ -272,6 +277,7 @@ export default function App() {
         ? "forward"
         : "backward";
     } else {
+      // Home<->Ideas oder Ideas<->Skript: einfache horizontale Bewegung.
       dir = "forward";
     }
     prevState = cur;
@@ -285,7 +291,9 @@ export default function App() {
   return (
     <div
       class="app-root"
-      classList={{ "is-focus": focusMode() && !tabsStore.isHome() }}
+      classList={{
+        "is-focus": focusMode() && !tabsStore.isHome() && !tabsStore.isIdeas(),
+      }}
     >
       <Show when={bootReady()} fallback={<BootScreen />}>
         <TabBar
@@ -307,6 +315,9 @@ export default function App() {
                   onOpenSettings={() => setSettingsOpen(true)}
                   onOpenCmdK={() => setCmdkOpen(true)}
                 />
+              </Match>
+              <Match when={tabsStore.isIdeas()}>
+                <IdeasView />
               </Match>
               <Match when={tabsStore.activeScript()}>
                 {(t) => (
@@ -346,8 +357,12 @@ export default function App() {
         </Show>
         {/* Im Editor läuft die Ideen-Pille auf der LINKEN Seite, weil
             die rechte Bildschirmkante vom Editor-Rail belegt ist. Auf
-            Home bleibt sie rechts (passt besser zur "+ Neu"-Ecke). */}
-        <Show when={!focusMode()}>
+            Home bleibt sie rechts (passt besser zur "+ Neu"-Ecke).
+            Auf der Ideen-Vollseite blenden wir Drawer & Toggle aus -
+            dort ist der Inhalt eh schon da, eine zweite Liste daneben
+            wäre Doppel-Information. Quick-Capture bleibt aktiv, damit
+            ⌘I überall greift. */}
+        <Show when={!focusMode() && !tabsStore.isIdeas()}>
           <IdeasToggle
             open={ideasOpen()}
             onClick={() => setIdeasOpen(true)}
@@ -358,6 +373,8 @@ export default function App() {
             onClose={() => setIdeasOpen(false)}
             position={tabsStore.isHome() ? "right" : "left"}
           />
+        </Show>
+        <Show when={!focusMode()}>
           <IdeaQuickCapture
             open={ideaCaptureOpen()}
             onClose={() => setIdeaCaptureOpen(false)}
