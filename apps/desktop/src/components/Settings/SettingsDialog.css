@@ -200,6 +200,41 @@
   flex-shrink: 0;
 }
 
+/* ---- Charaktere-Sektion ---- */
+.settings-character-row {
+  gap: 12px;
+}
+.settings-character-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(28, 24, 20, 0.18);
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform var(--t-fast);
+}
+[data-theme="dark"] .settings-character-swatch {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .settings-character-swatch {
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+}
+.settings-character-swatch:hover {
+  transform: scale(1.08);
+}
+.settings-character-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
 /* ---- "About"-Text-Mono (Repo-URL) ---- */
 .settings-mono {
   font-family: var(--font-mono);

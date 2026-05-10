@@ -258,6 +258,38 @@ export function Editor(props: EditorProps) {
       openColorPicker: colorPicker.openFor,
     }));
 
+    // Externe Farb-Updates (z.B. aus dem Einstellungen-Charaktere-Tab) live
+    // in den laufenden Editor ziehen. ScriptView refetcht beim
+    // `scriptsBus.bump()` und reicht die frischen `characters` als Prop
+    // weiter — wir mergen NUR Farben in `liveCharacters` (kein Replace),
+    // damit gerade getippte, noch nicht gespeicherte Namen nicht
+    // überschrieben werden. Erstes Run wird übersprungen, weil
+    // `liveCharacters` bereits aus Props seeded ist.
+    let firstCharacterSync = true;
+    createEffect(() => {
+      const incoming = props.characters ?? [];
+      if (firstCharacterSync) {
+        firstCharacterSync = false;
+        return;
+      }
+      const byName = new Map<string, string>();
+      for (const c of incoming) byName.set(c.name.toUpperCase(), c.color);
+      const current = liveCharacters();
+      let changed = false;
+      const merged = current.map((c) => {
+        const next = byName.get(c.name.toUpperCase());
+        if (next !== undefined && next !== c.color) {
+          changed = true;
+          return { ...c, color: next };
+        }
+        return c;
+      });
+      if (changed) {
+        setLiveCharacters(merged);
+        highlight.refresh();
+      }
+    });
+
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let dirtySinceSnapshot = false;
     let lastReportedPages = -1;

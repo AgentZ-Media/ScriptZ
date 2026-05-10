@@ -1,14 +1,19 @@
-import { Show, createSignal, onMount, For, type Component } from "solid-js";
+import { Show, createSignal, createMemo, createEffect, onMount, For, type Component } from "solid-js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
 import { Modal } from "~/components/Common/Modal";
 import { settingsStore, type Theme } from "~/stores/settings";
 import { updatesStore } from "~/stores/updates";
+import { api } from "~/lib/api";
+import { scriptsBus } from "~/lib/scriptsBus";
+import { pushToast } from "~/stores/toasts";
+import { ColorPickerPopover } from "~/components/Editor/ColorPickerPopover";
+import type { CharacterColorRecord } from "~/lib/types";
 import "./SettingsDialog.css";
 
 const REPO_URL = "https://github.com/AgentZ-Media/ScriptZ";
 
-type SectionId = "appearance" | "editor" | "updates" | "about";
+type SectionId = "appearance" | "editor" | "characters" | "updates" | "about";
 
 interface SectionDef {
   id: SectionId;
@@ -16,9 +21,10 @@ interface SectionDef {
   Icon: Component;
 }
 
-const SECTIONS: SectionDef[] = [
+const ALL_SECTIONS: SectionDef[] = [
   { id: "appearance", label: "Erscheinungsbild", Icon: TypeIcon },
   { id: "editor",     label: "Editor",           Icon: EditIcon },
+  { id: "characters", label: "Charaktere",       Icon: PaletteIcon },
   { id: "updates",    label: "Updates",          Icon: ShieldIcon },
   { id: "about",      label: "Über",             Icon: InfoIcon },
 ];
@@ -42,6 +48,26 @@ export function SettingsDialog(props: SettingsDialogProps) {
   const [section, setSection] = createSignal<SectionId>("appearance");
   const [appVersion, setAppVersion] = createSignal("0.6.0");
 
+  // App-weite Charakter-Farb-Overrides. Wir filtern auf Einträge mit
+  // gesetztem `override_color` — nur die zählen als "eigene Farbe".
+  // Die Liste steuert sowohl die Sichtbarkeit des Charaktere-Tabs als
+  // auch den Inhalt des Panes.
+  const [overrides, setOverrides] = createSignal<CharacterColorRecord[]>([]);
+  const reloadOverrides = async () => {
+    try {
+      const all = await api.listCharacterColors();
+      setOverrides(all.filter((r) => r.override_color !== null));
+    } catch {
+      setOverrides([]);
+    }
+  };
+
+  // Popover-State für die Farbänderung in der Liste.
+  const [pickerOpen, setPickerOpen] = createSignal(false);
+  const [pickerName, setPickerName] = createSignal("");
+  const [pickerColor, setPickerColor] = createSignal("#000000");
+  const [pickerPos, setPickerPos] = createSignal({ x: 0, y: 0 });
+
   onMount(async () => {
     try {
       setAppVersion(await getVersion());
@@ -49,6 +75,59 @@ export function SettingsDialog(props: SettingsDialogProps) {
       /* dev-mode ohne Tauri */
     }
   });
+
+  // Bei jedem Öffnen des Dialogs frische Liste laden.
+  createEffect(() => {
+    if (props.open) void reloadOverrides();
+  });
+
+  const sections = createMemo<SectionDef[]>(() =>
+    overrides().length > 0
+      ? ALL_SECTIONS
+      : ALL_SECTIONS.filter((s) => s.id !== "characters"),
+  );
+
+  // Falls die aktive Sektion nicht mehr existiert (letzter Override
+  // gerade entfernt), zurück zu Erscheinungsbild fallen.
+  createEffect(() => {
+    if (!sections().some((s) => s.id === section())) {
+      setSection("appearance");
+    }
+  });
+
+  const openPickerFor = (rec: CharacterColorRecord, ev: MouseEvent) => {
+    const target = ev.currentTarget as HTMLElement;
+    const r = target.getBoundingClientRect();
+    setPickerName(rec.name);
+    setPickerColor(rec.override_color ?? "#000000");
+    setPickerPos({ x: r.right + 8, y: r.top });
+    setPickerOpen(true);
+  };
+
+  const onPickColor = async (color: string) => {
+    const name = pickerName();
+    setPickerOpen(false);
+    if (!name) return;
+    try {
+      await api.setCharacterColor(name, color);
+      scriptsBus.bump();
+      await reloadOverrides();
+    } catch (err) {
+      pushToast(`Farbe speichern fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+    }
+  };
+
+  const onResetColor = async (name: string) => {
+    setPickerOpen(false);
+    if (!name) return;
+    try {
+      await api.clearCharacterColor(name);
+      scriptsBus.bump();
+      await reloadOverrides();
+    } catch (err) {
+      pushToast(`Reset fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+    }
+  };
 
   const onCheckUpdate = async () => {
     await updatesStore.checkNow();
@@ -77,7 +156,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
     >
       <div class="settings-grid">
         <nav class="settings-nav" aria-label="Abschnitte">
-          <For each={SECTIONS}>
+          <For each={sections()}>
             {(s) => (
               <button
                 type="button"
@@ -229,6 +308,36 @@ export function SettingsDialog(props: SettingsDialogProps) {
             </div>
           </Show>
 
+          <Show when={section() === "characters"}>
+            <h3>Charaktere</h3>
+            <div class="settings-pane-sub">
+              Charaktere mit eigener Farbe. Klick auf den Punkt ändert die
+              Farbe, „Zurücksetzen" löscht die App-weite Vorgabe.
+            </div>
+            <For each={overrides()}>
+              {(rec) => (
+                <div class="settings-row settings-character-row">
+                  <button
+                    type="button"
+                    class="settings-character-swatch scriptz-color-picker-trigger"
+                    style={{ background: rec.override_color ?? "#000" }}
+                    aria-label={`Farbe von ${rec.name} ändern`}
+                    title={`Farbe von ${rec.name} ändern`}
+                    onClick={(ev) => openPickerFor(rec, ev)}
+                  />
+                  <div class="settings-character-name">{rec.name}</div>
+                  <button
+                    type="button"
+                    class="btn btn--sm"
+                    onClick={() => void onResetColor(rec.name)}
+                  >
+                    Zurücksetzen
+                  </button>
+                </div>
+              )}
+            </For>
+          </Show>
+
           <Show when={section() === "updates"}>
             <h3>Updates</h3>
             <div class="settings-pane-sub">Bezogen über GitHub Releases. Keine Telemetrie.</div>
@@ -370,6 +479,16 @@ export function SettingsDialog(props: SettingsDialogProps) {
           </Show>
         </div>
       </div>
+      <ColorPickerPopover
+        open={pickerOpen()}
+        x={pickerPos().x}
+        y={pickerPos().y}
+        characterName={pickerName()}
+        currentColor={pickerColor()}
+        onPick={(c) => void onPickColor(c)}
+        onReset={() => void onResetColor(pickerName())}
+        onClose={() => setPickerOpen(false)}
+      />
     </Modal>
   );
 }
@@ -422,6 +541,18 @@ function ShieldIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+function PaletteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="13.5" cy="6.5" r=".75" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r=".75" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r=".75" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r=".75" fill="currentColor" />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.97-4.48-9-10-9z" />
     </svg>
   );
 }
