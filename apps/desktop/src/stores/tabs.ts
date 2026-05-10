@@ -20,7 +20,10 @@ export interface ScriptTab {
   scriptTitle: string;
 }
 
-type Route = { kind: "home" } | { kind: "script"; tabId: string };
+type Route =
+  | { kind: "home" }
+  | { kind: "ideas" }
+  | { kind: "script"; tabId: string };
 
 const [tabs, setTabs] = createSignal<ScriptTab[]>([]);
 const [route, setRoute] = createSignal<Route>({ kind: "home" });
@@ -54,14 +57,17 @@ export const tabsStore = {
   route,
   /** True wenn der Home-Tab gerade aktiv ist. */
   isHome: () => route().kind === "home",
+  /** True wenn der Ideen-Tab gerade aktiv ist. */
+  isIdeas: () => route().kind === "ideas",
   /** Aktiver Skript-Tab oder null wenn Home aktiv ist. */
   activeScript: activeScriptTab,
   /** Legacy-API — Komponenten lesen `tabsStore.active()` weiter und kriegen
    *  ein vereinheitlichtes Tab-Objekt mit `kind`. Erlaubt schrittweise
    *  Migration. */
-  active(): { kind: "browser" } | { kind: "script"; scriptId: string; scriptTitle: string } | null {
+  active(): { kind: "browser" } | { kind: "ideas" } | { kind: "script"; scriptId: string; scriptTitle: string } | null {
     const r = route();
     if (r.kind === "home") return { kind: "browser" };
+    if (r.kind === "ideas") return { kind: "ideas" };
     const t = tabs().find((x) => x.id === r.tabId);
     if (!t) return { kind: "browser" };
     return { kind: "script", scriptId: t.scriptId, scriptTitle: t.scriptTitle };
@@ -75,6 +81,13 @@ export const tabsStore = {
   openBrowser() {
     deferRouteChange(() => {
       setRoute({ kind: "home" });
+      persist();
+    });
+  },
+  /** Ideen-Tab aktivieren. Ist immer möglich, kein Tab wird angelegt. */
+  openIdeas() {
+    deferRouteChange(() => {
+      setRoute({ kind: "ideas" });
       persist();
     });
   },
@@ -155,17 +168,24 @@ export const tabsStore = {
       persist();
     });
   },
-  /** ⌘⌥← / ⌘⌥→ — Home zählt als "Tab 0", danach kommen die Skript-Tabs. */
+  /** ⌘⌥← / ⌘⌥→ — Reihenfolge: Home (0), Ideen (1), Skript-Tabs (2..N+1).
+   *  Spiegelt die visuelle Anordnung in der Tab-Bar. */
   cycle(dir: 1 | -1) {
     const list = tabs();
-    const all = list.length + 1; // +1 für Home
+    const all = list.length + 2; // +2 für Home und Ideen
     const r = route();
-    const cur = r.kind === "home" ? 0 : list.findIndex((t) => t.id === r.tabId) + 1;
+    const cur =
+      r.kind === "home"
+        ? 0
+        : r.kind === "ideas"
+          ? 1
+          : list.findIndex((t) => t.id === r.tabId) + 2;
     if (cur < 0) return;
     const nextIdx = (cur + dir + all) % all;
     deferRouteChange(() => {
       if (nextIdx === 0) setRoute({ kind: "home" });
-      else setRoute({ kind: "script", tabId: list[nextIdx - 1].id });
+      else if (nextIdx === 1) setRoute({ kind: "ideas" });
+      else setRoute({ kind: "script", tabId: list[nextIdx - 2].id });
       persist();
     });
   },
@@ -231,6 +251,8 @@ export const tabsStore = {
         setRoute(r);
       } else if (r && r.kind === "home") {
         setRoute({ kind: "home" });
+      } else if (r && r.kind === "ideas") {
+        setRoute({ kind: "ideas" });
       } else if (parsed.activeId) {
         const match = filtered.find((t) => t.id === parsed.activeId);
         setRoute(match ? { kind: "script", tabId: match.id } : { kind: "home" });

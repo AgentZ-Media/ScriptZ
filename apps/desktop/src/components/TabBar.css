@@ -124,6 +124,46 @@
 }
 .tab-home.is-active .tab-home-ic { color: var(--ink-700); }
 
+/* Ideen-Tab: wie Home fix, nur Icon (+ optionales Badge). */
+.tab-ideas {
+  flex: 0 0 auto;
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  max-width: none;
+  min-width: 40px;
+  position: relative;
+}
+.tab-ideas-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-500);
+}
+.tab-ideas.is-active .tab-ideas-ic { color: var(--ink-700); }
+/* Badge mit Anzahl offener Ideen — klein, oben rechts am Icon. */
+.tab-ideas-badge {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--brand-orange, #e0791f);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1.5px var(--bg, #efece6);
+  pointer-events: none;
+}
+[data-theme="dark"] .tab-ideas-badge { box-shadow: 0 0 0 1.5px #2a2a2a; }
+.tab-ideas.is-active .tab-ideas-badge { box-shadow: 0 0 0 1.5px var(--bg); }
+
 .tab-doc {
   display: inline-flex;
   flex: 0 0 auto;
