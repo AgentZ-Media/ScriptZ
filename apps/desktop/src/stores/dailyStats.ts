@@ -9,6 +9,7 @@ import type { DailyStatsSummary } from "~/lib/types";
 // "wachsen lassen" - kosmetisch unsauber, deshalb Fallback mit Nullen.
 const EMPTY: DailyStatsSummary = {
   wordsToday: 0,
+  wordsThisWeek: 0,
   streakDays: 0,
   dailyWords: Array(365).fill(0),
   activeDays: 0,

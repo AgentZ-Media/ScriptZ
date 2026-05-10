@@ -3,15 +3,35 @@
    Visualisiert nach Re-Design `modals.jsx::SettingsModal`.
    ========================================================================= */
 
-/* Nimmt die Modal-Body-Padding wieder weg, wir wollen das Grid randlos. */
+/* Nimmt die Modal-Body-Padding wieder weg, wir wollen das Grid randlos.
+   Außerdem das Body-Scrolling abschalten - sonst scrollt die Sidebar
+   bei langem Pane-Inhalt (Tastatur-Reiter!) mit weg, statt fix zu
+   bleiben. Das Pane bekommt sein eigenes overflow:auto. */
 .modal-body:has(.settings-grid) {
   padding: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Feste Modal-Höhe für die Settings, damit das Fenster beim Tab-Wechsel
+   nicht in der Höhe springt. Wächst proportional zum Bildschirm
+   (78vh) bis zu einem oberen Limit von 720px - sonst wird der Dialog
+   auf großen Monitoren unnötig riesig. min: 480px verhindert, dass
+   ein kurzer Tab das Modal zu eng macht. max-height: 95vh ist ein
+   harter Schutz für sehr kleine Fenster, in denen 480px > Fenster wäre.
+   Greift nur, wenn das Modal die Settings-Sektionen enthält - andere
+   Dialogs (Confirm, Rename) bleiben kompakt. */
+.modal:has(.settings-grid) {
+  height: clamp(480px, 78vh, 720px);
+  max-height: 95vh;
 }
 
 .settings-grid {
   display: grid;
   grid-template-columns: 180px 1fr;
-  min-height: 460px;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .settings-nav {
@@ -21,6 +41,11 @@
   flex-direction: column;
   gap: 2px;
   background: var(--paper-2);
+  /* Eigene Scrollbar nur falls die Nav-Liste mal länger als das
+     Modal wird - bei aktuell 6 Reitern passiert das nie, ist aber
+     billig zukunftssicher. */
+  overflow-y: auto;
+  min-height: 0;
 }
 .settings-nav-btn {
   display: flex;
@@ -58,6 +83,10 @@
 
 .settings-pane {
   padding: 22px 24px;
+  /* Pane scrollt unabhängig von der Nav, sonst rollt die Sidebar
+     bei langem Inhalt (Tastatur-Reiter) mit weg. */
+  overflow-y: auto;
+  min-height: 0;
 }
 .settings-pane h3 {
   margin: 0 0 4px;
@@ -239,4 +268,44 @@
 .settings-mono {
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+/* ---- Tastatur-Reiter ---- */
+.settings-shortcuts-group {
+  margin-top: 18px;
+}
+.settings-shortcuts-group:first-of-type {
+  margin-top: 8px;
+}
+.settings-shortcuts-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+.settings-shortcuts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.settings-shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-paper, var(--border));
+  font-size: 13px;
+}
+.settings-shortcut-row:last-child {
+  border-bottom: 0;
+}
+.settings-shortcut-keys .kbd-inline {
+  font-size: 11px;
+}
+.settings-shortcut-desc {
+  color: var(--text-subtle);
 }

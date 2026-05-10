@@ -26,6 +26,10 @@ export interface ScriptSummary {
   updated_at: number;
   archived_at: number | null;
   page_count: number;
+  /** Letzte berechnete Wortanzahl. -1 = Sentinel "noch nie gezählt"
+   *  (frisch angelegtes oder vor dem word-count-Backfill migriertes
+   *  Skript). Konsumenten sollten Negativwerte als 0 behandeln. */
+  word_count: number;
   characters: ScriptCharacter[];
   folder_id: string | null;
 }
@@ -96,6 +100,8 @@ export interface DailyWordEntry {
 export interface DailyStatsSummary {
   /** Wörter, die heute (lokale Mitternacht bis jetzt) addiert wurden. */
   wordsToday: number;
+  /** Wörter seit Montag der laufenden ISO-Woche (Mo 00:00 bis jetzt). */
+  wordsThisWeek: number;
   /** Anzahl aufeinanderfolgender Schreibtage, endet heute oder gestern. */
   streakDays: number;
   /** 365-Tage-Verlauf, älterster zuerst, heute zuletzt. */

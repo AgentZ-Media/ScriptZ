@@ -47,6 +47,7 @@ interface SummaryRow {
   updated_at: number;
   archived_at: number | null;
   page_count: number;
+  last_word_count: number;
   folder_id: string | null;
 }
 
@@ -58,7 +59,8 @@ async function rowToSummary(id: string): Promise<ScriptSummary> {
   const db = await getDb();
   const rows = await db.select<SummaryRow[]>(
     `SELECT id, title, highlighting_enabled, characters_meta,
-            created_at, updated_at, archived_at, page_count, folder_id
+            created_at, updated_at, archived_at, page_count,
+            last_word_count, folder_id
      FROM scripts WHERE id = $1`,
     [id],
   );
@@ -75,6 +77,7 @@ async function rowToSummary(id: string): Promise<ScriptSummary> {
     updated_at: r.updated_at,
     archived_at: r.archived_at,
     page_count: r.page_count,
+    word_count: r.last_word_count,
     folder_id: r.folder_id,
   };
 }
@@ -83,7 +86,8 @@ export async function getScript(id: string): Promise<Script> {
   const db = await getDb();
   const rows = await db.select<FullRow[]>(
     `SELECT id, title, highlighting_enabled, content_json, characters_meta,
-            created_at, updated_at, archived_at, page_count, folder_id
+            created_at, updated_at, archived_at, page_count,
+            last_word_count, folder_id
      FROM scripts WHERE id = $1`,
     [id],
   );
@@ -101,6 +105,7 @@ export async function getScript(id: string): Promise<Script> {
     updated_at: r.updated_at,
     archived_at: r.archived_at,
     page_count: r.page_count,
+    word_count: r.last_word_count,
     folder_id: r.folder_id,
   };
 }
@@ -123,7 +128,8 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
   // Tauri-IPC-Hop drauf — bei 3 Skripten waren das 4 Calls statt 1.
   let sql =
     "SELECT id, title, highlighting_enabled, characters_meta, " +
-    "created_at, updated_at, archived_at, page_count, folder_id " +
+    "created_at, updated_at, archived_at, page_count, " +
+    "last_word_count, folder_id " +
     "FROM scripts WHERE 1=1";
   const args: (string | number)[] = [];
   let p = 1;
@@ -179,6 +185,7 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
     updated_at: r.updated_at,
     archived_at: r.archived_at,
     page_count: r.page_count,
+    word_count: r.last_word_count,
     folder_id: r.folder_id,
   }));
 }

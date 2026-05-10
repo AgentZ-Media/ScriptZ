@@ -134,6 +134,14 @@
   font-variant-numeric: tabular-nums;
   margin-top: 2px;
 }
+.rail-stat-soft .rail-stat-val {
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.rail-stat-soft .rail-stat-label {
+  opacity: 0.75;
+}
 
 /* ---- Versionen-Tab ---- */
 .rail-versions-info {

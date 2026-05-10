@@ -10,10 +10,18 @@ interface BlockDef {
   hint: string;
 }
 
-const BLOCKS: BlockDef[] = [
+// Primärs sind die drei Block-Typen, die ein Solo-Talking-Head- oder
+// 2-Personen-Sketch-Skript praktisch immer braucht. Der Rest (Paren.,
+// Kamera, Caption, SFX) lebt hinter einem "+/..."-Aufklappknopf, damit
+// die Toolbar für die Zielgruppe (TikTok / Reels) nicht überladen
+// wirkt - per Tab-Picker und ⌘4..7 sind sie weiter direkt erreichbar.
+const PRIMARY_BLOCKS: BlockDef[] = [
   { id: "scriptz-action",        label: "Action",     hint: "⌘1" },
   { id: "scriptz-character",     label: "Charakter",  hint: "⌘2" },
   { id: "scriptz-dialog",        label: "Dialog",     hint: "⌘3" },
+];
+
+const SECONDARY_BLOCKS: BlockDef[] = [
   { id: "scriptz-parenthetical", label: "Paren.",     hint: "⌘4" },
   { id: "scriptz-camera",        label: "Kamera",     hint: "⌘5" },
   { id: "scriptz-caption",       label: "Caption",    hint: "⌘6" },
@@ -61,6 +69,17 @@ export interface EditorToolbarProps {
  */
 export function EditorToolbar(props: EditorToolbarProps) {
   const [draftTitle, setDraftTitle] = createSignal(props.title);
+  const [secondaryOpen, setSecondaryOpen] = createSignal(false);
+
+  // Wenn der Cursor in einen Sekundärblock wandert, klappen wir die
+  // Sekundärleiste automatisch auf - sonst zeigt die Toolbar keinen
+  // aktiven Marker für den aktuellen Block.
+  createEffect(() => {
+    const ab = props.activeBlock;
+    if (ab && SECONDARY_BLOCKS.some((b) => b.id === ab)) {
+      setSecondaryOpen(true);
+    }
+  });
 
   // Wenn der Titel von außen wechselt (Tab-Wechsel, Rename in Sidebar,
   // ...), draftTitle synchronisieren.
@@ -126,7 +145,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
       </div>
 
       <div class="block-toolbar" role="group" aria-label="Block-Typ">
-        <For each={BLOCKS}>
+        <For each={PRIMARY_BLOCKS}>
           {(b) => (
             <button
               type="button"
@@ -138,10 +157,46 @@ export function EditorToolbar(props: EditorToolbarProps) {
               aria-disabled={!props.editor}
               aria-pressed={props.activeBlock === b.id}
             >
-              {b.label}
+              <span class="block-toolbar-label">{b.label}</span>
+              <span class="block-toolbar-hint" aria-hidden="true">{b.hint}</span>
             </button>
           )}
         </For>
+        <Show when={secondaryOpen()}>
+          <span class="block-toolbar-sep" aria-hidden="true" />
+          <For each={SECONDARY_BLOCKS}>
+            {(b) => (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                classList={{ "is-active": props.activeBlock === b.id }}
+                title={`${b.label}  ${b.hint}`}
+                onClick={() => clickBlock(b.id)}
+                disabled={!props.editor}
+                aria-disabled={!props.editor}
+                aria-pressed={props.activeBlock === b.id}
+              >
+                <span class="block-toolbar-label">{b.label}</span>
+                <span class="block-toolbar-hint" aria-hidden="true">{b.hint}</span>
+              </button>
+            )}
+          </For>
+        </Show>
+        <button
+          type="button"
+          class="block-toolbar-more"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setSecondaryOpen((v) => !v)}
+          title={
+            secondaryOpen()
+              ? "Weniger Block-Typen anzeigen"
+              : "Weitere Block-Typen (Paren./Kamera/Caption/SFX)"
+          }
+          aria-expanded={secondaryOpen()}
+          aria-label="Weitere Block-Typen"
+        >
+          {secondaryOpen() ? "–" : "+"}
+        </button>
       </div>
 
       <Show when={props.quickModeAvailable()}>

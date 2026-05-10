@@ -18,14 +18,16 @@ const [quickModeAutoEnable, setQuickModeAutoEnable] = createSignal<boolean>(fals
 // Zähler-Badge am Ideen-Tab anzeigen (Anzahl offener Ideen). Wer eine
 // große Idee-Sammlung hat, mag die Zahl ggf. nicht ständig sehen.
 const [showIdeasBadge, setShowIdeasBadge] = createSignal<boolean>(true);
-// Tagesziel in Wörtern. Default 250 (laut Re-Design-Chat). Wird vom
-// Momentum-Strip auf der Home-Seite und vom (geplanten) Editor-Ribbon
-// gelesen. Bewusst eine zentrale Quelle, damit Home und Editor sich
-// nie unterscheiden.
-const DAILY_WORD_GOAL_DEFAULT = 250;
-const DAILY_WORD_GOAL_MIN = 50;
-const DAILY_WORD_GOAL_MAX = 5000;
-const [dailyWordGoal, setDailyWordGoal] = createSignal<number>(DAILY_WORD_GOAL_DEFAULT);
+// Wochenziel in Wörtern. Default 1500 - kalibriert auf 7 Skripte à
+// ~200 Wörter (Short-Form-Schnitt) plus ein bisschen Puffer. Wird vom
+// Momentum-Strip auf der Home-Seite und vom Status-Strip in der Tab-
+// Bar gelesen. Wochen- statt Tagesgranularität, weil Creator selten
+// jeden Tag ein Skript schreiben - tägliche "0 / 250 W"-Counter
+// erzeugen Druck statt Motivation.
+const WEEKLY_WORD_GOAL_DEFAULT = 1500;
+const WEEKLY_WORD_GOAL_MIN = 200;
+const WEEKLY_WORD_GOAL_MAX = 50000;
+const [weeklyWordGoal, setWeeklyWordGoal] = createSignal<number>(WEEKLY_WORD_GOAL_DEFAULT);
 
 // Wörter pro Minute für die Spielzeit-Schätzung in der Cast-Rail.
 // Default 210 ist auf TikTok-/Sketch-Tempo kalibriert (siehe EditorRail.tsx).
@@ -38,8 +40,8 @@ const [dialogWpm, setDialogWpm] = createSignal<number>(DIALOG_WPM_DEFAULT);
 const [loaded, setLoaded] = createSignal(false);
 
 function clampGoal(n: number): number {
-  if (!Number.isFinite(n)) return DAILY_WORD_GOAL_DEFAULT;
-  return Math.max(DAILY_WORD_GOAL_MIN, Math.min(DAILY_WORD_GOAL_MAX, Math.round(n)));
+  if (!Number.isFinite(n)) return WEEKLY_WORD_GOAL_DEFAULT;
+  return Math.max(WEEKLY_WORD_GOAL_MIN, Math.min(WEEKLY_WORD_GOAL_MAX, Math.round(n)));
 }
 
 function clampWpm(n: number): number {
@@ -85,15 +87,15 @@ export const settingsStore = {
     setShowIdeasBadge(v);
     await api.setSetting("show_ideas_badge", v ? "1" : "0");
   },
-  dailyWordGoal,
-  setDailyWordGoal: async (v: number) => {
+  weeklyWordGoal,
+  setWeeklyWordGoal: async (v: number) => {
     const next = clampGoal(v);
-    setDailyWordGoal(next);
-    await api.setSetting("daily_word_goal", String(next));
+    setWeeklyWordGoal(next);
+    await api.setSetting("weekly_word_goal", String(next));
   },
-  DAILY_WORD_GOAL_MIN,
-  DAILY_WORD_GOAL_MAX,
-  DAILY_WORD_GOAL_DEFAULT,
+  WEEKLY_WORD_GOAL_MIN,
+  WEEKLY_WORD_GOAL_MAX,
+  WEEKLY_WORD_GOAL_DEFAULT,
   dialogWpm,
   setDialogWpm: async (v: number) => {
     const next = clampWpm(v);
@@ -105,12 +107,13 @@ export const settingsStore = {
   DIALOG_WPM_DEFAULT,
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, dwg, wpm, fmd, sib] = await Promise.all([
+    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
       api.getSetting("hourly_update_check"),
       api.getSetting("quick_mode_auto_enable"),
+      api.getSetting("weekly_word_goal"),
       api.getSetting("daily_word_goal"),
       api.getSetting("dialog_wpm"),
       api.getSetting("focus_mode_default"),
@@ -123,9 +126,21 @@ export const settingsStore = {
     if (qmae) setQuickModeAutoEnable(qmae === "1");
     if (fmd) setFocusModeDefault(fmd === "1");
     if (sib) setShowIdeasBadge(sib === "1");
-    if (dwg) {
-      const parsed = Number(dwg);
-      if (Number.isFinite(parsed)) setDailyWordGoal(clampGoal(parsed));
+    // Wochenziel: Vorrang neuer Key. Legacy-Migration aus dem alten
+    // Tagesziel ×7, falls noch kein Wochenziel persistiert wurde -
+    // dann bleibt der Setup-Aufwand für upgradende User bei Null.
+    if (wwg) {
+      const parsed = Number(wwg);
+      if (Number.isFinite(parsed)) setWeeklyWordGoal(clampGoal(parsed));
+    } else if (dwgLegacy) {
+      const parsed = Number(dwgLegacy);
+      if (Number.isFinite(parsed)) {
+        const migrated = clampGoal(parsed * 7);
+        setWeeklyWordGoal(migrated);
+        // Direkt auch persistieren, damit der Migrate nur einmal passiert
+        // (sonst würde der nächste Boot das Legacy-Feld erneut lesen).
+        void api.setSetting("weekly_word_goal", String(migrated));
+      }
     }
     if (wpm) {
       const parsed = Number(wpm);

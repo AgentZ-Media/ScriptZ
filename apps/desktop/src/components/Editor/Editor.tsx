@@ -629,6 +629,28 @@ export function Editor(props: EditorProps) {
     // Initial-Wert nach Mount.
     requestAnimationFrame(reportActiveBlock);
 
+    /** Kennzeichnet den Editor-Root mit `data-empty="1"`, wenn das ganze
+     *  Skript leer ist (genau ein Block, ohne Text). CSS rendert daraus
+     *  den ⌘-Hint im hostRef-Sibling. */
+    const updateEmptyMarker = () => {
+      if (!rootRef) return;
+      let isEmpty = true;
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const children = root.getChildren();
+        if (children.length !== 1) {
+          isEmpty = false;
+          return;
+        }
+        if (children[0].getTextContent().trim().length > 0) {
+          isEmpty = false;
+        }
+      });
+      if (isEmpty) rootRef.setAttribute("data-empty", "1");
+      else rootRef.removeAttribute("data-empty");
+    };
+    requestAnimationFrame(updateEmptyMarker);
+
     const teardownUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
       // Selection-Tracking unabhängig von dirty-State — der Cursor kann
       // sich bewegen ohne dass etwas getippt wurde.
@@ -636,6 +658,7 @@ export function Editor(props: EditorProps) {
 
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
       dirtySinceSnapshot = true;
+      updateEmptyMarker();
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         saveTimer = null;
@@ -716,6 +739,14 @@ export function Editor(props: EditorProps) {
         spellcheck
         data-highlighting={props.highlighting ? "on" : "off"}
       />
+      {/* Hotkey-Hint: nur sichtbar, wenn der Editor-Root data-empty="1"
+          trägt. Liegt außerhalb des contenteditable, damit Lexical-
+          Selection nicht an einem ::before-Pseudo-Caret-Target hängt. */}
+      <div class="editor-empty-hint" aria-hidden="true">
+        Tippe los · <span class="kbd kbd-inline">Tab</span> wechselt den Block-Typ ·{" "}
+        <span class="kbd kbd-inline">⌘1</span>–<span class="kbd kbd-inline">⌘7</span>{" "}
+        direkt
+      </div>
     </div>
   );
 }

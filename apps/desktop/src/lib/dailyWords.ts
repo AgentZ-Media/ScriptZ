@@ -105,12 +105,31 @@ function streakFromSeries(words: number[]): number {
   return streak;
 }
 
+/** Anzahl der Tage zwischen dem letzten Montag (inkl.) und heute (inkl.).
+ *  Montag = 1. Sonntag = 7 (Wochenende zählt zur abgelaufenen Woche).
+ *  Konvention deckt sich mit DE-Kalenderwoche (ISO-8601). */
+function daysSinceMondayInclusive(d: Date = new Date()): number {
+  // JavaScript: 0 = Sonntag, 1 = Montag, ..., 6 = Samstag.
+  // ISO: 1 = Montag, ..., 7 = Sonntag. Mapping: 0 → 7, sonst unverändert.
+  const iso = d.getDay() === 0 ? 7 : d.getDay();
+  return iso; // Mo = 1 Tag (heute), So = 7 Tage (Mo..So)
+}
+
 export async function loadStats(): Promise<DailyStatsSummary> {
   const entries = await loadDailyWords(365);
   const series = entries.map((e) => e.words_added);
   const wordsToday = series.length > 0 ? series[series.length - 1] : 0;
+  const weekDays = daysSinceMondayInclusive();
+  const wordsThisWeek = series.slice(-weekDays).reduce((a, b) => a + b, 0);
   const streakDays = streakFromSeries(series);
   const activeDays = series.filter((w) => w > 0).length;
   const totalWords = series.reduce((a, b) => a + b, 0);
-  return { wordsToday, streakDays, dailyWords: series, activeDays, totalWords };
+  return {
+    wordsToday,
+    wordsThisWeek,
+    streakDays,
+    dailyWords: series,
+    activeDays,
+    totalWords,
+  };
 }

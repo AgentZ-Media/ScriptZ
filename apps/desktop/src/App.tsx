@@ -13,6 +13,7 @@ import { settingsStore } from "~/stores/settings";
 import { tabsStore } from "~/stores/tabs";
 import { pushToast } from "~/stores/toasts";
 import { scriptsBus } from "~/lib/scriptsBus";
+import { foldersBus } from "~/lib/foldersBus";
 import { dailyStatsBus } from "~/lib/dailyStatsBus";
 import { api } from "~/lib/api";
 import TabBar from "~/components/TabBar";
@@ -23,11 +24,8 @@ import { SettingsDialog } from "~/components/Settings/SettingsDialog";
 import { NewScriptDialog } from "~/components/Browser/NewScriptDialog";
 import { ExportDialog } from "~/components/Editor/ExportDialog";
 import ToastHost from "~/components/Common/ToastHost";
-import { IdeasDrawer } from "~/components/Ideas/IdeasDrawer";
-import { IdeasToggle } from "~/components/Ideas/IdeasToggle";
 import { IdeaQuickCapture } from "~/components/Ideas/IdeaQuickCapture";
 import { IdeasView } from "~/components/Ideas/IdeasView";
-import "~/components/Ideas/IdeasDrawer.css";
 import { ensureWelcomeContent } from "~/lib/welcome";
 import { flushAll } from "~/lib/saveFlush";
 import { OnboardingDialog, ONBOARDING_KEY } from "~/components/Onboarding/OnboardingDialog";
@@ -41,7 +39,6 @@ export default function App() {
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
   const [newScriptFolder, setNewScriptFolder] = createSignal<string | null>(null);
   const [exportOpen, setExportOpen] = createSignal(false);
-  const [ideasOpen, setIdeasOpen] = createSignal(false);
   const [ideaCaptureOpen, setIdeaCaptureOpen] = createSignal(false);
   const [onboardingOpen, setOnboardingOpen] = createSignal(false);
   // Initial true: per Default startet ein Skript im Fokus-Modus (ruhiger
@@ -55,6 +52,24 @@ export default function App() {
 
   const openExport = () => {
     if (activeScriptId()) setExportOpen(true);
+  };
+
+  /** Schnell-Erstellen: ⌘N und der "+"-Knopf in der Tab-Bar legen direkt
+   *  ein Skript an, ohne den NewScriptDialog zu öffnen - das spart einen
+   *  Klick und einen Tipp-Vorgang. Der "+ Neu"-Knopf im Browser-Header
+   *  behält den Modal (für die Ordner-Auswahl). Skripte ohne Titel
+   *  starten als "Unbenannt"; ScriptView zwingt in dem Fall die Toolbar
+   *  sichtbar, damit der User den Titel inline setzen kann statt 17
+   *  Skripte mit dem Default-Namen anzulegen. */
+  const quickCreateScript = async () => {
+    try {
+      const created = await api.createScript({});
+      scriptsBus.bump();
+      foldersBus.bump();
+      tabsStore.openScript(created.id, created.title);
+    } catch (err) {
+      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+    }
   };
 
   onMount(async () => {
@@ -167,8 +182,7 @@ export default function App() {
       }
       if (ev.key.toLowerCase() === "n" && !ev.shiftKey) {
         ev.preventDefault();
-        setNewScriptFolder(null);
-        setNewScriptOpen(true);
+        void quickCreateScript();
         return;
       }
       if (ev.key.toLowerCase() === "i" && !ev.shiftKey) {
@@ -229,22 +243,38 @@ export default function App() {
     if ((tabsStore.isHome() || tabsStore.isIdeas()) && focusMode()) setFocusMode(false);
   });
 
-  // Im Skript-Tab den Fokus-Modus auf den Settings-Default zurückziehen,
-  // sobald die Settings geladen sind und immer wenn der User auf einem
-  // Skript-Tab ist. Sich-merken einer manuellen ⇧⌘F-Wahl pro Skript-Wechsel
-  // ist bewusst nicht implementiert — der Default ist die Wahrheit, ⇧⌘F
-  // kippt sie für die aktuelle Sitzung.
+  // Im Skript-Tab den Fokus-Modus pro Tab-Wechsel neu setzen:
+  //  - Default: Settings-Wert (focusModeDefault)
+  //  - Override: bei "Unbenannt"-Skripten zwingend AUS, damit die
+  //    Toolbar mit dem Titel-Input sichtbar ist und der User nicht
+  //    eine Liste voller "Unbenannt"-Skripte ansammelt
+  // Manueller ⇧⌘F-Toggle danach bleibt bestehen, bis der User den Tab
+  // wechselt - der Effect feuert NUR bei Tab-Wechsel, nicht bei Title-
+  // Updates auf demselben Tab. Sonst wäre ein gerade-zu-Ende-getippter
+  // Titel ein abrupter Layout-Sprung, weil die Toolbar sich plötzlich
+  // einrollt.
+  let lastSeenTabId: string | null = null;
   createEffect(() => {
     if (!settingsStore.loaded()) return;
-    if (tabsStore.isHome() || tabsStore.isIdeas()) return;
-    setFocusMode(settingsStore.focusModeDefault());
+    if (tabsStore.isHome() || tabsStore.isIdeas()) {
+      lastSeenTabId = null;
+      return;
+    }
+    const tabId = tabsStore.activeTabId();
+    if (tabId === lastSeenTabId) return;
+    lastSeenTabId = tabId;
+
+    const title = (tabsStore.activeScript()?.scriptTitle ?? "").trim();
+    if (title === "" || title === "Unbenannt") {
+      setFocusMode(false);
+    } else {
+      setFocusMode(settingsStore.focusModeDefault());
+    }
   });
 
-  // Fokus-Modus räumt sämtliche Ideen-Overlays mit weg - egal ob ein
-  // bereits offener Drawer oder eine laufende Quick-Capture.
+  // Fokus-Modus räumt eine laufende Quick-Capture mit weg.
   createEffect(() => {
     if (focusMode()) {
-      setIdeasOpen(false);
       setIdeaCaptureOpen(false);
     }
   });
@@ -307,10 +337,7 @@ export default function App() {
     >
       <Show when={bootReady()} fallback={<BootScreen />}>
         <TabBar
-          onNewScript={() => {
-            setNewScriptFolder(null);
-            setNewScriptOpen(true);
-          }}
+          onNewScript={() => void quickCreateScript()}
           onOpenSettings={() => setSettingsOpen(true)}
         />
 
@@ -323,7 +350,6 @@ export default function App() {
                     setNewScriptFolder(folderId ?? null);
                     setNewScriptOpen(true);
                   }}
-                  onOpenSettings={() => setSettingsOpen(true)}
                   onOpenCmdK={() => setCmdkOpen(true)}
                 />
               </Match>
@@ -361,6 +387,7 @@ export default function App() {
         <OnboardingDialog
           open={onboardingOpen()}
           onClose={() => setOnboardingOpen(false)}
+          onCreateFirstScript={() => void quickCreateScript()}
         />
         <Show when={newScriptOpen()}>
           <NewScriptDialog
@@ -377,25 +404,11 @@ export default function App() {
             scriptTitle={activeScriptTitle()}
           />
         </Show>
-        {/* Im Editor läuft die Ideen-Pille auf der LINKEN Seite, weil
-            die rechte Bildschirmkante vom Editor-Rail belegt ist. Auf
-            Home bleibt sie rechts (passt besser zur "+ Neu"-Ecke).
-            Auf der Ideen-Vollseite blenden wir Drawer & Toggle aus -
-            dort ist der Inhalt eh schon da, eine zweite Liste daneben
-            wäre Doppel-Information. Quick-Capture bleibt aktiv, damit
-            ⌘I überall greift. */}
-        <Show when={!focusMode() && !tabsStore.isIdeas()}>
-          <IdeasToggle
-            open={ideasOpen()}
-            onClick={() => setIdeasOpen(true)}
-            position={tabsStore.isHome() ? "right" : "left"}
-          />
-          <IdeasDrawer
-            open={ideasOpen()}
-            onClose={() => setIdeasOpen(false)}
-            position={tabsStore.isHome() ? "right" : "left"}
-          />
-        </Show>
+        {/* Quick-Capture (⌘I) bleibt überall greifbar, ausser im Fokus-
+            Modus - dort wird das Schreiben bewusst nicht durch das
+            Ideen-Sammeln unterbrochen. Die früheren IdeasDrawer/IdeasToggle
+            sind raus: der Glühbirnen-Tab in der TabBar liefert dieselbe
+            Liste mit einem Klick weniger Pseudo-Modal. */}
         <Show when={!focusMode()}>
           <IdeaQuickCapture
             open={ideaCaptureOpen()}

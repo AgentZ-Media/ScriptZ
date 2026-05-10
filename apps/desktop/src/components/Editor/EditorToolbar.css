@@ -91,11 +91,15 @@
   [data-theme="auto"] .block-toolbar { background: rgba(255, 255, 255, 0.06); }
 }
 .block-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 26px;
   padding: 0 10px;
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 500;
+  line-height: 1;
   color: var(--text-subtle);
   background: transparent;
   border: 0;
@@ -104,6 +108,9 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   transition: all var(--t-fast);
+}
+.block-toolbar-label {
+  line-height: 1;
 }
 .block-toolbar button:hover { color: var(--text); }
 .block-toolbar button.is-active {
@@ -115,6 +122,47 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+.block-toolbar-hint {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint, var(--text-subtle));
+  opacity: 0.65;
+  /* Optisch ein Hauch nach unten - der kleinere Text wirkt sonst
+     leicht nach oben verschoben gegenüber dem 11px-Label, weil die
+     Mitte der Glyphen bei kleineren Schriftgraden anders liegt. */
+  position: relative;
+  top: 0.5px;
+}
+.block-toolbar button.is-active .block-toolbar-hint {
+  opacity: 0.85;
+}
+.block-toolbar-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: rgba(28, 24, 20, 0.12);
+}
+[data-theme="dark"] .block-toolbar-sep { background: rgba(255, 255, 255, 0.14); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .block-toolbar-sep { background: rgba(255, 255, 255, 0.14); }
+}
+.block-toolbar-more {
+  height: 26px;
+  width: 26px;
+  padding: 0 !important;
+  font-size: 14px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  color: var(--text-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.block-toolbar-more:hover { color: var(--text); }
 
 /* ---- Action-Buttons (Quick / Highlight / Fokus / Export) ---- */
 .editor-toolbar-action {

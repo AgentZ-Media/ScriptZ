@@ -146,6 +146,11 @@ export function EditorRail(props: EditorRailProps) {
           </div>
         </Show>
 
+        {/* Reihenfolge bewusst: Spielzeit zuerst (das ist die wichtigste
+            Größe für TikTok/Reels-Skripte), dann Wörter, Dialog, und
+            Seiten als letzte/kleinste Stat - die A4-Pagination bleibt
+            visuell auf dem Papier sichtbar, aber als Hauptmetrik wäre
+            sie für 60-Sekunden-Skripte irreführend. */}
         <div class="rail-stats">
           <div>
             <div class="rail-stat-label">Spielzeit</div>
@@ -156,12 +161,12 @@ export function EditorRail(props: EditorRailProps) {
             <div class="rail-stat-val">{totalWords()}</div>
           </div>
           <div>
-            <div class="rail-stat-label">Seiten</div>
-            <div class="rail-stat-val">{props.pageCount}</div>
-          </div>
-          <div>
             <div class="rail-stat-label">Dialog</div>
             <div class="rail-stat-val">{totalDialog()}</div>
+          </div>
+          <div class="rail-stat-soft">
+            <div class="rail-stat-label">Seiten</div>
+            <div class="rail-stat-val">{props.pageCount}</div>
           </div>
         </div>
       </Show>

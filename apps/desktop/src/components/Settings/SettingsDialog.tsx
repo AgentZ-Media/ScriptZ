@@ -13,7 +13,7 @@ import "./SettingsDialog.css";
 
 const REPO_URL = "https://github.com/AgentZ-Media/ScriptZ";
 
-type SectionId = "appearance" | "editor" | "characters" | "updates" | "about";
+type SectionId = "appearance" | "editor" | "characters" | "shortcuts" | "updates" | "about";
 
 interface SectionDef {
   id: SectionId;
@@ -25,8 +25,50 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "appearance", label: "Erscheinungsbild", Icon: TypeIcon },
   { id: "editor",     label: "Editor",           Icon: EditIcon },
   { id: "characters", label: "Charaktere",       Icon: PaletteIcon },
+  { id: "shortcuts",  label: "Tastatur",         Icon: KbdIcon },
   { id: "updates",    label: "Updates",          Icon: ShieldIcon },
   { id: "about",      label: "Über",             Icon: InfoIcon },
+];
+
+interface ShortcutGroup {
+  title: string;
+  items: Array<{ keys: string; desc: string }>;
+}
+
+const SHORTCUT_GROUPS: ShortcutGroup[] = [
+  {
+    title: "Allgemein",
+    items: [
+      { keys: "⌘N",   desc: "Neues Skript anlegen" },
+      { keys: "⌘T",   desc: "Zur Übersicht" },
+      { keys: "⌘W",   desc: "Aktiven Tab schließen" },
+      { keys: "⌘K",   desc: "Skript-Suche öffnen" },
+      { keys: "⌘F",   desc: "Suchfeld in der Übersicht fokussieren" },
+      { keys: "⌘,",   desc: "Einstellungen öffnen" },
+      { keys: "⌘I",   desc: "Idee schnell erfassen" },
+      { keys: "⌘0–⌘9", desc: "Tab per Index aktivieren (0 = Übersicht)" },
+      { keys: "⌘⌥← / ⌘⌥→", desc: "Zwischen Tabs wechseln" },
+    ],
+  },
+  {
+    title: "Editor",
+    items: [
+      { keys: "Tab",  desc: "Block-Typ-Picker öffnen" },
+      { keys: "⌘1",   desc: "Block-Typ → Action" },
+      { keys: "⌘2",   desc: "Block-Typ → Charakter" },
+      { keys: "⌘3",   desc: "Block-Typ → Dialog" },
+      { keys: "⌘4",   desc: "Block-Typ → Parenthetical" },
+      { keys: "⌘5",   desc: "Block-Typ → Kamera" },
+      { keys: "⌘6",   desc: "Block-Typ → Caption" },
+      { keys: "⌘7",   desc: "Block-Typ → SFX" },
+      { keys: "⏎",    desc: "Smart-Enter: nächster passender Block" },
+      { keys: "⌘B / ⌘I / ⌘U", desc: "Fett / Kursiv / Unterstrichen" },
+      { keys: "⌘E",   desc: "Skript exportieren" },
+      { keys: "⇧⌘F",  desc: "Fokus-Modus an/aus" },
+      { keys: "⌘⇧S",  desc: "Manuellen Snapshot anlegen" },
+      { keys: "⌘⇧H",  desc: "Snapshot-Verlauf öffnen" },
+    ],
+  },
 ];
 
 export interface SettingsDialogProps {
@@ -231,22 +273,23 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Tagesziel</div>
+                <div class="row-label">Wochenziel</div>
                 <div class="row-help">
-                  Anzahl Wörter pro Tag. Wird in der Statusleiste oben und
-                  auf der Startseite angezeigt.
+                  Anzahl Wörter pro Woche (seit Montag). Wird in der
+                  Statusleiste oben und auf der Startseite angezeigt.
+                  1500 entspricht etwa 7 Skripten à 200 Wörter.
                 </div>
               </div>
               <div class="settings-goal-input">
                 <input
                   type="number"
-                  min={settingsStore.DAILY_WORD_GOAL_MIN}
-                  max={settingsStore.DAILY_WORD_GOAL_MAX}
-                  step={50}
-                  value={settingsStore.dailyWordGoal()}
+                  min={settingsStore.WEEKLY_WORD_GOAL_MIN}
+                  max={settingsStore.WEEKLY_WORD_GOAL_MAX}
+                  step={100}
+                  value={settingsStore.weeklyWordGoal()}
                   onChange={(e) => {
                     const n = Number(e.currentTarget.value);
-                    if (Number.isFinite(n)) void settingsStore.setDailyWordGoal(n);
+                    if (Number.isFinite(n)) void settingsStore.setWeeklyWordGoal(n);
                   }}
                 />
                 <span class="settings-goal-unit">Wörter</span>
@@ -333,6 +376,60 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   >
                     Zurücksetzen
                   </button>
+                </div>
+              )}
+            </For>
+          </Show>
+
+          <Show when={section() === "shortcuts"}>
+            <h3>Tastatur</h3>
+            <div class="settings-pane-sub">
+              Alle Hotkeys auf einen Blick. Anpassen kommt in einer
+              späteren Version.
+            </div>
+            <For each={SHORTCUT_GROUPS}>
+              {(group) => (
+                <div class="settings-shortcuts-group">
+                  <div class="settings-shortcuts-title">{group.title}</div>
+                  <ul class="settings-shortcuts-list">
+                    <For each={group.items}>
+                      {(it) => (
+                        <li class="settings-shortcut-row">
+                          <span class="settings-shortcut-keys">
+                            <span class="kbd kbd-inline">{it.keys}</span>
+                          </span>
+                          <span class="settings-shortcut-desc">{it.desc}</span>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </div>
+              )}
+            </For>
+          </Show>
+
+          <Show when={section() === "shortcuts"}>
+            <h3>Tastatur</h3>
+            <div class="settings-pane-sub">
+              Alle Hotkeys auf einen Blick. Anpassen kommt in einer
+              späteren Version.
+            </div>
+            <For each={SHORTCUT_GROUPS}>
+              {(group) => (
+                <div class="settings-shortcuts-group">
+                  <div class="settings-shortcuts-title">{group.title}</div>
+                  <ul class="settings-shortcuts-list">
+                    <For each={group.items}>
+                      {(it) => (
+                        <li class="settings-shortcut-row">
+                          <span class="settings-shortcut-keys">
+                            <span class="kbd kbd-inline">{it.keys}</span>
+                          </span>
+                          <span class="settings-shortcut-desc">{it.desc}</span>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
                 </div>
               )}
             </For>
@@ -541,6 +638,15 @@ function ShieldIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+function KbdIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
     </svg>
   );
 }
