@@ -41,7 +41,10 @@ export default function App() {
   const [exportOpen, setExportOpen] = createSignal(false);
   const [ideasOpen, setIdeasOpen] = createSignal(false);
   const [ideaCaptureOpen, setIdeaCaptureOpen] = createSignal(false);
-  const [focusMode, setFocusMode] = createSignal(false);
+  // Initial true: per Default startet ein Skript im Fokus-Modus (ruhiger
+  // Schreib-Modus, Toolbar + Cast-Rail aus). Wer das nicht will, deaktiviert
+  // den Default in den Einstellungen → Editor.
+  const [focusMode, setFocusMode] = createSignal(true);
 
   const activeScriptId = (): string | null => tabsStore.activeScript()?.scriptId ?? null;
   const activeScriptTitle = (): string =>
@@ -213,6 +216,17 @@ export default function App() {
   // wir die Titlebar im Browser unnötig).
   createEffect(() => {
     if (tabsStore.isHome() && focusMode()) setFocusMode(false);
+  });
+
+  // Im Skript-Tab den Fokus-Modus auf den Settings-Default zurückziehen,
+  // sobald die Settings geladen sind und immer wenn der User nicht auf
+  // Home ist. Sich-merken einer manuellen ⇧⌘F-Wahl pro Skript-Wechsel ist
+  // bewusst nicht implementiert — der Default ist die Wahrheit, ⇧⌘F kippt
+  // sie für die aktuelle Sitzung.
+  createEffect(() => {
+    if (!settingsStore.loaded()) return;
+    if (tabsStore.isHome()) return;
+    setFocusMode(settingsStore.focusModeDefault());
   });
 
   // Fokus-Modus räumt sämtliche Ideen-Overlays mit weg - egal ob ein

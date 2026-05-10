@@ -376,12 +376,20 @@ function RecoveryPanel(props: {
   );
 }
 
+/* Auge gefüllt — Floating-Button im aktiven Fokus-Modus.
+   Gefüllte Variante des Toolbar-Auges: gleiche Form, klarer Aktiv-Zustand
+   (analog zu Stern/Filled-Star-Pattern). Der Pupillen-Kreis wird per
+   evenodd-Fill aus der Almond-Form ausgespart, damit er ohne festen
+   Hintergrund-Wert (Paper / Dark) sauber durchscheint. */
 function EyeIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-      <circle cx="12" cy="12" r="3" />
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M12 5C5 5 1 12 1 12s4 7 11 7 11-7 11-7-4-7-11-7zm0 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+      />
     </svg>
   );
 }

@@ -17,14 +17,12 @@
   transition: opacity var(--t-med), transform var(--t-med);
 }
 
-/* Im Fokus-Modus blendet die Leiste weg — gleiche Logik für Editor-Rail
-   in EditorRail.css. */
+/* Im Fokus-Modus verschwindet die Leiste komplett aus dem Layout-Flow,
+   damit das Paper bündig an die Tab-Bar anschließt und kein leerer Streifen
+   übrigbleibt. Smooth-Transition ist hier bewusst aufgegeben - der Fokus-
+   Modus ist ein Modus-Switch, kein laufendes Detail. */
 .app-root.is-focus .editor-toolbar {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-8px);
-  /* `position: sticky` bleibt — die Leiste bleibt im Layout-Flow, sodass
-     das Paper darunter nicht plötzlich nach oben rutscht. */
+  display: none;
 }
 
 .editor-toolbar-back {

@@ -112,6 +112,21 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 ))}
               </div>
             </div>
+
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <div class="row-label">Fokus-Modus standardmäßig aktiv</div>
+                <div class="row-help">
+                  Beim Öffnen eines Skripts sind Toolbar und Cast-Leiste
+                  ausgeblendet. ⇧⌘F holt sie zurück.
+                </div>
+              </div>
+              <Toggle
+                checked={settingsStore.focusModeDefault()}
+                onChange={(v) => void settingsStore.setFocusModeDefault(v)}
+                label="Fokus-Modus standardmäßig"
+              />
+            </div>
           </Show>
 
           <Show when={section() === "editor"}>

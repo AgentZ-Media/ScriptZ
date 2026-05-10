@@ -7,6 +7,10 @@ const [theme, setTheme] = createSignal<Theme>("light");
 const [highlightingDefault, setHighlightingDefault] = createSignal<boolean>(false);
 const [updateCheckEnabled, setUpdateCheckEnabled] = createSignal<boolean>(true);
 const [hourlyUpdateCheck, setHourlyUpdateCheck] = createSignal<boolean>(true);
+// Fokus-Modus standardmäßig aktiv: Toolbar + Cast-Rail sind beim Öffnen
+// eines Skripts ausgeblendet, ⇧⌘F holt sie zurück. Default true (das ist
+// der ruhigere Schreib-Modus, den die meisten Nutzer bevorzugen).
+const [focusModeDefault, setFocusModeDefault] = createSignal<boolean>(true);
 // Auto-flip quick mode on whenever a script has exactly two characters.
 // Per-script manual toggle still wins — once the writer overrides it on a
 // script, that decision sticks across character-count changes.
@@ -63,6 +67,11 @@ export const settingsStore = {
     setHourlyUpdateCheck(v);
     await api.setSetting("hourly_update_check", v ? "1" : "0");
   },
+  focusModeDefault,
+  setFocusModeDefault: async (v: boolean) => {
+    setFocusModeDefault(v);
+    await api.setSetting("focus_mode_default", v ? "1" : "0");
+  },
   quickModeAutoEnable,
   setQuickModeAutoEnable: async (v: boolean) => {
     setQuickModeAutoEnable(v);
@@ -88,7 +97,7 @@ export const settingsStore = {
   DIALOG_WPM_DEFAULT,
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, dwg, wpm] = await Promise.all([
+    const [t, hd, uce, huc, qmae, dwg, wpm, fmd] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
@@ -96,12 +105,14 @@ export const settingsStore = {
       api.getSetting("quick_mode_auto_enable"),
       api.getSetting("daily_word_goal"),
       api.getSetting("dialog_wpm"),
+      api.getSetting("focus_mode_default"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
     if (uce) setUpdateCheckEnabled(uce === "1");
     if (huc) setHourlyUpdateCheck(huc === "1");
     if (qmae) setQuickModeAutoEnable(qmae === "1");
+    if (fmd) setFocusModeDefault(fmd === "1");
     if (dwg) {
       const parsed = Number(dwg);
       if (Number.isFinite(parsed)) setDailyWordGoal(clampGoal(parsed));
