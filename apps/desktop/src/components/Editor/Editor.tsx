@@ -29,11 +29,17 @@ import { api } from "../../lib/api";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { registerFlusher } from "../../lib/saveFlush";
 import type { ScriptCharacter } from "../../lib/types";
+import { applyCursor, type CursorAddress } from "../../lib/scriptViewCache";
 import "./Editor.css";
 
 export interface EditorProps {
   scriptId: string;
   initialContentJson: string | null | undefined;
+  /** Optionaler Cursor, der nach dem Mount statt `rootEnd` gesetzt wird.
+   *  ScriptView reicht hier den letzten bekannten Cursor des Skripts
+   *  durch, damit der User beim Tab-Wechsel zurueck genau dort landet,
+   *  wo er war. */
+  initialCursor?: CursorAddress | null;
   characters: ScriptCharacter[];
   highlighting?: boolean;
   /** Quick-mode toggle — when on AND the script has exactly 2 characters,
@@ -167,11 +173,23 @@ export function Editor(props: EditorProps) {
     // should be able to start typing immediately — no manual click into
     // the contenteditable area required. We focus on the next frame so
     // Lexical has finished its initial reconcile and the DOM target
-    // exists. `rootEnd` is only used if the parsed state didn't already
-    // place a caret (seedEmptyState calls select(0,0) so it wins).
+    // exists.
+    //
+    // Wenn ein `initialCursor` mitgegeben wurde (Tab-Wechsel zurueck auf
+    // ein zuvor offenes Skript), platzieren wir den Cursor an der
+    // gespeicherten Stelle und fokussieren OHNE `defaultSelection` -
+    // sonst wuerde Lexical die soeben gesetzte Selection wieder nach
+    // rootEnd ueberschreiben. Ohne gespeicherten Cursor bleibt das
+    // urspruengliche Verhalten: ans Ende des Dokuments.
+    const initialCursor = props.initialCursor ?? null;
     requestAnimationFrame(() => {
       try {
-        editor.focus(undefined, { defaultSelection: "rootEnd" });
+        if (initialCursor) {
+          applyCursor(editor, initialCursor);
+          editor.focus();
+        } else {
+          editor.focus(undefined, { defaultSelection: "rootEnd" });
+        }
       } catch {
         /* ignore — non-fatal if the editor was torn down meanwhile */
       }
