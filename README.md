@@ -5,12 +5,12 @@
 <h1 align="center">ScriptZ</h1>
 
 <p align="center">
-  <strong>Der schnellste Skript-Editor für TikTok-Creator und Sketch-Teams.</strong><br/>
+  <strong>Der schnellste Skript-Editor für TikTok-, Reels- und Shorts-Creator.</strong><br/>
   <em>Lokal. Offline. Mac-first.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.7.2-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/version-0.7.3-1c1814?style=flat-square" alt="version" />
   <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Apple_Silicon-native-1c1814?style=flat-square" alt="Apple Silicon" />
   <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
@@ -49,11 +49,10 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 - **Quick-Modus** für Dialog-Sketches mit zwei Personen: Enter im Dialog → der andere Charakter wird automatisch eingefügt.
 - **Live-Highlight-Toggle** in der Titelleiste — schaltet die Charakter-Farben pro Skript an/aus, identisch zur PDF-Darstellung (per-Zeile tight Pills, nicht block-breit).
 
-### Echte A4-Pagination im Editor
+### Endlose Schreibfläche, sauber paginiert beim Druck
 
-- Papier-Stapel im Editor zeigt **echte A4-Seiten** mit visuellen Seitenumbrüchen — nicht eine endlose Spalte.
-- **Word-Style „Keep with next"**: Charaktername wird nie vom dazugehörigen Dialog getrennt.
-- Inhalt wird über Seitengrenzen hinweg automatisch umgebrochen, kein Handarbeit nötig.
+- Editor ist **eine durchgehende Papierseite**, kein A4-Seitenumbruch beim Schreiben - du denkst in Spielzeit, nicht in Seiten.
+- **PDF-Export** paginiert sauber auf A4 mit Widow/Orphan-Kontrolle, damit Charaktername und Dialog nicht getrennt werden, wenn du das Skript ausdruckst.
 
 ### Export 1:1 wie auf dem Papier
 
@@ -88,7 +87,7 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 ### Cast-Panel im Editor
 
 - **Cast-Tab** in der rechten Editor-Schiene zeigt jeden Charakter mit Dialog-Wortanteil als getöntem Balken (gleiche Farbe wie im Editor und im PDF).
-- **Skript-Statistik**: geschätzte Spielzeit, Gesamtwortzahl, A4-Seiten, reine Dialog-Wörter.
+- **Skript-Statistik**: geschätzte Spielzeit, Gesamtwortzahl, reine Dialog-Wörter.
 - **Versionen-Tab** im selben Panel — Snapshot-Verlauf nicht mehr im Modal versteckt, sondern direkt neben dem Text.
 
 ---
@@ -103,7 +102,6 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 | App-Start unter 1s | ✅ | ❌ | — | ⚠️ |
 | Sketch-/TikTok-Layout | ✅ | ❌ | ❌ | ⚠️ |
 | Sieben Block-Typen | ✅ | ⚠️ | ❌ | ✅ |
-| Live-A4-Pagination | ✅ | ✅ | ❌ | ✅ |
 | Charakter-Farben | ✅ | ❌ | ❌ | ✅ |
 | Quick-Modus für 2-Personen | ✅ | ❌ | ❌ | ❌ |
 | Bigramm-Predict für Charaktere | ✅ | ❌ | ❌ | ❌ |

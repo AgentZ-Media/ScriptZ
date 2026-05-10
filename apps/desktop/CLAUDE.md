@@ -1,6 +1,7 @@
 # ScriptZ — Claude context
 
-Fast, local script editor for TikTok creators and sketch teams. Tauri 2
+Fast, local script editor for short-form video creators (TikTok, Reels,
+YouTube Shorts). Tauri 2
 shell + Solid + TypeScript + Lexical editor (vanilla, no React). All
 persistence, search, export and CRUD lives in TypeScript via
 `@tauri-apps/plugin-sql`; the Rust crate is reduced to plugin wiring +

@@ -1,8 +1,8 @@
 {
   "name": "scriptz",
   "private": true,
-  "version": "0.7.2",
-  "description": "ScriptZ - fast, local, beautiful script editor for TikTok creators and sketch teams.",
+  "version": "0.7.3",
+  "description": "ScriptZ - fast, local, beautiful script editor for short-form video creators (TikTok, Reels, YouTube Shorts).",
   "type": "module",
   "scripts": {
     "dev": "vite",

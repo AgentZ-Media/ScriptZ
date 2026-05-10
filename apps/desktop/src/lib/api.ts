@@ -87,7 +87,6 @@ export const api = {
     title?: string;
     highlightingEnabled?: number | null;
     contentJson?: string;
-    pageCount?: number;
     characters?: ScriptCharacter[];
   }): Promise<ScriptSummary> {
     return scriptsUpdate(input);

@@ -3,7 +3,6 @@ import {
   createEffect,
   createResource,
   Show,
-  For,
   onMount,
   onCleanup,
 } from "solid-js";
@@ -46,7 +45,6 @@ export function ScriptView(props: ScriptViewProps) {
     () => ({ id: props.scriptId, v: scriptsBus.version() }),
     ({ id }) => api.getScript(id),
   );
-  const [pageCount, setPageCount] = createSignal(1);
   const [snapshotsOpen, setSnapshotsOpen] = createSignal(false);
   const [parseError, setParseError] = createSignal<string | null>(null);
   const [recovering, setRecovering] = createSignal(false);
@@ -203,7 +201,6 @@ export function ScriptView(props: ScriptViewProps) {
       const updated = await api.updateScript({
         id: props.scriptId,
         contentJson: empty,
-        pageCount: 1,
       });
       const fresh = await api.getScript(props.scriptId);
       setScript(fresh);
@@ -339,59 +336,35 @@ export function ScriptView(props: ScriptViewProps) {
             </Show>
 
             <div class="paper-canvas" ref={canvasRef}>
-              <div
-                class="paper-stack"
-                style={{ "--page-count": pageCount() }}
-              >
-                <div class="paper-content-ruler" />
-                <div class="paper-deadzone-ruler" />
-
-                <For each={Array.from({ length: pageCount() }, (_, i) => i)}>
-                  {(i) => (
-                    <div
-                      class="paper-page-bg"
-                      style={{ "--page-index": i }}
-                      data-page-num={i + 1}
-                      aria-hidden="true"
-                    >
-                      <Show when={i > 0}>
-                        <span class="paper-page-num">Seite {i + 1}</span>
-                      </Show>
-                    </div>
-                  )}
-                </For>
-
-                <div class="paper-editor-overlay">
-                  <Show
-                    when={!parseError()}
-                    fallback={
-                      <RecoveryPanel
-                        broken={parseError() ?? ""}
-                        onOpenSnapshots={() => setSnapshotsOpen(true)}
-                        onReset={() => void onResetToEmpty()}
-                        resetting={recovering()}
+              <div class="paper-sheet">
+                <Show
+                  when={!parseError()}
+                  fallback={
+                    <RecoveryPanel
+                      broken={parseError() ?? ""}
+                      onOpenSnapshots={() => setSnapshotsOpen(true)}
+                      onReset={() => void onResetToEmpty()}
+                      resetting={recovering()}
+                    />
+                  }
+                >
+                  <Show when={s().id} keyed>
+                    {(scriptId) => (
+                      <Editor
+                        scriptId={scriptId}
+                        initialContentJson={s().content_json}
+                        initialCursor={initialCursorFor(scriptId)}
+                        characters={s().characters}
+                        highlighting={highlightingOn()}
+                        quickModeEnabled={() => quickMode()}
+                        onCharactersChange={setLiveChars}
+                        onParseError={(raw) => setParseError(raw)}
+                        onEditorReady={(ed) => setEditorInstance(ed)}
+                        onActiveBlockChange={(b) => setActiveBlock(b)}
                       />
-                    }
-                  >
-                    <Show when={s().id} keyed>
-                      {(scriptId) => (
-                        <Editor
-                          scriptId={scriptId}
-                          initialContentJson={s().content_json}
-                          initialCursor={initialCursorFor(scriptId)}
-                          characters={s().characters}
-                          highlighting={highlightingOn()}
-                          quickModeEnabled={() => quickMode()}
-                          onPageCountChange={setPageCount}
-                          onCharactersChange={setLiveChars}
-                          onParseError={(raw) => setParseError(raw)}
-                          onEditorReady={(ed) => setEditorInstance(ed)}
-                          onActiveBlockChange={(b) => setActiveBlock(b)}
-                        />
-                      )}
-                    </Show>
+                    )}
                   </Show>
-                </div>
+                </Show>
               </div>
             </div>
 
@@ -401,7 +374,6 @@ export function ScriptView(props: ScriptViewProps) {
               <EditorRail
                 contentJson={s().content_json}
                 characters={liveChars()}
-                pageCount={pageCount()}
                 onOpenSnapshots={() => setSnapshotsOpen(true)}
               />
             </Show>

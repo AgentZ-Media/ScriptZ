@@ -21,7 +21,11 @@
    dann Status-Strip. */
 .titlebar {
   position: relative;
-  z-index: 5;
+  /* Über In-Content-Popovers (Charakter-Dropdown, Block-Dropdown,
+     Color-Popover, Browser-Kontextmenü - alle z=50..55), aber unter
+     Modal-Backdrop (z=100) und Toasts (z=200), damit sich die Tab-Bar
+     vom Editor-Inhalt trennt, beim Modal-Open aber wie gewohnt blurst. */
+  z-index: 60;
   display: grid;
   grid-template-columns: 78px 1fr auto auto;
   align-items: center;
@@ -310,11 +314,3 @@
   [data-theme="auto"] .titlebar-gear:hover { background: rgba(255, 255, 255, 0.08); }
 }
 
-/* ----- Focus-Mode dimmt die Titlebar, Hover stellt sie wieder her. ----- */
-.app-root.is-focus .titlebar {
-  opacity: 0.4;
-  transition: opacity var(--t-med);
-}
-.app-root.is-focus .titlebar:hover {
-  opacity: 1;
-}

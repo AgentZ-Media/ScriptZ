@@ -211,7 +211,7 @@
   padding: 10px;
   font-family: var(--font-sans);
   font-size: 13px;
-  z-index: 1100;
+  z-index: 55;
   pointer-events: auto;
   user-select: none;
   display: flex;

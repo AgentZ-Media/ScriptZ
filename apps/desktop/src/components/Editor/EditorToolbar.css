@@ -6,7 +6,10 @@
 .editor-toolbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  /* Über In-Content-Popovers (Dropdowns z=50, Color-Popover z=55), damit
+     ein Charakter-Dropdown beim Hochscrollen nicht in die Pillen rein-
+     ragt. Gleiche Ebene wie die Titelleiste (TabBar.css). */
+  z-index: 60;
   display: flex;
   align-items: center;
   gap: 10px;

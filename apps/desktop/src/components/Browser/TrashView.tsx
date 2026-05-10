@@ -107,9 +107,7 @@ export function TrashView() {
                   <div class="trash-row-meta muted">
                     <Show when={s.archived_at}>
                       Gelöscht {relativeTime(s.archived_at!)}
-                      <span class="dot-sep">·</span>
                     </Show>
-                    {s.page_count === 1 ? "1 Seite" : `${s.page_count} Seiten`}
                   </div>
                 </div>
                 <div class="trash-row-actions">

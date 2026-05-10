@@ -290,7 +290,6 @@ export interface UpdateScriptInput {
    *  in JS because `undefined` simply isn't sent. */
   highlightingEnabled?: number | null;
   contentJson?: string;
-  pageCount?: number;
   /** Caller-supplied override of the per-script character list (e.g.
    *  the user picked a colour). Replaces characters_meta directly,
    *  bypassing the reconcile step. */
@@ -400,12 +399,6 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
         console.warn("[scriptz] daily word log update failed", err);
       }
     }
-  }
-  if (input.pageCount !== undefined) {
-    await db.execute(
-      "UPDATE scripts SET page_count = $1, updated_at = $2 WHERE id = $3",
-      [input.pageCount, now, input.id],
-    );
   }
   // characters_meta is already reconciled from input.contentJson above.
   // If a caller passed both, the contentJson reconciliation wins —

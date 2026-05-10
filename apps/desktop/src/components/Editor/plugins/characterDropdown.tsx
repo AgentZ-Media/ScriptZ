@@ -130,7 +130,7 @@ export function installCharacterDropdown(
             position: "fixed",
             left: `${pos().x}px`,
             top: `${pos().y}px`,
-            "z-index": 1000,
+            "z-index": 50,
             background: "var(--modal-bg)",
             color: "var(--fg)",
             border: "1px solid var(--border)",

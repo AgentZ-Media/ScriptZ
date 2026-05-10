@@ -100,7 +100,7 @@ function BlockDropdown(props: DropdownProps) {
         position: "fixed",
         left: `${props.x}px`,
         top: `${props.y}px`,
-        "z-index": 1000,
+        "z-index": 50,
         background: "var(--modal-bg)",
         color: "var(--fg)",
         border: "1px solid var(--border)",

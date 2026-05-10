@@ -251,12 +251,12 @@ export function installColorPicker(
   // hoverContainer ist der `paper-canvas` (= scrollbarer Volltbereich
    // des Skripts), nicht der editor-host. Grund: editor-host ist nur
    // so breit wie die Schreib-Spalte (`--paper-content-w`); links
-   // und rechts davon liegen die Paper-Margins, die zum
-   // `paper-editor-overlay` gehören - dort verläuft die Maus auf dem
-   // Weg zum Swatch. Listener am host würden mouseleave feuern, sobald
-   // die Maus die Schreib-Spalte verlässt, und der Swatch verschwände
-   // genau dann, wenn der User ihn anklicken will. Fallback host für
-   // den seltenen Fall, dass paper-canvas im DOM nicht (mehr) existiert.
+   // und rechts davon liegen die Paper-Margins der `paper-sheet` -
+   // dort verläuft die Maus auf dem Weg zum Swatch. Listener am host
+   // würden mouseleave feuern, sobald die Maus die Schreib-Spalte
+   // verlässt, und der Swatch verschwände genau dann, wenn der User
+   // ihn anklicken will. Fallback host für den seltenen Fall, dass
+   // paper-canvas im DOM nicht (mehr) existiert.
    const canvas = host.closest(".paper-canvas") as HTMLElement | null;
    const hoverContainer: HTMLElement = canvas ?? host;
 

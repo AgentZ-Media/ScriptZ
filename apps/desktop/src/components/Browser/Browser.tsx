@@ -1012,7 +1012,7 @@ function ScriptRow(props: ScriptRowProps) {
         </Show>
       </div>
       <div class="row-v2-meta">{relativeTime(props.script.updated_at)}</div>
-      <div class="row-v2-pages" title={`${props.script.page_count} ${props.script.page_count === 1 ? "Seite" : "Seiten"}`}>
+      <div class="row-v2-pages">
         {(() => {
           const rt = runtimeLabelFor(props.script, settingsStore.dialogWpm());
           return rt ?? "—";

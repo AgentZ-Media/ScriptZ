@@ -217,3 +217,11 @@ Aufgabe ähnlich abgewickelt hat. Jede Änderung ist neu zu bewerten.
 App und Landing sind beide auf Deutsch. In Code-Kommentaren und
 Doku-Markdown wird normaler Bindestrich verwendet, **kein
 Em-Dash**. Auch in von Claude generierten Texten.
+
+**Echte Umlaute, keine ASCII-Ersatzschreibung.** In allen
+deutschsprachigen Texten (Release-Notes, README, Landing,
+UI-Strings, Code-Kommentare) immer `ä`, `ö`, `ü`, `ß` statt
+`ae`, `oe`, `ue`, `ss`. Auch wenn die Tastatur das gerade
+nicht hergibt - dann lieber kurz suchen als ein "haendisch"
+ins Repo schreiben. Gilt insbesondere für Release-Notes,
+weil die im GitHub-Release-Body stehen und User-sichtbar sind.
