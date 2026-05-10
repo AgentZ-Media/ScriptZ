@@ -408,33 +408,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
             </For>
           </Show>
 
-          <Show when={section() === "shortcuts"}>
-            <h3>Tastatur</h3>
-            <div class="settings-pane-sub">
-              Alle Hotkeys auf einen Blick. Anpassen kommt in einer
-              späteren Version.
-            </div>
-            <For each={SHORTCUT_GROUPS}>
-              {(group) => (
-                <div class="settings-shortcuts-group">
-                  <div class="settings-shortcuts-title">{group.title}</div>
-                  <ul class="settings-shortcuts-list">
-                    <For each={group.items}>
-                      {(it) => (
-                        <li class="settings-shortcut-row">
-                          <span class="settings-shortcut-keys">
-                            <span class="kbd kbd-inline">{it.keys}</span>
-                          </span>
-                          <span class="settings-shortcut-desc">{it.desc}</span>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </div>
-              )}
-            </For>
-          </Show>
-
           <Show when={section() === "updates"}>
             <h3>Updates</h3>
             <div class="settings-pane-sub">Bezogen über GitHub Releases. Keine Telemetrie.</div>

@@ -12,8 +12,8 @@ export interface ActivityModalProps {
 
 /** Detail-Modal für die Schreibstatistik. Wird vom Momentum-Strip in
  *  der Browser-Übersicht aufgerufen ("Aktivität ansehen ↗"). Zeigt
- *  drei Aggregat-Karten (Heute, Streak, Insgesamt) plus die volle
- *  365-Tage-Heatmap. Spiegelt damit Chat 2 Variante 1 wider. */
+ *  drei Aggregat-Karten (Diese Woche, Streak, Insgesamt) plus die volle
+ *  365-Tage-Heatmap. */
 export function ActivityModal(props: ActivityModalProps) {
   const stats = () => dailyStatsStore.stats();
   const goal = () => settingsStore.weeklyWordGoal();

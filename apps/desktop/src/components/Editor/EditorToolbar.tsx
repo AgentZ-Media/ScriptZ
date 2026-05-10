@@ -193,7 +193,11 @@ export function EditorToolbar(props: EditorToolbarProps) {
               : "Weitere Block-Typen (Paren./Kamera/Caption/SFX)"
           }
           aria-expanded={secondaryOpen()}
-          aria-label="Weitere Block-Typen"
+          aria-label={
+            secondaryOpen()
+              ? "Weniger Block-Typen anzeigen"
+              : "Weitere Block-Typen anzeigen"
+          }
         >
           {secondaryOpen() ? "–" : "+"}
         </button>

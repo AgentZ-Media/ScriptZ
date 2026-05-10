@@ -33,10 +33,16 @@ import {
 export type CursorAddress = {
   /** Index des Top-Level-Blocks in root.getChildren(). */
   blockIndex: number;
-  /** Anchor-Offset innerhalb des Blocks. */
+  /** Pfad vom Block hinunter zum Anchor-Node, jede Zahl ist ein
+   *  child-Index auf der jeweiligen Ebene. Leer bedeutet: der Anchor
+   *  liegt am Block selbst (type "element"). Wichtig fuer Bloecke mit
+   *  mehreren Text-Descendants (z.B. nach Inline-Bold), wo der bloss
+   *  Block-relative Offset auf den FALSCHEN Text-Node zeigen wuerde. */
+  path: number[];
+  /** Offset innerhalb des Ziel-Nodes (Text-Offset bei type "text",
+   *  Child-Index bei type "element"). */
   offset: number;
-  /** Selection-Type wie in Lexical: "text" zeigt auf einen TextNode-Offset,
-   *  "element" auf eine Position innerhalb eines ElementNodes. */
+  /** Selection-Type wie in Lexical. */
   type: "text" | "element";
 };
 
@@ -67,19 +73,23 @@ export function captureCursor(editor: LexicalEditor): CursorAddress | null {
   editor.getEditorState().read(() => {
     const sel = $getSelection();
     if (!$isRangeSelection(sel)) return;
+    const path: number[] = [];
     let node: LexicalNode | null = sel.anchor.getNode();
     let blockIndex = -1;
     while (node) {
       const parent: LexicalNode | null = node.getParent();
-      if (parent && $isRootNode(parent)) {
+      if (!parent) break;
+      if ($isRootNode(parent)) {
         blockIndex = node.getIndexWithinParent();
         break;
       }
+      path.unshift(node.getIndexWithinParent());
       node = parent;
     }
     if (blockIndex < 0) return;
     result = {
       blockIndex,
+      path,
       offset: sel.anchor.offset,
       type: sel.anchor.type,
     };
@@ -89,8 +99,10 @@ export function captureCursor(editor: LexicalEditor): CursorAddress | null {
 
 /** Setzt die Selection im Editor an die gegebene Adresse. Toleriert
  *  Drift: wenn die Block-Anzahl seit dem Capture geschrumpft ist, wird
- *  auf den letzten Block geclamped; wenn der Offset im Text-Node nicht
- *  mehr passt, auf die Text-Laenge geclamped. */
+ *  auf den letzten Block geclamped; wenn der Pfad nicht mehr aufloest
+ *  (z.B. weil Inline-Format weggefallen ist), faellt es auf den ersten
+ *  Text-Descendant zurueck und clamped den Offset; bleibt auch das
+ *  fruchtlos, landet die Selection element-relativ am Block. */
 export function applyCursor(editor: LexicalEditor, addr: CursorAddress): void {
   editor.update(() => {
     const root = $getRoot();
@@ -100,15 +112,13 @@ export function applyCursor(editor: LexicalEditor, addr: CursorAddress): void {
     const block = blocks[idx];
 
     if (addr.type === "text") {
-      // Erster Text-Descendant des Blocks. Bei leeren Bloecken (childless)
-      // gibt es keinen, dann fallen wir auf "element" zurueck.
-      const first = findFirstTextDescendant(block);
-      if (first) {
-        const len = first.getTextContentSize();
+      const target = resolvePath(block, addr.path) ?? findFirstTextDescendant(block);
+      if (target && isTextLike(target)) {
+        const len = target.getTextContentSize();
         const off = Math.max(0, Math.min(addr.offset, len));
         const sel = $createRangeSelection();
-        sel.anchor.set(first.getKey(), off, "text");
-        sel.focus.set(first.getKey(), off, "text");
+        sel.anchor.set(target.getKey(), off, "text");
+        sel.focus.set(target.getKey(), off, "text");
         $setSelection(sel);
         return;
       }
@@ -121,17 +131,25 @@ export function applyCursor(editor: LexicalEditor, addr: CursorAddress): void {
   });
 }
 
-function findFirstTextDescendant(node: LexicalNode): {
-  getKey(): string;
-  getTextContentSize(): number;
-} | null {
-  type ElementLike = { getChildren?: () => LexicalNode[] };
-  if (node.getType() === "text") {
-    return node as unknown as {
-      getKey(): string;
-      getTextContentSize(): number;
-    };
+type ElementLike = { getChildren?: () => LexicalNode[] };
+type TextLike = { getKey(): string; getTextContentSize(): number };
+
+function resolvePath(start: LexicalNode, path: number[]): LexicalNode | null {
+  let node: LexicalNode = start;
+  for (const i of path) {
+    const children = (node as unknown as ElementLike).getChildren?.();
+    if (!children || i < 0 || i >= children.length) return null;
+    node = children[i];
   }
+  return node;
+}
+
+function isTextLike(node: LexicalNode): node is LexicalNode & TextLike {
+  return node.getType() === "text";
+}
+
+function findFirstTextDescendant(node: LexicalNode): (LexicalNode & TextLike) | null {
+  if (node.getType() === "text") return node as LexicalNode & TextLike;
   const children = (node as unknown as ElementLike).getChildren?.();
   if (!children) return null;
   for (const c of children) {

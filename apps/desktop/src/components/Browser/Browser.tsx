@@ -19,7 +19,7 @@ import {
   debounce,
 } from "~/lib/format";
 
-/** Spielzeit aus Wörtern schätzen — Heuristik mit Setting-WPM. Sentinel
+/** Spielzeit aus Wörtern schätzen - Heuristik mit Setting-WPM. Sentinel
  *  -1 (Skript wurde nie zählbar gespeichert) ergibt null, damit der
  *  Aufrufer das Feld auslassen kann. Format gleicht der Cast-Rail
  *  (`X s` / `X:XX Min`), damit beide Anzeigen identisch klingen. */

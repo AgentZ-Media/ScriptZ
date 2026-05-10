@@ -263,6 +263,11 @@ export function installColorPicker(
    const onMouseLeave = (ev: MouseEvent) => {
      const related = ev.relatedTarget as Node | null;
      if (related && hoverContainer.contains(related)) return;
+     mouseTracker = null;
+     if (mouseRafId !== null) {
+       cancelAnimationFrame(mouseRafId);
+       mouseRafId = null;
+     }
      hoverBlock = null;
      repositionSwatch();
    };

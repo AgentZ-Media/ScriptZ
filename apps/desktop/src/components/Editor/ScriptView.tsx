@@ -108,11 +108,13 @@ export function ScriptView(props: ScriptViewProps) {
   // erst ihre Hoehe einnehmen koennen, bevor wir scrollTop setzen - sonst
   // clamped der Browser auf den (noch zu kleinen) scrollHeight.
   let appliedScrollForId: string | null = null;
+  let scrollRestoreRun = 0;
   createEffect(() => {
     const id = script.latest?.id;
     if (!id) return;
     if (appliedScrollForId === id) return;
     appliedScrollForId = id;
+    const run = ++scrollRestoreRun;
     const cached = scriptViewCache.get(id);
     const target = cached?.scrollTop ?? 0;
     if (!canvasRef) return;
@@ -122,15 +124,20 @@ export function ScriptView(props: ScriptViewProps) {
       return;
     }
     let attempts = 8;
+    let rafId = 0;
     const tryApply = () => {
-      if (!canvasRef) return;
+      if (!canvasRef || run !== scrollRestoreRun) return;
       canvasRef.scrollTop = target;
       lastScrollTop = canvasRef.scrollTop;
       if (canvasRef.scrollTop < target - 1 && attempts-- > 0) {
-        requestAnimationFrame(tryApply);
+        rafId = requestAnimationFrame(tryApply);
       }
     };
-    requestAnimationFrame(tryApply);
+    rafId = requestAnimationFrame(tryApply);
+    onCleanup(() => {
+      scrollRestoreRun++;
+      if (rafId) cancelAnimationFrame(rafId);
+    });
   });
 
   /** Initial-Cursor fuer den naechsten Editor-Mount. Wird beim
