@@ -82,7 +82,7 @@ export function IdeasView() {
     const t = draft().trim();
     if (!t) return;
     try {
-      await api.createIdea({ title: t });
+      await ideasStore.createIdea({ title: t });
       setDraft("");
       captureRef?.focus();
     } catch (err) {
@@ -92,7 +92,7 @@ export function IdeasView() {
 
   async function convert(idea: Idea) {
     try {
-      const { script } = await api.convertIdeaToScript({
+      const { script } = await ideasStore.convertIdeaToScript({
         ideaId: idea.id,
         notesAsAction: true,
       });
@@ -107,7 +107,7 @@ export function IdeasView() {
     const idea = pendingDelete();
     if (!idea) return;
     try {
-      await api.deleteIdea(idea.id);
+      await ideasStore.deleteIdea(idea.id);
       pushToast(`„${idea.title}" gelöscht`, "ok");
     } catch (err) {
       pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
@@ -357,7 +357,7 @@ function IdeaCard(props: {
       return;
     }
     try {
-      await api.updateIdea({ id: props.idea.id, title: t, notes: notesDraft() });
+      await ideasStore.updateIdea({ id: props.idea.id, title: t, notes: notesDraft() });
       props.onCancelEdit();
     } catch (err) {
       pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");

@@ -102,7 +102,7 @@ export function IdeasDrawer(props: IdeasDrawerProps) {
     const t = draft().trim();
     if (!t) return;
     try {
-      await api.createIdea({ title: t });
+      await ideasStore.createIdea({ title: t });
       setDraft("");
     } catch (err) {
       pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
@@ -111,7 +111,7 @@ export function IdeasDrawer(props: IdeasDrawerProps) {
 
   async function convert(idea: Idea) {
     try {
-      const { script } = await api.convertIdeaToScript({
+      const { script } = await ideasStore.convertIdeaToScript({
         ideaId: idea.id,
         notesAsAction: true,
       });
@@ -126,7 +126,7 @@ export function IdeasDrawer(props: IdeasDrawerProps) {
 
   async function remove(idea: Idea) {
     try {
-      await api.deleteIdea(idea.id);
+      await ideasStore.deleteIdea(idea.id);
       pushToast(`„${idea.title}" gelöscht`, "ok");
     } catch (err) {
       pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
@@ -339,7 +339,7 @@ function IdeaRow(props: {
       return;
     }
     try {
-      await api.updateIdea({ id: props.idea.id, title: t, notes: notesDraft() });
+      await ideasStore.updateIdea({ id: props.idea.id, title: t, notes: notesDraft() });
       props.onCancelEdit();
     } catch (err) {
       pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
