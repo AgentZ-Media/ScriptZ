@@ -23,7 +23,7 @@
   position: relative;
   z-index: 5;
   display: grid;
-  grid-template-columns: 78px 1fr auto;
+  grid-template-columns: 78px 1fr auto auto;
   align-items: center;
   height: 34px;
   padding: 0 12px;
@@ -282,6 +282,32 @@
 .status-dot-ok {
   background: var(--status-ok);
   box-shadow: 0 0 0 2px rgba(79, 154, 108, 0.16);
+}
+
+/* ----- Globaler Zahnrad-Knopf ganz rechts ----- */
+.titlebar-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;  /* vertikal zentriert wie der Status-Strip */
+  width: 24px;
+  height: 22px;
+  margin-left: 6px;
+  border-radius: 6px;
+  color: var(--text-subtle);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: all var(--t-fast);
+}
+.titlebar-gear:hover {
+  background: rgba(28, 24, 20, 0.07);
+  color: var(--text);
+}
+[data-theme="dark"] .titlebar-gear:hover { background: rgba(255, 255, 255, 0.08); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .titlebar-gear:hover { background: rgba(255, 255, 255, 0.08); }
 }
 
 /* ----- Focus-Mode dimmt die Titlebar, Hover stellt sie wieder her. ----- */

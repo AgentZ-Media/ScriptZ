@@ -311,6 +311,7 @@ export default function App() {
             setNewScriptFolder(null);
             setNewScriptOpen(true);
           }}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
 
         <main class="app-main" ref={appMainRef}>
