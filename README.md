@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.4-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/version-0.7.0-1c1814?style=flat-square" alt="version" />
   <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Apple_Silicon-native-1c1814?style=flat-square" alt="Apple Silicon" />
   <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
@@ -74,15 +74,15 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 
 ### Schreibmotivation, ohne Druck
 
-- **Tagesziel** ("X Wörter heute") oben rechts in der Tab-Bar mit live-aktualisiertem Zähler — anpassbar in den Einstellungen.
+- **Wochenziel** ("X / Y W Woche") oben rechts in der Tab-Bar mit live-aktualisiertem Zähler — anpassbar in den Einstellungen, Default 1500 Wörter pro Woche.
 - **Streak-Pille** zählt aufeinanderfolgende Schreibtage; Klick öffnet die **Aktivitäts-Übersicht** mit GitHub-Style-Heatmap über die letzten 365 Tage.
-- **Momentum-Strip** auf der Übersicht zeigt aktuellen Streak, Tagesfortschritt und einen "weiterschreiben"-Knopf zum letzten offenen Skript.
+- **Momentum-Strip** auf der Übersicht zeigt aktuellen Streak, Wochenfortschritt und einen "weiterschreiben"-Knopf zum letzten offenen Skript.
 - **Sprint-Timer** unten rechts im Editor: 5 / 15 / 25 Minuten, mit Fortschrittsbalken und Wortzähler — Pomodoro fürs Schreiben, ohne extra App.
 
 ### Ideen-Inbox
 
 - **Quick-Capture** per `⌘I` aus jeder Ansicht — Idee tippen, Enter, weiter im aktuellen Skript.
-- **Ideen-Drawer** mit drei Reitern: Offen, Alle, Verwendet — sortiert nach Heute / Gestern / Diese Woche / Älter.
+- **Ideen-Tab** in der Tab-Leiste mit drei Reitern: Offen, Alle, Verwendet — sortiert nach Heute / Gestern / Diese Woche / Älter.
 - **Ein-Klick-Konvertierung** Idee → neues Skript (`⌘↵`); die Notizen landen optional direkt im ersten ACTION-Block.
 
 ### Cast-Panel im Editor
@@ -107,7 +107,7 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 | Charakter-Farben | ✅ | ❌ | ❌ | ✅ |
 | Quick-Modus für 2-Personen | ✅ | ❌ | ❌ | ❌ |
 | Bigramm-Predict für Charaktere | ✅ | ❌ | ❌ | ❌ |
-| Streak / Tagesziel / Heatmap | ✅ | ❌ | ❌ | ❌ |
+| Streak / Wochenziel / Heatmap | ✅ | ❌ | ❌ | ❌ |
 | Sprint-Timer eingebaut | ✅ | ❌ | ❌ | ❌ |
 | Ideen-Inbox mit Quick-Capture | ✅ | ❌ | ❌ | ❌ |
 | Kostenlos | ✅ | ❌ | ✅ | ⚠️ |
