@@ -15,6 +15,9 @@ const [focusModeDefault, setFocusModeDefault] = createSignal<boolean>(true);
 // Per-script manual toggle still wins — once the writer overrides it on a
 // script, that decision sticks across character-count changes.
 const [quickModeAutoEnable, setQuickModeAutoEnable] = createSignal<boolean>(false);
+// Zähler-Badge am Ideen-Tab anzeigen (Anzahl offener Ideen). Wer eine
+// große Idee-Sammlung hat, mag die Zahl ggf. nicht ständig sehen.
+const [showIdeasBadge, setShowIdeasBadge] = createSignal<boolean>(true);
 // Tagesziel in Wörtern. Default 250 (laut Re-Design-Chat). Wird vom
 // Momentum-Strip auf der Home-Seite und vom (geplanten) Editor-Ribbon
 // gelesen. Bewusst eine zentrale Quelle, damit Home und Editor sich
@@ -77,6 +80,11 @@ export const settingsStore = {
     setQuickModeAutoEnable(v);
     await api.setSetting("quick_mode_auto_enable", v ? "1" : "0");
   },
+  showIdeasBadge,
+  setShowIdeasBadge: async (v: boolean) => {
+    setShowIdeasBadge(v);
+    await api.setSetting("show_ideas_badge", v ? "1" : "0");
+  },
   dailyWordGoal,
   setDailyWordGoal: async (v: number) => {
     const next = clampGoal(v);
@@ -97,7 +105,7 @@ export const settingsStore = {
   DIALOG_WPM_DEFAULT,
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, dwg, wpm, fmd] = await Promise.all([
+    const [t, hd, uce, huc, qmae, dwg, wpm, fmd, sib] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
@@ -106,6 +114,7 @@ export const settingsStore = {
       api.getSetting("daily_word_goal"),
       api.getSetting("dialog_wpm"),
       api.getSetting("focus_mode_default"),
+      api.getSetting("show_ideas_badge"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
@@ -113,6 +122,7 @@ export const settingsStore = {
     if (huc) setHourlyUpdateCheck(huc === "1");
     if (qmae) setQuickModeAutoEnable(qmae === "1");
     if (fmd) setFocusModeDefault(fmd === "1");
+    if (sib) setShowIdeasBadge(sib === "1");
     if (dwg) {
       const parsed = Number(dwg);
       if (Number.isFinite(parsed)) setDailyWordGoal(clampGoal(parsed));

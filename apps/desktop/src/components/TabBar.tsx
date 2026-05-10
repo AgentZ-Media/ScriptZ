@@ -170,12 +170,15 @@ function BulbIcon() {
 
 /** Kleine Pille rechts vom Glühbirnen-Icon, zeigt die Anzahl offener
  *  Ideen. Bewusst dezent — der Tab soll nicht ständig schreien. Bei 0
- *  offenen Ideen verschwindet das Badge. */
+ *  offenen Ideen verschwindet das Badge. Über die Einstellung
+ *  `showIdeasBadge` kann es ganz abgeschaltet werden (sinnvoll bei
+ *  großen Idee-Sammlungen, wenn die Zahl nicht ständig nach Aufmerksam-
+ *  keit schreien soll). */
 function IdeasBadge() {
   const openCount = () =>
     (ideasStore.ideas() ?? []).filter((i) => !i.used_at).length;
   return (
-    <Show when={openCount() > 0}>
+    <Show when={settingsStore.showIdeasBadge() && openCount() > 0}>
       <span class="tab-ideas-badge">{openCount()}</span>
     </Show>
   );

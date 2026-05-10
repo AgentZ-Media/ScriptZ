@@ -141,18 +141,22 @@
   color: var(--ink-500);
 }
 .tab-ideas.is-active .tab-ideas-ic { color: var(--ink-700); }
-/* Badge mit Anzahl offener Ideen — klein, oben rechts am Icon. */
+/* Badge mit Anzahl offener Ideen — bewusst in die obere rechte Ecke
+   des Tabs gerückt (nicht über das Icon zentriert), damit die Glühbirne
+   visuell als eigenes Element lesbar bleibt. Der weiße Outline-Ring
+   (box-shadow) trennt das Badge zusätzlich vom Tab-Hintergrund. */
 .tab-ideas-badge {
   position: absolute;
-  top: 4px;
-  right: 5px;
-  min-width: 14px;
-  height: 14px;
+  top: 2px;
+  right: 2px;
+  min-width: 13px;
+  height: 13px;
   padding: 0 3px;
   border-radius: 7px;
   background: var(--brand-orange, #e0791f);
   color: #fff;
-  font-size: 9.5px;
+  font-size: 9px;
+  line-height: 1;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   display: inline-flex;

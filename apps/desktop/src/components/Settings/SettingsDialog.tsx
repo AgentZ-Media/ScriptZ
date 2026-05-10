@@ -128,6 +128,22 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 label="Fokus-Modus standardmäßig"
               />
             </div>
+
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <div class="row-label">Zähler am Ideen-Tab</div>
+                <div class="row-help">
+                  Zeigt die Anzahl offener Ideen als kleines Badge oben am
+                  Glühbirnen-Tab. Bei sehr großen Idee-Sammlungen kannst
+                  du den Zähler hier abschalten.
+                </div>
+              </div>
+              <Toggle
+                checked={settingsStore.showIdeasBadge()}
+                onChange={(v) => void settingsStore.setShowIdeasBadge(v)}
+                label="Ideen-Zähler im Tab anzeigen"
+              />
+            </div>
           </Show>
 
           <Show when={section() === "editor"}>
