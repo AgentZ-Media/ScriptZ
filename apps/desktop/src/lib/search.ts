@@ -26,7 +26,7 @@ export async function globalSearch(
   const db = await getDb();
   const rows = await db.select<Row[]>(
     `SELECT s.id AS id, s.title AS title,
-            snippet(scripts_fts, 1, '<mark>', '</mark>', '…', 8) AS snippet,
+            snippet(scripts_fts, 2, '<mark>', '</mark>', '…', 16) AS snippet,
             s.updated_at AS updated_at
      FROM scripts_fts f
      JOIN scripts s ON s.id = f.script_id

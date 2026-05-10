@@ -7,6 +7,22 @@ import { debounce } from "~/lib/format";
 import "./CommandBar.css";
 
 /**
+ * FTS5 zentriert das Match in seinem Token-Fenster. Bei nowrap-Layout
+ * fällt der hintere Teil — und damit oft das `<mark>` selbst — in die
+ * Ellipsis. Wir kürzen den Text vor dem ersten `<mark>` auf ein
+ * einzelnes Wort, damit der Treffer garantiert sichtbar am Anfang
+ * steht; alles dahinter bleibt erhalten und wird ggf. rechts gekappt.
+ */
+function trimBeforeMark(s: string): string {
+  const idx = s.indexOf("<mark>");
+  if (idx <= 0) return s;
+  const before = s.slice(0, idx).replace(/^…\s*/, "");
+  const words = before.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return s;
+  return "… " + words[words.length - 1] + " " + s.slice(idx);
+}
+
+/**
  * SQLite's FTS5 `snippet()` returns the user's own content verbatim with
  * `<mark>`/`</mark>` literally interleaved — no entity escaping. Pumping
  * that through `innerHTML` would inject any HTML the writer happens to
@@ -15,7 +31,7 @@ import "./CommandBar.css";
  * tags FTS produced.
  */
 function safeSnippet(s: string): string {
-  return s
+  return trimBeforeMark(s)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
