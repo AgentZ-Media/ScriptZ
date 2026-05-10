@@ -11,6 +11,7 @@ import {
 import type { Folder, ScriptSummary } from "~/lib/types";
 import { stripeBackground } from "~/lib/stripe";
 import { api } from "~/lib/api";
+import { runtimeLabelFromStats } from "~/lib/runtime";
 import { tabsStore } from "~/stores/tabs";
 import { settingsStore } from "~/stores/settings";
 import { pushToast } from "~/stores/toasts";
@@ -19,17 +20,18 @@ import {
   debounce,
 } from "~/lib/format";
 
-/** Spielzeit aus Wörtern schätzen - Heuristik mit Setting-WPM. Sentinel
- *  -1 (Skript wurde nie zählbar gespeichert) ergibt null, damit der
- *  Aufrufer das Feld auslassen kann. Format gleicht der Cast-Rail
- *  (`X s` / `X:XX Min`), damit beide Anzeigen identisch klingen. */
-function estimateRuntimeLabel(words: number, wpm: number): string | null {
-  if (!Number.isFinite(words) || words <= 0) return null;
-  const sec = Math.max(5, Math.round((words / Math.max(1, wpm)) * 60));
-  if (sec < 60) return `${sec} s`;
-  const m = Math.floor(sec / 60);
-  const r = sec % 60;
-  return r === 0 ? `${m} Min` : `${m}:${String(r).padStart(2, "0")} Min`;
+/** Spielzeit-Label aus den persistierten Eingangswerten - dieselbe Formel
+ *  wie in der Editor-Rail, gerendert über `runtimeLabelFromStats`.
+ *  Sentinel/leere Skripte ergeben null, damit der Aufrufer das Feld
+ *  ausblenden kann. */
+function runtimeLabelFor(script: ScriptSummary, wpm: number): string | null {
+  return runtimeLabelFromStats(
+    {
+      dialogWords: script.dialog_word_count,
+      directionBlocks: script.direction_block_count,
+    },
+    wpm,
+  );
 }
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { TrashView } from "./TrashView";
@@ -942,10 +944,7 @@ function ScriptCard(props: ScriptCardProps) {
           <span class="card-v2-meta">
             {relativeTime(props.script.updated_at)}
             {(() => {
-              const rt = estimateRuntimeLabel(
-                props.script.word_count,
-                settingsStore.dialogWpm(),
-              );
+              const rt = runtimeLabelFor(props.script, settingsStore.dialogWpm());
               return rt ? ` · ${rt}` : "";
             })()}
           </span>
@@ -1015,10 +1014,7 @@ function ScriptRow(props: ScriptRowProps) {
       <div class="row-v2-meta">{relativeTime(props.script.updated_at)}</div>
       <div class="row-v2-pages" title={`${props.script.page_count} ${props.script.page_count === 1 ? "Seite" : "Seiten"}`}>
         {(() => {
-          const rt = estimateRuntimeLabel(
-            props.script.word_count,
-            settingsStore.dialogWpm(),
-          );
+          const rt = runtimeLabelFor(props.script, settingsStore.dialogWpm());
           return rt ?? "—";
         })()}
       </div>

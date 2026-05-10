@@ -34,6 +34,7 @@ import {
 import { globalSearch as searchGlobal } from "./search";
 import {
   archiveScript as scriptsArchive,
+  backfillRuntimeStats as scriptsBackfillRuntime,
   createScript as scriptsCreate,
   duplicateScript as scriptsDuplicate,
   emptyTrash as scriptsEmptyTrash,
@@ -127,6 +128,9 @@ export const api = {
   },
   async renameScript(id: string, title: string): Promise<ScriptSummary> {
     return scriptsRename(id, title);
+  },
+  async backfillRuntimeStats(): Promise<void> {
+    return scriptsBackfillRuntime();
   },
 
   // Folders — TS-side via plugin-sql since Migration Phase 4.

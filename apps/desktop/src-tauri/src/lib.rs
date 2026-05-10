@@ -10,6 +10,8 @@ const MIGRATION_002_AI_CLEANUP: &str = include_str!("../migrations/002_ai_cleanu
 const MIGRATION_003_REDESIGN: &str = include_str!("../migrations/003_redesign.sql");
 const MIGRATION_004_WORD_COUNT_SENTINEL: &str =
     include_str!("../migrations/004_word_count_sentinel.sql");
+const MIGRATION_005_RUNTIME_STATS: &str =
+    include_str!("../migrations/005_runtime_stats.sql");
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,6 +38,12 @@ pub fn run() {
             version: 4,
             description: "last_word_count: 0 -> -1 sentinel",
             sql: MIGRATION_004_WORD_COUNT_SENTINEL,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 5,
+            description: "runtime stats: dialog_word_count + direction_block_count",
+            sql: MIGRATION_005_RUNTIME_STATS,
             kind: MigrationKind::Up,
         },
     ];

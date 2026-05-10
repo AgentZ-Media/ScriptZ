@@ -36,6 +36,10 @@ import { countWordsInContent, recordWordDelta } from "./dailyWords";
 import { getDb } from "./db";
 import { deleteScriptFts, refreshFtsForScript } from "./fts";
 import { dialogWordsByCharacter, extractCharacterNames } from "./lex";
+import {
+  RUNTIME_STATS_SENTINEL,
+  runtimeStatsFromContent,
+} from "./runtime";
 import type { Script, ScriptCharacter, ScriptSummary } from "./types";
 
 interface SummaryRow {
@@ -48,7 +52,31 @@ interface SummaryRow {
   archived_at: number | null;
   page_count: number;
   last_word_count: number;
+  dialog_word_count: number;
+  direction_block_count: number;
   folder_id: string | null;
+}
+
+const SUMMARY_COLUMNS =
+  "id, title, highlighting_enabled, characters_meta, " +
+  "created_at, updated_at, archived_at, page_count, " +
+  "last_word_count, dialog_word_count, direction_block_count, folder_id";
+
+function summaryRowToScript(r: SummaryRow): ScriptSummary {
+  return {
+    id: r.id,
+    title: r.title,
+    highlighting_enabled: r.highlighting_enabled,
+    characters: parseCharsMeta(r.characters_meta),
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+    archived_at: r.archived_at,
+    page_count: r.page_count,
+    word_count: r.last_word_count,
+    dialog_word_count: r.dialog_word_count,
+    direction_block_count: r.direction_block_count,
+    folder_id: r.folder_id,
+  };
 }
 
 interface FullRow extends SummaryRow {
@@ -58,37 +86,19 @@ interface FullRow extends SummaryRow {
 async function rowToSummary(id: string): Promise<ScriptSummary> {
   const db = await getDb();
   const rows = await db.select<SummaryRow[]>(
-    `SELECT id, title, highlighting_enabled, characters_meta,
-            created_at, updated_at, archived_at, page_count,
-            last_word_count, folder_id
-     FROM scripts WHERE id = $1`,
+    `SELECT ${SUMMARY_COLUMNS} FROM scripts WHERE id = $1`,
     [id],
   );
   if (rows.length === 0) {
     throw new Error(`not found: script ${id}`);
   }
-  const r = rows[0];
-  return {
-    id: r.id,
-    title: r.title,
-    highlighting_enabled: r.highlighting_enabled,
-    characters: parseCharsMeta(r.characters_meta),
-    created_at: r.created_at,
-    updated_at: r.updated_at,
-    archived_at: r.archived_at,
-    page_count: r.page_count,
-    word_count: r.last_word_count,
-    folder_id: r.folder_id,
-  };
+  return summaryRowToScript(rows[0]);
 }
 
 export async function getScript(id: string): Promise<Script> {
   const db = await getDb();
   const rows = await db.select<FullRow[]>(
-    `SELECT id, title, highlighting_enabled, content_json, characters_meta,
-            created_at, updated_at, archived_at, page_count,
-            last_word_count, folder_id
-     FROM scripts WHERE id = $1`,
+    `SELECT ${SUMMARY_COLUMNS}, content_json FROM scripts WHERE id = $1`,
     [id],
   );
   if (rows.length === 0) {
@@ -96,17 +106,8 @@ export async function getScript(id: string): Promise<Script> {
   }
   const r = rows[0];
   return {
-    id: r.id,
-    title: r.title,
-    highlighting_enabled: r.highlighting_enabled,
+    ...summaryRowToScript(r),
     content_json: r.content_json,
-    characters: parseCharsMeta(r.characters_meta),
-    created_at: r.created_at,
-    updated_at: r.updated_at,
-    archived_at: r.archived_at,
-    page_count: r.page_count,
-    word_count: r.last_word_count,
-    folder_id: r.folder_id,
   };
 }
 
@@ -126,11 +127,7 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
   // (vorher: erst SELECT id …, dann für jede Zeile ein eigenes SELECT
   // via rowToSummary). Bei jedem Boot ging dadurch pro Skript ein
   // Tauri-IPC-Hop drauf — bei 3 Skripten waren das 4 Calls statt 1.
-  let sql =
-    "SELECT id, title, highlighting_enabled, characters_meta, " +
-    "created_at, updated_at, archived_at, page_count, " +
-    "last_word_count, folder_id " +
-    "FROM scripts WHERE 1=1";
+  let sql = `SELECT ${SUMMARY_COLUMNS} FROM scripts WHERE 1=1`;
   const args: (string | number)[] = [];
   let p = 1;
 
@@ -176,18 +173,7 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
   }
 
   const rows = await db.select<SummaryRow[]>(sql, args);
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    highlighting_enabled: r.highlighting_enabled,
-    characters: parseCharsMeta(r.characters_meta),
-    created_at: r.created_at,
-    updated_at: r.updated_at,
-    archived_at: r.archived_at,
-    page_count: r.page_count,
-    word_count: r.last_word_count,
-    folder_id: r.folder_id,
-  }));
+  return rows.map(summaryRowToScript);
 }
 
 export async function createScript(
@@ -226,12 +212,24 @@ export async function createScript(
   // zählen nicht als Schreib-Aktivität, weil sie nicht beim Save
   // hinzukamen).
   const initialWordCount = countWordsInContent(contentJson);
+  const runtime = runtimeStatsFromContent(contentJson);
 
   await db.execute(
     `INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                          created_at, updated_at, page_count, folder_id, last_word_count)
-     VALUES ($1, $2, NULL, $3, $4, $5, $5, 1, $6, $7)`,
-    [id, finalTitle, contentJson, charsJson, now, folderId, initialWordCount],
+                          created_at, updated_at, page_count, folder_id, last_word_count,
+                          dialog_word_count, direction_block_count)
+     VALUES ($1, $2, NULL, $3, $4, $5, $5, 1, $6, $7, $8, $9)`,
+    [
+      id,
+      finalTitle,
+      contentJson,
+      charsJson,
+      now,
+      folderId,
+      initialWordCount,
+      runtime.dialogWords,
+      runtime.directionBlocks,
+    ],
   );
   await refreshFtsForScript(id);
   return rowToSummary(id);
@@ -249,10 +247,12 @@ export async function duplicateScript(id: string): Promise<ScriptSummary> {
   // (sonst würde die erste Speicherung den ganzen kopierten Text als
   // „heute geschrieben" einrechnen).
   const wc = countWordsInContent(src.content_json);
+  const runtime = runtimeStatsFromContent(src.content_json);
   await db.execute(
     `INSERT INTO scripts (id, title, highlighting_enabled, content_json, characters_meta,
-                          created_at, updated_at, page_count, folder_id, last_word_count)
-     VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9)`,
+                          created_at, updated_at, page_count, folder_id, last_word_count,
+                          dialog_word_count, direction_block_count)
+     VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11)`,
     [
       newId,
       newTitle,
@@ -263,6 +263,8 @@ export async function duplicateScript(id: string): Promise<ScriptSummary> {
       src.page_count,
       src.folder_id,
       wc,
+      runtime.dialogWords,
+      runtime.directionBlocks,
     ],
   );
   await refreshFtsForScript(newId);
@@ -326,6 +328,7 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
     // last_word_count, würde sonst beider delta in daily_word_log
     // landen - der heutige Bucket ware dann doppelt gezählt.
     const newWordCount = countWordsInContent(input.contentJson);
+    const runtime = runtimeStatsFromContent(input.contentJson);
     const records = await loadColorRecords();
     let delta = 0;
     let attempts = 0;
@@ -362,9 +365,19 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
 
       const result = await db.execute(
         `UPDATE scripts
-           SET content_json = $1, characters_meta = $2, updated_at = $3, last_word_count = $4
-           WHERE id = $5 AND last_word_count = $6`,
-        [input.contentJson, charsJson, now, newWordCount, input.id, lastWordCount],
+           SET content_json = $1, characters_meta = $2, updated_at = $3, last_word_count = $4,
+               dialog_word_count = $5, direction_block_count = $6
+           WHERE id = $7 AND last_word_count = $8`,
+        [
+          input.contentJson,
+          charsJson,
+          now,
+          newWordCount,
+          runtime.dialogWords,
+          runtime.directionBlocks,
+          input.id,
+          lastWordCount,
+        ],
       );
       if (result.rowsAffected === 1) {
         delta = candidateDelta;
@@ -433,6 +446,40 @@ export async function purgeScript(id: string): Promise<void> {
   const db = await getDb();
   await db.execute("DELETE FROM scripts WHERE id = $1", [id]);
   await deleteScriptFts(id);
+}
+
+/** Zieht `dialog_word_count` und `direction_block_count` für alle
+ *  Skripte nach, die noch den Sentinel `-1` aus Migration 005 tragen.
+ *  Wird einmal beim App-Start aufgerufen, damit die Übersicht
+ *  Spielzeiten auch für unangefasste Bestandsskripte sofort korrekt
+ *  zeigt - ohne Backfill würde das Label dort bis zum nächsten Save
+ *  ausgeblendet bleiben.
+ *
+ *  Idempotent: Skripte, die schon einmal gespeichert wurden, kommen
+ *  nicht mehr durch das WHERE-Filter und werden nicht angefasst.
+ *  Lesefehler an einzelnen content_json-Blobs killen den ganzen
+ *  Backfill nicht - die betroffene Reihe bleibt auf Sentinel und der
+ *  nächste echte Save normalisiert sie. */
+export async function backfillRuntimeStats(): Promise<void> {
+  const db = await getDb();
+  const rows = await db.select<{ id: string; content_json: string }[]>(
+    `SELECT id, content_json FROM scripts
+     WHERE dialog_word_count = $1 OR direction_block_count = $1`,
+    [RUNTIME_STATS_SENTINEL],
+  );
+  for (const r of rows) {
+    try {
+      const stats = runtimeStatsFromContent(r.content_json);
+      await db.execute(
+        `UPDATE scripts
+           SET dialog_word_count = $1, direction_block_count = $2
+           WHERE id = $3`,
+        [stats.dialogWords, stats.directionBlocks, r.id],
+      );
+    } catch (err) {
+      console.warn("[scriptz] runtime-stats backfill failed for", r.id, err);
+    }
+  }
 }
 
 export async function emptyTrash(): Promise<void> {

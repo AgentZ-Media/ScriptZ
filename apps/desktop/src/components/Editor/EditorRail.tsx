@@ -1,5 +1,10 @@
 import { For, Show, createSignal, createMemo } from "solid-js";
 import { dialogWordsByCharacter, extractBlocks } from "~/lib/lex";
+import {
+  formatRuntime,
+  runtimeSeconds,
+  runtimeStatsFromBlocks,
+} from "~/lib/runtime";
 import { settingsStore } from "~/stores/settings";
 import type { ScriptCharacter } from "~/lib/types";
 import "./EditorRail.css";
@@ -71,29 +76,14 @@ export function EditorRail(props: EditorRailProps) {
     return n;
   });
 
-  /** Geschätzte Spielzeit in Sekunden — WPM aus den Settings für Dialog
-   *  + 2s pro Action/Camera-Block (Pausen). Default 210 WPM ist auf
-   *  TikTok-/Sketch-Tempo kalibriert (klassische Drehbücher: 150 WPM).
-   *  Der Action-Beat ist auf 2s gesetzt, weil TikTok-Action-Beschreibungen
-   *  kürzer und schneller sind als klassische Regieanweisungen. */
-  const runtimeSec = createMemo(() => {
-    const dialogWords = blocks()
-      .filter((b) => b.kind === "scriptz-dialog")
-      .reduce((n, b) => n + b.text.trim().split(/\s+/).filter(Boolean).length, 0);
-    const dirCount = blocks().filter(
-      (b) => b.kind === "scriptz-action" || b.kind === "scriptz-camera",
-    ).length;
-    const wpm = settingsStore.dialogWpm();
-    const sec = (dialogWords / wpm) * 60 + dirCount * 2;
-    return Math.max(5, Math.round(sec));
-  });
-
-  function fmtRuntime(s: number): string {
-    if (s < 60) return s + "s";
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return r === 0 ? m + " Min" : m + ":" + String(r).padStart(2, "0") + " Min";
-  }
+  /** Spielzeit-Schätzung: Formel und Eingangsgrößen leben in
+   *  `lib/runtime.ts`, weil dieselbe Berechnung auch in der
+   *  Browser-Übersicht läuft (dort gegen die persistierten Stats statt
+   *  gegen Live-Blöcke). Hier rechnen wir live, damit jede Tastatur-
+   *  Eingabe die Anzeige sofort bewegt. */
+  const runtimeSec = createMemo(() =>
+    runtimeSeconds(runtimeStatsFromBlocks(blocks()), settingsStore.dialogWpm()),
+  );
 
   return (
     <aside class="editor-rail" aria-label="Skript-Statistik">
@@ -154,7 +144,7 @@ export function EditorRail(props: EditorRailProps) {
         <div class="rail-stats">
           <div>
             <div class="rail-stat-label">Spielzeit</div>
-            <div class="rail-stat-val">{fmtRuntime(runtimeSec())}</div>
+            <div class="rail-stat-val">{formatRuntime(runtimeSec())}</div>
           </div>
           <div>
             <div class="rail-stat-label">Wörter</div>

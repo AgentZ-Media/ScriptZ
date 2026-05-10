@@ -86,6 +86,14 @@ export default function App() {
         settingsStore.load(),
         ensureWelcomeContent(),
         tabsStore.load(),
+        // Bestandsskripte (Sentinel aus Migration 005) einmalig
+        // nachziehen, damit die Browser-Übersicht sofort korrekte
+        // Spielzeiten zeigt - ohne diesen Backfill müsste der User
+        // jedes Skript einmal öffnen+speichern, bevor das Label
+        // erscheint. Idempotent, fehlertolerant - nicht startblockend.
+        api.backfillRuntimeStats().catch((err) => {
+          console.warn("[scriptz] runtime backfill skipped", err);
+        }),
       ]);
     } catch (err) {
       console.error("[scriptz] boot failed", err);

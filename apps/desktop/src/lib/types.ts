@@ -30,6 +30,12 @@ export interface ScriptSummary {
    *  (frisch angelegtes oder vor dem word-count-Backfill migriertes
    *  Skript). Konsumenten sollten Negativwerte als 0 behandeln. */
   word_count: number;
+  /** Dialog-Wörter beim letzten Save - Eingang für die Spielzeit-Formel
+   *  in `lib/runtime.ts`. -1 = Sentinel "noch nie gemessen". */
+  dialog_word_count: number;
+  /** Anzahl Action-/Camera-Blöcke beim letzten Save - jeder Block
+   *  trägt einen 2s-Beat zur Spielzeit bei. -1 = Sentinel. */
+  direction_block_count: number;
   characters: ScriptCharacter[];
   folder_id: string | null;
 }
