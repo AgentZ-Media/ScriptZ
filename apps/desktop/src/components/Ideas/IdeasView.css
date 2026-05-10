@@ -288,7 +288,7 @@
   font-weight: 600;
   color: var(--text);
   line-height: 1.3;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .idea-card.is-used .idea-card-title { text-decoration: line-through; text-decoration-color: var(--text-faint, var(--text-subtle)); }
 .idea-card-notes {
@@ -296,7 +296,7 @@
   color: var(--text-subtle);
   line-height: 1.45;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   /* zwei Zeilen reichen — Klick öffnet Edit für vollen Text */
   display: -webkit-box;
   -webkit-line-clamp: 2;

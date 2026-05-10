@@ -49,6 +49,7 @@ export function TabBar(props: TabBarProps) {
           classList={{ "is-active": tabsStore.isIdeas() }}
           onClick={() => tabsStore.openIdeas()}
           title="Ideen"
+          aria-label="Ideen"
           type="button"
         >
           <span class="tab-ideas-ic"><BulbIcon /></span>

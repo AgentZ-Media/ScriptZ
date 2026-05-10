@@ -187,23 +187,26 @@ export function IdeasView() {
             </Show>
           </div>
 
-          <div class="ideas-view-segs" role="tablist">
+          <div class="ideas-view-segs" role="group" aria-label="Ideenfilter">
             <button
-              role="tab"
+              type="button"
+              aria-pressed={filter() === "open"}
               classList={{ "is-on": filter() === "open" }}
               onClick={() => setFilter("open")}
             >
               Offen <span class="ideas-view-seg-n">{counts().open}</span>
             </button>
             <button
-              role="tab"
+              type="button"
+              aria-pressed={filter() === "all"}
               classList={{ "is-on": filter() === "all" }}
               onClick={() => setFilter("all")}
             >
               Alle <span class="ideas-view-seg-n">{counts().all}</span>
             </button>
             <button
-              role="tab"
+              type="button"
+              aria-pressed={filter() === "used"}
               classList={{ "is-on": filter() === "used" }}
               onClick={() => setFilter("used")}
             >
@@ -212,8 +215,9 @@ export function IdeasView() {
           </div>
 
           <div class="ideas-view-sort">
-            <label class="ideas-view-sort-label">Sortieren</label>
+            <label class="ideas-view-sort-label" for="ideas-sort">Sortieren</label>
             <select
+              id="ideas-sort"
               value={sort()}
               onChange={(e) => setSort(e.currentTarget.value as Sort)}
             >
