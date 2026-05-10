@@ -12,15 +12,15 @@ export interface ActivityModalProps {
 
 /** Detail-Modal für die Schreibstatistik. Wird vom Momentum-Strip in
  *  der Browser-Übersicht aufgerufen ("Aktivität ansehen ↗"). Zeigt
- *  drei Aggregat-Karten (Heute, Streak, Insgesamt) plus die volle
- *  365-Tage-Heatmap. Spiegelt damit Chat 2 Variante 1 wider. */
+ *  drei Aggregat-Karten (Diese Woche, Streak, Insgesamt) plus die volle
+ *  365-Tage-Heatmap. */
 export function ActivityModal(props: ActivityModalProps) {
   const stats = () => dailyStatsStore.stats();
-  const goal = () => settingsStore.dailyWordGoal();
-  const wordsToday = () => stats().wordsToday;
-  const goalMet = () => wordsToday() >= goal();
-  const pct = () => Math.min(100, Math.round((wordsToday() / Math.max(1, goal())) * 100));
-  const remaining = () => Math.max(0, goal() - wordsToday());
+  const goal = () => settingsStore.weeklyWordGoal();
+  const wordsThisWeek = () => stats().wordsThisWeek;
+  const goalMet = () => wordsThisWeek() >= goal();
+  const pct = () => Math.min(100, Math.round((wordsThisWeek() / Math.max(1, goal())) * 100));
+  const remaining = () => Math.max(0, goal() - wordsThisWeek());
 
   return (
     <Modal
@@ -35,14 +35,14 @@ export function ActivityModal(props: ActivityModalProps) {
       <div class="activity">
         <div class="activity-cards">
           <div class="activity-card">
-            <div class="activity-card-label">Heute</div>
+            <div class="activity-card-label">Diese Woche</div>
             <div class="activity-card-value">
-              {wordsToday().toLocaleString("de-DE")}
-              <span class="activity-card-unit">/ {goal()}</span>
+              {wordsThisWeek().toLocaleString("de-DE")}
+              <span class="activity-card-unit">/ {goal().toLocaleString("de-DE")}</span>
             </div>
             <div class="activity-card-sub">
               <Show when={goalMet()} fallback={<>Noch {remaining().toLocaleString("de-DE")} Wörter</>}>
-                Tagesziel erreicht ✓
+                Wochenziel erreicht ✓
               </Show>
             </div>
             <div class={"activity-progress" + (goalMet() ? " is-met" : "")}>

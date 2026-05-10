@@ -138,21 +138,21 @@ export function TabBar(props: TabBarProps) {
   );
 }
 
-/** Schreib-Statistik-Pille rechts: Wörter heute · Streak · Gespeichert. */
+/** Schreib-Statistik-Pille rechts: Wörter diese Woche · Streak · Gespeichert. */
 function StatusStrip() {
   const stats = () => dailyStatsStore.stats();
-  const goal = () => settingsStore.dailyWordGoal();
-  const wordsToday = () => stats().wordsToday;
+  const goal = () => settingsStore.weeklyWordGoal();
+  const wordsThisWeek = () => stats().wordsThisWeek;
   const streak = () => stats().streakDays;
-  const goalMet = () => wordsToday() >= goal();
+  const goalMet = () => wordsThisWeek() >= goal();
   return (
     <div class="status-strip" data-tauri-drag-region>
       <span
         class="status-cell"
-        title={`Heute geschrieben (Tagesziel: ${goal()} Wörter)`}
+        title={`Wörter seit Montag (Wochenziel: ${goal()} Wörter)`}
       >
-        <strong classList={{ "is-met": goalMet() }}>{wordsToday()}</strong>
-        <span class="status-cell-label">W heute</span>
+        <strong classList={{ "is-met": goalMet() }}>{wordsThisWeek()}</strong>
+        <span class="status-cell-label">W Woche</span>
       </span>
       <span class="status-cell-divider" aria-hidden="true" />
       <span class="status-cell" title="Aufeinanderfolgende Schreibtage">

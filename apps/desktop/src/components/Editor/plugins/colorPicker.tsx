@@ -198,21 +198,79 @@ export function installColorPicker(
     repositionSwatch();
   };
 
-  // Hover: walk up from the event target to find a Charakter block.
-  const onMouseOver = (ev: MouseEvent) => {
-    const t = ev.target as HTMLElement | null;
-    const block = t?.closest(".block-scriptz-character") as HTMLElement | null;
+  // Hover: kontinuierlich per `mousemove` tracken statt nur bei
+  // Element-Wechseln (mouseover feuert eben NICHT, wenn die Maus
+  // innerhalb desselben Containers - hier `editor-host` - bleibt).
+  // Mit raf-Throttling, damit's nicht jeden Mausbewegungs-Pixel kostet.
+  //
+  // Hit-Zone für die Anker-Wahl ist absichtlich größer als die reine
+  // Block-Box: Der Swatch sitzt im linken Gutter (~22 px außerhalb der
+  // editor-root-Kante). Damit der User vom Charakter-Namen geradeaus
+  // zum Swatch wandern kann, ohne dass die Pille auf dem Weg
+  // verschwindet, akzeptieren wir bis zu 80 px links vom Block-Left
+  // als "noch in der Charakter-Zeile". Vertikal wird die Block-Box
+  // hart eingehalten, damit benachbarte Action-/Dialog-Zeilen nicht
+  // den Swatch geistern lassen.
+  const HIT_LEFT_PAD = 80;
+  let mouseTracker: { x: number; y: number } | null = null;
+  let mouseRafId: number | null = null;
+
+  const updateHoverFromPoint = (x: number, y: number) => {
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    if (el?.closest(".scriptz-marge-swatch")) return;
+    let block = el?.closest(".block-scriptz-character") as HTMLElement | null;
+    if (!block) {
+      const root = editorRoot();
+      if (root) {
+        const blocks = root.querySelectorAll<HTMLElement>(".block-scriptz-character");
+        for (const b of Array.from(blocks)) {
+          const r = b.getBoundingClientRect();
+          if (y >= r.top && y <= r.bottom &&
+              x >= r.left - HIT_LEFT_PAD && x <= r.right) {
+            block = b;
+            break;
+          }
+        }
+      }
+    }
     if (block === hoverBlock) return;
     hoverBlock = block;
     repositionSwatch();
   };
-  const onMouseLeave = (ev: MouseEvent) => {
-    // mouseleave on the editor-host — drop hover anchor.
-    const related = ev.relatedTarget as Node | null;
-    if (related && host.contains(related)) return;
-    hoverBlock = null;
-    repositionSwatch();
+
+  const onMouseMove = (ev: MouseEvent) => {
+    mouseTracker = { x: ev.clientX, y: ev.clientY };
+    if (mouseRafId !== null) return;
+    mouseRafId = requestAnimationFrame(() => {
+      mouseRafId = null;
+      if (!mouseTracker) return;
+      updateHoverFromPoint(mouseTracker.x, mouseTracker.y);
+    });
   };
+
+  // hoverContainer ist der `paper-canvas` (= scrollbarer Volltbereich
+   // des Skripts), nicht der editor-host. Grund: editor-host ist nur
+   // so breit wie die Schreib-Spalte (`--paper-content-w`); links
+   // und rechts davon liegen die Paper-Margins, die zum
+   // `paper-editor-overlay` gehören - dort verläuft die Maus auf dem
+   // Weg zum Swatch. Listener am host würden mouseleave feuern, sobald
+   // die Maus die Schreib-Spalte verlässt, und der Swatch verschwände
+   // genau dann, wenn der User ihn anklicken will. Fallback host für
+   // den seltenen Fall, dass paper-canvas im DOM nicht (mehr) existiert.
+   const canvas = host.closest(".paper-canvas") as HTMLElement | null;
+   const hoverContainer: HTMLElement = canvas ?? host;
+
+   const onMouseLeave = (ev: MouseEvent) => {
+     const related = ev.relatedTarget as Node | null;
+     if (related && hoverContainer.contains(related)) return;
+     mouseTracker = null;
+     if (mouseRafId !== null) {
+       cancelAnimationFrame(mouseRafId);
+       mouseRafId = null;
+     }
+     hoverBlock = null;
+     repositionSwatch();
+   };
 
   // Right-click: open the popover at the cursor for the right-clicked
   // Charakter block. We bind on the editor-host so the listener survives
@@ -227,13 +285,16 @@ export function installColorPicker(
     openFor(name, { x: ev.clientX, y: ev.clientY });
   };
 
-  host.addEventListener("mouseover", onMouseOver);
-  host.addEventListener("mouseleave", onMouseLeave);
+  // Hover-Tracker am paper-canvas (siehe Erklärung beim Definieren
+  // von hoverContainer oben). contextmenu-Handler bleibt am host, weil
+  // ein Rechtsklick nur auf einem Charakter-Block Sinn macht und
+  // sowieso direkt dort feuert.
+  hoverContainer.addEventListener("mousemove", onMouseMove);
+  hoverContainer.addEventListener("mouseleave", onMouseLeave);
   host.addEventListener("contextmenu", onContextMenu);
 
-  // Scroll containers: paper canvas + window. Both can reflow the block's
-  // viewport position. Listen passively so we don't hijack scroll perf.
-  const canvas = host.closest(".paper-canvas") as HTMLElement | null;
+  // Scroll-/Resize-Reposition: paper-canvas (vertikales Scrolling) +
+  // Fenster (Resize verändert Block-Layout).
   const onScroll = () => repositionSwatch();
   canvas?.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);
@@ -312,9 +373,13 @@ export function installColorPicker(
   return {
     openFor,
     teardown: () => {
-      host.removeEventListener("mouseover", onMouseOver);
-      host.removeEventListener("mouseleave", onMouseLeave);
+      hoverContainer.removeEventListener("mousemove", onMouseMove);
+      hoverContainer.removeEventListener("mouseleave", onMouseLeave);
       host.removeEventListener("contextmenu", onContextMenu);
+      if (mouseRafId !== null) {
+        cancelAnimationFrame(mouseRafId);
+        mouseRafId = null;
+      }
       canvas?.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       ro.disconnect();

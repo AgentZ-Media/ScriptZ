@@ -12,11 +12,25 @@ import type { Folder, ScriptSummary } from "~/lib/types";
 import { stripeBackground } from "~/lib/stripe";
 import { api } from "~/lib/api";
 import { tabsStore } from "~/stores/tabs";
+import { settingsStore } from "~/stores/settings";
 import { pushToast } from "~/stores/toasts";
 import {
   relativeTime,
   debounce,
 } from "~/lib/format";
+
+/** Spielzeit aus Wörtern schätzen - Heuristik mit Setting-WPM. Sentinel
+ *  -1 (Skript wurde nie zählbar gespeichert) ergibt null, damit der
+ *  Aufrufer das Feld auslassen kann. Format gleicht der Cast-Rail
+ *  (`X s` / `X:XX Min`), damit beide Anzeigen identisch klingen. */
+function estimateRuntimeLabel(words: number, wpm: number): string | null {
+  if (!Number.isFinite(words) || words <= 0) return null;
+  const sec = Math.max(5, Math.round((words / Math.max(1, wpm)) * 60));
+  if (sec < 60) return `${sec} s`;
+  const m = Math.floor(sec / 60);
+  const r = sec % 60;
+  return r === 0 ? `${m} Min` : `${m}:${String(r).padStart(2, "0")} Min`;
+}
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { TrashView } from "./TrashView";
 import { Modal } from "~/components/Common/Modal";
@@ -95,8 +109,6 @@ export interface BrowserProps {
   /** Called with the currently active folder filter so the App-level
    * NewScriptDialog can pre-select it. */
   onNewScript?: (folderId: string | null) => void;
-  /** Opens the Settings modal. */
-  onOpenSettings?: () => void;
   /** Opens the global command palette (⌘K). */
   onOpenCmdK?: () => void;
 }
@@ -537,16 +549,6 @@ export function Browser(props: BrowserProps = {}) {
             </button>
 
             <button
-              class="icon-btn"
-              onClick={() => props.onOpenSettings?.()}
-              title="Einstellungen (⌘,)"
-              aria-label="Einstellungen"
-              type="button"
-            >
-              <GearIcon />
-            </button>
-
-            <button
               class="btn btn-primary home-new"
               onClick={() => openNewScript()}
               type="button"
@@ -938,7 +940,14 @@ function ScriptCard(props: ScriptCardProps) {
         <div class="card-v2-title">{props.script.title || "Unbenannt"}</div>
         <div class="card-v2-meta-row">
           <span class="card-v2-meta">
-            {relativeTime(props.script.updated_at)} · {props.script.page_count} S.
+            {relativeTime(props.script.updated_at)}
+            {(() => {
+              const rt = estimateRuntimeLabel(
+                props.script.word_count,
+                settingsStore.dialogWpm(),
+              );
+              return rt ? ` · ${rt}` : "";
+            })()}
           </span>
           <span class="card-v2-cast">
             <For each={props.script.characters.slice(0, 4)}>
@@ -1004,8 +1013,14 @@ function ScriptRow(props: ScriptRowProps) {
         </Show>
       </div>
       <div class="row-v2-meta">{relativeTime(props.script.updated_at)}</div>
-      <div class="row-v2-pages">
-        {props.script.page_count} {props.script.page_count === 1 ? "Seite" : "Seiten"}
+      <div class="row-v2-pages" title={`${props.script.page_count} ${props.script.page_count === 1 ? "Seite" : "Seiten"}`}>
+        {(() => {
+          const rt = estimateRuntimeLabel(
+            props.script.word_count,
+            settingsStore.dialogWpm(),
+          );
+          return rt ?? "—";
+        })()}
       </div>
       <button
         class="row-v2-more"
@@ -1041,15 +1056,6 @@ function TrashIcon() {
       <path d="M10 11v6" />
       <path d="M14 11v6" />
       <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
-}
-function GearIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }

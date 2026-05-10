@@ -23,9 +23,9 @@ export interface MomentumStripProps {
  *  steht damit direkt unter dem Strip. */
 export function MomentumStrip(props: MomentumStripProps) {
   const stats = () => dailyStatsStore.stats();
-  const goal = () => settingsStore.dailyWordGoal();
-  const wordsToday = () => stats().wordsToday;
-  const goalMet = () => wordsToday() >= goal();
+  const goal = () => settingsStore.weeklyWordGoal();
+  const wordsThisWeek = () => stats().wordsThisWeek;
+  const goalMet = () => wordsThisWeek() >= goal();
   const streak = () => stats().streakDays;
   /** Cast-Streifen wie im File-Browser: nach Dialog-Anteil sortiert,
    *  harte Segmente. Fällt auf eine dezente Linie zurück, wenn das
@@ -74,11 +74,11 @@ export function MomentumStrip(props: MomentumStripProps) {
           <span class="mom-strip-pill-label">{streak() === 1 ? "Tag" : "Tage"}</span>
         </span>
 
-        <span class="mom-strip-pill" title={`Heute / Tagesziel (${goal()} Wörter)`}>
+        <span class="mom-strip-pill" title={`Diese Woche / Wochenziel (${goal()} Wörter)`}>
           <strong classList={{ "is-met": goalMet() }}>
-            {wordsToday().toLocaleString("de-DE")}
+            {wordsThisWeek().toLocaleString("de-DE")}
           </strong>
-          <span class="mom-strip-pill-label">/ {goal()} W heute</span>
+          <span class="mom-strip-pill-label">/ {goal().toLocaleString("de-DE")} W Woche</span>
         </span>
 
         <button

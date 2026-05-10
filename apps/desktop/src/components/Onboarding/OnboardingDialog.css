@@ -630,3 +630,25 @@
   }
   .ob-skip-x:hover { transform: none; }
 }
+
+/* ---- Final-Karte ---- */
+.ob-step-final {
+  text-align: center;
+  align-items: center;
+}
+.ob-final-hints {
+  margin-top: var(--sp-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2, 8px);
+  align-items: center;
+}
+.ob-final-hint {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.ob-final-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

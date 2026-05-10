@@ -1,6 +1,7 @@
 import { Show, createSignal, createMemo, createEffect, onMount, onCleanup, type JSX } from "solid-js";
 import { Portal } from "solid-js/web";
 import { settingsStore, type Theme } from "~/stores/settings";
+import { tabsStore } from "~/stores/tabs";
 import { api } from "~/lib/api";
 import "./OnboardingDialog.css";
 
@@ -9,11 +10,19 @@ export const ONBOARDING_KEY = "onboarding_completed_v1";
 export interface OnboardingDialogProps {
   open: boolean;
   onClose(): void;
+  /** Callback der aus der Final-Karte direkt ein neues Skript anlegt
+   *  und in den Editor wechselt. App.tsx liefert hier den
+   *  quickCreateScript-Helper. */
+  onCreateFirstScript?(): void;
 }
 
 type StepDir = "forward" | "backward" | "none";
 
-const TOTAL_STEPS = 4;
+// 3 Karten: Erscheinungsbild → Schreiben → Final-CTA. Die ehemalige
+// Welcome-Karte mit Feature-Grid ist raus - wer die App installiert
+// hat, hat die Landing schon gesehen, und das Tutorial-Skript erklärt
+// den Editor besser als ein Onboarding-Step.
+const TOTAL_STEPS = 3;
 
 export function OnboardingDialog(props: OnboardingDialogProps) {
   const [step, setStep] = createSignal(0);
@@ -31,7 +40,10 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 
   const next = () => {
     if (step() >= TOTAL_STEPS - 1) {
-      void complete();
+      // Auf der letzten Karte ersetzen wir den "Weiter"-CTA durch zwei
+      // explizite Aktionen (siehe StepFinal). Enter / ArrowRight führen
+      // dort still zum Standard-Ausgang "Zur Übersicht".
+      void completeAndClose();
       return;
     }
     setDir("forward");
@@ -44,7 +56,7 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
     setStep((s) => s - 1);
   };
 
-  const complete = async () => {
+  const completeAndClose = async () => {
     try {
       await api.setAppState(ONBOARDING_KEY, "1");
     } catch {
@@ -53,7 +65,27 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
     props.onClose();
   };
 
-  const skip = () => void complete();
+  const completeAndCreateScript = async () => {
+    try {
+      await api.setAppState(ONBOARDING_KEY, "1");
+    } catch {
+      /* non-fatal */
+    }
+    props.onClose();
+    props.onCreateFirstScript?.();
+  };
+
+  const completeAndOpenBrowser = async () => {
+    try {
+      await api.setAppState(ONBOARDING_KEY, "1");
+    } catch {
+      /* non-fatal */
+    }
+    tabsStore.openBrowser();
+    props.onClose();
+  };
+
+  const skip = () => void completeAndClose();
 
   // Tastatur: Enter = weiter, ESC = überspringen, Pfeile navigieren.
   const onKey = (e: KeyboardEvent) => {
@@ -66,7 +98,7 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
     }
     if (e.key === "Enter") {
       // Nur wenn der Fokus nicht in einem Input liegt — sonst würde
-      // Enter im Tagesziel-Feld unbeabsichtigt weiterspringen.
+      // Enter im Wochenziel-Feld unbeabsichtigt weiterspringen.
       const t = e.target as HTMLElement | null;
       if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
       e.preventDefault();
@@ -93,6 +125,8 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
   // Re-trigger card animation on every step change.
   const animKey = createMemo(() => `${step()}-${dir()}`);
 
+  const isFinalStep = () => step() === TOTAL_STEPS - 1;
+
   return (
     <Show when={props.open}>
       <Portal>
@@ -111,16 +145,13 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
             <div class="ob-stage">
               <div class="ob-card" data-step={step()} data-dir={dir()} data-anim-key={animKey()}>
                 <Show when={step() === 0}>
-                  <StepWelcome />
+                  <StepAppearance />
                 </Show>
                 <Show when={step() === 1}>
-                  <StepTheme />
+                  <StepWriting />
                 </Show>
                 <Show when={step() === 2}>
-                  <StepHighlight />
-                </Show>
-                <Show when={step() === 3}>
-                  <StepWriting />
+                  <StepFinal />
                 </Show>
               </div>
             </div>
@@ -148,9 +179,23 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
               </div>
 
               <div class="ob-foot-right">
-                <button type="button" class="btn btn-primary ob-cta" onClick={next}>
-                  {step() < TOTAL_STEPS - 1 ? "Weiter" : "Los geht’s"}
-                </button>
+                <Show
+                  when={!isFinalStep()}
+                  fallback={
+                    <div class="ob-final-actions">
+                      <button type="button" class="btn" onClick={() => void completeAndOpenBrowser()}>
+                        Zur Übersicht
+                      </button>
+                      <button type="button" class="btn btn-primary ob-cta" onClick={() => void completeAndCreateScript()}>
+                        Erstes Skript schreiben
+                      </button>
+                    </div>
+                  }
+                >
+                  <button type="button" class="btn btn-primary ob-cta" onClick={next}>
+                    Weiter
+                  </button>
+                </Show>
               </div>
             </div>
           </div>
@@ -161,70 +206,23 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 }
 
 /* =========================================================================
-   Schritt 1 – Willkommen / Was kann ScriptZ
+   Schritt 1 – Erscheinungsbild (Theme + Charakter-Highlighting)
    ========================================================================= */
-function StepWelcome() {
-  return (
-    <div class="ob-step">
-      <div class="ob-eyebrow">Willkommen</div>
-      <h1 class="ob-h1">Schreiben, ohne Reibung.</h1>
-      <p class="ob-lede">
-        ScriptZ ist ein schneller, lokaler Editor für TikTok-Skripte und Sketches.
-        Kein Konto, keine Cloud, keine Tracker. Alles bleibt auf deinem Mac.
-      </p>
-
-      <div class="ob-feats">
-        <Feat
-          title="7 Block-Typen"
-          desc="Aktion, Charakter, Dialog, Klammer, Kamera, Caption, SFX. Mit Tab oder ⌘1–7."
-          icon={<IconBlocks />}
-        />
-        <Feat
-          title="Lokal & schnell"
-          desc="SQLite + Volltextsuche. Auch in offline und mit langen Skripten flott."
-          icon={<IconBolt />}
-        />
-        <Feat
-          title="Streak & Tagesziel"
-          desc="Heatmap, Streak und Wort-Tagesziel halten dich am Schreiben."
-          icon={<IconFlame />}
-        />
-        <Feat
-          title="⌘K für alles"
-          desc="Skripte finden, springen, exportieren – aus jedem Fenster."
-          icon={<IconCmd />}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Feat(props: { title: string; desc: string; icon: JSX.Element }) {
-  return (
-    <div class="ob-feat">
-      <div class="ob-feat-ic">{props.icon}</div>
-      <div class="ob-feat-text">
-        <div class="ob-feat-title">{props.title}</div>
-        <div class="ob-feat-desc">{props.desc}</div>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================================
-   Schritt 2 – Theme
-   ========================================================================= */
-function StepTheme() {
+function StepAppearance() {
   const themes: { id: Theme; label: string; sub: string }[] = [
     { id: "light", label: "Hell",   sub: "Heller App-Rahmen, weisses Papier." },
     { id: "dark",  label: "Dunkel", sub: "Dunkles Grau – Papier bleibt hell." },
     { id: "auto",  label: "Auto",   sub: "Folgt deinem System-Theme." },
   ];
+  const on = () => settingsStore.highlightingDefault();
   return (
     <div class="ob-step">
-      <div class="ob-eyebrow">Schritt 2 von 4 · Erscheinungsbild</div>
-      <h1 class="ob-h1">Wähle dein Theme.</h1>
-      <p class="ob-lede">Kannst du jederzeit in den Einstellungen wechseln.</p>
+      <div class="ob-eyebrow">Schritt 1 von 2 · Erscheinungsbild</div>
+      <h1 class="ob-h1">Sieh aus, wie du willst.</h1>
+      <p class="ob-lede">
+        Theme und Charakter-Farben - beides änderst du jederzeit später in
+        den Einstellungen.
+      </p>
 
       <div class="ob-themes">
         {themes.map((t) => (
@@ -258,48 +256,21 @@ function StepTheme() {
           </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-/* =========================================================================
-   Schritt 3 – Charakter-Highlighting (Live-Demo)
-   ========================================================================= */
-function StepHighlight() {
-  const on = () => settingsStore.highlightingDefault();
-  return (
-    <div class="ob-step">
-      <div class="ob-eyebrow">Schritt 3 von 4 · Editor</div>
-      <h1 class="ob-h1">Charakter-Highlighting.</h1>
-      <p class="ob-lede">
-        Jeder Charakter bekommt eine eigene Farbe. Wenn aktiv, hinterlegt
-        ScriptZ Dialog-Blöcke dezent in der Charakter-Farbe – beim Drüberlesen
-        siehst du sofort, wer spricht.
-      </p>
 
       <div class="ob-hl-preview" data-on={on() ? "1" : "0"} aria-hidden="true">
         <div class="ob-hl-paper">
-          <ObHlBlock kind="caption" text="INT. CAFÉ — TAG" />
-          <ObHlBlock kind="action" text="Mira sitzt am Fenster, Jonas kommt rein." />
           <ObHlBlock kind="character" tint="--char-1" text="MIRA" />
-          <ObHlBlock kind="dialog"    tint="--char-1"
-            text="Du bist spät." />
+          <ObHlBlock kind="dialog"    tint="--char-1" text="Du bist spät." />
           <ObHlBlock kind="character" tint="--char-2" text="JONAS" />
-          <ObHlBlock kind="parenthetical" tint="--char-2" text="(grinst)" />
-          <ObHlBlock kind="dialog"    tint="--char-2"
-            text="Ich nenn’s dramatischen Auftritt." />
-          <ObHlBlock kind="character" tint="--char-1" text="MIRA" />
-          <ObHlBlock kind="dialog"    tint="--char-1"
-            text="Du nennst alles dramatisch." />
+          <ObHlBlock kind="dialog"    tint="--char-2" text="Ich nenn’s dramatischen Auftritt." />
         </div>
       </div>
 
       <div class="ob-hl-row">
         <div class="ob-hl-row-label">
-          <div class="ob-field-label">Standardmässig aktiv</div>
+          <div class="ob-field-label">Charakter-Highlighting standardmässig</div>
           <div class="ob-field-help">
-            Greift in jedem neu geöffneten Skript. Pro Skript überschreibst du
-            die Wahl jederzeit über das Augen-Icon in der Toolbar.
+            Hinterlegt Dialog-Blöcke dezent in der Charakter-Farbe.
           </div>
         </div>
         <ObToggle
@@ -329,12 +300,12 @@ function ObHlBlock(props: {
 }
 
 /* =========================================================================
-   Schritt 4 – Schreib-Defaults
+   Schritt 2 – Schreib-Defaults (Wochenziel + Fokus-Modus)
    ========================================================================= */
 function StepWriting() {
   return (
     <div class="ob-step">
-      <div class="ob-eyebrow">Schritt 4 von 4 · Schreiben</div>
+      <div class="ob-eyebrow">Schritt 2 von 2 · Schreiben</div>
       <h1 class="ob-h1">Zwei Defaults zum Starten.</h1>
       <p class="ob-lede">
         Beides änderst du jederzeit in den Einstellungen. Hier nur ein
@@ -344,25 +315,26 @@ function StepWriting() {
       <div class="ob-fields">
         <div class="ob-field">
           <div class="ob-field-head">
-            <div class="ob-field-label">Tagesziel</div>
+            <div class="ob-field-label">Wochenziel</div>
             <div class="ob-field-help">
-              Wörter pro Tag. Wird in der Statusleiste und auf der Startseite
-              angezeigt. 250 ist ein realistischer Default für tägliches Schreiben.
+              Wörter pro Woche (seit Montag). Wird in der Statusleiste oben
+              und auf der Startseite angezeigt. 1500 entspricht etwa 7
+              Skripten à 200 Wörter.
             </div>
           </div>
           <div class="ob-goal">
             <input
               type="number"
-              min={settingsStore.DAILY_WORD_GOAL_MIN}
-              max={settingsStore.DAILY_WORD_GOAL_MAX}
-              step={50}
-              value={settingsStore.dailyWordGoal()}
+              min={settingsStore.WEEKLY_WORD_GOAL_MIN}
+              max={settingsStore.WEEKLY_WORD_GOAL_MAX}
+              step={100}
+              value={settingsStore.weeklyWordGoal()}
               onChange={(e) => {
                 const n = Number(e.currentTarget.value);
-                if (Number.isFinite(n)) void settingsStore.setDailyWordGoal(n);
+                if (Number.isFinite(n)) void settingsStore.setWeeklyWordGoal(n);
               }}
             />
-            <span class="ob-goal-unit">Wörter</span>
+            <span class="ob-goal-unit">Wörter / Woche</span>
           </div>
         </div>
 
@@ -386,6 +358,36 @@ function StepWriting() {
 }
 
 /* =========================================================================
+   Final-Karte – CTA zur ersten Aktion
+   ========================================================================= */
+function StepFinal() {
+  return (
+    <div class="ob-step ob-step-final">
+      <div class="ob-eyebrow">Fertig.</div>
+      <h1 class="ob-h1">Los geht’s.</h1>
+      <p class="ob-lede">
+        Setup ist durch. Du kannst jetzt direkt dein erstes Skript
+        anlegen, oder erst durch die Übersicht stöbern - dort liegt das
+        kurze Tutorial-Skript, das die Block-Typen und Hotkeys erklärt.
+      </p>
+      <div class="ob-final-hints">
+        <div class="ob-final-hint">
+          <span class="kbd kbd-inline">⌘N</span> legt jederzeit ein neues
+          Skript an
+        </div>
+        <div class="ob-final-hint">
+          <span class="kbd kbd-inline">⌘K</span> findet jedes Skript per
+          Suche
+        </div>
+        <div class="ob-final-hint">
+          <span class="kbd kbd-inline">⌘I</span> merkt eine Idee für später
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
    Lokale UI-Bausteine
    ========================================================================= */
 function ObToggle(props: { checked: boolean; onChange(v: boolean): void; label?: string }) {
@@ -402,40 +404,6 @@ function ObToggle(props: { checked: boolean; onChange(v: boolean): void; label?:
   );
 }
 
-/* ---- Icons ---- */
-function IconBlocks() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </svg>
-  );
-}
-function IconBolt() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="13 2 4 14 12 14 11 22 20 10 12 10 13 2" />
-    </svg>
-  );
-}
-function IconFlame() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2c2 4-2 6-2 9a4 4 0 0 0 8 0c0-2-1-3-2-4 .5 4-2 5-2 5C13 8 10 7 12 2z" />
-      <path d="M8 13c-1 1-2 3-2 5a6 6 0 0 0 12 0" />
-    </svg>
-  );
-}
-function IconCmd() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6z" />
-    </svg>
-  );
-}
+// JSX import bleibt erhalten, falls künftig wieder Icon-Karten zurück
+// kommen sollten - wir wollen das CSS nicht doppelt umstellen müssen.
+void (null as unknown as JSX.Element);

@@ -19,6 +19,11 @@ import { SprintPill } from "./SprintPill";
 import { EditorToolbar } from "./EditorToolbar";
 import { EditorRail } from "./EditorRail";
 import type { ScriptCharacter } from "~/lib/types";
+import {
+  scriptViewCache,
+  captureCursor,
+  type CursorAddress,
+} from "~/lib/scriptViewCache";
 import "./PaperLayout.css";
 import "./EditorToolbar.css";
 import "./EditorRail.css";
@@ -61,6 +66,85 @@ export function ScriptView(props: ScriptViewProps) {
   };
 
   let canvasRef: HTMLDivElement | undefined;
+
+  // ---- View-State pro Skript persistieren (Scroll + Cursor) ------------
+  // ScriptView selbst wird beim Tab-Wechsel A->B NICHT neu gemountet -
+  // Solid liefert nur neue Props, weil <Match> aktiv bleibt. Deshalb
+  // koennen wir den scriptId-Wechsel hier ueber einen Effect mit
+  // onCleanup abfangen: das innere onCleanup feuert genau dann, wenn
+  // sich props.scriptId aendert (also: bevor der neue Wert greift),
+  // und gibt uns den letzten bekannten Stand fuer die VORIGE Skript-ID
+  // zum Wegspeichern.
+  let lastScrollTop = 0;
+  const onCanvasScroll = () => {
+    if (canvasRef) lastScrollTop = canvasRef.scrollTop;
+  };
+  onMount(() => {
+    if (!canvasRef) return;
+    canvasRef.addEventListener("scroll", onCanvasScroll, { passive: true });
+    onCleanup(() => {
+      canvasRef?.removeEventListener("scroll", onCanvasScroll);
+    });
+  });
+
+  // Beim Skript-Wechsel den Stand der ALTEN ID wegspeichern.
+  createEffect(() => {
+    const id = props.scriptId;
+    onCleanup(() => {
+      let cursor: CursorAddress | null = null;
+      const ed = editorInstance();
+      if (ed) {
+        try { cursor = captureCursor(ed); } catch { /* ignore */ }
+      }
+      scriptViewCache.set(id, {
+        scrollTop: lastScrollTop,
+        cursor,
+      });
+    });
+  });
+
+  // Beim Erscheinen einer neuen Skript-ID dessen gecachten Scroll wieder
+  // anlegen. Mehrfach-rAF, damit der Editor-Remount + Pagecount-Measure
+  // erst ihre Hoehe einnehmen koennen, bevor wir scrollTop setzen - sonst
+  // clamped der Browser auf den (noch zu kleinen) scrollHeight.
+  let appliedScrollForId: string | null = null;
+  let scrollRestoreRun = 0;
+  createEffect(() => {
+    const id = script.latest?.id;
+    if (!id) return;
+    if (appliedScrollForId === id) return;
+    appliedScrollForId = id;
+    const run = ++scrollRestoreRun;
+    const cached = scriptViewCache.get(id);
+    const target = cached?.scrollTop ?? 0;
+    if (!canvasRef) return;
+    if (target <= 0) {
+      canvasRef.scrollTop = 0;
+      lastScrollTop = 0;
+      return;
+    }
+    let attempts = 8;
+    let rafId = 0;
+    const tryApply = () => {
+      if (!canvasRef || run !== scrollRestoreRun) return;
+      canvasRef.scrollTop = target;
+      lastScrollTop = canvasRef.scrollTop;
+      if (canvasRef.scrollTop < target - 1 && attempts-- > 0) {
+        rafId = requestAnimationFrame(tryApply);
+      }
+    };
+    rafId = requestAnimationFrame(tryApply);
+    onCleanup(() => {
+      scrollRestoreRun++;
+      if (rafId) cancelAnimationFrame(rafId);
+    });
+  });
+
+  /** Initial-Cursor fuer den naechsten Editor-Mount. Wird beim
+   *  Skript-Wechsel reaktiv neu berechnet, damit der frisch montierte
+   *  Editor (siehe <Show keyed> unten) den passenden Cursor erhaelt. */
+  const initialCursorFor = (id: string): CursorAddress | null =>
+    scriptViewCache.get(id)?.cursor ?? null;
 
   // Highlighting resolution: per-script override > global default.
   const highlightingOn = () => {
@@ -294,6 +378,7 @@ export function ScriptView(props: ScriptViewProps) {
                         <Editor
                           scriptId={scriptId}
                           initialContentJson={s().content_json}
+                          initialCursor={initialCursorFor(scriptId)}
                           characters={s().characters}
                           highlighting={highlightingOn()}
                           quickModeEnabled={() => quickMode()}

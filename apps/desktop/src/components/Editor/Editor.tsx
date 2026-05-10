@@ -29,11 +29,17 @@ import { api } from "../../lib/api";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { registerFlusher } from "../../lib/saveFlush";
 import type { ScriptCharacter } from "../../lib/types";
+import { applyCursor, type CursorAddress } from "../../lib/scriptViewCache";
 import "./Editor.css";
 
 export interface EditorProps {
   scriptId: string;
   initialContentJson: string | null | undefined;
+  /** Optionaler Cursor, der nach dem Mount statt `rootEnd` gesetzt wird.
+   *  ScriptView reicht hier den letzten bekannten Cursor des Skripts
+   *  durch, damit der User beim Tab-Wechsel zurueck genau dort landet,
+   *  wo er war. */
+  initialCursor?: CursorAddress | null;
   characters: ScriptCharacter[];
   highlighting?: boolean;
   /** Quick-mode toggle — when on AND the script has exactly 2 characters,
@@ -167,11 +173,23 @@ export function Editor(props: EditorProps) {
     // should be able to start typing immediately — no manual click into
     // the contenteditable area required. We focus on the next frame so
     // Lexical has finished its initial reconcile and the DOM target
-    // exists. `rootEnd` is only used if the parsed state didn't already
-    // place a caret (seedEmptyState calls select(0,0) so it wins).
+    // exists.
+    //
+    // Wenn ein `initialCursor` mitgegeben wurde (Tab-Wechsel zurueck auf
+    // ein zuvor offenes Skript), platzieren wir den Cursor an der
+    // gespeicherten Stelle und fokussieren OHNE `defaultSelection` -
+    // sonst wuerde Lexical die soeben gesetzte Selection wieder nach
+    // rootEnd ueberschreiben. Ohne gespeicherten Cursor bleibt das
+    // urspruengliche Verhalten: ans Ende des Dokuments.
+    const initialCursor = props.initialCursor ?? null;
     requestAnimationFrame(() => {
       try {
-        editor.focus(undefined, { defaultSelection: "rootEnd" });
+        if (initialCursor) {
+          applyCursor(editor, initialCursor);
+          editor.focus();
+        } else {
+          editor.focus(undefined, { defaultSelection: "rootEnd" });
+        }
       } catch {
         /* ignore — non-fatal if the editor was torn down meanwhile */
       }
@@ -239,6 +257,38 @@ export function Editor(props: EditorProps) {
       scriptCharacters: () => liveCharacters(),
       openColorPicker: colorPicker.openFor,
     }));
+
+    // Externe Farb-Updates (z.B. aus dem Einstellungen-Charaktere-Tab) live
+    // in den laufenden Editor ziehen. ScriptView refetcht beim
+    // `scriptsBus.bump()` und reicht die frischen `characters` als Prop
+    // weiter — wir mergen NUR Farben in `liveCharacters` (kein Replace),
+    // damit gerade getippte, noch nicht gespeicherte Namen nicht
+    // überschrieben werden. Erstes Run wird übersprungen, weil
+    // `liveCharacters` bereits aus Props seeded ist.
+    let firstCharacterSync = true;
+    createEffect(() => {
+      const incoming = props.characters ?? [];
+      if (firstCharacterSync) {
+        firstCharacterSync = false;
+        return;
+      }
+      const byName = new Map<string, string>();
+      for (const c of incoming) byName.set(c.name.toUpperCase(), c.color);
+      const current = liveCharacters();
+      let changed = false;
+      const merged = current.map((c) => {
+        const next = byName.get(c.name.toUpperCase());
+        if (next !== undefined && next !== c.color) {
+          changed = true;
+          return { ...c, color: next };
+        }
+        return c;
+      });
+      if (changed) {
+        setLiveCharacters(merged);
+        highlight.refresh();
+      }
+    });
 
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let dirtySinceSnapshot = false;
@@ -579,6 +629,28 @@ export function Editor(props: EditorProps) {
     // Initial-Wert nach Mount.
     requestAnimationFrame(reportActiveBlock);
 
+    /** Kennzeichnet den Editor-Root mit `data-empty="1"`, wenn das ganze
+     *  Skript leer ist (genau ein Block, ohne Text). CSS rendert daraus
+     *  den ⌘-Hint im hostRef-Sibling. */
+    const updateEmptyMarker = () => {
+      if (!rootRef) return;
+      let isEmpty = true;
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const children = root.getChildren();
+        if (children.length !== 1) {
+          isEmpty = false;
+          return;
+        }
+        if (children[0].getTextContent().trim().length > 0) {
+          isEmpty = false;
+        }
+      });
+      if (isEmpty) rootRef.setAttribute("data-empty", "1");
+      else rootRef.removeAttribute("data-empty");
+    };
+    requestAnimationFrame(updateEmptyMarker);
+
     const teardownUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
       // Selection-Tracking unabhängig von dirty-State — der Cursor kann
       // sich bewegen ohne dass etwas getippt wurde.
@@ -586,6 +658,7 @@ export function Editor(props: EditorProps) {
 
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
       dirtySinceSnapshot = true;
+      updateEmptyMarker();
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         saveTimer = null;
@@ -666,6 +739,14 @@ export function Editor(props: EditorProps) {
         spellcheck
         data-highlighting={props.highlighting ? "on" : "off"}
       />
+      {/* Hotkey-Hint: nur sichtbar, wenn der Editor-Root data-empty="1"
+          trägt. Liegt außerhalb des contenteditable, damit Lexical-
+          Selection nicht an einem ::before-Pseudo-Caret-Target hängt. */}
+      <div class="editor-empty-hint" aria-hidden="true">
+        Tippe los · <span class="kbd kbd-inline">Tab</span> wechselt den Block-Typ ·{" "}
+        <span class="kbd kbd-inline">⌘1</span>–<span class="kbd kbd-inline">⌘7</span>{" "}
+        direkt
+      </div>
     </div>
   );
 }
