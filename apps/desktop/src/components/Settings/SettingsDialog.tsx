@@ -144,6 +144,32 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
             <div class="settings-row">
               <div class="settings-row-label">
+                <div class="row-label">Sprech-Tempo</div>
+                <div class="row-help">
+                  Wörter pro Minute für die Spielzeit-Schätzung in der
+                  Cast-Leiste. Default 210 ist auf TikTok-/Sketch-Tempo
+                  kalibriert; klassisches Drehbuch liegt bei ~150,
+                  schnelles Reden bei ~250.
+                </div>
+              </div>
+              <div class="settings-goal-input">
+                <input
+                  type="number"
+                  min={settingsStore.DIALOG_WPM_MIN}
+                  max={settingsStore.DIALOG_WPM_MAX}
+                  step={10}
+                  value={settingsStore.dialogWpm()}
+                  onChange={(e) => {
+                    const n = Number(e.currentTarget.value);
+                    if (Number.isFinite(n)) void settingsStore.setDialogWpm(n);
+                  }}
+                />
+                <span class="settings-goal-unit">WPM</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-label">
                 <div class="row-label">Charakter-Highlighting standardmäßig aktiviert</div>
               </div>
               <Toggle

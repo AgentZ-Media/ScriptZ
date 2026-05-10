@@ -1,5 +1,6 @@
 import { For, Show, createSignal, createMemo } from "solid-js";
 import { dialogWordsByCharacter, extractBlocks } from "~/lib/lex";
+import { settingsStore } from "~/stores/settings";
 import type { ScriptCharacter } from "~/lib/types";
 import "./EditorRail.css";
 
@@ -70,16 +71,11 @@ export function EditorRail(props: EditorRailProps) {
     return n;
   });
 
-  /** Geschätzte Spielzeit in Sekunden — 210 WPM für Dialog + 2s pro
-   *  Action/Camera-Block (Pausen).
-   *
-   *  Kalibriert auf TikTok-/Sketch-Tempo: Industriestandard für klassische
-   *  Drehbücher liegt bei 150 WPM (Hörspiel/TV-Pace), aber die Zielgruppe
-   *  dieser App spricht deutlich schneller. Empirisch ergibt eine fertig
-   *  produzierte Folge (238 Dialogwörter, 0 Action-Blöcke) ≈ 1:06 Min,
-   *  was 216 WPM entspricht; 210 WPM lässt etwas Headroom für ruhigere
-   *  Stellen. Der Action-Beat ist von 4s auf 2s halbiert, weil TikTok-
-   *  Action-Beschreibungen kürzer und schneller sind als TV-Regieanweisungen. */
+  /** Geschätzte Spielzeit in Sekunden — WPM aus den Settings für Dialog
+   *  + 2s pro Action/Camera-Block (Pausen). Default 210 WPM ist auf
+   *  TikTok-/Sketch-Tempo kalibriert (klassische Drehbücher: 150 WPM).
+   *  Der Action-Beat ist auf 2s gesetzt, weil TikTok-Action-Beschreibungen
+   *  kürzer und schneller sind als klassische Regieanweisungen. */
   const runtimeSec = createMemo(() => {
     const dialogWords = blocks()
       .filter((b) => b.kind === "scriptz-dialog")
@@ -87,7 +83,8 @@ export function EditorRail(props: EditorRailProps) {
     const dirCount = blocks().filter(
       (b) => b.kind === "scriptz-action" || b.kind === "scriptz-camera",
     ).length;
-    const sec = (dialogWords / 210) * 60 + dirCount * 2;
+    const wpm = settingsStore.dialogWpm();
+    const sec = (dialogWords / wpm) * 60 + dirCount * 2;
     return Math.max(5, Math.round(sec));
   });
 

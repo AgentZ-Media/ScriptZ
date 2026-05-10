@@ -19,12 +19,24 @@ export function Modal(props: ModalProps) {
   let modalRef: HTMLDivElement | undefined;
   let previousFocus: HTMLElement | null = null;
 
+  /** Blur the active element (if it lives in the modal) before closing.
+   *  Number-/Text-Inputs commit their `change`-Event nur beim Blur — ohne
+   *  diesen Schritt geht eine Wert-Änderung verloren, wenn der User per
+   *  Backdrop-Klick oder Escape schließt, während ein Input fokussiert ist. */
+  const closeWithFlush = () => {
+    const active = document.activeElement as HTMLElement | null;
+    if (active && modalRef?.contains(active) && typeof active.blur === "function") {
+      active.blur();
+    }
+    props.onClose();
+  };
+
   const onKey = (e: KeyboardEvent) => {
     if (!props.open) return;
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      props.onClose();
+      closeWithFlush();
       return;
     }
     if (e.key === "Tab" && modalRef) {
@@ -105,7 +117,7 @@ export function Modal(props: ModalProps) {
           class="modal-backdrop"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget && (props.closeOnBackdrop ?? true)) {
-              props.onClose();
+              closeWithFlush();
             }
           }}
         >
@@ -128,7 +140,7 @@ export function Modal(props: ModalProps) {
                   type="button"
                   aria-label="Schließen"
                   title="Schließen"
-                  onClick={() => props.onClose()}
+                  onClick={closeWithFlush}
                 >
                   ✕
                 </button>

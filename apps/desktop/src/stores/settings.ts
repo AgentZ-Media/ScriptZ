@@ -19,11 +19,25 @@ const DAILY_WORD_GOAL_DEFAULT = 250;
 const DAILY_WORD_GOAL_MIN = 50;
 const DAILY_WORD_GOAL_MAX = 5000;
 const [dailyWordGoal, setDailyWordGoal] = createSignal<number>(DAILY_WORD_GOAL_DEFAULT);
+
+// Wörter pro Minute für die Spielzeit-Schätzung in der Cast-Rail.
+// Default 210 ist auf TikTok-/Sketch-Tempo kalibriert (siehe EditorRail.tsx).
+// Klassische Drehbuch-Pace liegt bei 150, schnelles Reden bei ~250.
+const DIALOG_WPM_DEFAULT = 210;
+const DIALOG_WPM_MIN = 80;
+const DIALOG_WPM_MAX = 400;
+const [dialogWpm, setDialogWpm] = createSignal<number>(DIALOG_WPM_DEFAULT);
+
 const [loaded, setLoaded] = createSignal(false);
 
 function clampGoal(n: number): number {
   if (!Number.isFinite(n)) return DAILY_WORD_GOAL_DEFAULT;
   return Math.max(DAILY_WORD_GOAL_MIN, Math.min(DAILY_WORD_GOAL_MAX, Math.round(n)));
+}
+
+function clampWpm(n: number): number {
+  if (!Number.isFinite(n)) return DIALOG_WPM_DEFAULT;
+  return Math.max(DIALOG_WPM_MIN, Math.min(DIALOG_WPM_MAX, Math.round(n)));
 }
 
 export const settingsStore = {
@@ -63,15 +77,25 @@ export const settingsStore = {
   DAILY_WORD_GOAL_MIN,
   DAILY_WORD_GOAL_MAX,
   DAILY_WORD_GOAL_DEFAULT,
+  dialogWpm,
+  setDialogWpm: async (v: number) => {
+    const next = clampWpm(v);
+    setDialogWpm(next);
+    await api.setSetting("dialog_wpm", String(next));
+  },
+  DIALOG_WPM_MIN,
+  DIALOG_WPM_MAX,
+  DIALOG_WPM_DEFAULT,
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, dwg] = await Promise.all([
+    const [t, hd, uce, huc, qmae, dwg, wpm] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
       api.getSetting("hourly_update_check"),
       api.getSetting("quick_mode_auto_enable"),
       api.getSetting("daily_word_goal"),
+      api.getSetting("dialog_wpm"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
@@ -81,6 +105,10 @@ export const settingsStore = {
     if (dwg) {
       const parsed = Number(dwg);
       if (Number.isFinite(parsed)) setDailyWordGoal(clampGoal(parsed));
+    }
+    if (wpm) {
+      const parsed = Number(wpm);
+      if (Number.isFinite(parsed)) setDialogWpm(clampWpm(parsed));
     }
     setLoaded(true);
   },
