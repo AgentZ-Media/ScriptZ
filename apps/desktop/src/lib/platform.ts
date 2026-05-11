@@ -1,8 +1,8 @@
 // Tauri-backed implementation of @scriptz/core's PlatformAdapter.
 //
 // This file is imported once at app startup (from index.tsx) and
-// registers a concrete adapter so the core code — which only sees the
-// abstract DbConnection / SaveDialogOptions / etc. — has a working
+// registers a concrete adapter so the core code - which only sees the
+// abstract DbConnection / SaveDialogOptions / etc. - has a working
 // implementation to call into.
 //
 // All @tauri-apps/* imports live in this file (and in the few other

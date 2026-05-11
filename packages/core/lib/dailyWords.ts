@@ -1,4 +1,4 @@
-// Tägliche Wortprotokollierung — Speist Streak, Heatmap und Tagesziel.
+// Tägliche Wortprotokollierung - Speist Streak, Heatmap und Tagesziel.
 //
 // Drei Verbraucher:
 //   1. Status-Strip in der Titlebar (Wörter heute, Streak)

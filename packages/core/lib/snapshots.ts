@@ -1,4 +1,4 @@
-// Snapshots — auto + manual versioning for a script's content.
+// Snapshots - auto + manual versioning for a script's content.
 //
 // TS port of src-tauri/src/commands/snapshots.rs (Migration Phase 5).
 // Schema is unchanged: `snapshots(id, script_id, content_json, trigger,

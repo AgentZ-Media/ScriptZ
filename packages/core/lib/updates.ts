@@ -2,7 +2,7 @@
 //
 // The actual updater lives in the host app (Tauri's plugin-updater on
 // desktop, nothing on web). UI in core (SettingsDialog) queries this
-// slot — if a store is registered, the "Updates" section renders;
+// slot - if a store is registered, the "Updates" section renders;
 // otherwise it stays hidden.
 //
 // The Solid accessor shapes mirror what apps/desktop/src/stores/updates.ts

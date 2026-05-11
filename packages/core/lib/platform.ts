@@ -1,8 +1,8 @@
 // Platform abstraction layer.
 //
 // Everything in @scriptz/core is platform-neutral TypeScript. Anything that
-// needs native capabilities — SQLite, file dialogs, file system writes,
-// reveal-in-folder, app version, open-external-URL — goes through this
+// needs native capabilities - SQLite, file dialogs, file system writes,
+// reveal-in-folder, app version, open-external-URL - goes through this
 // adapter interface. The desktop app registers a Tauri-backed adapter at
 // startup; a future web app would register an IndexedDB + Blob-download
 // adapter.
@@ -14,7 +14,7 @@ import type { ScriptCharacter } from "./types";
 
 // ===== Database connection =====
 //
-// Structural interface — Tauri's @tauri-apps/plugin-sql Database class
+// Structural interface - Tauri's @tauri-apps/plugin-sql Database class
 // satisfies this directly, so the desktop adapter can pass its Database
 // instance without any wrapper. A future web adapter would implement
 // these two methods on top of IndexedDB or sql.js.

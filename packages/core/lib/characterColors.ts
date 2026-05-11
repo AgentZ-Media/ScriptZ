@@ -98,7 +98,7 @@ export async function loadColorRecords(): Promise<Map<string, ColorRecord>> {
  *  (the very first auto-assigned colour wins forever); override is left
  *  alone. Mirrors the SQL Rust uses in commands/scripts.rs.
  *
- *  Validates the color shape — same rationale as `setCharacterColor`:
+ *  Validates the color shape - same rationale as `setCharacterColor`:
  *  the persistence layer should never store a value that the renderer
  *  pastes into an inline `style` attribute. */
 export async function upsertDefaultColor(
@@ -125,7 +125,7 @@ export async function upsertDefaultColor(
 }
 
 /** ASCII case-insensitive equality. Unicode-aware comparisons aren't
- *  needed here — character names are uppercased Latin by reconcile. */
+ *  needed here - character names are uppercased Latin by reconcile. */
 export function eqIgnoreAsciiCase(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -141,7 +141,7 @@ export function eqIgnoreAsciiCase(a: string, b: string): boolean {
 /** Set the manual override and propagate it into every script that already
  *  references the name. Returns the IDs of scripts that actually changed.
  *
- *  Rejects malformed hex strings — the value lands in inline CSS template
+ *  Rejects malformed hex strings - the value lands in inline CSS template
  *  literals (`background:${color}`) on multiple render paths, so this is
  *  the persistence-layer line of defense in case a future caller forgets
  *  the UI-side `isValidHexColor` check. */
@@ -208,7 +208,7 @@ export async function clearCharacterColor(
   const existingDefault: string | null =
     existing.length > 0 ? existing[0].default_color : null;
 
-  // Clear override but keep default. UPDATE is a no-op if no row exists —
+  // Clear override but keep default. UPDATE is a no-op if no row exists -
   // that's fine, we still proceed in case characters_meta entries need
   // the default propagated.
   await db.execute(

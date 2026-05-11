@@ -66,7 +66,7 @@ import type {
 } from "./types";
 
 export const api = {
-  // Scripts — fully TS-side since Migration Phase 7d.
+  // Scripts - fully TS-side since Migration Phase 7d.
   async createScript(input: {
     title?: string;
     initialContentJson?: string;
@@ -131,7 +131,7 @@ export const api = {
     return scriptsBackfillRuntime();
   },
 
-  // Folders — TS-side via plugin-sql since Migration Phase 4.
+  // Folders - TS-side via plugin-sql since Migration Phase 4.
   async listFolders(): Promise<Folder[]> {
     return foldersList();
   },
@@ -154,7 +154,7 @@ export const api = {
     return foldersMoveScripts(scriptIds, folderId);
   },
 
-  // Snapshots — TS-side via plugin-sql since Migration Phase 5.
+  // Snapshots - TS-side via plugin-sql since Migration Phase 5.
   async createSnapshot(scriptId: string, trigger: "auto" | "manual"): Promise<SnapshotMeta> {
     return snapsCreate(scriptId, trigger);
   },
@@ -171,12 +171,12 @@ export const api = {
     return snapsDelete(id);
   },
 
-  // Search — TS-side via plugin-sql since Migration Phase 6.
+  // Search - TS-side via plugin-sql since Migration Phase 6.
   async globalSearch(query: string, limit = 50): Promise<SearchHit[]> {
     return searchGlobal(query, limit);
   },
 
-  // Settings — TS-side via plugin-sql since Migration Phase 2.
+  // Settings - TS-side via plugin-sql since Migration Phase 2.
   async getSetting(key: string): Promise<string | null> {
     return dbGetSetting(key);
   },
@@ -184,7 +184,7 @@ export const api = {
     return dbSetSetting(key, value);
   },
 
-  // App-State — TS-side via plugin-sql since Migration Phase 2.
+  // App-State - TS-side via plugin-sql since Migration Phase 2.
   async getAppState(key: string): Promise<string | null> {
     return dbGetAppState(key);
   },
@@ -192,7 +192,7 @@ export const api = {
     return dbSetAppState(key, value);
   },
 
-  // Character-colour records (app-wide) — TS-side via plugin-sql since
+  // Character-colour records (app-wide) - TS-side via plugin-sql since
   // Migration Phase 3.
   async listCharacterColors(): Promise<CharacterColorRecord[]> {
     return ccList();
@@ -202,7 +202,7 @@ export const api = {
   },
   /** Clear the manual override and fall back to the recorded default. The
    * `activeScriptId` is the palette context used when no default has been
-   * recorded yet — so the freshly-picked colour avoids colliding with
+   * recorded yet - so the freshly-picked colour avoids colliding with
    * other characters in the script the writer is currently looking at. */
   async clearCharacterColor(
     name: string,
@@ -211,7 +211,7 @@ export const api = {
     return ccClear(name, activeScriptId ?? null);
   },
 
-  // Export — TS-side via pdf-lib + plugin-fs since Migration Phase 8.
+  // Export - TS-side via pdf-lib + plugin-fs since Migration Phase 8.
   // Since the core/ extraction the actual exporter lives in the host app
   // and is dispatched through the platform adapter (platform.ts).
   async exportPdf(input: {

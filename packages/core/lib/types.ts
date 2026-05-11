@@ -6,7 +6,7 @@ export interface ScriptCharacter {
   /** Anteil der Dialog-Wörter dieses Charakters am Skript, 0..1.
    *  Wird beim Save in `scripts.ts` über `dialogWordsByCharacter`
    *  (in `lib/lex.ts`) befüllt. Optional, weil ältere Datenbank-
-   *  Einträge das Feld vor dem Upgrade noch nicht hatten — beim
+   *  Einträge das Feld vor dem Upgrade noch nicht hatten - beim
    *  nächsten Save wird es nachgezogen. */
   share?: number;
 }

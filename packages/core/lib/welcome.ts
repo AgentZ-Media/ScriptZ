@@ -38,7 +38,7 @@ function welcomeScriptJson(): string {
       format: "",
       indent: 0,
       children: [
-        textBlock("scriptz-caption", "TUTORIAL — SO BENUTZT DU SCRIPTZ"),
+        textBlock("scriptz-caption", "TUTORIAL - SO BENUTZT DU SCRIPTZ"),
         textBlock(
           "scriptz-action",
           "Willkommen. Dieses Skript ist ein interaktives Tutorial. Du kannst alles hier drin verändern, löschen oder ausprobieren.",
@@ -51,7 +51,7 @@ function welcomeScriptJson(): string {
         textBlock("scriptz-character", "ERZÄHLER", { characterName: "ERZÄHLER" }),
         textBlock(
           "scriptz-dialog",
-          "Das hier ist ein Dialog-Block. Drück Enter, und der nächste Block wird automatisch zum Charakter — ScriptZ kennt das Wechselspiel zwischen Charakter und Dialog.",
+          "Das hier ist ein Dialog-Block. Drück Enter, und der nächste Block wird automatisch zum Charakter - ScriptZ kennt das Wechselspiel zwischen Charakter und Dialog.",
         ),
 
         textBlock("scriptz-character", "ERZÄHLER", { characterName: "ERZÄHLER" }),
@@ -74,14 +74,14 @@ function welcomeScriptJson(): string {
         textBlock("scriptz-sfx", "Pling"),
 
         textBlock("scriptz-caption", "WICHTIGE SHORTCUTS"),
-        textBlock("scriptz-action", "Cmd+N — neues Skript"),
-        textBlock("scriptz-action", "Cmd+K — Skript suchen"),
-        textBlock("scriptz-action", "Cmd+E — exportieren (PDF oder Plain Text)"),
-        textBlock("scriptz-action", "Cmd+Shift+S — manueller Snapshot"),
-        textBlock("scriptz-action", "Cmd+Shift+H — Snapshot-Verlauf öffnen"),
-        textBlock("scriptz-action", "Cmd+, — Einstellungen"),
-        textBlock("scriptz-action", "Tab — Block-Typ wechseln (öffnet ein Menü)"),
-        textBlock("scriptz-action", "Cmd+1..7 — Block-Typ direkt setzen"),
+        textBlock("scriptz-action", "Cmd+N - neues Skript"),
+        textBlock("scriptz-action", "Cmd+K - Skript suchen"),
+        textBlock("scriptz-action", "Cmd+E - exportieren (PDF oder Plain Text)"),
+        textBlock("scriptz-action", "Cmd+Shift+S - manueller Snapshot"),
+        textBlock("scriptz-action", "Cmd+Shift+H - Snapshot-Verlauf öffnen"),
+        textBlock("scriptz-action", "Cmd+, - Einstellungen"),
+        textBlock("scriptz-action", "Tab - Block-Typ wechseln (öffnet ein Menü)"),
+        textBlock("scriptz-action", "Cmd+1..7 - Block-Typ direkt setzen"),
 
         textBlock(
           "scriptz-action",

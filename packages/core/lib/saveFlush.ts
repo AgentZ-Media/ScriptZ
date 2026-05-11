@@ -1,4 +1,4 @@
-// Central registry of "pending save flushers" — anything that buffers
+// Central registry of "pending save flushers" - anything that buffers
 // writes (the editor's debounced auto-save, the tab-state debounced
 // persist, etc.) registers a callback here. The window-close handler in
 // App.tsx awaits all of them before destroying the window so the user

@@ -9,7 +9,7 @@
 // JS, so `moveScripts` issues N independent UPDATEs instead of wrapping
 // them in a transaction. A crash mid-loop leaves a partial move; the user
 // can re-issue the action with no data damage. The original Rust used a
-// transaction here only for atomicity, not for correctness — every UPDATE
+// transaction here only for atomicity, not for correctness - every UPDATE
 // is independent.
 
 import { getDb } from "./db";
@@ -97,7 +97,7 @@ export async function renameFolder(id: string, name: string): Promise<Folder> {
   };
 }
 
-/** FK ON DELETE SET NULL takes care of orphaned scripts — they reappear
+/** FK ON DELETE SET NULL takes care of orphaned scripts - they reappear
  *  in "Alle" without their folder_id. Scripts are never auto-deleted with
  *  the folder; that would be confusing and there's no UNDO. */
 export async function deleteFolder(id: string): Promise<void> {

@@ -5,7 +5,7 @@ const [version, setVersion] = createSignal(0);
 export const foldersBus = {
   version,
   bump() {
-    // Funktionaler Updater — siehe dailyStatsBus.ts.
+    // Funktionaler Updater - siehe dailyStatsBus.ts.
     setVersion((v) => v + 1);
   },
 };

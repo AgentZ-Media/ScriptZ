@@ -16,7 +16,7 @@ sind nur noch Schalen, die einen **Storage-Adapter** plus die
 plattform-spezifischen Bits (Auto-Updater, native Dialoge, etc.)
 beisteuern.
 
-```
+```text
 ScriptZ/
 ├── packages/
 │   └── core/                       ← NEU - alles Gemeinsame
@@ -449,7 +449,7 @@ Beide Apps haben's nach dem nächsten Build.
    TypeScript meckert, bis das gemacht ist.
 3. UI in `core` nutzt die neue Methode.
 4. Wenn das neue Feld auch in `.scriptz`-Dateien überleben soll:
-   `serializeScript`/`parseScriptzFile` in [`packages/core/lib/scriptzFile.ts`](#)
+   `serializeScript`/`parseScriptzFile` in `packages/core/lib/scriptzFile.ts`
    mitziehen. TypeScript zeigt das durch das `ScriptzFileV1`-Typing
    ebenfalls an, sobald der Script-Typ erweitert wird.
 

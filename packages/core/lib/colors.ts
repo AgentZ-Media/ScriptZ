@@ -17,7 +17,7 @@ export const CHARACTER_PALETTE: string[] = [
   "#c87b00", "#1a9aa0", "#a855f7", "#d946ef", "#0ea5e9",
 ];
 
-/** "#rrggbb" — case-insensitive, optional leading "#". Anything else is
+/** "#rrggbb" - case-insensitive, optional leading "#". Anything else is
  * rejected so the popover never persists a malformed value the renderer
  * would silently fall back to grey on. */
 export function isValidHexColor(value: string): boolean {

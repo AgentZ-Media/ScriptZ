@@ -8,7 +8,7 @@
 // getting back a connection that satisfies the DbConnection interface.
 //
 // The Tauri @tauri-apps/plugin-sql `Database` class satisfies
-// `DbConnection` structurally — no wrapper needed. A future web build
+// `DbConnection` structurally - no wrapper needed. A future web build
 // supplies an IndexedDB or sql.js-backed implementation.
 
 import { getPlatformAdapter, type DbConnection } from "./platform";

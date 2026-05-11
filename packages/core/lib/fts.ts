@@ -1,4 +1,4 @@
-// FTS5 helpers — TS-side mirror of src-tauri/src/fts.rs.
+// FTS5 helpers - TS-side mirror of src-tauri/src/fts.rs.
 //
 // During the Rust -> TS migration both sides write to the same
 // `scripts_fts` virtual table (DELETE + INSERT). The Rust scripts.rs
@@ -23,7 +23,7 @@ import { getDb } from "./db";
  *  ideographs ("中文" → one token), but UAX #29 (and the SQLite
  *  `unicode61` tokenizer the FTS index uses) splits them per character.
  *  We pre-isolate each Han char with whitespace so the segmenter
- *  produces the same per-char tokens Rust does — otherwise CJK queries
+ *  produces the same per-char tokens Rust does - otherwise CJK queries
  *  would never match any indexed row. */
 export function sanitizeFtsQuery(input: string): string {
   const s = input.trim().toLowerCase();
@@ -54,7 +54,7 @@ export function sanitizeFtsQuery(input: string): string {
 }
 
 /** Replace the FTS row for one script with the given title + content text.
- *  Mirrors Rust's `upsert_script_fts` — DELETE then INSERT, no UPSERT
+ *  Mirrors Rust's `upsert_script_fts` - DELETE then INSERT, no UPSERT
  *  because FTS5 contentless tables don't support ON CONFLICT. */
 export async function upsertScriptFts(
   scriptId: string,

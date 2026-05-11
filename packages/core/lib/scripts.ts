@@ -1,4 +1,4 @@
-// Script CRUD — full module since Migration Phase 7a-d.
+// Script CRUD - full module since Migration Phase 7a-d.
 //
 // TS port of src-tauri/src/commands/scripts.rs. Replaces the Rust
 // implementation entirely as of Phase 7d; scripts.rs is gone.
@@ -17,7 +17,7 @@
 // Transaction caveat: plugin-sql exposes no JS transaction API, so
 // multi-statement updates run as independent auto-committed
 // statements. For update_script that means a concurrent save can
-// interleave field writes — in practice all callers go through the
+// interleave field writes - in practice all callers go through the
 // debounced save in Editor.tsx, so the race window is small. FTS
 // refresh runs after the row update; a search hit landing in the
 // micro-window between can show stale snippets, which the next save
@@ -126,7 +126,7 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
   // Single round-trip: alle Spalten in einem SELECT statt N+1
   // (vorher: erst SELECT id …, dann für jede Zeile ein eigenes SELECT
   // via rowToSummary). Bei jedem Boot ging dadurch pro Skript ein
-  // Tauri-IPC-Hop drauf — bei 3 Skripten waren das 4 Calls statt 1.
+  // Tauri-IPC-Hop drauf - bei 3 Skripten waren das 4 Calls statt 1.
   let sql = `SELECT ${SUMMARY_COLUMNS} FROM scripts WHERE 1=1`;
   const args: (string | number)[] = [];
   let p = 1;
@@ -401,7 +401,7 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
     }
   }
   // characters_meta is already reconciled from input.contentJson above.
-  // If a caller passed both, the contentJson reconciliation wins —
+  // If a caller passed both, the contentJson reconciliation wins -
   // overwriting it with input.characters here would silently revert the
   // sticky-color logic. Only honour input.characters when no contentJson
   // change accompanies it (e.g. colour-picker edits without body change).
@@ -493,7 +493,7 @@ export async function emptyTrash(): Promise<void> {
 
 /** Lexical state for a brand-new script: a single empty Charakter
  *  block. Mirrors the JSON Rust's `empty_lexical_state` builds. The
- *  exact byte-shape is irrelevant — Lexical re-serialises on the next
+ *  exact byte-shape is irrelevant - Lexical re-serialises on the next
  *  save in its own key order. */
 function emptyLexicalState(): string {
   return JSON.stringify({
@@ -521,7 +521,7 @@ function emptyLexicalState(): string {
 /** Reconcile the per-script character list with the names actually
  *  present in the latest content. Resolution priority per name:
  *    1. App-wide override (`override_color`)
- *    2. Existing per-script entry (sticky — preserves colours from
+ *    2. Existing per-script entry (sticky - preserves colours from
  *       before the global registry existed)
  *    3. App-wide default (`default_color`)
  *    4. Next palette colour not already claimed in this script

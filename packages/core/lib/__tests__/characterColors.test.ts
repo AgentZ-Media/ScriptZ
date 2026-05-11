@@ -52,7 +52,7 @@ describe("eqIgnoreAsciiCase", () => {
 
   it("does not case-fold non-ASCII (matches Rust semantics)", () => {
     // German umlauts intentionally stay distinct from their ASCII
-    // counterparts: 'ä' !== 'Ä' here by design — the reconciliation
+    // counterparts: 'ä' !== 'Ä' here by design - the reconciliation
     // pipeline upper-cases names elsewhere before comparing.
     // We only verify the function does not crash and stays deterministic.
     expect(eqIgnoreAsciiCase("Müller", "Müller")).toBe(true);
