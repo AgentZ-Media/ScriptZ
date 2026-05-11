@@ -138,9 +138,6 @@
   flex-shrink: 0;
 }
 [data-theme="dark"] .s-toggle { background: rgba(255, 255, 255, 0.20); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .s-toggle { background: rgba(255, 255, 255, 0.20); }
-}
 .s-toggle::after {
   content: "";
   position: absolute;
@@ -170,9 +167,6 @@
   flex-shrink: 0;
 }
 [data-theme="dark"] .seg { background: rgba(255, 255, 255, 0.06); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .seg { background: rgba(255, 255, 255, 0.06); }
-}
 .seg button {
   height: 26px;
   padding: 0 12px;
@@ -245,11 +239,6 @@
 }
 [data-theme="dark"] .settings-character-swatch {
   border-color: rgba(255, 255, 255, 0.22);
-}
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .settings-character-swatch {
-    border-color: rgba(255, 255, 255, 0.22);
-  }
 }
 .settings-character-swatch:hover {
   transform: scale(1.08);

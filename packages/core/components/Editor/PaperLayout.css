@@ -152,8 +152,10 @@
   position: fixed;
   /* Im Fokus-Modus blenden Editor-Toolbar + Editor-Rail weg, nur die
      Titlebar (34 px) bleibt — der Eye-Button sitzt direkt unter ihrer
-     Unterkante, oben rechts bündig mit minimalem Atemluft-Rand. */
-  top: 40px;
+     Unterkante, oben rechts bündig mit minimalem Atemluft-Rand. Im Web
+     schiebt der Disclaimer-Banner uns über --web-header-offset nach
+     unten; auf Desktop fällt die Variable auf 0px zurück. */
+  top: calc(40px + var(--web-header-offset, 0px));
   right: 20px;
   z-index: 10;
   width: 32px;

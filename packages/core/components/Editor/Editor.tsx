@@ -28,6 +28,7 @@ import { installColorPicker } from "./plugins/colorPicker";
 import { api } from "../../lib/api";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { registerFlusher } from "../../lib/saveFlush";
+import { settingsStore } from "../../stores/settings";
 import type { ScriptCharacter } from "../../lib/types";
 import { applyCursor, type CursorAddress } from "../../lib/scriptViewCache";
 import "./Editor.css";
@@ -253,6 +254,22 @@ export function Editor(props: EditorProps) {
       scriptCharacters: () => liveCharacters(),
       openColorPicker: colorPicker.openFor,
     }));
+
+    // Charakter-Tints neu berechnen, wenn der User die dark-paper-Option
+    // umlegt oder das aufgelöste Theme wechselt (Auto + System-Wechsel).
+    // Die Tint-Formel hängt vom Paper-Modus ab (toward white vs toward
+    // dark), daher müssen alle Blöcke neu eingefärbt werden. Erstes Run
+    // wird ausgelassen, der Initial-Pass im Plugin macht den ohnehin.
+    let firstPaperSync = true;
+    createEffect(() => {
+      settingsStore.darkPaper();
+      settingsStore.resolvedTheme();
+      if (firstPaperSync) {
+        firstPaperSync = false;
+        return;
+      }
+      highlight.refresh();
+    });
 
     // Externe Farb-Updates (z.B. aus dem Einstellungen-Charaktere-Tab) live
     // in den laufenden Editor ziehen. ScriptView refetcht beim

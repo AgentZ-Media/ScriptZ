@@ -1,4 +1,4 @@
-import { Show, createSignal, onMount } from "solid-js";
+import { Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import { api } from "@scriptz/core/lib/api";
 import "./WebDisclaimerBanner.css";
 
@@ -36,9 +36,39 @@ export function WebDisclaimerBanner() {
     void api.setAppState(DISMISS_KEY, "1").catch(() => {});
   };
 
+  // Höhe des Banners als CSS-Variable auf <html> publizieren. Alles, was
+  // sich im Editor `position: fixed` auf den oberen Bildschirmrand ankert
+  // (Editor-Rail, Fokus-Auge-Toggle, ...), kann darauf mit
+  // `top: calc(... + var(--web-header-offset, 0px))` reagieren. Default 0
+  // bedeutet: Desktop-Variante ist nicht betroffen, der Banner existiert
+  // dort gar nicht. ResizeObserver fängt Layout-Sprünge ab (z.B. Banner
+  // wickelt bei schmalem Viewport auf zwei Zeilen).
+  let bannerRef: HTMLDivElement | undefined;
+  createEffect(() => {
+    if (!(ready() && visible())) {
+      document.documentElement.style.removeProperty("--web-header-offset");
+      return;
+    }
+    if (!bannerRef) return;
+    const update = () => {
+      const h = bannerRef!.getBoundingClientRect().height;
+      document.documentElement.style.setProperty(
+        "--web-header-offset",
+        `${Math.round(h)}px`,
+      );
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(bannerRef);
+    onCleanup(() => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--web-header-offset");
+    });
+  });
+
   return (
     <Show when={ready() && visible()}>
-      <div class="web-disclaimer" role="note">
+      <div class="web-disclaimer" role="note" ref={bannerRef}>
         <div class="web-disclaimer-text">
           <strong>Test-Editor im Browser.</strong>
           <span>

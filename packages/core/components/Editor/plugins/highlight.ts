@@ -24,17 +24,37 @@ const TINT_BLOCKS = new Set([
 ]);
 
 /** Convert "#rrggbb" plus an alpha factor (0..1) into a "rgb(r,g,b)"
- * blended toward white — matches the formula used by exportPdf.ts so
- * editor / PDF tints look identical. */
-function hexToTint(hex: string, alpha: number): string {
+ * blended **toward white** — Default-Look auf hellem Papier. Matched
+ * die Formel aus exportPdf.ts, daher sehen Editor und PDF identisch
+ * aus, solange das Papier hell ist (PDF ist immer hell). */
+function hexToTintLight(hex: string, alpha: number): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return "";
+  const mix = (c: number) => Math.round(255 - (255 - c) * alpha);
+  return `rgb(${mix(rgb[0])}, ${mix(rgb[1])}, ${mix(rgb[2])})`;
+}
+
+/** Variante für Dark-Paper: blendet die User-Charakterfarbe **richtung
+ * Dunkel** (Papier-Bg #1c1c1c). Sonst läge weisser Text auf weisslicher
+ * Tinte — kein Kontrast. Resultat ist eine satter-gemutete Variante der
+ * gleichen Farbe, weiße Schrift bleibt darauf gut lesbar. */
+function hexToTintDark(hex: string, alpha: number): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return "";
+  // Mix gegen 28 (= #1c) statt 255 (= white).
+  const PAPER = 28;
+  const mix = (c: number) => Math.round(PAPER + (c - PAPER) * alpha);
+  return `rgb(${mix(rgb[0])}, ${mix(rgb[1])}, ${mix(rgb[2])})`;
+}
+
+function parseHex(hex: string): [number, number, number] | null {
   const s = hex.replace("#", "");
-  if (s.length !== 6) return "";
+  if (s.length !== 6) return null;
   const r = parseInt(s.slice(0, 2), 16);
   const g = parseInt(s.slice(2, 4), 16);
   const b = parseInt(s.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "";
-  const mix = (c: number) => Math.round(255 - (255 - c) * alpha);
-  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+  return [r, g, b];
 }
 
 export interface HighlightHandle {
@@ -62,6 +82,14 @@ export function installHighlight(
       colorByName.set(c.name.toUpperCase(), c.color);
     }
 
+    // Aktuelle Paper-Variante zur Apply-Zeit lesen. Bei jedem Toggle
+    // der darkPaper-Setting wird refresh() gerufen, daher reicht es,
+    // den Wert hier einmal pro Lauf zu lesen.
+    const darkPaper =
+      typeof document !== "undefined" &&
+      document.documentElement.dataset.paper === "dark";
+    const tintFn = darkPaper ? hexToTintDark : hexToTintLight;
+
     editor.getEditorState().read(() => {
       const root = $getRoot();
       let currentName: string | null = null;
@@ -88,7 +116,7 @@ export function installHighlight(
           speaker = currentName;
         }
         const color = speaker ? colorByName.get(speaker) ?? null : null;
-        const next = color ? hexToTint(color, 0.28) : "";
+        const next = color ? tintFn(color, 0.28) : "";
         const prev = lastApplied.get(dom) ?? "";
         if (next === prev) continue;
         if (next) {

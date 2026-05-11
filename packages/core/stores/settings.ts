@@ -18,6 +18,12 @@ const [quickModeAutoEnable, setQuickModeAutoEnable] = createSignal<boolean>(fals
 // Zähler-Badge am Ideen-Tab anzeigen (Anzahl offener Ideen). Wer eine
 // große Idee-Sammlung hat, mag die Zahl ggf. nicht ständig sehen.
 const [showIdeasBadge, setShowIdeasBadge] = createSignal<boolean>(true);
+// Volle Dark-Immersion: Skript-Sheet auch im Dark-Mode dunkel statt hell.
+// Default off — die meisten User mögen den "beleuchtetes-Blatt"-Look, aber
+// für OLED-/Late-Night-Schreiben wird das Sheet als zu hell empfunden.
+// Greift nur, wenn das aufgelöste Theme tatsächlich "dark" ist (Light-
+// Mode ignoriert die Einstellung, im Auto-Mode hängt's am System).
+const [darkPaper, setDarkPaper] = createSignal<boolean>(false);
 // Wochenziel in Wörtern. Default 1500 - kalibriert auf 7 Skripte à
 // ~200 Wörter (Short-Form-Schnitt) plus ein bisschen Puffer. Wird vom
 // Momentum-Strip auf der Home-Seite und vom Status-Strip in der Tab-
@@ -38,6 +44,25 @@ const DIALOG_WPM_MAX = 400;
 const [dialogWpm, setDialogWpm] = createSignal<number>(DIALOG_WPM_DEFAULT);
 
 const [loaded, setLoaded] = createSignal(false);
+
+// matchMedia + aufgelöstes Theme - früh deklariert, damit settingsStore.resolvedTheme
+// in der Store-Definition unten ohne Forward-Reference funktioniert.
+const prefersDark =
+  typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
+
+function resolveTheme(t: Theme): "dark" | "light" {
+  if (t === "auto") return prefersDark?.matches ? "dark" : "light";
+  return t;
+}
+
+// Reaktives "ist die App gerade dark?" - UI-Komponenten brauchen das,
+// um z.B. die darkPaper-Option zu (de-)aktivieren. Bleibt im Auto-
+// Modus auf dem aktuellen System-Stand (Listener weiter unten).
+const [resolvedTheme, setResolvedTheme] = createSignal<"dark" | "light">(
+  resolveTheme(theme()),
+);
 
 function clampGoal(n: number): number {
   if (!Number.isFinite(n)) return WEEKLY_WORD_GOAL_DEFAULT;
@@ -87,6 +112,12 @@ export const settingsStore = {
     setShowIdeasBadge(v);
     await api.setSetting("show_ideas_badge", v ? "1" : "0");
   },
+  darkPaper,
+  setDarkPaper: async (v: boolean) => {
+    setDarkPaper(v);
+    await api.setSetting("dark_paper", v ? "1" : "0");
+  },
+  resolvedTheme,
   weeklyWordGoal,
   setWeeklyWordGoal: async (v: number) => {
     const next = clampGoal(v);
@@ -107,7 +138,7 @@ export const settingsStore = {
   DIALOG_WPM_DEFAULT,
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib] = await Promise.all([
+    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, dp] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
@@ -118,6 +149,7 @@ export const settingsStore = {
       api.getSetting("dialog_wpm"),
       api.getSetting("focus_mode_default"),
       api.getSetting("show_ideas_badge"),
+      api.getSetting("dark_paper"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
@@ -126,6 +158,7 @@ export const settingsStore = {
     if (qmae) setQuickModeAutoEnable(qmae === "1");
     if (fmd) setFocusModeDefault(fmd === "1");
     if (sib) setShowIdeasBadge(sib === "1");
+    if (dp) setDarkPaper(dp === "1");
     // Wochenziel: Vorrang neuer Key. Legacy-Migration aus dem alten
     // Tagesziel ×7, falls noch kein Wochenziel persistiert wurde -
     // dann bleibt der Setup-Aufwand für upgradende User bei Null.
@@ -150,15 +183,54 @@ export const settingsStore = {
   },
 };
 
-// Theme aufs Document anwenden — wir lassen den Effekt das einzige
-// Schreib-Target sein (statt zusätzlich in setTheme + load() zu setzen).
+// Theme aufs Document anwenden. "auto" wird per matchMedia (oben
+// deklariert) zu "dark" oder "light" aufgelöst, damit das CSS nur
+// zwei Wahrheitsquellen kennt - sonst müsste jeder Dark-Token-Block
+// doppelt gepflegt werden (einmal für [data-theme="dark"], einmal
+// für @media + auto), was in der Vergangenheit zu unvollständigen
+// Auto-Blöcken und Stil-Layer-Bugs geführt hat.
+//
 // Solid trackt theme() als Dependency und feuert auf jeden Wechsel,
 // inkl. dem ersten Lese-Setzen am Ende von load().
 //
 // Bevor `load()` durchgelaufen ist, schreiben wir nichts - sonst flickert
 // der Default ("light") kurz übers persistierte Theme, weil dieser
 // Effect schon beim Modul-Import einmal feuert.
+// data-paper folgt strikt dem **aufgelösten** Theme: nur wenn das Theme
+// (inkl. Auto-Resolution) tatsächlich dark ist, kommt data-paper="dark"
+// dran. Im Light-Mode wird das Attribut entfernt, damit die User-
+// Einstellung "darkPaper" hier keinen Effekt hat - das Sheet bleibt
+// hell. So funktioniert die Auto-Logik out of the box: User stellt
+// darkPaper einmal an, und das Sheet wird nur dann dunkel, wenn die
+// App gerade im Dark-Look ist.
+function applyChrome() {
+  const resolved = resolveTheme(theme());
+  setResolvedTheme(resolved);
+  document.documentElement.dataset.theme = resolved;
+  if (resolved === "dark" && darkPaper()) {
+    document.documentElement.dataset.paper = "dark";
+  } else {
+    delete document.documentElement.dataset.paper;
+  }
+}
+
 createEffect(() => {
   if (!loaded()) return;
-  document.documentElement.dataset.theme = theme();
+  // Tracking auf theme() und darkPaper() — beide triggern applyChrome.
+  theme();
+  darkPaper();
+  applyChrome();
 });
+
+// System-Wechsel live mitziehen, solange der User auf "auto" steht.
+// Ohne diesen Listener würde der Auto-Modus zwar beim App-Start korrekt
+// auflösen, aber nicht reagieren, wenn der User währenddessen das
+// System-Theme wechselt. applyChrome() macht auch das darkPaper-Attribut
+// in dem Moment richtig - bei System-Wechsel auf dark mit aktivem
+// darkPaper geht das Sheet automatisch mit dunkel.
+if (prefersDark) {
+  prefersDark.addEventListener("change", () => {
+    if (!loaded()) return;
+    if (theme() === "auto") applyChrome();
+  });
+}

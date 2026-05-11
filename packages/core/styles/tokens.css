@@ -344,65 +344,39 @@
   --ink-900: #ffffff;
 }
 
-/* Auto theme folgt dem System. */
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] {
-    color-scheme: dark;
-    --bg:         #222222;
-    --bg-elev-1: #2a2a2a;
-    --bg-elev-2: #1c1c1c;
-    --bg-elev-3: #181818;
-    --paper:     #2a2a2a;
-    --paper-2:   #242424;
-    --fg:         #ececec;
-    --fg-muted:  #a8a8a4;
-    --fg-subtle: #95918a;
-    --fg-disabled: #4a4845;
-    --text:        #ececec;
-    --text-2:      #c5c2bc;
-    --text-subtle: #b5ada0;
-    --text-faint:  #95918a;
-    --border:        rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --paper-bg:   #f6f6f5;
-    --paper-fg:  #1c1814;
-    --paper-fg-muted: rgba(28, 24, 20, 0.65);
-    --paper-fg-faint: rgba(28, 24, 20, 0.45);
-    --hover:        rgba(255, 255, 255, 0.06);
-    --hover-strong: rgba(255, 255, 255, 0.10);
-    --selected:     rgba(255, 255, 255, 0.10);
-    --selection:    rgba(255, 255, 255, 0.12);
-    --backdrop: rgba(0, 0, 0, 0.55);
-    --modal-bg: #2a2a2a;
-    --pill-bg: rgba(255, 255, 255, 0.06);
-    --highlight-mark: rgba(255, 255, 255, 0.20);
-    --ring-brand:        rgba(255, 255, 255, 0.16);
-    --ring-brand-strong: rgba(255, 255, 255, 0.55);
-    --selection-paper:   rgba(28, 24, 20, 0.16);
-    --char-tint-default: rgba(28, 24, 20, 0.12);
-    --page-break-line:   rgba(255, 255, 255, 0.16);
-    --primary-bg:        #ececec;
-    --primary-fg:        #1c1814;
-    --primary-border:    rgba(0, 0, 0, 0.0);
-    --primary-bg-hover:  #ffffff;
-    --shadow-card-hover:
-      0 4px 12px rgba(0, 0, 0, 0.45),
-      0 1px 2px rgba(0, 0, 0, 0.30);
-    --brand-500: #ececec;
-    --brand-600: #ffffff;
-    --brand-700: #ececec;
-    --brand-800: #ffffff;
-    --brand-soft: #333333;
-    --ink-50:  #2a2a2a;
-    --ink-100: #333333;
-    --ink-200: #4a4a4a;
-    --ink-300: #6e6e6e;
-    --ink-400: #9a9a9a;
-    --ink-500: #ececec;
-    --ink-600: #ffffff;
-    --ink-700: #ffffff;
-    --ink-900: #ffffff;
-  }
+/* "auto" wird in settings.ts per matchMedia zu "dark" oder "light"
+   aufgelöst, bevor data-theme aufs <html> geschrieben wird. Es gibt
+   daher hier kein eigenes auto-Token-Set - das hatte sich in der
+   Vergangenheit als fragil erwiesen (unvollständige Kopien des
+   Dark-Blocks, sichtbar als Doppel-Schatten und Hairlines im Auto-
+   Dark-Modus). */
+
+/* ============================================================
+   Dark-Paper-Variante - nur Skript-Sheet-Tokens überschreiben.
+   Greift ausschließlich, wenn das aufgelöste Theme dark ist UND
+   die User-Einstellung darkPaper aktiv ist (siehe settings.ts).
+   Touched bewusst nur Paper-/Selection-/Highlight-Tokens, damit
+   App-Chrome (Tab-Bar, Toolbar, Settings) gleich bleibt.
+   ============================================================ */
+[data-theme="dark"][data-paper="dark"] {
+  /* Sheet leicht heller als --bg (#222) - sonst verschwindet die
+     Sheet-Kante komplett und die Seite wirkt grenzenlos. */
+  --paper-bg:        #1c1c1c;
+  --paper-fg:        #ececec;
+  --paper-fg-muted:  rgba(255, 255, 255, 0.65);
+  --paper-fg-faint:  rgba(255, 255, 255, 0.42);
+  --selection-paper: rgba(255, 255, 255, 0.16);
+  --char-tint-default: rgba(255, 255, 255, 0.10);
+  --page-break-line: rgba(255, 255, 255, 0.18);
+  --highlight-mark:  rgba(255, 255, 255, 0.20);
+
+  /* Sheet-Schatten flacher - der starke Light-Sheet-Schatten würde
+     auf dunklem Bg eine schwere Vignette erzeugen, die das ohnehin
+     dunkle Sheet noch tiefer in den Bg drückt. */
+  --shadow-paper:
+    0 1px 4px rgba(0, 0, 0, 0.45),
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 /* Respect system reduced-motion preference. */

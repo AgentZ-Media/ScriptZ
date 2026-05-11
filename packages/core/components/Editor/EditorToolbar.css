@@ -90,9 +90,6 @@
   flex-shrink: 0;
 }
 [data-theme="dark"] .block-toolbar { background: rgba(255, 255, 255, 0.06); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .block-toolbar { background: rgba(255, 255, 255, 0.06); }
-}
 .block-toolbar button {
   display: inline-flex;
   align-items: center;
@@ -149,9 +146,6 @@
   background: rgba(28, 24, 20, 0.12);
 }
 [data-theme="dark"] .block-toolbar-sep { background: rgba(255, 255, 255, 0.14); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .block-toolbar-sep { background: rgba(255, 255, 255, 0.14); }
-}
 .block-toolbar-more {
   height: 26px;
   width: 26px;

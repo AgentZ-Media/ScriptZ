@@ -247,6 +247,25 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
             <div class="settings-row">
               <div class="settings-row-label">
+                <div class="row-label">Dunkles Skript-Sheet</div>
+                <div class="row-help">
+                  Im Dark-Modus auch das Skript-Sheet dunkel statt hell.
+                  Standardmäßig bleibt das Sheet hell, weil das den
+                  Druck-Look spiegelt. Greift nur, wenn das Theme
+                  tatsächlich dunkel ist - im Auto-Modus also nur,
+                  wenn dein System gerade dunkel ist.
+                </div>
+              </div>
+              <Toggle
+                checked={settingsStore.darkPaper()}
+                onChange={(v) => void settingsStore.setDarkPaper(v)}
+                disabled={settingsStore.resolvedTheme() !== "dark"}
+                label="Dunkles Skript-Sheet im Dark-Mode"
+              />
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-label">
                 <div class="row-label">Fokus-Modus standardmäßig aktiv</div>
                 <div class="row-help">
                   Beim Öffnen eines Skripts sind Toolbar und Cast-Leiste

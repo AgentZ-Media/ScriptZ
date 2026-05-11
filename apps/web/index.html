@@ -8,12 +8,11 @@
     <meta name="theme-color" content="#222222" media="(prefers-color-scheme: dark)" />
     <title>ScriptZ - Test-Editor im Browser</title>
     <style>
-      /* Pergament-Hintergrund vor dem CSS-Load - identische Logik wie in der Desktop-Shell. */
+      /* Pergament-Hintergrund vor dem CSS-Load - identische Logik wie in der Desktop-Shell.
+         "auto" wird in settings.ts vor dem ersten Paint zu "light" oder "dark" aufgelöst,
+         daher reicht hier der Match auf den konkreten data-theme-Wert. */
       html, body { background: #f5f3ee; margin: 0; }
       html[data-theme="dark"], html[data-theme="dark"] body { background: #222222; }
-      @media (prefers-color-scheme: dark) {
-        html[data-theme="auto"], html[data-theme="auto"] body { background: #222222; }
-      }
     </style>
   </head>
   <body>

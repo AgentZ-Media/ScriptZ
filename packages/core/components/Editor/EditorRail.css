@@ -6,7 +6,12 @@
 .editor-rail {
   position: fixed;
   right: 24px;
-  top: 94px;            /* 34 px Titlebar + 46 px Editor-Toolbar + 14 px Atemluft */
+  /* 34 px Titlebar + 46 px Editor-Toolbar + 14 px Atemluft. Im Web kann
+     der Disclaimer-Banner zusätzlich Höhe oben drauflegen — die
+     --web-header-offset-Variable (gesetzt von WebDisclaimerBanner) schiebt
+     uns dann nach unten, sodass die Rail nicht hinter den Banner rutscht.
+     Auf Desktop ist die Variable nicht gesetzt → Fallback 0px. */
+  top: calc(94px + var(--web-header-offset, 0px));
   width: 220px;
   z-index: 4;
   background: var(--paper);
@@ -34,9 +39,6 @@
   margin-bottom: 12px;
 }
 [data-theme="dark"] .rail-tabs { background: rgba(255, 255, 255, 0.06); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .rail-tabs { background: rgba(255, 255, 255, 0.06); }
-}
 .rail-tabs button {
   flex: 1;
   height: 24px;

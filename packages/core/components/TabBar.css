@@ -42,12 +42,6 @@
   background: linear-gradient(to bottom, #2a2a2a, #232323);
   border-bottom-color: rgba(255, 255, 255, 0.10);
 }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .titlebar {
-    background: linear-gradient(to bottom, #2a2a2a, #232323);
-    border-bottom-color: rgba(255, 255, 255, 0.10);
-  }
-}
 
 /* Spacer fuer die macOS-Trafficlights (78 px nativ, +12 px Atemluft).
    Auf Windows/Linux wird --titlebar-traffic-width 0 und der Spacer
@@ -103,9 +97,6 @@
 }
 .tab:hover { background: rgba(28, 24, 20, 0.05); color: var(--text); }
 [data-theme="dark"] .tab:hover { background: rgba(255, 255, 255, 0.06); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .tab:hover { background: rgba(255, 255, 255, 0.06); }
-}
 .tab.is-active {
   background: var(--bg);
   color: var(--text);
@@ -248,9 +239,6 @@
   -webkit-app-region: no-drag;
 }
 [data-theme="dark"] .status-strip { background: rgba(255, 255, 255, 0.06); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .status-strip { background: rgba(255, 255, 255, 0.06); }
-}
 .status-cell {
   display: inline-flex;
   align-items: center;
@@ -314,7 +302,4 @@
   color: var(--text);
 }
 [data-theme="dark"] .titlebar-gear:hover { background: rgba(255, 255, 255, 0.08); }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .titlebar-gear:hover { background: rgba(255, 255, 255, 0.08); }
-}
 
