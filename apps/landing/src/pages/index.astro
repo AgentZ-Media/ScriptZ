@@ -1699,6 +1699,16 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     flex-wrap: wrap;
     gap: 10px;
   }
+  /* Primary-Button im dunklen Download-Block: invertiert (weiss auf dunkel),
+     sonst verschwindet er auf dem schwarzen Hintergrund. */
+  .v2-download .v2-btn-primary {
+    background: #fff;
+    color: #1c1814;
+  }
+  .v2-download .v2-btn-primary:hover {
+    background: #f6f6f5;
+    transform: translateY(-1px);
+  }
   .v2-download-stats {
     margin-top: 20px;
     padding-top: 16px;
