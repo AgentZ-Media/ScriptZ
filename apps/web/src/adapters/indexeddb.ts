@@ -15,16 +15,29 @@
 // pflegt, machen wir das gezielt schneller.
 
 import Dexie, { type Table } from "dexie";
+import MiniSearch from "minisearch";
 import {
   DEFAULT_PALETTE,
   eqIgnoreAsciiCase,
 } from "@scriptz/core/lib/characterColors";
 import { getPlatformAdapter } from "@scriptz/core/lib/platform";
-import { setStorageAdapter, type StorageAdapter } from "@scriptz/core/lib/storage";
+import {
+  setStorageAdapter,
+  type ExportResult,
+  type StorageAdapter,
+} from "@scriptz/core/lib/storage";
+import {
+  defaultScriptzFilename,
+  parseScriptzBytes,
+  SCRIPTZ_EXTENSION,
+  SCRIPTZ_MIME,
+  serializeScriptToBytes,
+} from "@scriptz/core/lib/scriptzFile";
 import {
   dialogWordsByCharacter,
   extractBlocks,
   extractCharacterNames,
+  extractTeleprompterText,
 } from "@scriptz/core/lib/lex";
 import { runtimeStatsFromContent } from "@scriptz/core/lib/runtime";
 import { dailyStatsBus } from "@scriptz/core/lib/dailyStatsBus";
@@ -368,7 +381,7 @@ class IndexedDbStorage implements StorageAdapter {
     const contentJson = input.initialContentJson ?? emptyLexicalState();
     const folderId = input.folderId ?? null;
 
-    return db.transaction(
+    const summary = await db.transaction(
       "rw",
       db.scripts,
       db.folders,
@@ -410,6 +423,11 @@ class IndexedDbStorage implements StorageAdapter {
         return rowToSummary(row);
       },
     );
+    // Index ausserhalb der Transaktion aktualisieren - Dexie-Transactions
+    // sind exklusiv, ein nested await wuerde verhungern. Best-effort: ein
+    // Indexier-Fehler darf den Skript-Save nicht killen.
+    void this.upsertSearchDoc(id).catch(() => {});
+    return summary;
   }
 
   async getScript(id: string): Promise<Script> {
@@ -501,6 +519,9 @@ class IndexedDbStorage implements StorageAdapter {
     if (delta > 0) {
       dailyStatsBus.bump();
     }
+    // Index nach erfolgreichem Save aktualisieren - ausserhalb der
+    // Transaktion (siehe createScript).
+    void this.upsertSearchDoc(input.id).catch(() => {});
     return result;
   }
 
@@ -547,10 +568,13 @@ class IndexedDbStorage implements StorageAdapter {
 
   async archiveScript(id: string): Promise<void> {
     await db.scripts.update(id, { archived_at: Date.now() });
+    // Archivierte Skripte tauchen in der Suche nicht auf.
+    this.removeSearchDoc(id);
   }
 
   async restoreScript(id: string): Promise<void> {
     await db.scripts.update(id, { archived_at: null });
+    void this.upsertSearchDoc(id).catch(() => {});
   }
 
   async purgeScript(id: string): Promise<void> {
@@ -558,6 +582,7 @@ class IndexedDbStorage implements StorageAdapter {
       await db.scripts.delete(id);
       await db.snapshots.where("script_id").equals(id).delete();
     });
+    this.removeSearchDoc(id);
   }
 
   async emptyTrash(): Promise<void> {
@@ -582,6 +607,7 @@ class IndexedDbStorage implements StorageAdapter {
     await db.scripts.update(id, { title, updated_at: now });
     const r = await db.scripts.get(id);
     if (!r) throw new Error(`not found: script ${id}`);
+    void this.upsertSearchDoc(id).catch(() => {});
     return rowToSummary(r);
   }
 
@@ -773,41 +799,122 @@ class IndexedDbStorage implements StorageAdapter {
   }
 
   // ---------- Search ----------
-  // Phase E: einfache Substring-Suche in Title + Block-Text. Phase F
-  // bringt MiniSearch für BM25-Ranking + Tokenisierung.
-  async globalSearch(query: string, limit = 50): Promise<SearchHit[]> {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    const all = await db.scripts.filter((s) => s.archived_at === null).toArray();
-    const hits: SearchHit[] = [];
-    for (const s of all) {
-      const text = extractBlocks(s.content_json).map((b) => b.text).join(" ");
-      const inTitle = s.title.toLowerCase().includes(q);
-      const inBody = text.toLowerCase().includes(q);
-      if (!inTitle && !inBody) continue;
-      hits.push({
-        kind: "script",
+  // MiniSearch-Index, lazy gebaut beim ersten globalSearch-Call und danach
+  // inkrementell aktualisiert (createScript/updateScript/purgeScript). BM25-
+  // Ranking + Tokenisierung + Diacritic-Folding mit deutscher Norm - deutlich
+  // näher an SQLite-FTS5 als die simple Substring-Suche aus Phase E.
+  //
+  // Ein Re-Build bei Boot wäre ehrlicher (Index synchron zur DB), kostet aber
+  // bei 500+ Skripten messbar Boot-Zeit. Inkrementelles Tracking + lazy
+  // initial build ist der bessere Trade-off, solange wir innerhalb eines Tabs
+  // bleiben (Multi-Tab-Sync braucht eh BroadcastChannel, kommt erst bei
+  // tatsächlichem Bedarf).
+  private searchIndex: MiniSearch | null = null;
+  private searchIndexBuilt = false;
+  private buildingIndex: Promise<MiniSearch> | null = null;
+
+  private async ensureSearchIndex(): Promise<MiniSearch> {
+    if (this.searchIndexBuilt && this.searchIndex) return this.searchIndex;
+    if (this.buildingIndex) return this.buildingIndex;
+    this.buildingIndex = (async () => {
+      const idx = new MiniSearch({
+        fields: ["title", "body"],
+        storeFields: ["title", "body"],
+        searchOptions: {
+          boost: { title: 3 },
+          prefix: true,
+          fuzzy: 0.15,
+          combineWith: "AND",
+        },
+        // Locale-aware tokenizer: deutsche Umlaute durch ASCII-Aequivalente
+        // ersetzen (so dass "schoen" auch "schön" findet) und an Whitespace +
+        // Satzzeichen splitten.
+        tokenize: (s) =>
+          s
+            .normalize("NFKD")
+            .replace(/[̀-ͯ]/g, "")
+            .toLowerCase()
+            .split(/[^a-z0-9]+/u)
+            .filter(Boolean),
+        processTerm: (term) => term.toLowerCase().replace(/[̀-ͯ]/g, ""),
+      });
+      const all = await db.scripts
+        .filter((s) => s.archived_at === null)
+        .toArray();
+      const docs = all.map((s) => ({
         id: s.id,
         title: s.title,
-        snippet: this.makeSnippet(text, q),
-        meta: {},
+        body: extractBlocks(s.content_json).map((b) => b.text).join(" "),
+      }));
+      idx.addAll(docs);
+      this.searchIndex = idx;
+      this.searchIndexBuilt = true;
+      this.buildingIndex = null;
+      return idx;
+    })();
+    return this.buildingIndex;
+  }
+
+  private async upsertSearchDoc(scriptId: string): Promise<void> {
+    if (!this.searchIndexBuilt) return; // Index wird beim ersten Search aufgebaut
+    const s = await db.scripts.get(scriptId);
+    if (!s) return;
+    const doc = {
+      id: s.id,
+      title: s.title,
+      body: extractBlocks(s.content_json).map((b) => b.text).join(" "),
+    };
+    if (this.searchIndex?.has(s.id)) {
+      this.searchIndex.replace(doc);
+    } else {
+      this.searchIndex?.add(doc);
+    }
+  }
+
+  private removeSearchDoc(scriptId: string): void {
+    if (!this.searchIndexBuilt) return;
+    if (this.searchIndex?.has(scriptId)) {
+      this.searchIndex.discard(scriptId);
+    }
+  }
+
+  async globalSearch(query: string, limit = 50): Promise<SearchHit[]> {
+    const q = query.trim();
+    if (!q) return [];
+    const idx = await this.ensureSearchIndex();
+    const results = idx.search(q).slice(0, limit);
+    const hits: SearchHit[] = [];
+    for (const r of results) {
+      const title = (r.title as string | undefined) ?? "";
+      const body = (r.body as string | undefined) ?? "";
+      hits.push({
+        kind: "script",
+        id: String(r.id),
+        title,
+        snippet: this.makeSnippet(body || title, q),
+        meta: { score: r.score },
       });
-      if (hits.length >= limit) break;
     }
     return hits;
   }
 
   private makeSnippet(text: string, needle: string): string {
+    // Snippet: erstes Vorkommen eines Tokens aus der Query mit ~40/80 Char
+    // Kontext links/rechts. Hebt alle Token-Vorkommen mit <mark> hervor.
+    const firstToken = needle.toLowerCase().split(/\s+/).filter(Boolean)[0] ?? needle;
     const lower = text.toLowerCase();
-    const idx = lower.indexOf(needle);
+    const idx = lower.indexOf(firstToken.toLowerCase());
     if (idx === -1) return text.slice(0, 120);
     const start = Math.max(0, idx - 40);
-    const end = Math.min(text.length, idx + needle.length + 80);
+    const end = Math.min(text.length, idx + firstToken.length + 80);
     const slice = text.slice(start, end);
-    return slice.replace(
-      new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"),
-      (m) => `<mark>${m}</mark>`,
-    );
+    const tokens = needle
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    if (tokens.length === 0) return slice;
+    const re = new RegExp(`(${tokens.join("|")})`, "ig");
+    return slice.replace(re, (m) => `<mark>${m}</mark>`);
   }
 
   // ---------- Settings / App-State ----------
@@ -907,24 +1014,81 @@ class IndexedDbStorage implements StorageAdapter {
     return m;
   }
 
-  // ---------- Export (delegiert) ----------
+  // ---------- Export ----------
+  // Identische Logik wie in @scriptz/core/lib/api.ts, nur dass wir hier
+  // lokal aus IndexedDB lesen statt aus SQL. Bytes-Erzeugung kommt aus
+  // core (buildPdfBytes / extractTeleprompterText / serializeScriptToBytes);
+  // saveAs ist der gleiche Platform-Aufruf wie auf Desktop.
   async exportPdf(input: {
     scriptId: string;
-    path: string;
     includeHighlighting: boolean;
     includeTitlePage: boolean;
-  }): Promise<{ path: string }> {
-    return getPlatformAdapter().exportPdf(input, async (id) => {
-      const s = await this.getScript(id);
-      return { title: s.title, contentJson: s.content_json, characters: s.characters };
-    });
+  }): Promise<ExportResult> {
+    const s = await this.getScript(input.scriptId);
+    // pdf-lib lazy laden - siehe api.ts fuer Begruendung (Bundle-Cost).
+    const { buildPdfBytes } = await import("@scriptz/core/lib/exportPdf");
+    const bytes = await buildPdfBytes(
+      { title: s.title, contentJson: s.content_json, characters: s.characters ?? [] },
+      {
+        includeHighlighting: input.includeHighlighting,
+        includeTitlePage: input.includeTitlePage,
+      },
+    );
+    return getPlatformAdapter().saveAs(
+      {
+        suggestedName: `${s.title || "Unbenannt"}.pdf`,
+        mimeType: "application/pdf",
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      },
+      bytes,
+    );
   }
 
-  async exportPlaintext(input: { scriptId: string; path: string }): Promise<{ path: string }> {
-    return getPlatformAdapter().exportPlaintext(input, async (id) => {
-      const s = await this.getScript(id);
-      return s.content_json;
+  async exportPlaintext(input: { scriptId: string }): Promise<ExportResult> {
+    const s = await this.getScript(input.scriptId);
+    const text = extractTeleprompterText(s.content_json);
+    const bytes = new TextEncoder().encode(text);
+    return getPlatformAdapter().saveAs(
+      {
+        suggestedName: `${s.title || "Unbenannt"}.txt`,
+        mimeType: "text/plain;charset=utf-8",
+        filters: [{ name: "Plain Text", extensions: ["txt"] }],
+      },
+      bytes,
+    );
+  }
+
+  async exportScriptz(scriptId: string): Promise<ExportResult> {
+    const s = await this.getScript(scriptId);
+    const bytes = serializeScriptToBytes({
+      title: s.title,
+      content_json: s.content_json,
+      characters: s.characters ?? [],
+      highlighting_enabled: s.highlighting_enabled,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
     });
+    return getPlatformAdapter().saveAs(
+      {
+        suggestedName: defaultScriptzFilename(s.title),
+        mimeType: SCRIPTZ_MIME,
+        filters: [{ name: "ScriptZ-Datei", extensions: [SCRIPTZ_EXTENSION] }],
+      },
+      bytes,
+    );
+  }
+
+  async importScriptz(): Promise<{ scriptId: string; title: string } | null> {
+    const file = await getPlatformAdapter().openFile(
+      `.${SCRIPTZ_EXTENSION},${SCRIPTZ_MIME}`,
+    );
+    if (!file) return null;
+    const parsed = parseScriptzBytes(file.bytes);
+    const created = await this.createScript({
+      title: parsed.script.title,
+      initialContentJson: JSON.stringify(parsed.script.contentJson),
+    });
+    return { scriptId: created.id, title: created.title };
   }
 
   // ---------- Ideas ----------

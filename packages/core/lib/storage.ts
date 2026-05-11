@@ -79,14 +79,20 @@ export interface ConvertIdeaInput {
 
 export interface ExportPdfRequest {
   scriptId: string;
-  path: string;
   includeHighlighting: boolean;
   includeTitlePage: boolean;
 }
 
 export interface ExportPlaintextRequest {
   scriptId: string;
-  path: string;
+}
+
+export interface ExportResult {
+  /** True wenn der User abgebrochen hat (Desktop: Save-Dialog cancel).
+   *  Caller sollten dann keinen "Export gespeichert"-Toast zeigen. */
+  cancelled: boolean;
+  /** Absoluter Pfad bei Desktop, null im Browser. */
+  path: string | null;
 }
 
 export interface StorageAdapter {
@@ -139,8 +145,14 @@ export interface StorageAdapter {
   clearCharacterColor(name: string, activeScriptId?: string): Promise<string[]>;
 
   // ===== Export (delegiert intern an PlatformAdapter) =====
-  exportPdf(input: ExportPdfRequest): Promise<{ path: string }>;
-  exportPlaintext(input: ExportPlaintextRequest): Promise<{ path: string }>;
+  exportPdf(input: ExportPdfRequest): Promise<ExportResult>;
+  exportPlaintext(input: ExportPlaintextRequest): Promise<ExportResult>;
+  /** Schreibt das Skript als .scriptz-Datei raus (Blob-Download im Web,
+   *  Save-Dialog auf Desktop). Phase G. */
+  exportScriptz(scriptId: string): Promise<ExportResult>;
+  /** Liest eine .scriptz-Datei vom User (Open-Dialog) und legt ein neues
+   *  Skript daraus an. Returns null wenn der User abbricht. */
+  importScriptz(): Promise<{ scriptId: string; title: string } | null>;
 
   // ===== Ideen-Inbox =====
   listIdeas(): Promise<Idea[]>;

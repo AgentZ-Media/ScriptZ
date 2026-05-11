@@ -178,6 +178,19 @@ export function Browser(props: BrowserProps = {}) {
     props.onNewScript?.(activeFolderId());
   }
 
+  async function onImportScriptz() {
+    try {
+      const result = await api.importScriptz();
+      if (!result) return; // User hat abgebrochen
+      scriptsBus.bump();
+      foldersBus.bump();
+      tabsStore.openScript(result.scriptId, result.title);
+      pushToast("Skript importiert", "ok");
+    } catch (e) {
+      pushToast(`Import fehlgeschlagen: ${(e as Error).message ?? e}`, "error");
+    }
+  }
+
   const debouncedSetSearch = debounce((v: string) => setDebouncedSearch(v), 350);
   createEffect(() => {
     const v = searchInput();
@@ -539,6 +552,16 @@ export function Browser(props: BrowserProps = {}) {
                 <GridIcon />
               </button>
             </div>
+
+            <button
+              class="icon-btn"
+              onClick={onImportScriptz}
+              title="ScriptZ-Datei importieren"
+              aria-label="Importieren"
+              type="button"
+            >
+              <ImportIcon />
+            </button>
 
             <button
               class="icon-btn"
@@ -1053,6 +1076,17 @@ function TrashIcon() {
       <path d="M10 11v6" />
       <path d="M14 11v6" />
       <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+function ImportIcon() {
+  // Download-Pfeil ins Tablett - signalisiert "Datei reinholen".
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   );
 }

@@ -12,11 +12,12 @@ export {
   getPlatformAdapter,
   type PlatformAdapter,
   type DbConnection,
-  type ExportPdfInput,
   type ExportPdfDeps,
-  type ExportPlaintextInput,
   type SaveDialogOptions,
   type SaveDialogFilter,
+  type SaveAsOptions,
+  type SaveAsResult,
+  type OpenFileResult,
 } from "./lib/platform";
 
 export {

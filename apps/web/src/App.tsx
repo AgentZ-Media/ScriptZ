@@ -27,6 +27,7 @@ import ToastHost from "@scriptz/core/components/Common/ToastHost";
 import { IdeaQuickCapture } from "@scriptz/core/components/Ideas/IdeaQuickCapture";
 import { IdeasView } from "@scriptz/core/components/Ideas/IdeasView";
 import { ensureWelcomeContent } from "@scriptz/core/lib/welcome";
+import { flushAll } from "@scriptz/core/lib/saveFlush";
 import {
   OnboardingDialog,
   ONBOARDING_KEY,
@@ -106,6 +107,29 @@ export default function App() {
     } catch {
       /* nicht blockend */
     }
+  });
+
+  // Save-Flush beim Tab-Schliessen / Reload. Pendant zum
+  // onCloseRequested-Hook der Desktop-App. `beforeunload` feuert vor dem
+  // Unload (alle Hauptbrowser), `pagehide` ist iOS-Safari's Variante.
+  // flushAll(timeout) drainet die pending Editor-Saves + Tab-State -
+  // synchron heisst hier "innerhalb der ~2 s, die der Browser uns gibt".
+  // 100% Garantie gibt es nicht (z.B. wenn der User SOFORT Force-Quit
+  // macht), aber der Normalfall ist abgedeckt.
+  onMount(() => {
+    const handler = () => {
+      // Wir starten den Flush, aber blockieren NICHT auf das Promise -
+      // moderne Browser ignorieren preventDefault auf beforeunload eh.
+      // Die in saveFlush registrierten Flusher haben Sync-Fast-Paths,
+      // wo es geht; Editor.tsx flusht direkt in IndexedDB.
+      void flushAll(2000);
+    };
+    window.addEventListener("beforeunload", handler);
+    window.addEventListener("pagehide", handler);
+    onCleanup(() => {
+      window.removeEventListener("beforeunload", handler);
+      window.removeEventListener("pagehide", handler);
+    });
   });
 
   // Skript-Liste -> Tabs versoehnen, identisch zum Desktop.

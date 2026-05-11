@@ -3,10 +3,19 @@ import {
   listCharacterColors as ccList,
   setCharacterColor as ccSet,
 } from "./characterColors";
+import { extractTeleprompterText } from "./lex";
 import { getPlatformAdapter } from "./platform";
+import {
+  defaultScriptzFilename,
+  parseScriptzBytes,
+  SCRIPTZ_EXTENSION,
+  SCRIPTZ_MIME,
+  serializeScriptToBytes,
+} from "./scriptzFile";
 import {
   getStorageAdapter,
   setStorageAdapter,
+  type ExportResult,
   type StorageAdapter,
 } from "./storage";
 import {
@@ -225,29 +234,92 @@ const sqlBackedAdapter: StorageAdapter = {
     return ccClear(name, activeScriptId ?? null);
   },
 
-  // Export - TS-side via pdf-lib + plugin-fs since Migration Phase 8.
-  // Since the core/ extraction the actual exporter lives in the host app
-  // and is dispatched through the platform adapter (platform.ts).
+  // Export - seit Phase 2F vollstaendig in core: PDF-Bytes-Build via
+  // pdf-lib (browser-tauglich, siehe ./exportPdf.ts), Plaintext via
+  // extractTeleprompterText. Der PlatformAdapter schreibt die Bytes
+  // raus - Desktop via Save-Dialog + plugin-fs, Web via Blob-Download.
   async exportPdf(input: {
     scriptId: string;
-    path: string;
     includeHighlighting: boolean;
     includeTitlePage: boolean;
-  }): Promise<{ path: string }> {
-    return getPlatformAdapter().exportPdf(input, async (id) => {
-      const s = await scriptsGet(id);
-      return {
+  }): Promise<ExportResult> {
+    const s = await scriptsGet(input.scriptId);
+    // pdf-lib + fontkit sind ~1 MB Bundle - lazy laden, damit der
+    // App-Start nicht damit belastet wird. Nur wer wirklich PDF
+    // exportiert, zahlt den Roundtrip einmal.
+    const { buildPdfBytes } = await import("./exportPdf");
+    const bytes = await buildPdfBytes(
+      {
         title: s.title,
         contentJson: s.content_json,
         characters: s.characters ?? [],
-      };
-    });
+      },
+      {
+        includeHighlighting: input.includeHighlighting,
+        includeTitlePage: input.includeTitlePage,
+      },
+    );
+    return getPlatformAdapter().saveAs(
+      {
+        suggestedName: `${s.title || "Unbenannt"}.pdf`,
+        mimeType: "application/pdf",
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      },
+      bytes,
+    );
   },
-  async exportPlaintext(input: { scriptId: string; path: string }): Promise<{ path: string }> {
-    return getPlatformAdapter().exportPlaintext(input, async (id) => {
-      const s = await scriptsGet(id);
-      return s.content_json;
+  async exportPlaintext(input: { scriptId: string }): Promise<ExportResult> {
+    const s = await scriptsGet(input.scriptId);
+    const text = extractTeleprompterText(s.content_json);
+    const bytes = new TextEncoder().encode(text);
+    return getPlatformAdapter().saveAs(
+      {
+        suggestedName: `${s.title || "Unbenannt"}.txt`,
+        mimeType: "text/plain;charset=utf-8",
+        filters: [{ name: "Plain Text", extensions: ["txt"] }],
+      },
+      bytes,
+    );
+  },
+
+  // .scriptz-Container (Phase 2G). Reine Pure-Function fuers Serialisieren
+  // sitzt in ./scriptzFile.ts; hier nur die "Skript laden -> Bytes -> saveAs"-
+  // Komposition. Importer-Pendant siehe importScriptz unten.
+  async exportScriptz(scriptId: string): Promise<ExportResult> {
+    const s = await scriptsGet(scriptId);
+    const bytes = serializeScriptToBytes({
+      title: s.title,
+      content_json: s.content_json,
+      characters: s.characters ?? [],
+      highlighting_enabled: s.highlighting_enabled,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
     });
+    return getPlatformAdapter().saveAs(
+      {
+        suggestedName: defaultScriptzFilename(s.title),
+        mimeType: SCRIPTZ_MIME,
+        filters: [{ name: "ScriptZ-Datei", extensions: [SCRIPTZ_EXTENSION] }],
+      },
+      bytes,
+    );
+  },
+
+  async importScriptz(): Promise<{ scriptId: string; title: string } | null> {
+    const file = await getPlatformAdapter().openFile(
+      `.${SCRIPTZ_EXTENSION},${SCRIPTZ_MIME}`,
+    );
+    if (!file) return null;
+    const parsed = parseScriptzBytes(file.bytes);
+    // contentJson kommt als Objekt zurueck (kein doppeltes Stringify im
+    // Format), wir packen sie fuer createScript wieder in einen String -
+    // die Skript-Tabelle haelt sie als TEXT.
+    const created = await scriptsCreate(
+      parsed.script.title,
+      JSON.stringify(parsed.script.contentJson),
+      null,
+    );
+    return { scriptId: created.id, title: created.title };
   },
 
   // Ideen-Inbox - eigenständige Tabelle, keine Berührung der Skript-CRUD.
