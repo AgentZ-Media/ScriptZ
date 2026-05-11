@@ -145,37 +145,31 @@ const allIdeas = [...openIdeas, ...usedIdeas];
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             </span>
             <span class="v2-tab-title">Warum?</span>
-            <span class="v2-tab-close" aria-hidden="true">×</span>
           </button>
           <button class="v2-tab v2-tab-script" type="button" data-tab="quickmodus" data-title="Quickmodus - der Trick, den niemand anders kann">
             <span class="v2-tab-ic">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             </span>
             <span class="v2-tab-title">Der Quickmodus</span>
-            <span class="v2-tab-close" aria-hidden="true">×</span>
           </button>
           <button class="v2-tab v2-tab-script" type="button" data-tab="no-ai" data-title="Kein-KI-Manifest">
             <span class="v2-tab-ic">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             </span>
             <span class="v2-tab-title">Keine KI</span>
-            <span class="v2-tab-close" aria-hidden="true">×</span>
           </button>
           <button class="v2-tab v2-tab-script" type="button" data-tab="vergleich" data-title="Im Vergleich zu allem anderen">
             <span class="v2-tab-ic">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             </span>
             <span class="v2-tab-title">Vergleich</span>
-            <span class="v2-tab-close" aria-hidden="true">×</span>
           </button>
           <button class="v2-tab v2-tab-script" type="button" data-tab="download" data-title="Download - macOS, kostenlos">
             <span class="v2-tab-ic">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             </span>
             <span class="v2-tab-title">Download</span>
-            <span class="v2-tab-close" aria-hidden="true">×</span>
           </button>
-          <span class="v2-tab-plus" aria-hidden="true">+</span>
         </div>
 
         <div class="v2-status">
@@ -1024,31 +1018,6 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     white-space: nowrap;
     text-align: left;
   }
-  .v2-tab-close {
-    width: 16px;
-    height: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    color: var(--v2-ink-faint);
-    font-size: 12px;
-    line-height: 1;
-    flex-shrink: 0;
-  }
-  .v2-tab:hover .v2-tab-close { color: var(--v2-ink); background: var(--v2-hover); }
-  .v2-tab-plus {
-    width: 30px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--v2-ink-faint);
-    font-size: 18px;
-    line-height: 1;
-    flex-shrink: 0;
-  }
-
   .v2-status {
     display: inline-flex;
     align-items: center;
