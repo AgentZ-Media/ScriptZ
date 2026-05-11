@@ -199,23 +199,15 @@ const release = await getLatestRelease();
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.55;
-    background-image:
-      repeating-linear-gradient(
-        to right,
-        rgba(28,24,20,0.04) 0,
-        rgba(28,24,20,0.04) 1px,
-        transparent 1px,
-        transparent 28px
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        rgba(28,24,20,0.04) 0,
-        rgba(28,24,20,0.04) 1px,
-        transparent 1px,
-        transparent 28px
-      );
-    background-attachment: fixed;
     padding-bottom: 24px;
+    /* Wie ein App-Fenster - siehe Begruendung in der Startseite. */
+    max-width: 1600px;
+    margin: 0 auto;
+    border-radius: 12px;
+    box-shadow:
+      0 1px 2px rgba(28, 24, 20, 0.04),
+      0 24px 60px rgba(28, 24, 20, 0.10),
+      0 0 0 1px rgba(28, 24, 20, 0.06);
   }
 
   /* === Chrome ============================================== */
@@ -233,6 +225,11 @@ const release = await getLatestRelease();
     padding: 8px 14px;
     background: var(--v2-bg);
     border-bottom: 1px solid var(--v2-border);
+    /* Spiegelt den Shell-Radius - die sticky Titlebar muss die
+       gleichen oberen Ecken haben, sonst ragt sie ueber die
+       abgerundeten Shell-Ecken hinaus. */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
   }
   .v2-traffic { display: flex; gap: 6px; padding-right: 6px; }
   .v2-traffic .dot {

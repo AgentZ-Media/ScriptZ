@@ -954,25 +954,26 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.55;
-    background-image:
-      repeating-linear-gradient(
-        to right,
-        rgba(28,24,20,0.04) 0,
-        rgba(28,24,20,0.04) 1px,
-        transparent 1px,
-        transparent 28px
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        rgba(28,24,20,0.04) 0,
-        rgba(28,24,20,0.04) 1px,
-        transparent 1px,
-        transparent 28px
-      );
-    background-attachment: fixed;
     /* Schmaler Atemschritt unter dem Paper, statt eines breiten
        leeren Streifens. */
     padding-bottom: 24px;
+    /* Wie ein App-Fenster: ueber 1600 px Viewport begrenzt, zentriert
+       und mit dezentem Schatten/Border. Das Karo bleibt der Website
+       (body) und scheint links/rechts der Box durch - genau wie ein
+       echtes App-Fenster auf dem Desktop. Innerhalb der Box gibt es
+       KEIN Karo, weil die App selbst auch keins hat: nur das warme
+       Cremeweiss als Bg und das weisse Paper darauf.
+
+       border-radius bekommt zusaetzlich der .v2-titlebar (oben), damit
+       die Sticky-Chrome auch beim Scrollen die abgerundeten Ecken haelt
+       und nicht ueber die Shell-Ecken hinausragt (siehe Regel unten). */
+    max-width: 1600px;
+    margin: 0 auto;
+    border-radius: 12px;
+    box-shadow:
+      0 1px 2px rgba(28, 24, 20, 0.04),
+      0 24px 60px rgba(28, 24, 20, 0.10),
+      0 0 0 1px rgba(28, 24, 20, 0.06);
   }
 
   /* === Chrome-Wrapper: titlebar + toolbar als 1 sticky Block === */
@@ -993,6 +994,12 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     padding: 8px 14px;
     background: var(--v2-bg);
     border-bottom: 1px solid var(--v2-border);
+    /* Spiegelt den Shell-Radius. Wichtig: ohne diese Regel wuerde die
+       Titlebar als Sticky ueber die abgerundeten Ecken der Shell
+       ragen, weil .v2-shell kein overflow:hidden hat (das wuerde
+       position:sticky kaputt machen). */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
   }
   .v2-traffic { display: flex; gap: 6px; padding-right: 6px; }
   .v2-traffic .dot {
