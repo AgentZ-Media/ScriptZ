@@ -1,0 +1,564 @@
+---
+/**
+ * LegalShell - die Editor-Optik fuer Impressum und Datenschutz.
+ *
+ * Spiegelt das Layout der Landing: kleiner Hero oben, darunter die
+ * App-Chrome (Tab-Bar + Toolbar) mit einem aktiven Skript-Tab, dann
+ * ein Paper-Sheet mit den Block-Klassen des Editors. Inhalt kommt
+ * ueber <slot/> rein und sollte in v2-block-Klassen formatiert sein
+ * (CAPTION fuer Abschnittsueberschriften, ACTION fuer normale
+ * Absaetze, SFX fuer Inline-Hervorhebungen etc.).
+ *
+ * Styling und Markup sind bewusst dupliziert mit index.astro statt
+ * eines geteilten Stylesheets - die Legal-Seiten aendern sich selten,
+ * und Astro-Scoping haelt die Klassen sauber getrennt von den
+ * Index-Klassen, ohne dass globale CSS-Imports noetig waeren.
+ */
+import { getLatestRelease, site } from "../data/site";
+
+interface Props {
+  /** Welcher Tab in der Bar als aktiv markiert wird. */
+  activeTab: "impressum" | "datenschutz";
+  /** Toolbar-Titel und Inhalt der Hero-H1. */
+  title: string;
+  /** Kurzer Untertitel unter dem Titel im Hero. */
+  subtitle: string;
+}
+
+const { activeTab, title, subtitle } = Astro.props;
+const release = await getLatestRelease();
+---
+
+<div class="v2-hero v2-hero-legal">
+  <div class="v2-hero-inner">
+    <span class="v2-eyebrow">RECHTLICHES</span>
+    <h1 class="v2-h1 v2-h1-legal">{title}</h1>
+    <p class="v2-lead">{subtitle}</p>
+  </div>
+</div>
+
+<div class="v2-shell" data-theme="light">
+  <div class="v2-chrome">
+
+    <header class="v2-titlebar">
+      <div class="v2-traffic" aria-hidden="true">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+      </div>
+
+      <div class="v2-tabs">
+        <a class="v2-tab v2-tab-icon" href="/" aria-label="Zur Startseite">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>
+          </svg>
+        </a>
+        <a
+          class={`v2-tab v2-tab-script ${activeTab === "impressum" ? "is-active" : ""}`}
+          href="/impressum"
+        >
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">Impressum</span>
+        </a>
+        <a
+          class={`v2-tab v2-tab-script ${activeTab === "datenschutz" ? "is-active" : ""}`}
+          href="/datenschutz"
+        >
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">Datenschutz</span>
+        </a>
+      </div>
+
+      <div class="v2-status">
+        <a class="v2-status-pill" href={site.github} target="_blank" rel="noopener">
+          <span class="v2-dot v2-dot-on"></span>
+          Open Source
+        </a>
+      </div>
+    </header>
+
+    <div class="v2-toolbar">
+      <a class="v2-toolbar-back" href="/" aria-label="Zurück zur Startseite">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Übersicht
+      </a>
+      <div class="v2-toolbar-title">{title}</div>
+      <div class="v2-toolbar-pills">
+        <span class="v2-pill is-active">ACTION <span class="v2-kbd">1</span></span>
+        <span class="v2-pill v2-pill-more">…</span>
+      </div>
+      <div class="v2-toolbar-actions">
+        <a class="v2-toolbar-btn" href="/">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Zur App
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <main class="v2-paper">
+    <slot />
+
+    <footer class="v2-footer">
+      <div class="v2-footer-cols">
+        <div>
+          <span class="v2-footer-h">Projekt</span>
+          <ul>
+            <li><a href={site.github} target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href={release.releasePageUrl} target="_blank" rel="noopener">Releases</a></li>
+          </ul>
+        </div>
+        <div>
+          <span class="v2-footer-h">Recht</span>
+          <ul>
+            <li><a href="/impressum">Impressum</a></li>
+            <li><a href="/datenschutz">Datenschutz</a></li>
+          </ul>
+        </div>
+        <div>
+          <span class="v2-footer-h">Kontakt</span>
+          <ul>
+            <li><a href={`mailto:${site.contactEmail}`}>E-Mail</a></li>
+          </ul>
+        </div>
+        <div class="v2-footer-meta">
+          <span class="v2-footer-eyebrow">ÜBER SCRIPTZ</span>
+          <p>Ein Skripteditor für Content Creator, der dir aus dem Weg geht. Format passiert beim Tippen, Charaktere werden automatisch erkannt, der Quickmodus spart pro Sprecherwechsel zwei Tastendrücke. Alles lokal, alles in einer SQLite-Datei auf deinem Mac. Keine Cloud, kein Konto, keine KI.</p>
+          <p class="v2-footer-version">v{release.version} · macOS 13+ · Open Source</p>
+        </div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<style>
+  /* === Hero (kompakter als auf der Startseite) ============= */
+  .v2-hero {
+    padding: 56px 24px 36px;
+    text-align: center;
+    border-bottom: 1px dashed rgba(28,24,20,0.18);
+  }
+  .v2-hero-inner { max-width: 720px; margin: 0 auto; }
+  .v2-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #5b554c;
+    margin-bottom: 18px;
+  }
+  .v2-eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.5;
+  }
+  .v2-h1-legal {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    color: #1c1814;
+    margin: 0;
+  }
+  .v2-lead {
+    margin: 18px auto 0;
+    max-width: 56ch;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #5b554c;
+  }
+
+  /* === Shell-Container ===================================== */
+  .v2-shell {
+    --v2-bg: #f5f3ee;
+    --v2-paper: #ffffff;
+    --v2-ink: #1c1814;
+    --v2-ink-muted: rgba(28,24,20,0.65);
+    --v2-ink-faint: rgba(28,24,20,0.45);
+    --v2-border: rgba(28,24,20,0.10);
+    --v2-border-strong: rgba(28,24,20,0.18);
+    --v2-hover: rgba(28,24,20,0.05);
+    --v2-paper-w: 820px;
+    background: var(--v2-bg);
+    color: var(--v2-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(28,24,20,0.04) 0,
+        rgba(28,24,20,0.04) 1px,
+        transparent 1px,
+        transparent 28px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(28,24,20,0.04) 0,
+        rgba(28,24,20,0.04) 1px,
+        transparent 1px,
+        transparent 28px
+      );
+    background-attachment: fixed;
+    padding-bottom: 24px;
+  }
+
+  /* === Chrome ============================================== */
+  .v2-chrome {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--v2-bg);
+  }
+
+  .v2-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    background: var(--v2-bg);
+    border-bottom: 1px solid var(--v2-border);
+  }
+  .v2-traffic { display: flex; gap: 6px; padding-right: 6px; }
+  .v2-traffic .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    display: inline-block;
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.15);
+  }
+  .v2-traffic .dot-red    { background: #ff5f57; }
+  .v2-traffic .dot-yellow { background: #febc2e; }
+  .v2-traffic .dot-green  { background: #28c840; }
+
+  .v2-tabs {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .v2-tabs::-webkit-scrollbar { display: none; }
+
+  .v2-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--v2-ink-muted);
+    text-decoration: none;
+    transition: all 120ms ease;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  .v2-tab:hover {
+    background: var(--v2-hover);
+    color: var(--v2-ink);
+  }
+  .v2-tab.is-active {
+    background: var(--v2-paper);
+    color: var(--v2-ink);
+    border-color: var(--v2-border);
+    box-shadow: 0 1px 2px rgba(28,24,20,0.05);
+  }
+  .v2-tab-icon {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .v2-tab-script {
+    min-width: 110px;
+    max-width: 200px;
+    flex: 0 1 170px;
+  }
+  .v2-tab-ic { flex-shrink: 0; opacity: 0.7; }
+  .v2-tab.is-active .v2-tab-ic { opacity: 1; }
+  .v2-tab-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .v2-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .v2-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--v2-paper);
+    border: 1px solid var(--v2-border);
+    color: var(--v2-ink-muted);
+    font-size: 11px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .v2-status-pill:hover { border-color: var(--v2-border-strong); color: var(--v2-ink); }
+  .v2-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #4f9a6c;
+    display: inline-block;
+  }
+
+  /* === Toolbar ============================================ */
+  .v2-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 14px;
+    background: var(--v2-paper);
+    border-bottom: 1px solid var(--v2-border);
+  }
+  .v2-toolbar-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--v2-ink-muted);
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .v2-toolbar-back:hover { background: var(--v2-hover); color: var(--v2-ink); }
+  .v2-toolbar-title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--v2-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+  .v2-toolbar-pills { display: inline-flex; gap: 4px; flex-shrink: 0; }
+  .v2-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(28,24,20,0.04);
+    color: var(--v2-ink-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .v2-pill.is-active { background: var(--v2-ink); color: #fff; }
+  .v2-kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.18);
+    color: inherit;
+    font-size: 9px;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+  .v2-pill:not(.is-active) .v2-kbd { background: rgba(28,24,20,0.07); }
+  .v2-pill-more { padding: 4px 8px; }
+
+  .v2-toolbar-actions { flex-shrink: 0; }
+  .v2-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--v2-ink);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 120ms ease;
+  }
+  .v2-toolbar-btn:hover { background: #0f0d0a; }
+
+  /* === Paper =============================================== */
+  .v2-paper {
+    width: var(--v2-paper-w);
+    max-width: calc(100vw - 48px);
+    margin: 24px auto 0;
+    background: var(--v2-paper);
+    padding: 40px 64px 32px;
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+    font-feature-settings: "liga" 1, "calt" 1;
+    min-height: 50vh;
+  }
+
+  /* === Block-Styling (gleich wie auf der Startseite) ====== */
+  :global(.v2-block) {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    white-space: normal;
+    word-break: break-word;
+  }
+  :global(.v2-block + .v2-block) { margin-top: 4px; }
+  :global(.v2-block.v2-action + .v2-block.v2-action) { margin-top: 14px; }
+  :global(.v2-block.v2-caption + *) { margin-top: 14px; }
+  :global(* + .v2-block.v2-caption) { margin-top: 32px; }
+
+  :global(.v2-action) { text-align: left; }
+  :global(.v2-caption) {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 14px;
+  }
+  :global(.v2-camera) {
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    font-size: 13px;
+    color: rgba(28,24,20,0.65);
+  }
+  :global(.v2-sfx) {
+    text-align: left;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    font-size: 13px;
+    color: rgba(28,24,20,0.65);
+    text-transform: uppercase;
+    margin-top: 14px;
+  }
+
+  /* Listen im Paper - eingerueckt wie ACTION-Sub-Items */
+  :global(.v2-paper ul.v2-list) {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+  }
+  :global(.v2-paper ul.v2-list li) {
+    position: relative;
+    padding: 4px 0 4px 22px;
+    color: rgba(28,24,20,0.78);
+  }
+  :global(.v2-paper ul.v2-list li::before) {
+    content: "—";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    color: rgba(28,24,20,0.45);
+    font-weight: 700;
+  }
+
+  /* Adressblock - im Stil eines ACTION-Eintrags mit Versalien-Label */
+  :global(.v2-paper .v2-address) {
+    margin: 4px 0 0;
+    line-height: 1.55;
+  }
+  :global(.v2-paper a) {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(28,24,20,0.32);
+    text-underline-offset: 2px;
+    transition: text-decoration-color 120ms ease;
+  }
+  :global(.v2-paper a:hover) {
+    text-decoration-color: rgba(28,24,20,0.85);
+  }
+  :global(.v2-paper code) {
+    background: rgba(28,24,20,0.06);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  :global(.v2-paper em) { font-style: italic; }
+
+  /* === Footer (gleich wie Startseite) ===================== */
+  .v2-footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px dashed var(--v2-border);
+    color: var(--v2-ink-muted);
+    font-size: 12px;
+  }
+  .v2-footer-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 2fr;
+    gap: 24px;
+  }
+  .v2-footer-h {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--v2-ink);
+    margin-bottom: 10px;
+  }
+  .v2-footer ul { list-style: none; padding: 0; margin: 0; }
+  .v2-footer ul li { padding: 3px 0; }
+  .v2-footer a { color: inherit; text-decoration: none; }
+  .v2-footer a:hover { color: var(--v2-ink); }
+  .v2-footer-eyebrow {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--v2-ink);
+    margin-bottom: 8px;
+  }
+  .v2-footer-meta p { margin: 0 0 6px; line-height: 1.55; }
+  .v2-footer-version { color: var(--v2-ink-faint); }
+
+  /* === Responsive ========================================== */
+  @media (max-width: 880px) {
+    .v2-hero { padding: 36px 18px 24px; }
+    .v2-paper { padding: 28px 24px 32px; margin: 16px auto 0; }
+    .v2-toolbar-title { display: none; }
+    .v2-toolbar-pills { display: none; }
+    .v2-footer-cols { grid-template-columns: 1fr 1fr; }
+    .v2-footer-meta { grid-column: 1 / -1; }
+  }
+  @media (max-width: 560px) {
+    .v2-shell { font-size: 13px; }
+    .v2-paper { padding: 20px 18px 24px; }
+    .v2-tab-script { min-width: 90px; }
+  }
+</style>
