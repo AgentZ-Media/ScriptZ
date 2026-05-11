@@ -5,6 +5,11 @@ import {
 } from "./characterColors";
 import { getPlatformAdapter } from "./platform";
 import {
+  getStorageAdapter,
+  setStorageAdapter,
+  type StorageAdapter,
+} from "./storage";
+import {
   getAppState as dbGetAppState,
   getSetting as dbGetSetting,
   setAppState as dbSetAppState,
@@ -65,7 +70,16 @@ import type {
   SnapshotMeta,
 } from "./types";
 
-export const api = {
+// SQL-basierte Default-Implementierung des StorageAdapter. Geht ueber
+// die lib/*-Module, die via DbConnection (siehe ./platform.ts) Tauris
+// plugin-sql bzw. eine sql.js-Instanz im Web ansprechen.
+//
+// Bei Modul-Load wird sie via `setStorageAdapter()` als aktiver Adapter
+// registriert. Der `api`-Export unten ist ein Proxy auf
+// `getStorageAdapter()`, damit ein spaeterer `setStorageAdapter(dexieImpl)`
+// auf der Web-Seite sofort durchgreift, ohne die 19 Call-Sites von `api`
+// einzeln umstellen zu muessen.
+const sqlBackedAdapter: StorageAdapter = {
   // Scripts - fully TS-side since Migration Phase 7d.
   async createScript(input: {
     title?: string;
@@ -265,3 +279,23 @@ export const api = {
     return dwLoadStats();
   },
 };
+
+// Default-Registrierung beim Modul-Load. Web-Builds koennen nach diesem
+// Punkt `setStorageAdapter(webImpl)` aufrufen, um die SQL-Impl zu
+// ersetzen - `api` (siehe unten) liest immer ueber `getStorageAdapter()`,
+// also greift der Tausch sofort.
+setStorageAdapter(sqlBackedAdapter);
+
+// Proxy-Facade fuer Drop-in-Kompatibilitaet. Aelterer Code, der `import
+// { api } from "@scriptz/core/lib/api"` macht und `api.getScript(id)`
+// aufruft, geht hier durch zu `getStorageAdapter()` - also immer auf
+// den aktuell registrierten Adapter. Funktionen werden an den Adapter
+// gebunden, damit eventuelle `this`-Referenzen in einer custom-Impl
+// funktionieren.
+export const api: StorageAdapter = new Proxy({} as StorageAdapter, {
+  get(_target, prop: string | symbol) {
+    const a = getStorageAdapter() as unknown as Record<string | symbol, unknown>;
+    const value = a[prop];
+    return typeof value === "function" ? value.bind(a) : value;
+  },
+});

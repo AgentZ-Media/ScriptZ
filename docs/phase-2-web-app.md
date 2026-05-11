@@ -155,7 +155,50 @@ Schritte:
 laufen unverändert. Manueller Smoke-Test: Script schreiben, Tab
 schließen, Re-Open, Snapshot, Suche.
 
-### Phase B - Cross-Platform-Hygiene (~1-1.5 Tage)
+### Phase B - Cross-Platform-Hygiene (~1-1.5 Tage) ✅ ERLEDIGT (2026-05-11)
+
+**Was wirklich gemacht wurde** (Stand `b744371` auf main):
+
+- [`packages/core/lib/keys.ts`](../packages/core/lib/keys.ts) angelegt
+  mit `isModKey()` (metaKey auf macOS, ctrlKey sonst), `formatHotkey()`/
+  `K()`, `getPlatform()`, `isMac()`. Logischer Spec wie `"Mod+B"`,
+  `"Mod+Shift+S"`, `"Mod+Alt+ArrowLeft"`.
+- `PlatformAdapter` um `platform: "macos" | "windows" | "linux"`
+  erweitert. Desktop-Adapter liest via
+  `@tauri-apps/plugin-os::platform()`. Default-Fallback: `"macos"`.
+- `applyPlatformToDocument()` setzt `<html data-platform="...">`, damit
+  CSS-Selektoren wie `[data-platform="macos"]` greifen.
+- **UI-Migration**: alle hartcodierten ⌘-Display-Strings durch `K()`
+  ersetzt - SettingsDialog (gesamte `SHORTCUT_GROUPS`-Tabelle +
+  Fokus-Hinweis), EditorToolbar (Block-Hints + Tooltips), TabBar
+  (Tooltips), Browser (Suchfeld-Kbd + Empty-Hint), ScriptView,
+  EditorRail, IdeaQuickCapture. Windows-User sehen jetzt durchgaengig
+  "Ctrl+B" statt "⌘B".
+- **Window-Chrome**: CSS-Custom-Property `--titlebar-traffic-width` in
+  [`tokens.css`](../packages/core/styles/tokens.css) - 0 als Default,
+  78px nur unter `[data-platform="macos"]`. [`TabBar.css`](../packages/core/components/TabBar.css)
+  nutzt die Property statt hartcodierter Pixel. Windows/Linux kriegt
+  damit keinen leeren Mac-Spacer.
+- **Font-Fallback-Stacks** um Cascadia Mono, Consolas, DejaVu Sans
+  Mono ergaenzt, damit Pre-Font-Load auf Win/Linux nicht in Courier
+  New landet.
+- 10 neue Tests fuer keys.ts (28 gruen insgesamt).
+- **Hotkey-Handler-Konsolidierung bewusst NICHT gemacht**: die Plugins
+  (blockHotkeys.ts, inlineFormat.ts) und App.tsx checken bereits
+  `metaKey || ctrlKey` und sind damit plattform-tolerant. `isModKey()`
+  ist verfuegbar, aber Bestandscode wurde nicht ueberall ersetzt -
+  reine Hygiene-Aufgabe, kommt im Drive-by bei spaeteren Touches.
+
+**Was bewusst draussen blieb** (per User-Vorgabe):
+
+- CI-Pipeline-Erweiterung auf `windows-latest`-Matrix
+- Code-Signing-Setup (Azure Trusted Signing / Authenticode)
+- Finaler Windows-UX-Feinschliff (Fenster-Buttons rechts, native
+  Menues)
+
+Das erledigt der User separat an seinem eigenen Windows-Rechner.
+
+**Urspruengliche Planung** (Stand vor Umsetzung, zur Nachvollziehbarkeit):
 
 Ziel: `packages/core/` macht keine macOS-Annahmen mehr. Heute laufen
 Hotkeys nur mit ⌘, Window-Chrome geht von Trafficlights aus, Fonts
@@ -225,7 +268,49 @@ vorher. Im Browser (Phase C+) reagieren ⌘B/I/U **und** Ctrl+B/I/U
 korrekt. Wenn der User später `tauri build --target windows` baut,
 muss er nur die CI- und Signing-Sachen lösen - der Code selbst läuft.
 
-### Phase C - Storage-Adapter-Interface (~1 Tag)
+### Phase C - Storage-Adapter-Interface (~1 Tag) ✅ ERLEDIGT (2026-05-11)
+
+**Was wirklich gemacht wurde** (Stand auf main):
+
+- Neues [`packages/core/lib/storage.ts`](../packages/core/lib/storage.ts)
+  mit `StorageAdapter`-Interface (30 typisierte CRUD-Methoden:
+  createScript, listFolders, createSnapshot, globalSearch, ...) plus
+  `setStorageAdapter()` / `getStorageAdapter()` Slot - analog zum
+  PlatformAdapter aus Phase A.
+- `api.ts` refactored: die bisherige `api`-Facade ist jetzt
+  `sqlBackedAdapter: StorageAdapter`, registriert sich bei Modul-Load
+  via `setStorageAdapter()`. Der weiterhin exportierte `api`-Symbol
+  ist ein Proxy auf `getStorageAdapter()` - **keine** der 19
+  Bestands-Call-Sites musste angepasst werden.
+- Behavior auf Desktop: 1:1 identisch (selbe Funktionen, selbe SQL).
+- Effekt fuer spaeter: Phase E (IndexedDB-Adapter) kann via
+  `setStorageAdapter(webImpl)` einen Dexie-basierten Adapter
+  registrieren und so die SQL-Implementierung komplett ersetzen,
+  ohne in core/lib/scripts.ts etc. einzugreifen.
+- 3 neue Tests fuer die Slot-Mechanik (31 gruen insgesamt) -
+  validieren dass der `api`-Proxy live ueber den Slot geht und ein
+  spaeterer Adapter-Swap sofort durchgreift.
+
+**Was bewusst NICHT gemacht wurde** (Scope-Disziplin):
+
+- Schema-aware Logik (Character-Reconciliation, Word-Count-Delta,
+  Snapshot-Cap) wurde **nicht** in den Adapter gezogen. Sie lebt
+  weiterhin in core/lib/*.ts und ist damit fuer ALLE Adapter
+  wiederverwendbar - ein zukuenftiger Web-Adapter mit Dexie wuerde
+  dieselben Reconciliation-Aufrufe machen, nur die zugrunde
+  liegenden CRUD-Primitive auswechseln.
+- Bestehende lib-Files (scripts.ts, folders.ts, ideas.ts, snapshots.ts,
+  ...) wurden **nicht** in einen apps/desktop/adapters/-Ordner
+  verschoben. Sie sind nach wie vor Teil von core - aber nur als
+  Default-Implementierung. Wer ueber den Slot kommt, sieht sie nie.
+- **Original-Plan war:** "Editor-Code in core kennt SQLite nicht mehr"
+  (high-level CRUD ueber Adapter). **Realer Stand:** SQL bleibt in
+  core, der Slot kapselt sie nur. Web-Builds koennen sql.js laden
+  (DbConnection-tauglich, ~1 MB WASM) ODER per
+  `setStorageAdapter(dexieImpl)` die Default-Impl komplett ersetzen.
+  Auswahlpunkt ist offen.
+
+**Urspruengliche Planung** (Stand vor Umsetzung, zur Nachvollziehbarkeit):
 
 Ziel: Editor-Code in `core` kennt SQLite nicht mehr. Stattdessen
 ruft er ein Interface auf, das der Desktop-Code per Adapter erfüllt.
