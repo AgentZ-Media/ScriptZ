@@ -6,8 +6,8 @@
 // core-Modul auf das Slot zugreift.
 //
 // getDb() wirft hier bewusst - die Web-App registriert einen eigenen
-// StorageAdapter (apps/web/src/lib/storage.ts), der die SQL-Schicht
-// vollstaendig ersetzt. getDb() darf entsprechend nie aufgerufen werden.
+// StorageAdapter (apps/web/src/adapters/indexeddb.ts), der die SQL-Schicht
+// vollständig ersetzt. getDb() darf entsprechend nie aufgerufen werden.
 // Falls doch, ist das ein Hinweis darauf, dass irgendwo im core noch ein
 // direkter DB-Aufruf statt eines Adapter-Calls erfolgt.
 //
@@ -24,7 +24,7 @@ import {
 
 function detectPlatform(): Platform {
   // userAgentData ist die zukunftssichere Variante (Chromium-only,
-  // 2025+). Wenn nicht verfuegbar: aus userAgent ableiten - dort ist
+  // 2025+). Wenn nicht verfügbar: aus userAgent ableiten - dort ist
   // der Plattform-String stabil seit Jahren.
   const uaData = (
     navigator as Navigator & {
@@ -41,8 +41,8 @@ const webAdapter: PlatformAdapter = {
   platform: detectPlatform(),
   async getDb() {
     throw new Error(
-      "Web-Build: getDb() ist nicht verfuegbar. Der Storage-Adapter " +
-        "(apps/web/src/lib/storage.ts) ersetzt die SQL-Schicht komplett.",
+      "Web-Build: getDb() ist nicht verfügbar. Der Storage-Adapter " +
+        "(apps/web/src/adapters/indexeddb.ts) ersetzt die SQL-Schicht komplett.",
     );
   },
   async getVersion() {
@@ -61,18 +61,18 @@ const webAdapter: PlatformAdapter = {
     // (z.B. nach einem Export) nicht abbricht.
   },
   async saveDialog() {
-    // Kein nativer Save-Dialog im Browser. Der Web-Pfad fuer Save-As
-    // laeuft ueber Blob + <a download> (Phase F) - kommt erst dort dran.
+    // Kein nativer Save-Dialog im Browser. Der Web-Pfad für Save-As
+    // läuft über Blob + <a download> (Phase F) - kommt erst dort dran.
     return null;
   },
   async exportPdf() {
     throw new Error(
-      "PDF-Export im Browser ist noch nicht verfuegbar (geplant fuer Phase F).",
+      "PDF-Export im Browser ist noch nicht verfügbar (geplant für Phase F).",
     );
   },
   async exportPlaintext() {
     throw new Error(
-      "Plain-Text-Export im Browser ist noch nicht verfuegbar (geplant fuer Phase F).",
+      "Plain-Text-Export im Browser ist noch nicht verfügbar (geplant für Phase F).",
     );
   },
 };
@@ -84,7 +84,7 @@ applyPlatformToDocument();
 // auf dem echten OS (damit Mac-User im Browser weiter ⌘-Labels sehen und
 // `isMac()` korrekt funktioniert), aber `data-shell="web"` schaltet die
 // macOS-Trafficlight-Padding in tokens.css ab - im Browser gibt's keine
-// Trafficlights, also auch keinen Spacer dafuer.
+// Trafficlights, also auch keinen Spacer dafür.
 if (typeof document !== "undefined") {
   document.documentElement.dataset.shell = "web";
 }

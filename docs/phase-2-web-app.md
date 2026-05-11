@@ -358,16 +358,16 @@ nichts.
   via `navigator.userAgentData?.platform || navigator.userAgent`.
   `getDb()` wirft bewusst (der StorageAdapter ersetzt die SQL-Schicht
   komplett). `exportPdf`/`exportPlaintext` werfen mit Phase-F-Hinweis.
-  `openUrl` geht ueber `window.open`, `revealInFolder` ist No-op.
+  `openUrl` geht über `window.open`, `revealInFolder` ist No-op.
 - [`apps/web/src/lib/storage.ts`](../apps/web/src/lib/storage.ts) -
   In-Memory-`StorageAdapter` mit allen 30 Methoden des Interfaces.
   Re-used die reinen Core-Helper (`extractCharacterNames`,
   `dialogWordsByCharacter`, `runtimeStatsFromContent`,
-  `DEFAULT_PALETTE`) fuer 1:1-Verhalten bei Character-Reconciliation.
-  *(In Phase E durch IndexedDB-Variante ersetzt und geloescht.)*
+  `DEFAULT_PALETTE`) für 1:1-Verhalten bei Character-Reconciliation.
+  *(In Phase E durch IndexedDB-Variante ersetzt und gelöscht.)*
 - [`apps/web/src/main.tsx`](../apps/web/src/main.tsx) - Import-
   Reihenfolge load-bearing: Platform -> `@scriptz/core/lib/api`
-  (registriert SQL-Default) -> Memory-Adapter (ueberschreibt Slot)
+  (registriert SQL-Default) -> Memory-Adapter (überschreibt Slot)
   -> Styles -> App.
 - [`apps/web/src/App.tsx`](../apps/web/src/App.tsx) - Spiegel der
   Desktop-`App.tsx`, **ohne** Tauri-`onCloseRequested`-Block und
@@ -375,24 +375,24 @@ nichts.
   `beforeunload`/`pagehide`).
 - **Trafficlight-Spacer**: macOS-Regel in
   [`tokens.css`](../packages/core/styles/tokens.css) verlangt jetzt
-  zusaetzlich `:not([data-shell="web"])`. Der Web-Adapter setzt
+  zusätzlich `:not([data-shell="web"])`. Der Web-Adapter setzt
   `<html data-shell="web">` neben dem `data-platform`. Mac-Browser-User
-  sehen weiter ⌘-Hotkeys (das haengt am `data-platform`), aber der
-  78px-Spacer fuer Trafficlights faellt weg - im Browser gibt's eh
+  sehen weiter ⌘-Hotkeys (das hängt am `data-platform`), aber der
+  78px-Spacer für Trafficlights fällt weg - im Browser gibt's eh
   keine.
 - Root-Scripts: `dev:web` + `build:web` in
-  [`package.json`](../package.json) ergaenzt.
+  [`package.json`](../package.json) ergänzt.
 
 **Was bewusst NICHT gemacht wurde** (per Phase-D-Scope):
 
 - IndexedDB / Dexie (Phase E), FTS-Suche / PDF / Plain-Text-Export
   (Phase F), Disclaimer / Branding / Deploy (Phase H).
-- `beforeunload`-Save-Flush. Bei Reload mitten im Tippen koennen die
+- `beforeunload`-Save-Flush. Bei Reload mitten im Tippen können die
   letzten ~250 ms verloren gehen (Editor-Debounce). Erwartetes
   Phase-D-Verhalten: "Reload = Daten weg".
 
 **Akzeptanzkriterium (verifiziert)**: `pnpm dev:web` startet, Editor
-laedt, Welcome-Skript wird seeded, ⌘N erzeugt neue Skripte, Tippen
+lädt, Welcome-Skript wird seeded, ⌘N erzeugt neue Skripte, Tippen
 funktioniert (Lexical mountet, `beforeinput` schreibt korrekt in
 Blocks). Beim Reload sind die Daten weg - das ist hier OK.
 
@@ -404,15 +404,15 @@ Blocks). Beim Reload sind die Daten weg - das ist hier OK.
   [`apps/web/package.json`](../apps/web/package.json).
 - Neuer Adapter unter
   [`apps/web/src/adapters/indexeddb.ts`](../apps/web/src/adapters/indexeddb.ts) -
-  vollstaendige `StorageAdapter`-Implementierung gegen IndexedDB via
+  vollständige `StorageAdapter`-Implementierung gegen IndexedDB via
   Dexie. Schema v1 mit 8 Tabellen, 1:1-Spiegel der SQLite-Migrations
   001 + 003: `scripts`, `folders`, `snapshots`, `ideas`,
   `character_colors`, `daily_word_log`, `settings`, `app_state`.
-  Sekundaer-Indizes minimal gehalten (nur was wirklich sortiert wird,
+  Sekundär-Indizes minimal gehalten (nur was wirklich sortiert wird,
   z.B. `updated_at` / `created_at`); Filter wie "archived = null"
-  oder "folder_id = X" laufen ueber In-Memory-Filter, weil
+  oder "folder_id = X" laufen über In-Memory-Filter, weil
   IndexedDB nullable Felder schlecht indizieren kann und die
-  Skripte-Volumina im persoenlichen Bereich (< 1000) Voll-Scan
+  Skripte-Volumina im persönlichen Bereich (< 1000) Voll-Scan
   vertragen.
 - **Character-Reconciliation** identisch zur Desktop-Logik
   (override > sticky > default > Palette), inkl. Default-Backfill in
@@ -424,24 +424,32 @@ Blocks). Beim Reload sind die Daten weg - das ist hier OK.
   `dailyStatsBus`. Sentinel `-1` aus Migration 003 wird respektiert -
   erstes Save normalisiert nur den Count.
 - **Snapshot-Cap 50**: nach jedem `createSnapshot` / `restoreSnapshot`
-  werden ueberzaehlige Eintraege per `bulkDelete` getrimmt.
-- **Folder-Delete** verhaelt sich wie SQLite `ON DELETE SET NULL` -
+  werden überzählige Einträge per `bulkDelete` getrimmt.
+- **Folder-Delete** verhält sich wie SQLite `ON DELETE SET NULL` -
   Skripte bleiben, `folder_id` wird geleert.
 - **Idee-Konvertierung** atomar via Dexie-Transaction; bumpt
   `scriptsBus + foldersBus + ideasBus` wie der Core. Rollback bei
-  Skript-Anlage-Fehlern setzt `used_at` der Idee zurueck.
+  Skript-Anlage-Fehlern setzt `used_at` der Idee zurück.
 - **Persistenz-Schutz**: `navigator.storage.persist()` wird beim
   ersten Schreibvorgang best-effort angefragt. Kein User-Dialog,
   kein Throw bei Ablehnung - der Disclaimer in Phase H macht das
   Verhalten ehrlich.
 - [`main.tsx`](../apps/web/src/main.tsx) importiert jetzt
   `./adapters/indexeddb` statt des Memory-Stubs. Der Phase-D-Stub
-  `apps/web/src/lib/storage.ts` wurde geloescht.
+  `apps/web/src/lib/storage.ts` wurde gelöscht.
 - **Version-Sync**: `apps/web` liest zum Build-Zeitpunkt
   `apps/desktop/package.json` und injectet die Version via Vite-`define`
   als `__APP_VERSION__`. Settings rendert `ScriptZ · v{Version}`
-  damit immer synchron - keine zusaetzliche Version-Stelle in der
+  damit immer synchron - keine zusätzliche Version-Stelle in der
   Release-Checkliste.
+- **Desktop-Only-Gate**: unter 1024 px Viewport-Breite (Phones /
+  iPad-Portrait) rendert
+  [`apps/web/src/components/DesktopOnlyGate.tsx`](../apps/web/src/components/DesktopOnlyGate.tsx)
+  statt der App eine "Bitte am Desktop öffnen"-Seite. Reaktiv via
+  `window.matchMedia('(min-width: 1024px)')`; wird unmounted, wenn der
+  Viewport wächst. UA-Sniffing bewusst nicht genommen - Pixelbreite
+  ist die ehrlichere Frage ("habe ich Platz für Editor + Cast-Rail?")
+  und reagiert live auf Resize.
 
 **Was bewusst NICHT gemacht wurde** (per Phase-E-Scope):
 
@@ -452,20 +460,20 @@ Blocks). Beim Reload sind die Daten weg - das ist hier OK.
   delegieren an den Platform-Adapter, der weiterhin den Phase-F-
   Hinweis wirft. Erst wenn der Web-Export-Pfad in Phase F gebaut ist,
   greift der Dialog.
-- **CAS-Schutz fuer Multi-Tab-Saves**: Dexie-Transactions serialisieren
+- **CAS-Schutz für Multi-Tab-Saves**: Dexie-Transactions serialisieren
   innerhalb eines Tabs. Multi-Tab ist bei einer Single-Writer-App
-  selten - falls noetig spaeter via BroadcastChannel oder
+  selten - falls nötig später via BroadcastChannel oder
   `storage`-Event.
 - **Lazy-Loading der Skript-Karten**: erst bei realer Volumina-Lage
   optimieren (siehe Plan), nicht spekulativ.
 
 **Akzeptanzkriterium (verifiziert)**: Skript mit Marker-Text
 `PHASE-E-MARKER` gespeichert, `window.location.reload()`, Marker
-weiterhin im Editor sichtbar. `app_state` enthaelt
+weiterhin im Editor sichtbar. `app_state` enthält
 `onboarding_completed_v1`, `welcome_seeded_v3`, `open_tabs`,
 `browser.view_mode`, `browser.active_folder`. `daily_word_log`
-zaehlt einzelne Wort-Deltas auf den lokalen Tagesbucket. Build:
-488 KB JS (+100 KB ggue Phase D - das ist Dexie).
+zählt einzelne Wort-Deltas auf den lokalen Tagesbucket. Build:
+488 KB JS (+100 KB ggü Phase D - das ist Dexie).
 
 ### Phase E - IndexedDB-Adapter via Dexie (~1-2 Tage)
 
