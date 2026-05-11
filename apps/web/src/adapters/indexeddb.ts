@@ -42,6 +42,7 @@ import {
 import { runtimeStatsFromContent } from "@scriptz/core/lib/runtime";
 import { dailyStatsBus } from "@scriptz/core/lib/dailyStatsBus";
 import { foldersBus } from "@scriptz/core/lib/foldersBus";
+import { t } from "@scriptz/core/i18n";
 import { ideasBus } from "@scriptz/core/lib/ideasBus";
 import { scriptsBus } from "@scriptz/core/lib/scriptsBus";
 import type {
@@ -377,7 +378,7 @@ class IndexedDbStorage implements StorageAdapter {
     ensurePersisted();
     const id = crypto.randomUUID();
     const now = Date.now();
-    const title = input.title ?? "Unbenannt";
+    const title = input.title ?? t("common.untitled");
     const contentJson = input.initialContentJson ?? emptyLexicalState();
     const folderId = input.folderId ?? null;
 
@@ -596,7 +597,7 @@ class IndexedDbStorage implements StorageAdapter {
     const src = await db.scripts.get(id);
     if (!src) throw new Error(`not found: script ${id}`);
     return this.createScript({
-      title: `${src.title} (Kopie)`,
+      title: `${src.title}${t("script.duplicateSuffix")}`,
       initialContentJson: src.content_json,
       folderId: src.folder_id,
     });
@@ -1036,7 +1037,7 @@ class IndexedDbStorage implements StorageAdapter {
     );
     return getPlatformAdapter().saveAs(
       {
-        suggestedName: `${s.title || "Unbenannt"}.pdf`,
+        suggestedName: `${s.title || t("common.untitled")}.pdf`,
         mimeType: "application/pdf",
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       },
@@ -1050,7 +1051,7 @@ class IndexedDbStorage implements StorageAdapter {
     const bytes = new TextEncoder().encode(text);
     return getPlatformAdapter().saveAs(
       {
-        suggestedName: `${s.title || "Unbenannt"}.txt`,
+        suggestedName: `${s.title || t("common.untitled")}.txt`,
         mimeType: "text/plain;charset=utf-8",
         filters: [{ name: "Plain Text", extensions: ["txt"] }],
       },
@@ -1151,7 +1152,7 @@ class IndexedDbStorage implements StorageAdapter {
     const idea = await db.transaction("rw", db.ideas, async () => {
       const i = await db.ideas.get(input.ideaId);
       if (!i) throw new Error(`not found: idea ${input.ideaId}`);
-      if (i.used_at !== null) throw new Error("Idee wurde bereits konvertiert.");
+      if (i.used_at !== null) throw new Error(t("error.ideaAlreadyConverted"));
       await db.ideas.update(input.ideaId, { used_at: claimedAt });
       return i;
     });

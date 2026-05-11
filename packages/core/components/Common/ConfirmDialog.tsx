@@ -1,6 +1,7 @@
 import { Show } from "solid-js";
 import { render } from "solid-js/web";
 import { Modal } from "./Modal";
+import { t } from "../../i18n";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -22,7 +23,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       footer={
         <>
           <button class="btn" onClick={() => props.onCancel()}>
-            {props.cancelLabel ?? "Abbrechen"}
+            {props.cancelLabel ?? t("common.cancel")}
           </button>
           <button
             class={props.danger ? "btn btn-danger" : "btn btn-primary"}
@@ -72,7 +73,7 @@ export function confirmDialog(opts: ConfirmOpts): Promise<boolean> {
           open={true}
           title={opts.title}
           body={opts.body}
-          confirmLabel={opts.confirmLabel ?? "Bestätigen"}
+          confirmLabel={opts.confirmLabel ?? t("common.confirm")}
           cancelLabel={opts.cancelLabel}
           danger={opts.danger}
           onConfirm={() => cleanup(true)}

@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import { api } from "../lib/api";
 import { flushAll, registerFlusher } from "../lib/saveFlush";
+import { t } from "../i18n";
 
 /**
  * Tabs store — Chrome-style tab list.
@@ -236,11 +237,11 @@ export const tabsStore = {
         }
       }
       const filtered: ScriptTab[] = scriptEntries
-        .filter((t) => stillExisting.has(t.scriptId))
-        .map((t) => ({
-          id: t.id ?? genId(),
-          scriptId: t.scriptId,
-          scriptTitle: t.scriptTitle ?? "Unbenannt",
+        .filter((tab) => stillExisting.has(tab.scriptId))
+        .map((tab) => ({
+          id: tab.id ?? genId(),
+          scriptId: tab.scriptId,
+          scriptTitle: tab.scriptTitle ?? t("common.untitled"),
         }));
       setTabs(filtered);
 

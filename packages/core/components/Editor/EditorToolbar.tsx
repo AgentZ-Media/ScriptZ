@@ -3,6 +3,7 @@ import type { LexicalEditor } from "lexical";
 import { setBlockType } from "./plugins/blockHotkeys";
 import type { BlockType } from "../../lib/types";
 import { K } from "../../lib/keys";
+import { t } from "../../i18n";
 import "./EditorToolbar.css";
 
 interface BlockDef {
@@ -16,17 +17,28 @@ interface BlockDef {
 // Kamera, Caption, SFX) lebt hinter einem "+/..."-Aufklappknopf, damit
 // die Toolbar für die Zielgruppe (TikTok / Reels) nicht überladen
 // wirkt - per Tab-Picker und ⌘4..7 sind sie weiter direkt erreichbar.
-const PRIMARY_BLOCKS: BlockDef[] = [
-  { id: "scriptz-action",        label: "Action",     hint: K("Mod+1") },
-  { id: "scriptz-character",     label: "Charakter",  hint: K("Mod+2") },
-  { id: "scriptz-dialog",        label: "Dialog",     hint: K("Mod+3") },
-];
+function primaryBlocks(): BlockDef[] {
+  return [
+    { id: "scriptz-action",    label: t("block.action"),    hint: K("Mod+1") },
+    { id: "scriptz-character", label: t("block.character"), hint: K("Mod+2") },
+    { id: "scriptz-dialog",    label: t("block.dialog"),    hint: K("Mod+3") },
+  ];
+}
 
-const SECONDARY_BLOCKS: BlockDef[] = [
-  { id: "scriptz-parenthetical", label: "Paren.",     hint: K("Mod+4") },
-  { id: "scriptz-camera",        label: "Kamera",     hint: K("Mod+5") },
-  { id: "scriptz-caption",       label: "Caption",    hint: K("Mod+6") },
-  { id: "scriptz-sfx",           label: "SFX",        hint: K("Mod+7") },
+function secondaryBlocks(): BlockDef[] {
+  return [
+    { id: "scriptz-parenthetical", label: t("block.parenthetical"), hint: K("Mod+4") },
+    { id: "scriptz-camera",        label: t("block.camera"),        hint: K("Mod+5") },
+    { id: "scriptz-caption",       label: t("block.caption"),       hint: K("Mod+6") },
+    { id: "scriptz-sfx",           label: t("block.sfx"),           hint: K("Mod+7") },
+  ];
+}
+
+const SECONDARY_IDS: BlockType[] = [
+  "scriptz-parenthetical",
+  "scriptz-camera",
+  "scriptz-caption",
+  "scriptz-sfx",
 ];
 
 export interface EditorToolbarProps {
@@ -60,30 +72,17 @@ export interface EditorToolbarProps {
   onOpenExport(): void;
 }
 
-/**
- * Editor-Toolbar oberhalb des Papers nach Re-Design `editor.jsx`:
- *
- *   ← Übersicht  |  [Skript-Titel-Input]  [Block-Pillen × 7]  [⚡] [🎨] [👁] [PDF Export]
- *
- * Im Fokus-Modus blendet sich die ganze Leiste weg (über `.app-root.is-focus
- * .editor-toolbar` in CSS).
- */
 export function EditorToolbar(props: EditorToolbarProps) {
   const [draftTitle, setDraftTitle] = createSignal(props.title);
   const [secondaryOpen, setSecondaryOpen] = createSignal(false);
 
-  // Wenn der Cursor in einen Sekundärblock wandert, klappen wir die
-  // Sekundärleiste automatisch auf - sonst zeigt die Toolbar keinen
-  // aktiven Marker für den aktuellen Block.
   createEffect(() => {
     const ab = props.activeBlock;
-    if (ab && SECONDARY_BLOCKS.some((b) => b.id === ab)) {
+    if (ab && SECONDARY_IDS.includes(ab as BlockType)) {
       setSecondaryOpen(true);
     }
   });
 
-  // Wenn der Titel von außen wechselt (Tab-Wechsel, Rename in Sidebar,
-  // ...), draftTitle synchronisieren.
   createEffect(() => {
     setDraftTitle(props.title);
   });
@@ -93,7 +92,6 @@ export function EditorToolbar(props: EditorToolbarProps) {
     if (v && v !== props.title) {
       props.onTitleCommit(v);
     } else {
-      // Nicht-committen → revert zur Original-Anzeige
       setDraftTitle(props.title);
     }
   }
@@ -102,9 +100,6 @@ export function EditorToolbar(props: EditorToolbarProps) {
     const ed = props.editor;
     if (!ed) return;
     setBlockType(ed, id);
-    // Editor wieder fokussieren, damit die Pille keine Tastatureingabe
-    // schluckt — der Klick auf die Pille ist nur ein Tool, nicht ein
-    // Wechsel des Eingabe-Targets.
     requestAnimationFrame(() => {
       try { ed.focus(); } catch { /* ignore */ }
     });
@@ -117,10 +112,10 @@ export function EditorToolbar(props: EditorToolbarProps) {
         class="editor-toolbar-back"
         onMouseDown={(e) => e.preventDefault() /* kein contenteditable-blur */}
         onClick={props.onBack}
-        title="Zurück zur Übersicht"
+        title={t("editor.toolbar.back.title")}
       >
         <ChevronLeftIcon />
-        <span>Übersicht</span>
+        <span>{t("editor.toolbar.back")}</span>
       </button>
 
       <div class="editor-toolbar-divider" />
@@ -141,12 +136,12 @@ export function EditorToolbar(props: EditorToolbarProps) {
             }
           }}
           spellcheck={false}
-          aria-label="Skript-Titel"
+          aria-label={t("script.titleAriaLabel")}
         />
       </div>
 
-      <div class="block-toolbar" role="group" aria-label="Block-Typ">
-        <For each={PRIMARY_BLOCKS}>
+      <div class="block-toolbar" role="group" aria-label={t("editor.toolbar.blockGroup")}>
+        <For each={primaryBlocks()}>
           {(b) => (
             <button
               type="button"
@@ -165,7 +160,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
         </For>
         <Show when={secondaryOpen()}>
           <span class="block-toolbar-sep" aria-hidden="true" />
-          <For each={SECONDARY_BLOCKS}>
+          <For each={secondaryBlocks()}>
             {(b) => (
               <button
                 type="button"
@@ -190,14 +185,14 @@ export function EditorToolbar(props: EditorToolbarProps) {
           onClick={() => setSecondaryOpen((v) => !v)}
           title={
             secondaryOpen()
-              ? "Weniger Block-Typen anzeigen"
-              : "Weitere Block-Typen (Paren./Kamera/Caption/SFX)"
+              ? t("editor.toolbar.more.titleOpen")
+              : t("editor.toolbar.more.titleClose")
           }
           aria-expanded={secondaryOpen()}
           aria-label={
             secondaryOpen()
-              ? "Weniger Block-Typen anzeigen"
-              : "Weitere Block-Typen anzeigen"
+              ? t("editor.toolbar.more.ariaOpen")
+              : t("editor.toolbar.more.ariaClose")
           }
         >
           {secondaryOpen() ? "–" : "+"}
@@ -211,10 +206,10 @@ export function EditorToolbar(props: EditorToolbarProps) {
           onClick={props.onToggleQuickMode}
           title={
             props.quickModeOn()
-              ? "Quick-Modus aus"
-              : "Quick-Modus an (Enter im Dialog → anderer Charakter)"
+              ? t("editor.toolbar.quickOn")
+              : t("editor.toolbar.quickOff")
           }
-          aria-label="Quick-Modus"
+          aria-label={t("editor.toolbar.quickAria")}
           aria-pressed={props.quickModeOn()}
         >
           <BoltIcon />
@@ -225,8 +220,8 @@ export function EditorToolbar(props: EditorToolbarProps) {
         class="editor-toolbar-action"
         classList={{ "is-on": props.highlightOn() }}
         onClick={props.onToggleHighlight}
-        title={props.highlightOn() ? "Charakter-Highlighting aus" : "Charakter-Highlighting an"}
-        aria-label="Charakter-Highlighting"
+        title={props.highlightOn() ? t("editor.toolbar.highlightOn") : t("editor.toolbar.highlightOff")}
+        aria-label={t("editor.toolbar.highlightAria")}
         aria-pressed={props.highlightOn()}
       >
         <HighlightIcon />
@@ -235,8 +230,8 @@ export function EditorToolbar(props: EditorToolbarProps) {
       <button
         class="editor-toolbar-action"
         onClick={props.onToggleFocus}
-        title={`Fokus-Modus (${K("Mod+Shift+F")})`}
-        aria-label="Fokus-Modus"
+        title={t("editor.toolbar.focus.title", { hotkey: K("Mod+Shift+F") })}
+        aria-label={t("editor.toolbar.focus.aria")}
       >
         <FocusIcon />
       </button>
@@ -244,10 +239,10 @@ export function EditorToolbar(props: EditorToolbarProps) {
       <button
         class="editor-toolbar-action editor-toolbar-export"
         onClick={props.onOpenExport}
-        title={`Exportieren (${K("Mod+E")})`}
+        title={t("editor.toolbar.export.title", { hotkey: K("Mod+E") })}
       >
         <PdfIcon />
-        <span>Export</span>
+        <span>{t("editor.toolbar.export")}</span>
       </button>
     </div>
   );
@@ -278,9 +273,6 @@ function HighlightIcon() {
     </svg>
   );
 }
-/* Auge offen (Outline) — Toolbar-Button schaltet den Fokus-Modus AN.
-   Bewusst dasselbe Motiv wie der Floating-Button im Fokus (gefüllt),
-   damit klar ist: gleiche Funktion, anderer Zustand. */
 function FocusIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"

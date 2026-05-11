@@ -8,6 +8,8 @@
   "types": "./index.ts",
   "exports": {
     ".": "./index.ts",
+    "./i18n": "./i18n/index.ts",
+    "./i18n/*": "./i18n/*.ts",
     "./lib/*": "./lib/*.ts",
     "./stores/*": "./stores/*.ts",
     "./components/*.css": "./components/*.css",

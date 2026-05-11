@@ -14,6 +14,7 @@
 //      nicht Script-Inhalt.
 
 import type { ScriptCharacter } from "./types";
+import { t } from "../i18n";
 
 /** Dateiendung ohne Punkt. */
 export const SCRIPTZ_EXTENSION = "scriptz";
@@ -64,7 +65,7 @@ export function serializeScript(script: ScriptForSerialization): ScriptzFileV1 {
     parsedContent = JSON.parse(script.content_json) as object;
   } catch (err) {
     throw new ScriptzParseError(
-      `content_json ist kein gültiges JSON: ${(err as Error).message}`,
+      t("error.scriptz.invalidContent", { message: (err as Error).message }),
     );
   }
   return {
@@ -101,7 +102,7 @@ export function parseScriptzBytes(bytes: Uint8Array): ScriptzFileV1 {
     text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch (err) {
     throw new ScriptzParseError(
-      `Datei ist nicht gültiges UTF-8: ${(err as Error).message}`,
+      t("error.scriptz.notUtf8", { message: (err as Error).message }),
     );
   }
   let raw: unknown;
@@ -109,7 +110,7 @@ export function parseScriptzBytes(bytes: Uint8Array): ScriptzFileV1 {
     raw = JSON.parse(text);
   } catch (err) {
     throw new ScriptzParseError(
-      `Datei ist kein JSON: ${(err as Error).message}`,
+      t("error.scriptz.notJson", { message: (err as Error).message }),
     );
   }
   return validateScriptzObject(raw);
@@ -117,32 +118,32 @@ export function parseScriptzBytes(bytes: Uint8Array): ScriptzFileV1 {
 
 function validateScriptzObject(raw: unknown): ScriptzFileV1 {
   if (typeof raw !== "object" || raw === null) {
-    throw new ScriptzParseError("Datei-Inhalt ist kein Objekt.");
+    throw new ScriptzParseError(t("error.scriptz.notObject"));
   }
   const r = raw as Record<string, unknown>;
   if (r.format !== "scriptz") {
     throw new ScriptzParseError(
-      `Format-Marker fehlt oder falsch (erwartet "scriptz", war ${JSON.stringify(r.format)}).`,
+      t("error.scriptz.badFormat", { value: JSON.stringify(r.format) }),
     );
   }
   if (r.version !== 1) {
     throw new ScriptzParseError(
-      `Version ${JSON.stringify(r.version)} wird nicht unterstützt - diese App liest nur Version 1.`,
+      t("error.scriptz.unsupportedVersion", { version: JSON.stringify(r.version) }),
     );
   }
   const script = r.script;
   if (typeof script !== "object" || script === null) {
-    throw new ScriptzParseError("Feld `script` fehlt oder ist kein Objekt.");
+    throw new ScriptzParseError(t("error.scriptz.missingScript"));
   }
   const s = script as Record<string, unknown>;
   if (typeof s.title !== "string") {
-    throw new ScriptzParseError("Feld `script.title` fehlt oder ist kein String.");
+    throw new ScriptzParseError(t("error.scriptz.missingTitle"));
   }
   if (typeof s.contentJson !== "object" || s.contentJson === null) {
-    throw new ScriptzParseError("Feld `script.contentJson` fehlt oder ist kein Objekt.");
+    throw new ScriptzParseError(t("error.scriptz.missingContent"));
   }
   if (!Array.isArray(s.characters)) {
-    throw new ScriptzParseError("Feld `script.characters` fehlt oder ist kein Array.");
+    throw new ScriptzParseError(t("error.scriptz.missingCharacters"));
   }
   // Charaktere flach validieren - name + color müssen Strings sein.
   const characters: ScriptCharacter[] = [];
@@ -150,7 +151,7 @@ function validateScriptzObject(raw: unknown): ScriptzFileV1 {
     const c = s.characters[i] as Record<string, unknown>;
     if (typeof c?.name !== "string" || typeof c?.color !== "string") {
       throw new ScriptzParseError(
-        `script.characters[${i}] hat ungültige name/color-Felder.`,
+        t("error.scriptz.invalidCharacter", { index: i }),
       );
     }
     const entry: ScriptCharacter = { name: c.name, color: c.color };
@@ -187,6 +188,7 @@ function validateScriptzObject(raw: unknown): ScriptzFileV1 {
 /** Slug-freier Dateiname-Vorschlag mit `.scriptz`-Endung. Ersetzt Slashes
  *  und Zeichen, die Dateisysteme nicht mögen, durch Underscore. */
 export function defaultScriptzFilename(title: string): string {
-  const cleaned = (title || "Unbenannt").replace(/[\\/:*?"<>|]+/g, "_").trim();
-  return `${cleaned || "Unbenannt"}.${SCRIPTZ_EXTENSION}`;
+  const fallback = t("common.untitled");
+  const cleaned = (title || fallback).replace(/[\\/:*?"<>|]+/g, "_").trim();
+  return `${cleaned || fallback}.${SCRIPTZ_EXTENSION}`;
 }

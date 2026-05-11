@@ -4,35 +4,15 @@ import { dailyStatsStore } from "../stores/dailyStats";
 import { settingsStore } from "../stores/settings";
 import { ideasStore } from "../stores/ideas";
 import { K } from "../lib/keys";
+import { t, tPlural } from "../i18n";
 
 import "./TabBar.css";
 
 export interface TabBarProps {
-  /** Wenn der "+" am Ende der Tab-Reihe geklickt wird. App.tsx öffnet
-   *  daraufhin den NewScriptDialog (mit dem aktiven Folder vorausgewählt). */
   onNewScript?: () => void;
-  /** Öffnet den Einstellungen-Dialog. Der Zahnrad-Knopf rechts neben
-   *  dem Status-Strip ist die globale Verknüpfung — von jeder Seite
-   *  aus erreichbar (zusätzlich zum Knopf in der Übersicht). */
   onOpenSettings?: () => void;
 }
 
-/**
- * Tab-Bar im Stil von Chrome — siehe Design `app-v3.jsx`:
- *
- *   [traffic-light Lücke]  [🏠] [Skript-Tab] [Skript-Tab] ... [+]   [W heute · Streak · Gespeichert]
- *
- * - Home-Tab ist FIX (40 px, nur Icon, niemals flex)
- * - Skript-Tabs teilen sich die Breite gleichmäßig (`flex: 1 1 0`),
- *   wachsen bis 200 px, schrumpfen bis 52 px
- * - Unter 80 px Tab-Breite verschwinden Titel + ✕ via `container-query`,
- *   nur das Doc-Icon bleibt — Hover zeigt den vollen Titel als `title`-Attribut
- * - "+" erzeugt ein neues Skript (öffnet den NewScriptDialog)
- * - Status-Strip ganz rechts (Wörter heute · Streak · Saved-Pille)
- *
- * Die alte zentrierte Title-Pille mit Quick-Switcher-Dropdown ist raus —
- * die Tab-Reihe ist jetzt selbst das primäre Wechsel-UI.
- */
 export function TabBar(props: TabBarProps) {
   return (
     <header class="titlebar" data-tauri-drag-region>
@@ -43,7 +23,7 @@ export function TabBar(props: TabBarProps) {
           class="tab tab-home"
           classList={{ "is-active": tabsStore.isHome() }}
           onClick={() => tabsStore.openBrowser()}
-          title="Übersicht"
+          title={t("tabBar.home.title")}
           type="button"
         >
           <span class="tab-home-ic"><HomeIcon /></span>
@@ -53,8 +33,8 @@ export function TabBar(props: TabBarProps) {
           class="tab tab-ideas"
           classList={{ "is-active": tabsStore.isIdeas() }}
           onClick={() => tabsStore.openIdeas()}
-          title="Ideen"
-          aria-label="Ideen"
+          title={t("tabBar.ideas.title")}
+          aria-label={t("tabBar.ideas.aria")}
           type="button"
         >
           <span class="tab-ideas-ic"><BulbIcon /></span>
@@ -62,48 +42,42 @@ export function TabBar(props: TabBarProps) {
         </button>
 
         <For each={tabsStore.tabs()}>
-          {(t) => (
-            // Tab ist ein <div role="button"> statt <button>, damit der
-            // echte Close-<button> als Kind nicht in einem nested-
-            // interactive landet (button-in-button ist invalid HTML
-            // und gibt Screen-Readern Mischsemantik).
+          {(tab) => (
             <div
               class="tab"
               role="button"
               tabindex={0}
               classList={{
-                "is-active": tabsStore.activeTabId() === t.id,
+                "is-active": tabsStore.activeTabId() === tab.id,
               }}
-              onClick={() => tabsStore.activate(t.id)}
+              onClick={() => tabsStore.activate(tab.id)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  tabsStore.activate(t.id);
+                  tabsStore.activate(tab.id);
                 }
               }}
               onAuxClick={(e) => {
                 if (e.button === 1) {
                   e.preventDefault();
-                  tabsStore.closeTab(t.id);
+                  tabsStore.closeTab(tab.id);
                 }
               }}
-              title={t.scriptTitle}
-              aria-label={t.scriptTitle || "Unbenannt"}
+              title={tab.scriptTitle}
+              aria-label={tab.scriptTitle || t("common.untitled")}
             >
               <span class="tab-doc"><DocIcon /></span>
-              <span class="tab-title">{t.scriptTitle || "Unbenannt"}</span>
+              <span class="tab-title">{tab.scriptTitle || t("common.untitled")}</span>
               <button
                 type="button"
                 class="tab-x"
-                aria-label="Tab schließen"
-                title="Tab schließen"
+                aria-label={t("tabBar.closeTab.aria")}
+                title={t("tabBar.closeTab.title")}
                 onClick={(e) => {
                   e.stopPropagation();
-                  tabsStore.closeTab(t.id);
+                  tabsStore.closeTab(tab.id);
                 }}
                 onKeyDown={(e) => {
-                  // Damit Enter/Space am Close-Button nicht zusätzlich
-                  // den umgebenden Tab-Activate triggert.
                   if (e.key === "Enter" || e.key === " ") e.stopPropagation();
                 }}
               >
@@ -115,8 +89,8 @@ export function TabBar(props: TabBarProps) {
 
         <button
           class="tab-new"
-          title={`Neues Skript (${K("Mod+N")})`}
-          aria-label="Neues Skript"
+          title={t("tabBar.newScript.title", { hotkey: K("Mod+N") })}
+          aria-label={t("tabBar.newScript.aria")}
           onClick={() => props.onNewScript?.()}
           type="button"
         >
@@ -130,8 +104,8 @@ export function TabBar(props: TabBarProps) {
         type="button"
         class="titlebar-gear"
         onClick={() => props.onOpenSettings?.()}
-        title={`Einstellungen (${K("Mod+,")})`}
-        aria-label="Einstellungen"
+        title={t("tabBar.settings.title", { hotkey: K("Mod+,") })}
+        aria-label={t("tabBar.settings.aria")}
       >
         <GearIcon />
       </button>
@@ -139,7 +113,6 @@ export function TabBar(props: TabBarProps) {
   );
 }
 
-/** Schreib-Statistik-Pille rechts: Wörter diese Woche · Streak · Gespeichert. */
 function StatusStrip() {
   const stats = () => dailyStatsStore.stats();
   const goal = () => settingsStore.weeklyWordGoal();
@@ -150,21 +123,21 @@ function StatusStrip() {
     <div class="status-strip" data-tauri-drag-region>
       <span
         class="status-cell"
-        title={`Wörter seit Montag (Wochenziel: ${goal()} Wörter)`}
+        title={t("status.weekWords.title", { goal: goal() })}
       >
         <strong classList={{ "is-met": goalMet() }}>{wordsThisWeek()}</strong>
-        <span class="status-cell-label">W Woche</span>
+        <span class="status-cell-label">{t("status.weekWords.unit")}</span>
       </span>
       <span class="status-cell-divider" aria-hidden="true" />
-      <span class="status-cell" title="Aufeinanderfolgende Schreibtage">
+      <span class="status-cell" title={t("status.streak.title")}>
         <span class="status-flame"><SparkleIcon /></span>
         <strong>{streak()}</strong>
-        <span class="status-cell-label">{streak() === 1 ? "Tag" : "Tage"}</span>
+        <span class="status-cell-label">{tPlural("units.days", streak())}</span>
       </span>
       <span class="status-cell-divider" aria-hidden="true" />
-      <span class="status-cell" title="Lokal gespeichert, kein Konto, keine Cloud">
+      <span class="status-cell" title={t("status.saved.title")}>
         <span class="status-dot status-dot-ok" aria-hidden="true" />
-        <span class="status-cell-label">Gespeichert</span>
+        <span class="status-cell-label">{t("status.saved.label")}</span>
       </span>
     </div>
   );
@@ -183,12 +156,6 @@ function BulbIcon() {
   );
 }
 
-/** Kleine Pille rechts vom Glühbirnen-Icon, zeigt die Anzahl offener
- *  Ideen. Bewusst dezent — der Tab soll nicht ständig schreien. Bei 0
- *  offenen Ideen verschwindet das Badge. Über die Einstellung
- *  `showIdeasBadge` kann es ganz abgeschaltet werden (sinnvoll bei
- *  großen Idee-Sammlungen, wenn die Zahl nicht ständig nach Aufmerksam-
- *  keit schreien soll). */
 function IdeasBadge() {
   const openCount = () =>
     (ideasStore.ideas() ?? []).filter((i) => !i.used_at).length;

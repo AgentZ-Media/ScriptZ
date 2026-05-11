@@ -1,5 +1,12 @@
 import { createSignal, createEffect } from "solid-js";
 import { api } from "../lib/api";
+import {
+  applyResolvedLanguage,
+  detectSystemLanguage,
+  resolveLanguage,
+  type Language,
+  type LanguagePref,
+} from "../i18n";
 
 export type Theme = "dark" | "light" | "auto";
 
@@ -43,6 +50,13 @@ const DIALOG_WPM_MIN = 80;
 const DIALOG_WPM_MAX = 400;
 const [dialogWpm, setDialogWpm] = createSignal<number>(DIALOG_WPM_DEFAULT);
 
+// Sprach-Präferenz "auto" | "de" | "en". "auto" folgt navigator.language.
+// Default "auto" - neue User landen sprachlich da, wo ihr System steht.
+// Die aufgelöste Sprache wird nicht hier persistiert, nur die User-Wahl;
+// das i18n-Modul resolved bei jedem Load erneut, sodass ein System-
+// Wechsel nicht in einer veralteten Cache-Sprache hängenbleibt.
+const [language, setLanguagePref] = createSignal<LanguagePref>("auto");
+
 const [loaded, setLoaded] = createSignal(false);
 
 // matchMedia + aufgelöstes Theme - früh deklariert, damit settingsStore.resolvedTheme
@@ -72,6 +86,11 @@ function clampGoal(n: number): number {
 function clampWpm(n: number): number {
   if (!Number.isFinite(n)) return DIALOG_WPM_DEFAULT;
   return Math.max(DIALOG_WPM_MIN, Math.min(DIALOG_WPM_MAX, Math.round(n)));
+}
+
+function applyLanguage(pref: LanguagePref): void {
+  const lang: Language = resolveLanguage(pref);
+  applyResolvedLanguage(lang);
 }
 
 export const settingsStore = {
@@ -136,9 +155,16 @@ export const settingsStore = {
   DIALOG_WPM_MIN,
   DIALOG_WPM_MAX,
   DIALOG_WPM_DEFAULT,
+  /** Aktuelle User-Wahl "auto" | "de" | "en". */
+  language,
+  setLanguage: async (v: LanguagePref) => {
+    setLanguagePref(v);
+    applyLanguage(v);
+    await api.setSetting("language", v);
+  },
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, dp] = await Promise.all([
+    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, dp, lang] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
@@ -150,6 +176,7 @@ export const settingsStore = {
       api.getSetting("focus_mode_default"),
       api.getSetting("show_ideas_badge"),
       api.getSetting("dark_paper"),
+      api.getSetting("language"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
@@ -159,6 +186,13 @@ export const settingsStore = {
     if (fmd) setFocusModeDefault(fmd === "1");
     if (sib) setShowIdeasBadge(sib === "1");
     if (dp) setDarkPaper(dp === "1");
+    // Sprache: persistierter Wert hat Vorrang, sonst Default "auto".
+    // Bestandsuser bekommen so ohne explizite Migration ihre System-
+    // Sprache (Auto-Detection beim ersten Resolve).
+    if (lang === "auto" || lang === "de" || lang === "en") {
+      setLanguagePref(lang);
+    }
+    applyLanguage(language());
     // Wochenziel: Vorrang neuer Key. Legacy-Migration aus dem alten
     // Tagesziel ×7, falls noch kein Wochenziel persistiert wurde -
     // dann bleibt der Setup-Aufwand für upgradende User bei Null.
@@ -233,4 +267,22 @@ if (prefersDark) {
     if (!loaded()) return;
     if (theme() === "auto") applyChrome();
   });
+}
+
+// Sprache: System-Sprach-Wechsel live mitziehen, solange der User auf
+// "auto" steht. Der `languagechange`-Event feuert bei Locale-Wechsel im
+// Browser/OS. Selten, aber kostet uns nichts.
+if (typeof window !== "undefined") {
+  window.addEventListener("languagechange", () => {
+    if (!loaded()) return;
+    if (language() === "auto") applyLanguage("auto");
+  });
+}
+
+// Falls ein anderer Modul-Import die UI braucht, bevor settings.load()
+// durch ist (z.B. WebDisclaimerBanner liest navigator-Sprache vor dem
+// Boot-Promise), die System-Sprache schon mal als Default einspielen.
+// settings.load() überschreibt das ggf. mit der persistierten Präferenz.
+if (typeof document !== "undefined") {
+  applyResolvedLanguage(detectSystemLanguage());
 }

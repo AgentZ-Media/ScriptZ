@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { tabsStore } from "../../stores/tabs";
 import type { SearchHit } from "../../lib/types";
 import { debounce } from "../../lib/format";
+import { t } from "../../i18n";
 import "./CommandBar.css";
 
 /**
@@ -153,7 +154,7 @@ export function CommandBar(props: CommandBarProps) {
                 class="cmd-modal"
                 role="dialog"
                 aria-modal="true"
-                aria-label="Befehlspalette"
+                aria-label={t("commandBar.aria")}
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 <div class="cmd-search">
@@ -163,7 +164,7 @@ export function CommandBar(props: CommandBarProps) {
                   <input
                     ref={inputRef}
                     class="cmd-search-input"
-                    placeholder="Skripte suchen…"
+                    placeholder={t("commandBar.placeholder")}
                     value={query()}
                     onInput={onInput}
                     autocomplete="off"
@@ -183,16 +184,16 @@ export function CommandBar(props: CommandBarProps) {
                   class="cmd-results"
                   id="cmd-results-list"
                   role="listbox"
-                  aria-label="Suchtreffer"
+                  aria-label={t("commandBar.results.aria")}
                   ref={listRef}
                 >
                   <Show
                     when={query().trim()}
                     fallback={
-                      <div class="cmd-empty">Tippe, um Skripte zu suchen…</div>
+                      <div class="cmd-empty">{t("commandBar.start")}</div>
                     }
                   >
-                    <Show when={hits().length > 0} fallback={<div class="cmd-empty">Keine Treffer.</div>}>
+                    <Show when={hits().length > 0} fallback={<div class="cmd-empty">{t("commandBar.noHits")}</div>}>
                       {(() => {
                         scrollEffect();
                         return (
@@ -206,7 +207,7 @@ export function CommandBar(props: CommandBarProps) {
                                 onMouseEnter={() => setActiveIdx(i())}
                                 onClick={() => open(hit)}
                               >
-                                <div class="cmd-row-title">{hit.title || "(ohne Titel)"}</div>
+                                <div class="cmd-row-title">{hit.title || t("commandBar.noTitle")}</div>
                                 <Show when={hit.snippet}>
                                   <div
                                     class="cmd-row-snippet"
@@ -224,13 +225,13 @@ export function CommandBar(props: CommandBarProps) {
                 <div class="cmd-footer">
                   <span class="cmd-foot-hint">
                     <span class="kbd">↑</span>
-                    <span class="kbd">↓</span> bewegen
+                    <span class="kbd">↓</span> {t("commandBar.hint.navigate")}
                   </span>
                   <span class="cmd-foot-hint">
-                    <span class="kbd">↵</span> öffnen
+                    <span class="kbd">↵</span> {t("commandBar.hint.open")}
                   </span>
                   <span class="cmd-foot-hint">
-                    <span class="kbd">Esc</span> schließen
+                    <span class="kbd">Esc</span> {t("commandBar.hint.close")}
                   </span>
                 </div>
               </div>

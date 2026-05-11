@@ -19,6 +19,7 @@ import {
   previousCharacterFrom,
 } from "../predict";
 import type { ScriptCharacter } from "../../../lib/types";
+import { t } from "../../../i18n";
 
 function findCharacterAncestor(
   node: LexicalNode | null,
@@ -165,8 +166,8 @@ export function installCharacterDropdown(
                 <button
                   type="button"
                   class="scriptz-color-picker-trigger"
-                  aria-label={`Farbe von ${entry.name} ändern`}
-                  title={`Farbe von ${entry.name} ändern`}
+                  aria-label={t("charDropdown.colorAria", { name: entry.name })}
+                  title={t("charDropdown.colorAria", { name: entry.name })}
                   style={{
                     width: "12px",
                     height: "12px",

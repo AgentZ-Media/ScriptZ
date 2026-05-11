@@ -15,6 +15,7 @@ import { ideasBus } from "./ideasBus";
 import { scriptsBus } from "./scriptsBus";
 import { foldersBus } from "./foldersBus";
 import type { Idea, ScriptSummary } from "./types";
+import { t } from "../i18n";
 
 interface IdeaRow {
   id: string;
@@ -113,7 +114,7 @@ export async function convertIdeaToScript(input: {
   if (rows.length === 0) throw new Error(`not found: idea ${input.ideaId}`);
   const ideaRow = rows[0];
   if (ideaRow.used_at !== null) {
-    throw new Error("Idee wurde bereits konvertiert.");
+    throw new Error(t("error.ideaAlreadyConverted"));
   }
 
   // Schritt 1: Idee per CAS reservieren, BEVOR ein Skript angelegt
@@ -126,7 +127,7 @@ export async function convertIdeaToScript(input: {
     [claimedAt, ideaRow.id],
   );
   if (claim.rowsAffected !== 1) {
-    throw new Error("Idee wurde bereits konvertiert.");
+    throw new Error(t("error.ideaAlreadyConverted"));
   }
 
   const notesAsAction = input.notesAsAction ?? true;

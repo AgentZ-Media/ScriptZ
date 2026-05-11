@@ -5,6 +5,7 @@ import { pushToast } from "../../stores/toasts";
 import { relativeTime } from "../../lib/format";
 import { Modal } from "../Common/Modal";
 import { scriptsBus } from "../../lib/scriptsBus";
+import { t, tPlural } from "../../i18n";
 
 type Confirm =
   | { kind: "restore-all" }
@@ -22,40 +23,40 @@ export function TrashView() {
     const arr = scripts() ?? [];
     try {
       await Promise.all(arr.map((s) => api.restoreScript(s.id)));
-      pushToast(`${arr.length} Skripte wiederhergestellt`, "ok");
+      pushToast(tPlural("trash.toast.restoredAll", arr.length), "ok");
       scriptsBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
 
   async function emptyAll() {
     try {
       await api.emptyTrash();
-      pushToast("Papierkorb geleert", "ok");
+      pushToast(t("trash.toast.emptied"), "ok");
       scriptsBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
 
   async function restoreOne(id: string) {
     try {
       await api.restoreScript(id);
-      pushToast("Wiederhergestellt", "ok");
+      pushToast(t("trash.toast.restored"), "ok");
       scriptsBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
 
   async function purgeOne(id: string) {
     try {
       await api.purgeScript(id);
-      pushToast("Endgültig gelöscht", "ok");
+      pushToast(t("trash.toast.purged"), "ok");
       scriptsBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
 
@@ -64,9 +65,9 @@ export function TrashView() {
   const confirmTitle = createMemo(() => {
     const c = confirm();
     if (!c) return "";
-    if (c.kind === "restore-all") return "Alle wiederherstellen?";
-    if (c.kind === "empty") return "Papierkorb leeren?";
-    return "Endgültig löschen?";
+    if (c.kind === "restore-all") return t("trash.confirm.restoreAll.title");
+    if (c.kind === "empty") return t("trash.confirm.empty.title");
+    return t("trash.confirm.purge.title");
   });
 
   return (
@@ -77,14 +78,14 @@ export function TrashView() {
           disabled={list().length === 0}
           onClick={() => setConfirm({ kind: "restore-all" })}
         >
-          Alle wiederherstellen
+          {t("trash.restoreAll")}
         </button>
         <button
           class="btn btn-danger"
           disabled={list().length === 0}
           onClick={() => setConfirm({ kind: "empty" })}
         >
-          Papierkorb leeren
+          {t("trash.emptyAll")}
         </button>
       </div>
 
@@ -93,7 +94,7 @@ export function TrashView() {
         fallback={
           <Show when={!scripts.loading}>
             <div class="empty-state">
-              <p class="muted">Der Papierkorb ist leer.</p>
+              <p class="muted">{t("trash.empty")}</p>
             </div>
           </Show>
         }
@@ -106,19 +107,19 @@ export function TrashView() {
                   <div class="trash-row-title">{s.title}</div>
                   <div class="trash-row-meta muted">
                     <Show when={s.archived_at}>
-                      Gelöscht {relativeTime(s.archived_at!)}
+                      {t("trash.deletedAt", { when: relativeTime(s.archived_at!) })}
                     </Show>
                   </div>
                 </div>
                 <div class="trash-row-actions">
                   <button class="btn" onClick={() => restoreOne(s.id)}>
-                    Wiederherstellen
+                    {t("trash.restoreOne")}
                   </button>
                   <button
                     class="btn btn-danger"
                     onClick={() => setConfirm({ kind: "purge", script: s })}
                   >
-                    Endgültig löschen
+                    {t("trash.purgeOne")}
                   </button>
                 </div>
               </li>
@@ -134,7 +135,7 @@ export function TrashView() {
         footer={
           <>
             <button class="btn" onClick={() => setConfirm(null)}>
-              Abbrechen
+              {t("common.cancel")}
             </button>
             <Show when={confirm()?.kind === "restore-all"}>
               <button
@@ -144,7 +145,7 @@ export function TrashView() {
                   void restoreAll();
                 }}
               >
-                Wiederherstellen
+                {t("trash.restoreOne")}
               </button>
             </Show>
             <Show when={confirm()?.kind === "empty"}>
@@ -155,7 +156,7 @@ export function TrashView() {
                   void emptyAll();
                 }}
               >
-                Leeren
+                {t("trash.confirm.empty.button")}
               </button>
             </Show>
             <Show when={confirm()?.kind === "purge"}>
@@ -167,7 +168,7 @@ export function TrashView() {
                   if (c && c.kind === "purge") void purgeOne(c.script.id);
                 }}
               >
-                Löschen
+                {t("common.delete")}
               </button>
             </Show>
           </>
@@ -177,15 +178,13 @@ export function TrashView() {
           {(c) => (
             <p class="muted">
               <Show when={c().kind === "restore-all"}>
-                Alle {list().length} Skripte werden aus dem Papierkorb wiederhergestellt.
+                {tPlural("trash.confirm.restoreAll.body", list().length)}
               </Show>
               <Show when={c().kind === "empty"}>
-                Alle {list().length} Skripte werden <strong>unwiderruflich</strong>{" "}
-                gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+                {tPlural("trash.confirm.empty.body", list().length)}
               </Show>
               <Show when={c().kind === "purge"}>
-                "{(c() as { kind: "purge"; script: ScriptSummary }).script.title}" wird{" "}
-                <strong>unwiderruflich</strong> gelöscht.
+                {t("trash.confirm.purge.body", { title: (c() as { kind: "purge"; script: ScriptSummary }).script.title })}
               </Show>
             </p>
           )}

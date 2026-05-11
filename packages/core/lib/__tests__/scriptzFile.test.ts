@@ -4,7 +4,16 @@
 // Script-Feld vergisst zu serialisieren, oder Validierungs-Reject
 // zu lax wird).
 
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
+import { applyResolvedLanguage } from "../../i18n";
+
+// Tests sind gegen die deutschen Wordings gepinnt (sie waren da, bevor
+// i18n eingezogen ist). In der vitest-Umgebung läuft navigator.language
+// je nach Host auf "en-US" - wir pinnen die Sprache explizit, damit die
+// Assertions deterministisch bleiben.
+beforeAll(() => {
+  applyResolvedLanguage("de");
+});
 import {
   defaultScriptzFilename,
   parseScriptzBytes,

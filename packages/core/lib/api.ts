@@ -45,6 +45,7 @@ import {
   loadStats as dwLoadStats,
 } from "./dailyWords";
 import { globalSearch as searchGlobal } from "./search";
+import { t } from "../i18n";
 import {
   archiveScript as scriptsArchive,
   backfillRuntimeStats as scriptsBackfillRuntime,
@@ -261,7 +262,7 @@ const sqlBackedAdapter: StorageAdapter = {
     );
     return getPlatformAdapter().saveAs(
       {
-        suggestedName: `${s.title || "Unbenannt"}.pdf`,
+        suggestedName: `${s.title || t("common.untitled")}.pdf`,
         mimeType: "application/pdf",
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       },
@@ -274,7 +275,7 @@ const sqlBackedAdapter: StorageAdapter = {
     const bytes = new TextEncoder().encode(text);
     return getPlatformAdapter().saveAs(
       {
-        suggestedName: `${s.title || "Unbenannt"}.txt`,
+        suggestedName: `${s.title || t("common.untitled")}.txt`,
         mimeType: "text/plain;charset=utf-8",
         filters: [{ name: "Plain Text", extensions: ["txt"] }],
       },
