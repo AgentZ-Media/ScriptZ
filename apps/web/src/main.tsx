@@ -11,14 +11,15 @@ import { render } from "solid-js/web";
 //    basierten Default-Adapter und exportiert den `api`-Proxy ueber den
 //    Slot. Ohne diesen Import waere der Slot leer, sobald irgendein
 //    Boot-Code (settingsStore.load etc.) `api.getSetting` aufruft.
-// 3. Memory-StorageAdapter setzen - der ueberschreibt den SQL-Default
-//    direkt nach dessen Selbstregistrierung. Ab jetzt geht jeder
-//    `api.*`-Call gegen die Memory-Map.
+// 3. Dexie-StorageAdapter (Phase E) setzen - der ueberschreibt den SQL-
+//    Default direkt nach dessen Selbstregistrierung. Ab jetzt geht jeder
+//    `api.*`-Call gegen IndexedDB. Im Adapter laeuft beim ersten Write
+//    `navigator.storage.persist()` (best-effort, kein Dialog).
 // 4. Erst dann global.css + App importieren - global.css zieht ueber
 //    @import die Tokens und Fonts mit, der App-Tree mountet anschliessend.
 import "./lib/platform";
 import "@scriptz/core/lib/api";
-import "./lib/storage";
+import "./adapters/indexeddb";
 
 import "@scriptz/core/styles/global.css";
 import App from "./App";
