@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -37,10 +37,10 @@ jobs:
         # Version kommt aus packageManager in der Repo-Root-package.json,
         # damit lokal und CI dieselbe pnpm-Version benutzen. Keine Angabe
         # hier - sonst kollidieren beide Quellen (ERR_PNPM_BAD_PM_VERSION).
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
