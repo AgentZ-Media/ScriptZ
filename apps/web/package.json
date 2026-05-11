@@ -16,6 +16,7 @@
     "@lexical/history": "^0.44.0",
     "@lexical/rich-text": "^0.44.0",
     "@lexical/utils": "^0.44.0",
+    "dexie": "^4.0.10",
     "lexical": "^0.44.0",
     "solid-js": "^1.9.3"
   },
