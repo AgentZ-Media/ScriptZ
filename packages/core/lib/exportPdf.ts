@@ -34,9 +34,15 @@ const PARA_GAP_MM = 1.6;
 const CHAR_W_MM = 2.3; // duospaced glyph advance at 11pt
 
 // Tint-Band-Geometrie (Arc-Studio-Style per-line band).
-const TINT_PAD_X_MM = 0.8;
-const TINT_TOP_OFFSET_MM = 3.2;
-const TINT_BOTTOM_OFFSET_MM = 1.6;
+// Werte angeglichen an die CSS-Pille im Editor (`padding: 1px 4px`,
+// `border-radius: 3px`): horizontal etwa 4 px Padding, vertikal so,
+// dass die Cap-Hoehe der Glyphen voll umschlossen ist. PDF-Baseline
+// sitzt am unteren Glyph-Rand - deshalb braucht's nach oben deutlich
+// mehr Versatz als nach unten, sonst gucken die Buchstaben oben raus.
+const TINT_PAD_X_MM = 1.1;
+const TINT_TOP_OFFSET_MM = 3.6;
+const TINT_BOTTOM_OFFSET_MM = 1.4;
+const TINT_RADIUS_MM = 1.2;
 const TINT_ALPHA_FACTOR = 0.28;
 
 // 1 mm in PDF-Punkten (1pt = 1/72 inch, 1 inch = 25.4 mm).
@@ -127,8 +133,13 @@ class Layout {
 
     for (const line of lines) {
       this.ensureSpace(LINE_HEIGHT_MM);
-      const lineChars = countChars(line);
-      const lineWMm = lineChars * CHAR_W_MM;
+      // Echte Glyph-Breite aus der eingebetteten Schrift - iA Quattro ist
+      // duospaced, d.h. `i`/`l`/`.` sind schmaler als `m`. Ohne diesen
+      // Schritt waere die Tint-Pille eine grobe Approximation (chars * 2.3 mm)
+      // und enden nicht da, wo das Wort optisch endet. Wrap nutzt weiter
+      // den Char-Count, damit sich vorhandene Zeilenbrueche nicht
+      // verschieben - hier wird nur Alignment + Tint-Breite praezisiert.
+      const lineWMm = font.widthOfTextAtSize(line, FONT_SIZE_PT) / MM_TO_PT;
       let xPos: number;
       if (align === "center") {
         xPos = xLeftMm + (widthMm - lineWMm) / 2.0;
@@ -144,12 +155,14 @@ class Layout {
         const rectTop = this.y_mm + TINT_TOP_OFFSET_MM;
         const rectBottom = this.y_mm - TINT_BOTTOM_OFFSET_MM;
         const [r, g, b] = tint;
-        this.page.drawRectangle({
+        const wPt = mm(rectX2 - rectX1);
+        const hPt = mm(rectTop - rectBottom);
+        const rPt = mm(TINT_RADIUS_MM);
+        this.page.drawSvgPath(roundedRectPath(wPt, hPt, rPt), {
           x: mm(rectX1),
-          y: mm(rectBottom),
-          width: mm(rectX2 - rectX1),
-          height: mm(rectTop - rectBottom),
+          y: mm(rectTop),
           color: rgb(r / 255, g / 255, b / 255),
+          borderWidth: 0,
         });
       }
 
@@ -165,6 +178,27 @@ class Layout {
     }
     this.y_mm -= PARA_GAP_MM;
   }
+}
+
+// Rounded-Rect-SVG-Pfad fuer die Tint-Pille. SVG-Koordinaten sind
+// y-down; pdf-lib's drawSvgPath flippt das beim Rendern, daher zeichnen
+// wir hier "von oben nach unten" und uebergeben die obere Kante als
+// y-Position. Radius wird auf die halbe Breite/Hoehe geclampt, damit
+// kurze Pillen (z.B. ein einzelner Buchstabe) nicht kollabieren.
+function roundedRectPath(wPt: number, hPt: number, rPt: number): string {
+  const r = Math.min(rPt, wPt / 2, hPt / 2);
+  return (
+    `M ${r} 0 ` +
+    `H ${wPt - r} ` +
+    `A ${r} ${r} 0 0 1 ${wPt} ${r} ` +
+    `V ${hPt - r} ` +
+    `A ${r} ${r} 0 0 1 ${wPt - r} ${hPt} ` +
+    `H ${r} ` +
+    `A ${r} ${r} 0 0 1 0 ${hPt - r} ` +
+    `V ${r} ` +
+    `A ${r} ${r} 0 0 1 ${r} 0 ` +
+    `Z`
+  );
 }
 
 function countChars(s: string): number {

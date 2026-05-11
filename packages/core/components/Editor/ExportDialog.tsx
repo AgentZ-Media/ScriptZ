@@ -23,14 +23,34 @@ export function ExportDialog(props: ExportDialogProps) {
   const [titlePage, setTitlePage] = createSignal<boolean>(false);
   const [exporting, setExporting] = createSignal(false);
 
-  // Beim Öffnen Default-Highlighting aus globalem Setting setzen.
+  // Beim Öffnen Default-Highlighting aus der per-Skript-Einstellung
+  // ableiten, mit Fallback aufs globale Setting - identisch zur
+  // Resolution in ScriptView (`highlightingOn`). Wenn der User im
+  // Editor das Highlighting aktiv hat, soll die Checkbox hier von Haus
+  // aus angehakt sein.
   let prevOpen = false;
   createEffect(() => {
     const isOpen = props.open;
     if (isOpen && !prevOpen) {
-      setHighlighting(settingsStore.highlightingDefault());
       setTitlePage(false);
       setFormat("pdf");
+      // Optimistic default while the fetch is in flight - der Lookup
+      // ist in der Praxis Millisekunden, aber falls er trotzdem nach
+      // dem Dialog-Close zurueckkommt, ignorieren wir den Wert.
+      setHighlighting(settingsStore.highlightingDefault());
+      const id = props.scriptId;
+      void (async () => {
+        try {
+          const fresh = await api.getScript(id);
+          if (props.scriptId !== id) return;
+          const enabled = fresh.highlighting_enabled;
+          if (enabled === 1) setHighlighting(true);
+          else if (enabled === 0) setHighlighting(false);
+          else setHighlighting(settingsStore.highlightingDefault());
+        } catch {
+          // Fallback bereits gesetzt - nichts zu tun.
+        }
+      })();
     }
     prevOpen = isOpen;
   });
