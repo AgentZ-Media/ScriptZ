@@ -1392,19 +1392,14 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     border-color: var(--v2-ink);
   }
   .v2-shot-frame {
+    /* Nur Positionierungs-Kontext, kein eigener Hintergrund/Padding.
+       Das Bild fuellt direkt den .v2-shot-wrap. */
     position: relative;
-    padding: 12px;
-    background: var(--v2-bg);
   }
   .v2-shot {
     display: none;
     width: 100%;
     height: auto;
-    border-radius: 8px;
-    box-shadow:
-      0 1px 1px rgba(0, 0, 0, 0.03),
-      0 12px 32px rgba(0, 0, 0, 0.10),
-      0 0 0 1px rgba(0, 0, 0, 0.04);
   }
   .v2-shot.is-active { display: block; }
 
