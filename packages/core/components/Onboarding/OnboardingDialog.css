@@ -652,3 +652,32 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Phase-H-Hinweisblock in Schritt 1, nur in der Web-Version sichtbar.
+   Erklaert, dass es sich um die Test-Variante handelt, und linkt auf
+   die Desktop-App. Wirkt wie eine Notiz, nicht wie eine Warnung. */
+.ob-web-note {
+  margin: 8px 0 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--bg-elev, rgba(0, 0, 0, 0.02));
+  color: var(--text-subtle, #5b5b58);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+.ob-web-note-title {
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+.ob-web-note-text {
+  margin: 0;
+}
+.ob-web-note a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}

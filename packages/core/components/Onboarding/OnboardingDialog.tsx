@@ -14,6 +14,10 @@ export interface OnboardingDialogProps {
    *  und in den Editor wechselt. App.tsx liefert hier den
    *  quickCreateScript-Helper. */
   onCreateFirstScript?(): void;
+  /** Wenn true: blendet einen zusaetzlichen Hinweisblock in Schritt 1
+   *  ein, der erklaert, dass es sich um die Web-Test-Version handelt
+   *  und die Desktop-App empfiehlt. Nur die Web-App setzt das. */
+  webIntro?: boolean;
 }
 
 type StepDir = "forward" | "backward" | "none";
@@ -145,7 +149,7 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
             <div class="ob-stage">
               <div class="ob-card" data-step={step()} data-dir={dir()} data-anim-key={animKey()}>
                 <Show when={step() === 0}>
-                  <StepAppearance />
+                  <StepAppearance webIntro={props.webIntro} />
                 </Show>
                 <Show when={step() === 1}>
                   <StepWriting />
@@ -208,7 +212,7 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 /* =========================================================================
    Schritt 1 – Erscheinungsbild (Theme + Charakter-Highlighting)
    ========================================================================= */
-function StepAppearance() {
+function StepAppearance(props: { webIntro?: boolean }) {
   const themes: { id: Theme; label: string; sub: string }[] = [
     { id: "light", label: "Hell",   sub: "Heller App-Rahmen, weisses Papier." },
     { id: "dark",  label: "Dunkel", sub: "Dunkles Grau – Papier bleibt hell." },
@@ -223,6 +227,27 @@ function StepAppearance() {
         Theme und Charakter-Farben - beides änderst du jederzeit später in
         den Einstellungen.
       </p>
+
+      <Show when={props.webIntro}>
+        <div class="ob-web-note" role="note">
+          <div class="ob-web-note-title">
+            Du nutzt gerade die Web-Version zum Ausprobieren.
+          </div>
+          <p class="ob-web-note-text">
+            Sie läuft komplett in deinem Browser - ohne Konto, ohne Sync.
+            Deine Skripte liegen lokal in diesem Browser. Für den Alltag
+            empfehlen wir die Desktop-App: schneller, offline-stabil,
+            eigene Daten-Datei.{" "}
+            <a
+              href="https://write-scriptz.com"
+              target="_blank"
+              rel="noopener"
+            >
+              Hier laden →
+            </a>
+          </p>
+        </div>
+      </Show>
 
       <div class="ob-themes">
         {themes.map((t) => (

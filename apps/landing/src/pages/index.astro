@@ -105,6 +105,16 @@ const allIdeas = [...openIdeas, ...usedIdeas];
         <span>0 Tracker · 0 Konten · 0 KI</span>
       </div>
 
+      <p class="v2-hero-web">
+        Lieber erst ausprobieren?{" "}
+        <a href={site.webAppUrl} target="_blank" rel="noopener">
+          Direkt im Browser testen →
+        </a>
+        <span class="v2-hero-web-hint">
+          Test-Editor, lokal in deinem Browser. Daten bleiben dort.
+        </span>
+      </p>
+
       <details class="v2-install v2-install-hero">
         <summary>
           <span class="v2-install-summary-text">Beim ersten Öffnen blockiert macOS die App?</span>
@@ -580,6 +590,15 @@ const allIdeas = [...openIdeas, ...usedIdeas];
             <span class="v2-stat-sep">|</span>
             <span><b>1</b> .dmg</span>
           </div>
+          <div class="v2-download-webhint">
+            Kein Mac zur Hand?{" "}
+            <a href={site.webAppUrl} target="_blank" rel="noopener">
+              Direkt im Browser testen →
+            </a>
+            <span class="v2-download-webhint-sub">
+              Test-Editor, kein Konto, alles lokal in deinem Browser.
+            </span>
+          </div>
         </div>
 
         <div class="v2-block v2-sfx">SFX: <span class="v2-t-plain">Erster Start</span></div>
@@ -931,6 +950,31 @@ const allIdeas = [...openIdeas, ...usedIdeas];
   }
   .v2-hero-meta b { color: #1c1814; font-weight: 700; }
   .v2-meta-sep { opacity: 0.4; }
+
+  /* Web-App-Hinweis unter den primaeren Hero-CTAs. Dezent, aber
+     auffindbar. Ueberbrueckt die "Erst ausprobieren?"-Frage, ohne
+     vom Download-Pfad abzulenken. */
+  .v2-hero-web {
+    margin: 14px auto 0;
+    max-width: 60ch;
+    font-size: 13px;
+    color: #5b554c;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .v2-hero-web a {
+    color: #1c1814;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .v2-hero-web a:hover { opacity: 0.78; }
+  .v2-hero-web-hint {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: #8a8276;
+  }
 
   /* === Shell-Container ====================================== */
   .v2-shell {
@@ -1728,6 +1772,31 @@ const allIdeas = [...openIdeas, ...usedIdeas];
   }
   .v2-download-stats b { color: #fff; font-weight: 700; margin-right: 4px; }
   .v2-stat-sep { color: rgba(255,255,255,0.25); }
+
+  /* Web-Test-Link unter den Download-Stats. Auf der dunklen
+     Download-Karte, deshalb invertierte Tonalitaet. */
+  .v2-download-webhint {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.78);
+  }
+  .v2-download-webhint a {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-left: 4px;
+  }
+  .v2-download-webhint a:hover { opacity: 0.85; }
+  .v2-download-webhint-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+  }
 
   /* === ENDE-Marker ======================================= */
   .v2-end {

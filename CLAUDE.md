@@ -1,50 +1,152 @@
 # ScriptZ - Monorepo
 
-pnpm-Workspace mit zwei eigenständigen Apps:
+pnpm-Workspace mit drei Apps und einem geteilten Core:
 
+- [`packages/core/`](packages/core/) - **alle gemeinsame Logik**: Editor,
+  Lexical-Nodes, Plugins, UI-Komponenten (Browser, Settings, Ideas,
+  CommandBar, TabBar, Onboarding), Stores, Business-Logik (scripts,
+  folders, ideas, snapshots, search, format, characterColors,
+  dailyWords, scriptzFile, ...), Styles/Tokens. Beide Apps importieren
+  von hier via `@scriptz/core`. Darf **nie** `@tauri-apps/*` importieren
+  (ESLint-Rule blockt das).
 - [`apps/desktop/`](apps/desktop/) - die Tauri-Desktop-App (Solid + Rust + Lexical).
-  Eigene `CLAUDE.md` darin mit allen App-spezifischen Details.
+  Dünne Schale: registriert ihren `PlatformAdapter` (Tauri-Dialoge,
+  Auto-Updater, plugin-os) und `StorageAdapter` (SQLite via plugin-sql)
+  beim Modul-Load, sonst nur App-Shell und Close-Handler. Eigene
+  `CLAUDE.md` darin mit App-spezifischen Details.
+- [`apps/web/`](apps/web/) - die Browser-Version unter
+  `app.write-scriptz.com` (Solid + Vite, Vercel-Deploy). Dünne Schale:
+  registriert ihren `PlatformAdapter` (Blob-Download / `<input file>`)
+  und `StorageAdapter` (IndexedDB via Dexie, MiniSearch für FTS) plus
+  Web-spezifisches Chrome (Disclaimer-Banner, Desktop-Only-Gate unter
+  1024 px).
 - [`apps/landing/`](apps/landing/) - die Marketing-Seite write-scriptz.com
-  (Astro, statisch, Vercel-Deploy).
+  (Astro, statisch, Vercel-Deploy). Komplett eigenständig, importiert
+  nichts aus `core`.
 
 ## Konvention
 
-Beide Apps sind **vollständig getrennt**. Es gibt keine geteilten
-Pakete in `packages/` und keine Imports zwischen den Apps. Wenn die
-Landing eine Information aus der Desktop-App braucht (z.B. die
-aktuelle Version), holt sie sie zur Build-Zeit von GitHub Releases -
+Desktop und Web sind **eine App, zwei Schalen**. Jedes neue Feature
+landet zuerst in `packages/core/` - dann profitieren beide Apps
+automatisch. Eine App-spezifische Implementierung gibt es nur, wenn
+die Plattform es erzwingt (Tauri-only-API vs. Browser-only-API).
+Siehe Sektion "Feature-Parity Desktop ↔ Web" weiter unten.
+
+Die Landing bleibt davon getrennt - sie ist Marketing, keine App.
+Wenn die Landing eine Information aus den Apps braucht (z.B. die
+aktuelle Version), holt sie sie zur Build-Zeit von GitHub Releases,
 nicht via Workspace-Import.
 
-Phase 2 (geplant, noch nicht umgesetzt): Eine Web-Version der App
-unter `app.write-scriptz.com`. Erst dann lohnt sich ein
-`packages/core/` für Lexical-Nodes, Charakter-Logik und Storage-
-Adapter. Bis dahin: getrennt halten, Komplexität vermeiden.
+## Feature-Parity Desktop ↔ Web (wichtig)
 
-## Konsistenz Desktop ↔ Landing (wichtig)
+**Grundregel:** Was ein User merkt, soll in beiden Apps identisch
+funktionieren. Wenn es nicht geht, muss die Differenz dokumentiert und
+ehrlich kommuniziert sein (Web-Disclaimer, Settings-Hinweis).
 
-Die Landing ist das **Schaufenster** der Desktop-App. Wenn an der App
-etwas verändert wird, muss die Landing nachgezogen werden, sonst zeigt
-sie ein Produkt, das es so nicht mehr gibt. Vor dem Abschluss einer
-Aufgabe an der Desktop-App immer prüfen, ob die Landing mit betroffen
-ist. Bei Unsicherheit lieber kurz beim User nachfragen statt
-auseinanderlaufen lassen.
+### Was zwingend in `packages/core/` lebt
+
+Alles, was auf beiden Plattformen identisch sein muss:
+
+- Editor-Engine, Lexical-Nodes, alle Plugins (Hotkeys, Block-Picker,
+  Smart-Enter, Inline-Format, Character-Reconciliation)
+- UI-Komponenten: Browser, ScriptView, EditorView, Settings, Ideas,
+  CommandBar, TabBar, Onboarding, Export-Dialog, gemeinsames Chrome
+- Stores: tabs, ideas, dailyStats, settings, toasts (alles außer
+  desktop-only `updates`)
+- Business-Logik: `scripts.ts`, `folders.ts`, `ideas.ts`,
+  `snapshots.ts`, `search.ts`/`fts.ts`, `format.ts`, `lex.ts`,
+  `characterColors.ts`, `dailyWords.ts`, `scriptzFile.ts`, ...
+- Styles/Tokens, Schrift-Setup, Farbpaletten
+- PDF-Generator und Plain-Text-Export (Pure-Function, schreibt Bytes;
+  das *Speichern* ist plattform-spezifisch, siehe unten)
+- Plattform-Detection (`isModKey`, `K()` / `formatHotkey`,
+  `data-platform`-Attribut auf `<html>`)
+
+### Was bewusst pro App getrennt bleibt (Adapter-Pattern)
+
+| Bereich | Desktop (`apps/desktop/`) | Web (`apps/web/`) |
+|---|---|---|
+| `StorageAdapter` | [`adapters/`](apps/desktop/src/) → SQLite via `@tauri-apps/plugin-sql`, FTS5 | [`adapters/indexeddb.ts`](apps/web/src/adapters/indexeddb.ts) → Dexie + MiniSearch |
+| `PlatformAdapter.saveAs/openFile` | Native Tauri-Dialoge + `plugin-fs` | Blob-Download via `<a download>` / verstecktes `<input type="file">` |
+| `PlatformAdapter.openUrl` / `revealInFolder` | Tauri-Shell / `plugin-opener` | `window.open` / No-op |
+| Auto-Updater | [`stores/updates.ts`](apps/desktop/src/stores/updates.ts) + `UpdateIndicator` | Entfällt - SettingsDialog blendet "Updates" aus, wenn Slot leer |
+| Save-Flush beim Schließen | Tauri `onCloseRequested` → `flushAll()` | `beforeunload` + `pagehide` → `flushAll(2000)` |
+| Window-Chrome | macOS-Trafficlight-Spacer (CSS-Property `--titlebar-traffic-width`) | `data-shell="web"` deaktiviert den Mac-Spacer im Browser |
+| Web-only Chrome | - | [`WebDisclaimerBanner`](apps/web/src/components/), [`DesktopOnlyGate`](apps/web/src/components/) (< 1024 px) |
+| Code-Signing / Release | macOS-Signing, GitHub-Release mit `latest.json` | Vercel-Deploy auf Push zu `main` |
+
+### Wenn du ein neues Feature baust
+
+1. **Default**: Code in `packages/core/`. Keine `@tauri-apps/*`-Imports
+   (ESLint blockt das ohnehin), keine Browser-only-Annahmen
+   (`window`-Zugriffe nur hinter Feature-Detection).
+2. **Wenn das Feature einen neuen Storage-Zugriff braucht**:
+   `StorageAdapter`-Interface in
+   [`packages/core/lib/storage.ts`](packages/core/lib/storage.ts)
+   erweitern. TypeScript meckert dann in **beiden** Adapter-Impls -
+   Tauri-Adapter UND IndexedDB-Adapter mit aktualisieren, sonst bricht
+   die jeweils andere App stillschweigend.
+3. **Wenn das Feature einen neuen Platform-Zugriff braucht** (Dialoge,
+   OS-Info, externes Öffnen): `PlatformAdapter` in
+   [`packages/core/lib/platform.ts`](packages/core/lib/platform.ts)
+   erweitern. Beide Apps müssen die neue Methode implementieren -
+   Desktop via Tauri, Web via Browser-API oder No-op + ehrliche
+   Fehlermeldung.
+4. **Wenn das Feature .scriptz-Daten betrifft**:
+   [`scriptzFile.ts`](packages/core/lib/scriptzFile.ts) mit anpassen,
+   sonst überleben die neuen Felder den Import/Export-Roundtrip nicht.
+   Format-Version hochziehen, wenn die Änderung nicht additiv ist.
+5. **Verifikation**: `pnpm dev:desktop` UND `pnpm dev:web` mindestens
+   einmal anwerfen und das Feature in beiden Welten ausprobieren.
+   Type-Check (`pnpm typecheck`) deckt die Adapter-Vollständigkeit ab,
+   aber nicht die Laufzeit-Wirkung.
+
+### Wann eine Differenz OK ist
+
+Wenn die Plattform-Limits es erzwingen - z.B.:
+
+- **Auto-Update gibt's nur auf Desktop**, weil Browser keinen
+  installierten Binary haben. Settings blendet die Sektion im Web aus.
+- **MiniSearch (Web) vs. SQLite-FTS5 (Desktop)**: gleiche User-UX,
+  unterschiedliche Tech. Wenn die Suchqualität spürbar
+  auseinanderläuft, später auf sql.js (WASM) wechseln.
+- **Datei-Zugriff**: native Save-Dialoge geben einen Pfad zurück (mit
+  Reveal-in-Finder), Blob-Downloads nicht. Toast-Wording adaptiv
+  ("Export gespeichert" mit Reveal vs. "Datei heruntergeladen").
+- **Daten-Persistenz**: SQLite ist hart persistent, IndexedDB kann der
+  Browser unter Speicherdruck räumen. Web-Disclaimer macht das ehrlich.
+
+Solche Differenzen müssen für den User sichtbar/spürbar konsistent
+sein - "tut dasselbe, sieht gleich aus, sagt das Gleiche, wo nötig
+ehrlich anders". Nie eine App-Variante haben, die ein Feature *still*
+weglässt.
+
+## Konsistenz App ↔ Landing (wichtig)
+
+Die Landing ist das **Schaufenster** der App. Wenn an der App etwas
+verändert wird, muss die Landing nachgezogen werden, sonst zeigt sie
+ein Produkt, das es so nicht mehr gibt. Vor dem Abschluss einer
+App-Aufgabe immer prüfen, ob die Landing mit betroffen ist. Bei
+Unsicherheit lieber kurz beim User nachfragen statt auseinanderlaufen
+lassen.
 
 Auslöser, bei denen die Landing **mit** angepasst werden muss:
 
-| Änderung in der Desktop-App | Was in der Landing folgen muss |
+| Änderung in der App (Desktop oder Web) | Was in der Landing folgen muss |
 |---|---|
-| Neues Feature, das ein User merkt | Ggf. Aufnahme in Features-Sektion oder Vergleichstabelle ([apps/landing/src/components/Features.astro](apps/landing/src/components/Features.astro), [Compare.astro](apps/landing/src/components/Compare.astro)). Wenn es ein Top-3-Feature ist, eines der bestehenden ablösen. |
+| Neues Feature, das ein User merkt | Ggf. Aufnahme in Features-Sektion oder Vergleichstabelle ([apps/landing/src/components/Features.astro](apps/landing/src/components/Features.astro), [Compare.astro](apps/landing/src/components/Compare.astro)). Wenn es ein Top-3-Feature ist, eines der bestehenden ablösen. Wenn das Feature im Web *nicht* funktioniert, im Web-CTA-Hinweis ehrlich erwähnen. |
 | Feature entfernt | Aus Features, Vergleich, Demo, Texten rauswerfen. Versprechen wie "lokal" oder "kein Konto" gegenchecken. |
-| Design-Token geändert (Farbe, Schrift, Radius, Spacing) | [apps/landing/src/styles/tokens.css](apps/landing/src/styles/tokens.css) angleichen, falls die Landing den App-Look spiegeln soll. |
+| Design-Token geändert (Farbe, Schrift, Radius, Spacing) in `packages/core/styles/` | [apps/landing/src/styles/tokens.css](apps/landing/src/styles/tokens.css) angleichen, falls die Landing den App-Look spiegeln soll. |
 | Editor-Layout geändert (Block-Typen, Einrückung, ALLCAPS-Regel, Spacing-Cluster) | [Workflow.astro](apps/landing/src/components/Workflow.astro) Schritt 3 ("Schreiben") so anpassen, dass die Demo weiterhin 1:1 dem echten Editor entspricht. |
 | App-Chrome verändert (Tab-Bar, Status-Strip, Trafficlight-Position) | Demo-Frame nachziehen, sonst sieht die Demo aus wie eine alte Version. |
 | Schriftart oder Schrift-Größen | [src/styles/fonts.css](apps/landing/src/styles/fonts.css) und Tokens. |
 | `app_icon`, Branding | Icons in `apps/landing/public/img/` neu setzen. |
 | Plattform-Support erweitert (z.B. Windows-Build) | Hero-Meta, Download-Sektion, Compare-Tabelle, "First-Run"-Anleitung anpassen. |
 | Lizenzmodell, Tracking-Verhalten, Konto-Verhalten | OpenSource-Sektion und Datenschutzerklärung gegenchecken. |
-| Versionsnummer | Siehe Release-Checkliste unten. |
+| Versionsnummer der Desktop-App | Siehe Release-Checkliste unten. |
+| Disclaimer-/Limit-Texte der Web-App (`apps/web/src/components/WebDisclaimerBanner.tsx`) | "Direkt im Browser testen"-CTA und der zugehörige Hinweistext auf der Landing müssen mit dem Banner-Text konsistent bleiben. |
 
-Praktisch heißt das: nach jeder nicht-trivialen Desktop-Änderung mit
+Praktisch heißt das: nach jeder nicht-trivialen App-Änderung mit
 einem Blick durch [apps/landing/src/](apps/landing/src/) gehen und
 prüfen, ob Texte, Demo, Vergleich noch stimmen. Bei reinen
 Bug-Fixes oder Code-Refactors ohne User-sichtbare Wirkung muss nichts
@@ -53,22 +155,30 @@ passieren.
 ## Befehle (vom Repo-Root)
 
 ```bash
-pnpm install                 # installiert beide Apps
+pnpm install                 # installiert alle Workspaces
 pnpm dev:desktop             # tauri dev der Desktop-App
+pnpm dev:web                 # vite dev der Web-App (localhost:5173)
 pnpm dev:landing             # astro dev der Landing
 pnpm build:desktop           # native .app bauen
+pnpm build:web               # statische Web-App nach apps/web/dist
 pnpm build:landing           # statische Landing bauen
-pnpm typecheck               # tsc/astro check über beide Apps
+pnpm typecheck               # tsc/astro check über alle Workspaces
+pnpm test                    # vitest in packages/core
 ```
 
-Innerhalb einer App können auch die App-eigenen Skripte direkt benutzt
-werden (`cd apps/desktop && pnpm tauri:dev`).
+Innerhalb eines Workspaces können auch die eigenen Skripte direkt
+benutzt werden (`cd apps/desktop && pnpm tauri:dev`).
 
 ## Release / Deploy
 
 - **Desktop**: GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml))
   baut beim Pushen eines `vX.Y.Z`-Tags auf `macos-26` und published
   Release-Artefakte. Auto-Updater im laufenden Client poll't `latest.json`.
+- **Web**: Vercel-Project mit `Root Directory` = `apps/web`. Deploy auf
+  jeden Push zu `main`. Domain `app.write-scriptz.com`. **Keine
+  Tag-Releases nötig** - die Version wird zur Build-Zeit aus
+  `apps/desktop/package.json` injectet, damit Settings die Desktop-
+  Version spiegelt.
 - **Landing**: Vercel-Project mit `Root Directory` = `apps/landing`.
   Deploy auf jeden Push zu `main`. Eigene Domain write-scriptz.com.
 

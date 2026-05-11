@@ -15,6 +15,8 @@ export const site = {
     "Skripte schreiben, ohne dass die App im Weg steht. Lokal, kostenlos, Open Source. Für Creators, die viele Skripte am Tag schreiben.",
   github: "https://github.com/AgentZ-Media/ScriptZ",
   releasesPage: "https://github.com/AgentZ-Media/ScriptZ/releases/latest",
+  // Browser-Test-Editor (Phase 2 H). Subdomain hosted Vercel-side.
+  webAppUrl: "https://app.write-scriptz.com",
   // Fallback, wenn die GitHub-API beim Build nicht erreichbar ist.
   fallbackVersion: "0.7.3",
   contactEmail: "kontakt@agent-z.de",

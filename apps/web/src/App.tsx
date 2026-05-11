@@ -32,15 +32,14 @@ import {
   OnboardingDialog,
   ONBOARDING_KEY,
 } from "@scriptz/core/components/Onboarding/OnboardingDialog";
+import { WebDisclaimerBanner } from "./components/WebDisclaimerBanner";
 
 import "@scriptz/core/components/Common/Common.css";
 
 // Web-Variante von apps/desktop/src/App.tsx. Identische Komponentennutzung,
-// aber ohne Tauri-spezifisches Close-Handling (kein onCloseRequested) und
-// ohne saveFlush.flushAll() beim Tab-Schliessen - der Browser-Tab
-// schliesst ohne unsere Mitwirkung, und Phase D toleriert Datenverlust
-// beim Reload (laut Plan: "Beim Reload sind die Daten weg - das ist OK").
-// Phase F traegt beforeunload/pagehide nach.
+// aber ohne Tauri-spezifisches Close-Handling (kein onCloseRequested).
+// Phase F traegt den Save-Flush via beforeunload/pagehide nach,
+// Phase H legt den WebDisclaimerBanner oben drauf.
 export default function App() {
   const [bootReady, setBootReady] = createSignal(false);
   const [cmdkOpen, setCmdkOpen] = createSignal(false);
@@ -329,6 +328,7 @@ export default function App() {
       }}
     >
       <Show when={bootReady()} fallback={<BootScreen />}>
+        <WebDisclaimerBanner />
         <TabBar
           onNewScript={() => void quickCreateScript()}
           onOpenSettings={() => setSettingsOpen(true)}
@@ -381,6 +381,7 @@ export default function App() {
           open={onboardingOpen()}
           onClose={() => setOnboardingOpen(false)}
           onCreateFirstScript={() => void quickCreateScript()}
+          webIntro
         />
         <Show when={newScriptOpen()}>
           <NewScriptDialog

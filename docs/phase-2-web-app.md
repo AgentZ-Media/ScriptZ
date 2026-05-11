@@ -770,7 +770,89 @@ Schritte:
 `.scriptz`-Datei liegt auf der Platte. Datei im Web öffnen → Script
 ist drin, lässt sich weiter bearbeiten. Umgekehrt genauso.
 
-### Phase H - Disclaimer, Branding, Deploy (~0.5 Tag)
+### Phase H - Disclaimer, Branding, Deploy (~0.5 Tag) ✅ ERLEDIGT (2026-05-11)
+
+**Was wirklich gemacht wurde** (Stand auf main):
+
+- **Disclaimer-Banner** als neue Komponente
+  [`apps/web/src/components/WebDisclaimerBanner.tsx`](../apps/web/src/components/WebDisclaimerBanner.tsx)
+  (+ .css). Sitzt oben in App.tsx über der TabBar - "Test-Editor im
+  Browser. Deine Skripte liegen lokal in diesem Browser - kein Sync,
+  kein Konto. Für die volle Erfahrung → Desktop-App laden." Mit
+  "Verstanden"-Button wegklickbar. Dismiss-State liegt in
+  IndexedDB (`app_state` via `api.setAppState`) unter dem Key
+  `web_disclaimer_dismissed_v1` - bei Browser-Datenlöschung /
+  Safari-ITP-Räumung verschwindet der Flag mit, und der Banner
+  kommt automatisch wieder. Verifiziert: Daten wipen +
+  Reload -> Banner sichtbar.
+- **Onboarding mit Web-Hinweis**: Bestehende
+  [`OnboardingDialog`](../packages/core/components/Onboarding/OnboardingDialog.tsx)
+  in core um optionale Prop `webIntro?: boolean` erweitert. Wenn
+  gesetzt, blendet `StepAppearance` (Schritt 1) einen dezenten
+  Hinweisblock ein - dashed-Border, einleitendes "Du nutzt gerade
+  die Web-Version zum Ausprobieren.", dann der Hinweis-Text plus
+  "Hier laden →"-Link auf write-scriptz.com. Web-App
+  ([`apps/web/src/App.tsx`](../apps/web/src/App.tsx)) setzt
+  `webIntro` an der OnboardingDialog. Desktop-App setzt nichts -
+  Prop ist optional, Desktop-Onboarding bleibt 1:1 wie bisher.
+- **Versionierung**: Web-App zeigt in Settings → Über bewusst
+  dieselbe Version wie Desktop. Phase E hatte den Plan
+  "eigene Build-Version" überschrieben: vite.config.ts liest
+  `apps/desktop/package.json` zur Build-Zeit und injectet die
+  Version als `__APP_VERSION__`. Settings rendert "ScriptZ ·
+  v{appVersion()}". Bewusst NICHT zusätzlich in einen Footer
+  gerendert - die Settings-Über-Sektion reicht, sonst wären zwei
+  Versions-Anzeigen redundant.
+- **Vercel-Setup**: [`apps/web/vercel.json`](../apps/web/vercel.json)
+  analog zur Landing - `framework: vite`, `buildCommand: pnpm build`,
+  `outputDirectory: dist`, plus SPA-Rewrite `/* -> /index.html`
+  (auch wenn die App aktuell nur eine Route hat, ist das schon
+  vorbereitet) und Cache-Header für `/assets/*` und `/fonts/*`.
+  Vercel-Project-Anlage selbst (Root-Dir = `apps/web`, Domain
+  `app.write-scriptz.com`) und DNS bleibt dem User vorbehalten - das
+  ist Out-of-Band-Konfiguration.
+- **Landing verlinkt** auf `app.write-scriptz.com`. Neue Konstante
+  [`site.webAppUrl`](../apps/landing/src/data/site.ts) als zentrale
+  Quelle. Zwei Touchpoints in
+  [`apps/landing/src/pages/index.astro`](../apps/landing/src/pages/index.astro):
+  - **Hero**: direkt unter der Meta-Zeile (`v{Version} · macOS 13+
+    · 0 Tracker ...`) ein neuer Absatz `v2-hero-web`: "Lieber erst
+    ausprobieren? Direkt im Browser testen →" mit Sub-Hint
+    "Test-Editor, lokal in deinem Browser. Daten bleiben dort."
+  - **Download-Tab**: unter den Download-Stats ein Block
+    `v2-download-webhint` mit invertierter Tonalität (dunkle Karte):
+    "Kein Mac zur Hand? Direkt im Browser testen →".
+- **Build verifiziert**: `pnpm typecheck` grün (alle vier Workspaces),
+  `pnpm build:web` liefert 518 KB Initial-Bundle (PDF-Lib weiter
+  lazy), `pnpm build:landing` baut die statischen Routen ohne
+  Warnings.
+- **Echte Umlaute durchgängig** in allen neuen Strings - der
+  Disclaimer-Banner und der Onboarding-Hinweis nutzen "für",
+  "läuft" etc. (initial mit ASCII-Variante geschrieben, dann
+  konsequent durch echte Umlaute ersetzt - Memory-Regel aus
+  `feedback_german_umlauts.md`).
+
+**Was bewusst NICHT gemacht wurde**:
+
+- **Vercel-Project-Anlage / DNS-Setup**: macht der User selbst
+  (siehe ursprüngliche Offene-Fragen-Sektion: "DNS für
+  app.write-scriptz.com: macht der User selbst").
+- **Eigene Web-Build-Version im Footer**: wäre Phase-E-Override
+  zuwider. Die Version steht in Settings → Über und ist
+  Desktop-synchron.
+- **Disclaimer-Komponente in core**: ist bewusst nur in
+  `apps/web/src/components/`, weil es ein Web-Only-Element ist.
+  Wenn später mal eine Mobile-Variante o.ä. käme, kann sie
+  problemlos in core wandern.
+
+**Akzeptanzkriterium (verifiziert)**: Web-App startet, Banner sichtbar,
+Editor schreibbar, "Verstanden" persistiert den Dismiss-State in
+IndexedDB, Banner-Rückkehr nach Daten-Wipe getestet. Onboarding
+zeigt den Web-Hinweis in Schritt 1. Landing rendert die Browser-
+Test-Links an Hero und Download. `app.write-scriptz.com` selbst
+erreichbar zu machen ist Vercel-Konfig durch den User.
+
+**Urspruengliche Planung** (Stand vor Umsetzung, zur Nachvollziehbarkeit):
 
 1. **Disclaimer-Banner** im Web-App-Header, zwei Zeilen:
 
