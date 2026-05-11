@@ -707,12 +707,24 @@ const allIdeas = [...openIdeas, ...usedIdeas];
 
     </main><!-- /paper -->
 
-    <!-- SPRINT-PILLE -->
+    <!-- SPRINT-PILLE
+         Der Fortschrittsring wird per JS via stroke-dashoffset auf dem
+         zweiten <circle> live aktualisiert. r=9 → Umfang 2*PI*9 ≈ 56.55. -->
     <div class="v2-sprint" id="sprint">
       <span class="v2-sprint-ring">
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-opacity="0.18"/>
-          <path d="M12 3 a9 9 0 0 1 0 18" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-opacity="0.22"/>
+          <circle
+            class="v2-sprint-progress"
+            cx="12" cy="12" r="9"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-dasharray="56.5487"
+            stroke-dashoffset="56.5487"
+            transform="rotate(-90 12 12)"
+          />
         </svg>
       </span>
       <span class="v2-sprint-txt">Lese-Sprint</span>
@@ -812,6 +824,8 @@ const allIdeas = [...openIdeas, ...usedIdeas];
 
       // ===== Sprint-Pille: Lese-Fortschritt =========================
       const sprintTxt = document.querySelector('.v2-sprint-txt');
+      const sprintRing = document.querySelector('.v2-sprint-progress');
+      const RING_CIRC = 56.5487; // 2 * PI * r mit r=9
       const paper = document.getElementById('paper');
       if (sprintTxt && paper) {
         const recount = () => {
@@ -826,13 +840,16 @@ const allIdeas = [...openIdeas, ...usedIdeas];
 
         const updateProgress = () => {
           const total = parseInt(sprintTxt.dataset.total || '0', 10);
+          const top = window.scrollY;
+          const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+          const ratio = Math.min(Math.max(top / max, 0), 1);
+          if (sprintRing) {
+            sprintRing.setAttribute('stroke-dashoffset', String(RING_CIRC * (1 - ratio)));
+          }
           if (total === 0) {
             sprintTxt.textContent = 'Lese-Sprint';
             return;
           }
-          const top = window.scrollY;
-          const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-          const ratio = Math.min(top / max, 1);
           const read = Math.round(ratio * total);
           sprintTxt.textContent = read + ' / ' + total + ' W';
         };
@@ -1975,6 +1992,12 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.18);
   }
   .v2-sprint-ring { display: inline-flex; }
+  .v2-sprint-progress {
+    /* Sanfter Lauf, wenn der User in groesseren Spruengen scrollt
+       (Mausrad-Klick, anchor jump). Bei normalem scroll-pacing
+       fast nicht wahrnehmbar, weil scroll-Events oft genug feuern. */
+    transition: stroke-dashoffset 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
   .v2-sprint-txt { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
   /* === Responsive ========================================= */
