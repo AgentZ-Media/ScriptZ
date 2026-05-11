@@ -4,7 +4,12 @@
 // i18n-Sprache gewählt - ein späterer Sprachwechsel übersetzt den
 // schon vorhandenen Tutorial-Skripttext nicht nachträglich, weil das
 // bereits eigener User-Content ist (er kann den Text editieren).
+//
+// Hotkeys laufen durch K() / formatHotkey() aus lib/keys, damit
+// Windows-/Linux-User "Ctrl+N" statt "Cmd+N" sehen - andernfalls würde
+// das Tutorial dort falsche Anweisungen geben.
 
+import { K } from "../lib/keys";
 import type { Language } from "./index";
 
 interface WelcomeContent {
@@ -52,6 +57,14 @@ function buildJson(blocks: ReturnType<typeof textBlock>[]): string {
 }
 
 function deWelcome(): WelcomeContent {
+  const kN = K("Mod+N");
+  const kK = K("Mod+K");
+  const kE = K("Mod+E");
+  const kSnap = K("Mod+Shift+S");
+  const kHist = K("Mod+Shift+H");
+  const kSettings = K("Mod+,");
+  const k1 = K("Mod+1");
+  const k7 = K("Mod+7");
   return {
     title: "Willkommen bei ScriptZ",
     json: buildJson([
@@ -62,7 +75,7 @@ function deWelcome(): WelcomeContent {
       ),
       textBlock(
         "scriptz-action",
-        "Jeder Absatz ist ein Block mit einem Typ. Der Typ steht links als Marker. Du wechselst den Typ entweder mit Tab oder mit den Hotkeys Cmd+1 bis Cmd+7.",
+        `Jeder Absatz ist ein Block mit einem Typ. Der Typ steht links als Marker. Du wechselst den Typ entweder mit Tab oder mit den Hotkeys ${k1} bis ${k7}.`,
       ),
 
       textBlock("scriptz-character", "ERZÄHLER", { characterName: "ERZÄHLER" }),
@@ -91,14 +104,14 @@ function deWelcome(): WelcomeContent {
       textBlock("scriptz-sfx", "Pling"),
 
       textBlock("scriptz-caption", "WICHTIGE SHORTCUTS"),
-      textBlock("scriptz-action", "Cmd+N - neues Skript"),
-      textBlock("scriptz-action", "Cmd+K - Skript suchen"),
-      textBlock("scriptz-action", "Cmd+E - exportieren (PDF oder Plain Text)"),
-      textBlock("scriptz-action", "Cmd+Shift+S - manueller Snapshot"),
-      textBlock("scriptz-action", "Cmd+Shift+H - Snapshot-Verlauf öffnen"),
-      textBlock("scriptz-action", "Cmd+, - Einstellungen"),
+      textBlock("scriptz-action", `${kN} - neues Skript`),
+      textBlock("scriptz-action", `${kK} - Skript suchen`),
+      textBlock("scriptz-action", `${kE} - exportieren (PDF oder Plain Text)`),
+      textBlock("scriptz-action", `${kSnap} - manueller Snapshot`),
+      textBlock("scriptz-action", `${kHist} - Snapshot-Verlauf öffnen`),
+      textBlock("scriptz-action", `${kSettings} - Einstellungen`),
       textBlock("scriptz-action", "Tab - Block-Typ wechseln (öffnet ein Menü)"),
-      textBlock("scriptz-action", "Cmd+1..7 - Block-Typ direkt setzen"),
+      textBlock("scriptz-action", `${k1}..${k7} - Block-Typ direkt setzen`),
 
       textBlock(
         "scriptz-action",
@@ -112,6 +125,14 @@ function deWelcome(): WelcomeContent {
 }
 
 function enWelcome(): WelcomeContent {
+  const kN = K("Mod+N");
+  const kK = K("Mod+K");
+  const kE = K("Mod+E");
+  const kSnap = K("Mod+Shift+S");
+  const kHist = K("Mod+Shift+H");
+  const kSettings = K("Mod+,");
+  const k1 = K("Mod+1");
+  const k7 = K("Mod+7");
   return {
     title: "Welcome to ScriptZ",
     json: buildJson([
@@ -122,7 +143,7 @@ function enWelcome(): WelcomeContent {
       ),
       textBlock(
         "scriptz-action",
-        "Each paragraph is a block with a type. The type marker sits on the left. Switch the type with Tab or with the hotkeys Cmd+1 through Cmd+7.",
+        `Each paragraph is a block with a type. The type marker sits on the left. Switch the type with Tab or with the hotkeys ${k1} through ${k7}.`,
       ),
 
       textBlock("scriptz-character", "NARRATOR", { characterName: "NARRATOR" }),
@@ -151,14 +172,14 @@ function enWelcome(): WelcomeContent {
       textBlock("scriptz-sfx", "Ping"),
 
       textBlock("scriptz-caption", "IMPORTANT SHORTCUTS"),
-      textBlock("scriptz-action", "Cmd+N - new script"),
-      textBlock("scriptz-action", "Cmd+K - search scripts"),
-      textBlock("scriptz-action", "Cmd+E - export (PDF or plain text)"),
-      textBlock("scriptz-action", "Cmd+Shift+S - manual snapshot"),
-      textBlock("scriptz-action", "Cmd+Shift+H - open snapshot history"),
-      textBlock("scriptz-action", "Cmd+, - settings"),
+      textBlock("scriptz-action", `${kN} - new script`),
+      textBlock("scriptz-action", `${kK} - search scripts`),
+      textBlock("scriptz-action", `${kE} - export (PDF or plain text)`),
+      textBlock("scriptz-action", `${kSnap} - manual snapshot`),
+      textBlock("scriptz-action", `${kHist} - open snapshot history`),
+      textBlock("scriptz-action", `${kSettings} - settings`),
       textBlock("scriptz-action", "Tab - switch block type (opens a menu)"),
-      textBlock("scriptz-action", "Cmd+1..7 - set block type directly"),
+      textBlock("scriptz-action", `${k1}..${k7} - set block type directly`),
 
       textBlock(
         "scriptz-action",

@@ -42,7 +42,7 @@ import {
 import { runtimeStatsFromContent } from "@scriptz/core/lib/runtime";
 import { dailyStatsBus } from "@scriptz/core/lib/dailyStatsBus";
 import { foldersBus } from "@scriptz/core/lib/foldersBus";
-import { t } from "@scriptz/core/i18n";
+import { localeCompare, t } from "@scriptz/core/i18n";
 import { ideasBus } from "@scriptz/core/lib/ideasBus";
 import { scriptsBus } from "@scriptz/core/lib/scriptsBus";
 import type {
@@ -556,8 +556,7 @@ class IndexedDbStorage implements StorageAdapter {
     const sort = query.sort ?? "updated";
     list.sort((a, b) => {
       if (sort === "created") return b.created_at - a.created_at;
-      if (sort === "title")
-        return a.title.localeCompare(b.title, "de", { sensitivity: "base" });
+      if (sort === "title") return localeCompare(a.title, b.title);
       return b.updated_at - a.updated_at;
     });
     if (query.limit !== undefined) {
@@ -648,9 +647,7 @@ class IndexedDbStorage implements StorageAdapter {
       updated_at: f.updated_at,
       script_count: counts.get(f.id) ?? 0,
     }));
-    list.sort((a, b) =>
-      a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
-    );
+    list.sort((a, b) => localeCompare(a.name, b.name));
     return list;
   }
 
