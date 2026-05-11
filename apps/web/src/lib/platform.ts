@@ -11,15 +11,18 @@
 // Falls doch, ist das ein Hinweis darauf, dass irgendwo im core noch ein
 // direkter DB-Aufruf statt eines Adapter-Calls erfolgt.
 //
-// exportPdf / exportPlaintext werfen ebenfalls bis Phase F (FTS + PDF/
-// Plain + Save-Flush im Browser); der Export-Dialog kommt damit aus,
-// weil er den Fehler in einen Toast verwandelt.
+// Seit Phase 2F: saveAs (Blob-Download) und openFile (<input type="file">)
+// liefern die Datei-Persistenz. Export-Dialog kann damit PDF + Plaintext +
+// .scriptz im Web rausschreiben, ohne dass Pfade modelliert werden.
 
 import {
   applyPlatformToDocument,
   setPlatformAdapter,
+  type OpenFileResult,
   type Platform,
   type PlatformAdapter,
+  type SaveAsOptions,
+  type SaveAsResult,
 } from "@scriptz/core/lib/platform";
 
 function detectPlatform(): Platform {
@@ -35,6 +38,75 @@ function detectPlatform(): Platform {
   if (raw.includes("mac")) return "macos";
   if (raw.includes("win")) return "windows";
   return "linux";
+}
+
+// Blob-Download via <a download>. Browser fragt - je nach Setting -
+// den User noch nach dem Speicherort (Chrome/Edge mit "ask where to
+// save"-Einstellung, Safari per Default). Den endgültigen Pfad sehen
+// wir nicht - deshalb path: null in SaveAsResult.
+function blobDownload(name: string, mimeType: string, bytes: Uint8Array): void {
+  const blob = new Blob([bytes], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    // Manche Browser brauchen den Anker im DOM, damit click() triggert.
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    // Mit Delay, damit der Download-Stream nicht abreisst, bevor der
+    // Browser die Bytes wirklich gesnapshottet hat. Der Browser hält
+    // die Blob-Referenz parallel selbst.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+}
+
+// File-Open via versteckten <input type="file">. Cancel-Detection
+// über window-focus: `change` feuert nur bei tatsächlicher Auswahl,
+// nicht bei Abbruch des Dialogs. Wir warten 250 ms nach focus zurück,
+// und falls bis dahin kein change kam, lösen wir mit null auf.
+function inputFileOpen(accept: string): Promise<OpenFileResult | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.style.display = "none";
+    document.body.appendChild(input);
+
+    let settled = false;
+    const cleanup = () => {
+      window.removeEventListener("focus", onFocus);
+      input.remove();
+    };
+    const settle = (v: OpenFileResult | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(v);
+    };
+
+    const onFocus = () => {
+      setTimeout(() => settle(null), 250);
+    };
+    window.addEventListener("focus", onFocus, { once: true });
+
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0] ?? null;
+      if (!file) {
+        settle(null);
+        return;
+      }
+      try {
+        const buf = await file.arrayBuffer();
+        settle({ name: file.name, bytes: new Uint8Array(buf) });
+      } catch {
+        settle(null);
+      }
+    });
+    input.click();
+  });
 }
 
 const webAdapter: PlatformAdapter = {
@@ -61,20 +133,18 @@ const webAdapter: PlatformAdapter = {
     // (z.B. nach einem Export) nicht abbricht.
   },
   async saveDialog() {
-    // Kein nativer Save-Dialog im Browser. Der Web-Pfad für Save-As
-    // läuft über Blob + <a download> (Phase F) - kommt erst dort dran.
+    // Kein nativer Save-Dialog im Browser. Wer Bytes schreiben will,
+    // nimmt saveAs - das löst per Blob-Download aus.
     return null;
   },
-  async exportPdf() {
-    throw new Error(
-      "PDF-Export im Browser ist noch nicht verfügbar (geplant für Phase F).",
-    );
+  async saveAs(opts: SaveAsOptions, bytes: Uint8Array): Promise<SaveAsResult> {
+    blobDownload(opts.suggestedName, opts.mimeType, bytes);
+    // Browser entscheidet, wo die Datei landet (oft Downloads/-Ordner).
+    // cancelled bleibt false - wir können den Download nicht synchron
+    // abbrechen.
+    return { cancelled: false, path: null };
   },
-  async exportPlaintext() {
-    throw new Error(
-      "Plain-Text-Export im Browser ist noch nicht verfügbar (geplant für Phase F).",
-    );
-  },
+  openFile: inputFileOpen,
 };
 
 setPlatformAdapter(webAdapter);

@@ -6,8 +6,6 @@ import { settingsStore } from "../../stores/settings";
 import { getPlatformAdapter } from "../../lib/platform";
 import "./ExportDialog.css";
 
-const save = (opts: Parameters<ReturnType<typeof getPlatformAdapter>["saveDialog"]>[0]) =>
-  getPlatformAdapter().saveDialog(opts);
 const revealItemInDir = (path: string) => getPlatformAdapter().revealInFolder(path);
 
 export interface ExportDialogProps {
@@ -17,7 +15,7 @@ export interface ExportDialogProps {
   onClose(): void;
 }
 
-type Format = "pdf" | "txt";
+type Format = "pdf" | "txt" | "scriptz";
 
 export function ExportDialog(props: ExportDialogProps) {
   const [format, setFormat] = createSignal<Format>("pdf");
@@ -25,7 +23,7 @@ export function ExportDialog(props: ExportDialogProps) {
   const [titlePage, setTitlePage] = createSignal<boolean>(false);
   const [exporting, setExporting] = createSignal(false);
 
-  // When the dialog opens, default highlighting from global setting.
+  // Beim Öffnen Default-Highlighting aus globalem Setting setzen.
   let prevOpen = false;
   createEffect(() => {
     const isOpen = props.open;
@@ -42,44 +40,44 @@ export function ExportDialog(props: ExportDialogProps) {
     setExporting(true);
     try {
       const fmt = format();
-      const ext = fmt === "pdf" ? "pdf" : "txt";
-      const defaultName = `${props.scriptTitle || "Unbenannt"}.${ext}`;
-      const path = (await save({
-        defaultPath: defaultName,
-        filters: [
-          fmt === "pdf"
-            ? { name: "PDF", extensions: ["pdf"] }
-            : { name: "Plain Text", extensions: ["txt"] },
-        ],
-      })) as string | null;
-      if (!path) {
-        setExporting(false);
-        return;
-      }
-      let result: { path: string };
+      let result: { cancelled: boolean; path: string | null };
       if (fmt === "pdf") {
         result = await api.exportPdf({
           scriptId: props.scriptId,
-          path,
           includeHighlighting: highlighting(),
           includeTitlePage: titlePage(),
         });
+      } else if (fmt === "txt") {
+        result = await api.exportPlaintext({ scriptId: props.scriptId });
       } else {
-        result = await api.exportPlaintext({ scriptId: props.scriptId, path });
+        result = await api.exportScriptz(props.scriptId);
       }
-      let revealed = true;
-      try {
-        await revealItemInDir(result.path);
-      } catch (err) {
-        // Non-fatal but worth surfacing — without the reveal the user
-        // might not know where the file actually went.
-        revealed = false;
-        console.warn("[scriptz] revealItemInDir failed", err);
+
+      if (result.cancelled) {
+        // User hat den Save-Dialog abgebrochen - kein Toast, kein Close.
+        // Dialog bleibt offen, damit ein zweiter Versuch keinen Klick
+        // extra kostet.
+        return;
       }
-      if (revealed) {
-        pushToast("Export gespeichert", "ok");
+
+      // Desktop liefert den Pfad zurück, Web nicht. Wir versuchen nur
+      // dann zu revealen, wenn wir einen Pfad haben - sonst Toast mit
+      // "Heruntergeladen"-Wording, das im Browser auch ehrlich ist.
+      if (result.path) {
+        let revealed = true;
+        try {
+          await revealItemInDir(result.path);
+        } catch (err) {
+          revealed = false;
+          console.warn("[scriptz] revealItemInDir failed", err);
+        }
+        if (revealed) {
+          pushToast("Export gespeichert", "ok");
+        } else {
+          pushToast(`Export gespeichert: ${result.path}`, "ok");
+        }
       } else {
-        pushToast(`Export gespeichert: ${result.path}`, "ok");
+        pushToast("Datei heruntergeladen", "ok");
       }
       props.onClose();
     } catch (e) {
@@ -134,6 +132,16 @@ export function ExportDialog(props: ExportDialogProps) {
             />
             <span>Plain Text (für Teleprompter)</span>
           </label>
+          <label class="settings-radio">
+            <input
+              type="radio"
+              name="exp-fmt"
+              value="scriptz"
+              checked={format() === "scriptz"}
+              onChange={() => setFormat("scriptz")}
+            />
+            <span>ScriptZ-Datei (.scriptz)</span>
+          </label>
         </div>
 
         <Show when={format() === "pdf"}>
@@ -156,6 +164,16 @@ export function ExportDialog(props: ExportDialogProps) {
               <span>Titelblatt einschließen</span>
             </label>
           </div>
+        </Show>
+
+        <Show when={format() === "scriptz"}>
+          <div class="export-divider" />
+          <p class="export-help">
+            Eine ScriptZ-Datei enthält dieses Skript als Container und
+            kann auf einem anderen Gerät importiert werden (Datei →
+            Importieren). Nur das aktuelle Skript - ohne Ordner-
+            Zuordnung, ohne Versions-Verlauf.
+          </p>
         </Show>
       </div>
     </Modal>

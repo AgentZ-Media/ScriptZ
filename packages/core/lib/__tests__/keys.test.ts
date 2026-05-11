@@ -21,8 +21,8 @@ function stubAdapter(platform: Platform): PlatformAdapter {
     openUrl: () => Promise.resolve(),
     revealInFolder: () => Promise.resolve(),
     saveDialog: () => Promise.resolve(null),
-    exportPdf: () => Promise.resolve({ path: "" }),
-    exportPlaintext: () => Promise.resolve({ path: "" }),
+    saveAs: () => Promise.resolve({ cancelled: true, path: null }),
+    openFile: () => Promise.resolve(null),
   };
 }
 

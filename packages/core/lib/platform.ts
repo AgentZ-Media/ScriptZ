@@ -36,16 +36,11 @@ export interface DbConnection {
 
 // ===== Export pipeline =====
 //
-// The export functions live in the host app (they need plugin-fs to write
-// the actual bytes), but their interface is shared so api.ts in core can
-// call them via the adapter.
-
-export interface ExportPdfInput {
-  scriptId: string;
-  path: string;
-  includeHighlighting: boolean;
-  includeTitlePage: boolean;
-}
+// Die PDF-/Plaintext-Generatoren leben jetzt komplett in core
+// (siehe ./exportPdf.ts und lex.ts::extractTeleprompterText) und
+// produzieren reine Bytes/Strings. Der PlatformAdapter kuemmert sich
+// nur noch ums Schreiben der Bytes - Desktop via plugin-fs, Web via
+// Blob-Download. Siehe `saveAs` weiter unten.
 
 export interface ExportPdfDeps {
   title: string;
@@ -53,12 +48,7 @@ export interface ExportPdfDeps {
   characters: ScriptCharacter[];
 }
 
-export interface ExportPlaintextInput {
-  scriptId: string;
-  path: string;
-}
-
-// ===== Save dialog =====
+// ===== Save / Open Filter =====
 
 export interface SaveDialogFilter {
   name: string;
@@ -69,6 +59,36 @@ export interface SaveDialogOptions {
   title?: string;
   defaultPath?: string;
   filters?: SaveDialogFilter[];
+}
+
+// ===== Datei-Persistenz =====
+//
+// Schmale Abstraktion fuer "Datei rausschreiben" / "Datei lesen". Wird von
+// allen Export-Pfaden (PDF, Plaintext, .scriptz) genutzt. Desktop oeffnet
+// einen nativen Save/Open-Dialog und schreibt/liest via plugin-fs; Web
+// triggert Blob-Download bzw. zeigt `<input type="file">`.
+
+export interface SaveAsOptions {
+  /** Vorgeschlagener Dateiname inkl. Endung. Wird bei Desktop in den
+   *  Save-Dialog vorbelegt, bei Web als `download`-Attribut gesetzt. */
+  suggestedName: string;
+  /** MIME-Type fuer Web's Blob; auf Desktop irrelevant. */
+  mimeType: string;
+  /** Optionale Dateitypen-Filter fuer den nativen Dialog. Web ignoriert. */
+  filters?: SaveDialogFilter[];
+}
+
+export interface SaveAsResult {
+  /** True wenn der User den Save-Dialog (Desktop) abgebrochen hat. */
+  cancelled: boolean;
+  /** Absoluter Pfad, an den geschrieben wurde - nur Desktop. Web setzt
+   *  null, weil der Browser keinen Pfad zurueckgibt. */
+  path: string | null;
+}
+
+export interface OpenFileResult {
+  name: string;
+  bytes: Uint8Array;
 }
 
 // ===== Adapter interface =====
@@ -90,20 +110,20 @@ export interface PlatformAdapter {
   /** Reveal the given absolute path in Finder/Explorer. No-op on web. */
   revealInFolder(path: string): Promise<void>;
 
-  /** Native save dialog. Returns the chosen path or null if cancelled. */
+  /** Native save dialog. Returns the chosen path or null if cancelled.
+   *  Niedriger-Level-API - wer Bytes schreiben will, nimmt `saveAs`. */
   saveDialog(opts: SaveDialogOptions): Promise<string | null>;
 
-  /** Build a PDF for the given script and write it to the chosen path. */
-  exportPdf(
-    input: ExportPdfInput,
-    loadDeps: (scriptId: string) => Promise<ExportPdfDeps>,
-  ): Promise<{ path: string }>;
+  /** Schreibt die uebergebenen Bytes als Datei raus. Desktop oeffnet
+   *  einen Save-Dialog und schreibt via plugin-fs; Web triggert einen
+   *  Blob-Download (kein Save-Dialog im Browser). */
+  saveAs(opts: SaveAsOptions, bytes: Uint8Array): Promise<SaveAsResult>;
 
-  /** Write a teleprompter plaintext for the given script. */
-  exportPlaintext(
-    input: ExportPlaintextInput,
-    loadContent: (scriptId: string) => Promise<string>,
-  ): Promise<{ path: string }>;
+  /** Liest eine vom User ausgewaehlte Datei. Desktop oeffnet Open-Dialog
+   *  + plugin-fs::readFile; Web zeigt `<input type="file">`. `accept` ist
+   *  die MIME-/Extension-Liste fuer den Filter (z.B. ".scriptz,application/x-scriptz+json").
+   *  Returns null wenn der User abbricht. */
+  openFile(accept: string): Promise<OpenFileResult | null>;
 }
 
 let adapter: PlatformAdapter | null = null;

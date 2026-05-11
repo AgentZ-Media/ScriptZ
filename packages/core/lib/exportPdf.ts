@@ -1,22 +1,27 @@
-// PDF export — TS-side mirror of the previous Rust commands/export.rs.
+// PDF-Generator - browser-taugliche Bytes-Erzeugung.
 //
-// Layout mirrors the Rust implementation byte-for-byte at the conceptual
-// level: same A4 geometry, same margins, same font (iA Writer Quattro S
-// TTF, 11pt), same line height, same wrap-by-char-count algorithm, same
-// per-block placement / alignment, same tint-band geometry. Output is
-// visually identical to the prior Rust build.
+// Migration aus apps/desktop/src/lib/exportPdf.ts (Phase 2F): die reine
+// Layout-Logik plus pdf-lib + @pdf-lib/fontkit hat keine Tauri-Bindung
+// und laeuft im Browser identisch wie auf dem Desktop. Der Datei-
+// Schreib-Teil (mkdir + writeFile) wandert dafuer in den
+// Platform-Adapter (siehe ./platform.ts::saveAs).
 //
-// Font files live in apps/desktop/public/fonts/ and are fetched at runtime;
-// pdf-lib needs raw TTF/OTF + the @pdf-lib/fontkit registration to embed
-// non-standard fonts.
+// Layout-Konventionen: A4-Geometrie, iA Writer Quattro S TTF/11pt,
+// Tint-Band-Highlighting (Arc-Studio-Style). Byte-identisch zum
+// fruehen Rust-Code (Phase 7d-Migration). Aenderungen an der Geometrie
+// muessen mit dem Editor-Look abgestimmt werden, sonst weicht Export
+// und Preview ab.
+//
+// Schriften: Sowohl Desktop als auch Web hosten die TTFs unter
+// /fonts/iAWriterQuattroS-*.ttf in ihrem jeweiligen public/-Verzeichnis,
+// damit `fetch("/fonts/...")` zur Laufzeit ohne Pfad-Indirektion klappt.
 
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { writeFile, mkdir } from "@tauri-apps/plugin-fs";
-import { extractBlocks, type ExtractedBlock } from "@scriptz/core/lib/lex";
-import type { ScriptCharacter } from "@scriptz/core/lib/types";
+import { extractBlocks, type ExtractedBlock } from "./lex";
+import type { ExportPdfDeps } from "./platform";
 
-// ---- Geometry (mm) — verbatim from src-tauri/src/commands/export.rs ----
+// ---- Geometrie (mm) - 1:1 wie Rust src-tauri/src/commands/export.rs ----
 const A4_W_MM = 210.0;
 const A4_H_MM = 297.0;
 const MARGIN_TOP_MM = 25.0;
@@ -28,35 +33,18 @@ const LINE_HEIGHT_MM = 6.2;
 const PARA_GAP_MM = 1.6;
 const CHAR_W_MM = 2.3; // duospaced glyph advance at 11pt
 
-// Tint-band geometry (Arc-Studio-style per-line band)
+// Tint-Band-Geometrie (Arc-Studio-Style per-line band).
 const TINT_PAD_X_MM = 0.8;
 const TINT_TOP_OFFSET_MM = 3.2;
 const TINT_BOTTOM_OFFSET_MM = 1.6;
 const TINT_ALPHA_FACTOR = 0.28;
 
-// 1 mm in PDF points (1pt = 1/72 inch, 1 inch = 25.4 mm).
+// 1 mm in PDF-Punkten (1pt = 1/72 inch, 1 inch = 25.4 mm).
 const MM_TO_PT = 72 / 25.4;
 const mm = (v: number) => v * MM_TO_PT;
 
 const A4_W_PT = mm(A4_W_MM);
 const A4_H_PT = mm(A4_H_MM);
-
-export interface ExportPdfInput {
-  scriptId: string;
-  path: string;
-  includeHighlighting: boolean;
-  includeTitlePage: boolean;
-}
-
-export interface ExportPdfDeps {
-  title: string;
-  contentJson: string;
-  characters: ScriptCharacter[];
-}
-
-export interface ExportPdfResult {
-  path: string;
-}
 
 let cachedFontBytes: {
   regular: Uint8Array;
@@ -95,8 +83,8 @@ class Layout {
   doc: PDFDocument;
   fonts: Fonts;
   page: PDFPage;
-  // y in mm, top-down — exactly like the Rust struct field. Converted to
-  // pt at draw time. Origin in PDF is bottom-left so y_pt = mm(y_mm).
+  // y in mm, top-down - genauso wie das Rust-Struct-Feld. Konvertiert
+  // zu pt beim Zeichnen. PDF-Ursprung ist bottom-left, also y_pt = mm(y_mm).
   y_mm: number;
 
   constructor(doc: PDFDocument, fonts: Fonts) {
@@ -180,15 +168,15 @@ class Layout {
 }
 
 function countChars(s: string): number {
-  // Count Unicode scalars, mirroring Rust `chars().count()`.
+  // Zaehlt Unicode-Skalare, spiegelt Rust `chars().count()`.
   let n = 0;
   for (const _ of s) n++;
   return n;
 }
 
-// Mirrors Rust `simple_wrap`: split on '\n', then whitespace-wrap each
-// chunk by char count. Empty chunks emit an empty line; an empty
-// input still emits one empty line.
+// Spiegelt Rust `simple_wrap`: splittet an '\n', dann Whitespace-Wrap
+// per Char-Count. Leere Chunks geben eine leere Zeile aus; ein leerer
+// Input gibt trotzdem eine leere Zeile.
 function simpleWrap(text: string, width: number): string[] {
   const out: string[] = [];
   const chunks = text.split("\n");
@@ -198,8 +186,6 @@ function simpleWrap(text: string, width: number): string[] {
       continue;
     }
     let line = "";
-    // split_whitespace equivalent: split on any Unicode whitespace, drop
-    // empty entries.
     const words = chunk.split(/\s+/u).filter((w) => w.length > 0);
     for (const word of words) {
       if (line.length === 0) {
@@ -217,13 +203,13 @@ function simpleWrap(text: string, width: number): string[] {
   return out;
 }
 
-// Lighten an RGB hex toward white by `(1 - alphaFactor)` — matches
+// Hellt RGB-Hex Richtung Weiss auf um `(1 - alphaFactor)`. Spiegelt
 // Rust `hex_to_rgb_tint(hex, 0.28)`.
 function hexToRgbTint(hex: string, alphaFactor: number): [number, number, number] {
-  // Neutral grey fallback for any malformed hex. Rust used two different
-  // greys here (240,240,240 vs 160,160,160) which made debugging harder;
-  // collapsed to one because both branches are practically dead — character
-  // colours come from DEFAULT_PALETTE which is well-formed.
+  // Neutrales Grau-Fallback fuer alle malformed Hex. Rust hatte hier zwei
+  // verschiedene Greys (240,240,240 vs 160,160,160) - hier zu einem
+  // zusammengefasst, weil beide Pfade in der Praxis tot sind (Charakter-
+  // farben kommen aus DEFAULT_PALETTE, immer well-formed).
   const FALLBACK: [number, number, number] = [160, 160, 160];
   const s = hex.startsWith("#") ? hex.slice(1) : hex;
   if (s.length !== 6) return FALLBACK;
@@ -236,9 +222,17 @@ function hexToRgbTint(hex: string, alphaFactor: number): [number, number, number
   return [mix(r), mix(g), mix(b)];
 }
 
+export interface BuildPdfBytesOptions {
+  includeHighlighting: boolean;
+  includeTitlePage: boolean;
+}
+
+/** Erzeugt die fertigen PDF-Bytes fuer ein Skript. Reine Pure-Function -
+ *  Caller entscheidet, was mit den Bytes passiert (Desktop schreibt sie
+ *  via plugin-fs, Web triggert Blob-Download). */
 export async function buildPdfBytes(
   deps: ExportPdfDeps,
-  opts: { includeHighlighting: boolean; includeTitlePage: boolean },
+  opts: BuildPdfBytesOptions,
 ): Promise<Uint8Array> {
   const fontBytes = await loadFontBytes();
 
@@ -294,8 +288,9 @@ export async function buildPdfBytes(
   for (let idx = 0; idx < blocks.length; idx++) {
     const b = blocks[idx];
 
-    // Widow/orphan guard for character speech: reserve 4 lines + 2 paragraph
-    // gaps so a Character block doesn't get orphaned at page bottom.
+    // Widow/Orphan-Guard fuer Charakter-Speech: reserviere 4 Zeilen + 2
+    // Paragraph-Gaps, damit ein Character-Block nicht am Seitenende
+    // verwaist landet.
     if (b.kind === "scriptz-character") {
       layout.ensureSpace(LINE_HEIGHT_MM * 4 + PARA_GAP_MM * 2);
     }
@@ -326,8 +321,8 @@ export async function buildPdfBytes(
         );
         break;
       case "scriptz-parenthetical":
-        // The parentheticalLive plugin already wraps text in "( … )" — render
-        // verbatim so we don't double-add parens.
+        // Der parentheticalLive-Plugin wickelt Text bereits in "( … )" -
+        // verbatim rendern, damit nicht doppelt geklammert wird.
         layout.writeLine(
           b.text,
           MARGIN_LEFT_MM + 35.0,
@@ -427,43 +422,4 @@ function computeTint(
   const hex = charColor.get(name);
   if (!hex) return null;
   return hexToRgbTint(hex, TINT_ALPHA_FACTOR);
-}
-
-export async function exportPdf(
-  input: ExportPdfInput,
-  loadDeps: (scriptId: string) => Promise<ExportPdfDeps>,
-): Promise<ExportPdfResult> {
-  const deps = await loadDeps(input.scriptId);
-  const bytes = await buildPdfBytes(deps, {
-    includeHighlighting: input.includeHighlighting,
-    includeTitlePage: input.includeTitlePage,
-  });
-
-  const parent = parentDir(input.path);
-  if (parent) {
-    try {
-      await mkdir(parent, { recursive: true });
-    } catch (err) {
-      // recursive: true should make this idempotent, but plugin-fs
-      // surfaces "already exists" as an error on some OS variants.
-      // Anything else (permission denied, invalid path, …) we want to
-      // see — the writeFile below would fail too, but with a less
-      // helpful message.
-      if (!isAlreadyExistsError(err)) throw err;
-    }
-  }
-  await writeFile(input.path, bytes);
-  return { path: input.path };
-}
-
-function isAlreadyExistsError(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return /already exists|EEXIST|file exists/i.test(msg);
-}
-
-function parentDir(path: string): string | null {
-  // POSIX + Windows aware enough for our use: pick the last '/' or '\\'.
-  const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
-  if (i <= 0) return null;
-  return path.slice(0, i);
 }
