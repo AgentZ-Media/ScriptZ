@@ -123,12 +123,21 @@ weglässt.
 
 ## Mehrsprachigkeit (wichtig)
 
-Die App ist mehrsprachig (aktuell Deutsch + Englisch, Auto folgt
-`navigator.language`). Das ganze i18n-System lebt in
-[`packages/core/i18n/`](packages/core/i18n/). User-sichtbare Strings
-laufen **immer** durch `t()` / `tPlural()` aus `@scriptz/core/i18n`
-oder den relativen `../../i18n`-Import, niemals als Literal in JSX,
-in einem Toast oder in einem Error, der per `pushToast` rauskommt.
+**App und Landing sind beide mehrsprachig** (aktuell Deutsch +
+Englisch, Auto folgt `navigator.language`). Sie nutzen getrennte
+i18n-Kataloge, aber dieselbe Konvention - und für beide gilt: jede
+User-sichtbare Änderung pflegt ALLE Sprachen, immer.
+
+- **App-i18n**: [`packages/core/i18n/`](packages/core/i18n/) - User-
+  sichtbare Strings laufen **immer** durch `t()` / `tPlural()` aus
+  `@scriptz/core/i18n` oder den relativen `../../i18n`-Import, niemals
+  als Literal in JSX, in einem Toast oder in einem Error, der per
+  `pushToast` rauskommt.
+- **Landing-i18n**: [`apps/landing/src/i18n/`](apps/landing/src/i18n/) -
+  Strings laufen durch `t(lang, "key")`. Routing: `/` ist DE-Default,
+  `/en` ist die englische Variante. Impressum und Datenschutz bleiben
+  rechts-bedingt DE-only. Details in [`apps/landing/CLAUDE.md`](apps/landing/CLAUDE.md)
+  unter "Mehrsprachigkeit".
 
 ### Grundregel
 

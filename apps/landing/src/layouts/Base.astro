@@ -1,27 +1,50 @@
 ---
 import "../styles/global.css";
 import { site } from "../data/site";
+import { type Lang, t } from "../i18n";
 
 interface Props {
   title?: string;
   description?: string;
   /** Wird im <title> dem Site-Namen vorangestellt. */
   pageTitle?: string;
+  /**
+   * Sprache der Seite. Default `de`. Legal-Seiten (Impressum,
+   * Datenschutz) bleiben bei `de`, weil das deutsche Recht das
+   * vorgibt - der Auto-Detect-Redirect ignoriert diese Pfade.
+   */
+  lang?: Lang;
 }
 
 const {
   title,
-  description = site.description,
+  description,
   pageTitle,
+  lang = "de",
 } = Astro.props;
 
+const finalDescription = description ?? site.description;
 const fullTitle =
-  title ?? (pageTitle ? `${pageTitle} - ${site.name}` : `${site.name} - Der schnellste Skript-Editor für Creators`);
+  title ?? (pageTitle ? `${pageTitle} - ${site.name}` : `${site.name} - ${t(lang, "meta.title")}`);
 const ogImage = `${site.url}/img/icon-large.png`;
+const ogLocale = t(lang, "meta.ogLocale");
+const htmlLang = lang === "en" ? "en" : "de";
+
+// Canonical und hreflang. Die Landing existiert in DE (default, /) und
+// EN (/en). Legal-Seiten existieren nur in DE - dann ist `enHref` null
+// und wir setzen kein hreflang-en.
+const currentPath = Astro.url.pathname;
+const isLegal = currentPath === "/impressum" || currentPath === "/datenschutz";
+const deHref = (() => {
+  if (isLegal) return new URL(currentPath, site.url).toString();
+  return new URL("/", site.url).toString();
+})();
+const enHref = isLegal ? null : new URL("/en", site.url).toString();
+const canonical = lang === "en" ? enHref ?? deHref : deHref;
 ---
 
 <!DOCTYPE html>
-<html lang="de">
+<html lang={htmlLang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -29,31 +52,66 @@ const ogImage = `${site.url}/img/icon-large.png`;
     <meta name="generator" content={Astro.generator} />
 
     <title>{fullTitle}</title>
-    <meta name="description" content={description} />
+    <meta name="description" content={finalDescription} />
 
     <link rel="icon" type="image/png" href="/img/icon.png" />
     <link rel="apple-touch-icon" href="/img/icon.png" />
-    <link rel="canonical" href={new URL(Astro.url.pathname, site.url).toString()} />
+    <link rel="canonical" href={canonical} />
+
+    <!-- hreflang: signalisiert Google die jeweils andere Sprachvariante.
+         `x-default` zeigt auf die deutsche Variante, weil das die Default-
+         Sprache der Site ist. -->
+    <link rel="alternate" hreflang="de" href={deHref} />
+    {enHref && <link rel="alternate" hreflang="en" href={enHref} />}
+    <link rel="alternate" hreflang="x-default" href={deHref} />
 
     <link rel="preload" href="/fonts/iAWriterQuattroS-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/iAWriterQuattroS-Bold.woff2" as="font" type="font/woff2" crossorigin />
 
     <meta property="og:title" content={fullTitle} />
-    <meta property="og:description" content={description} />
+    <meta property="og:description" content={finalDescription} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={new URL(Astro.url.pathname, site.url).toString()} />
+    <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
     <meta property="og:site_name" content={site.name} />
-    <meta property="og:locale" content="de_DE" />
+    <meta property="og:locale" content={ogLocale} />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={fullTitle} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:description" content={finalDescription} />
     <meta name="twitter:image" content={ogImage} />
 
     <meta name="robots" content="index, follow" />
+
+    <!-- Sprach-Auto-Detect: laeuft bevor das Reveal-Script greift,
+         damit der Redirect noch vor dem ersten Paint passieren kann.
+         Regeln:
+           1. Wenn der Nutzer bereits eine Wahl getroffen hat
+              (localStorage["scriptz-lang"]), nie automatisch umleiten.
+           2. Auf Legal-Seiten nie umleiten - die existieren nur in DE.
+           3. Sonst: navigator.language anschauen. Beginnt sie mit "de",
+              passt die deutsche Seite, kein Redirect noetig. Sonst -
+              wenn wir auf "/" sind - einmalig nach "/en" umleiten.
+           4. Niemals von /en nach / zurueck-redirecten, selbst wenn die
+              Browser-Sprache "de" ist - der Nutzer koennte den Link
+              bewusst geteilt haben. Nur die explizite Toggle-Wahl
+              entscheidet dauerhaft. -->
+    <script is:inline>
+      (function() {
+        try {
+          var path = location.pathname;
+          if (path === "/impressum" || path === "/datenschutz") return;
+          if (localStorage.getItem("scriptz-lang")) return;
+          var browserLang = (navigator.language || "de").slice(0, 2).toLowerCase();
+          var onEn = path === "/en" || path.indexOf("/en/") === 0;
+          if (browserLang !== "de" && !onEn) {
+            location.replace("/en");
+          }
+        } catch (_) { /* private mode etc. */ }
+      })();
+    </script>
   </head>
-  <body>
+  <body data-lang={lang}>
     <slot />
 
     <script>

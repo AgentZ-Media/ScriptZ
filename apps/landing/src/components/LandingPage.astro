@@ -1,0 +1,850 @@
+---
+/**
+ * ScriptZ Landing - mehrsprachig.
+ *
+ * Konzept: ein Hero oben (klassisches Landingpage-Pattern), darunter
+ * eine eingebettete ScriptZ-App-Simulation. Tabs sind echte Tabs:
+ * jeder Klick wechselt den Paper-Inhalt, kein Scrollen zu Sektionen.
+ * Die Ideen-Ansicht ist ein 1:1-Nachbau der echten App.
+ *
+ * Block-Styling (CAPTION, CHARACTER, DIALOG, PARENTHETICAL, ACTION,
+ * CAMERA, SFX) und Charakter-Highlighting (per-Zeile via
+ * box-decoration-break) spiegeln Editor.css und highlight.ts der
+ * Desktop-App.
+ *
+ * Sprache: kommt als `lang`-Prop rein. DE-Default wird unter `/`
+ * gerendert, EN unter `/en`. Strings via `t(lang, key)` aus dem
+ * i18n-Katalog. Toggle in der Titlebar wechselt zwischen den Routen.
+ */
+import { getLatestRelease, site } from "../data/site";
+import { t, switchLangPath, type Lang } from "../i18n";
+import "../styles/landing.css";
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const release = await getLatestRelease();
+
+interface Idea {
+  titleKey: Parameters<typeof t>[1];
+  bodyKey?: Parameters<typeof t>[1];
+  ageKey: Parameters<typeof t>[1];
+  used?: boolean;
+}
+
+const openIdeas: Idea[] = [
+  {
+    titleKey: "ideas.sample.tutorial.title",
+    bodyKey: "ideas.sample.tutorial.body",
+    ageKey: "ideas.sample.tutorial.age",
+  },
+  {
+    titleKey: "ideas.sample.fd.title",
+    bodyKey: "ideas.sample.fd.body",
+    ageKey: "ideas.sample.fd.age",
+  },
+  {
+    titleKey: "ideas.sample.word.title",
+    bodyKey: "ideas.sample.word.body",
+    ageKey: "ideas.sample.word.age",
+  },
+  {
+    titleKey: "ideas.sample.noai.title",
+    bodyKey: "ideas.sample.noai.body",
+    ageKey: "ideas.sample.noai.age",
+  },
+  {
+    titleKey: "ideas.sample.reel.title",
+    bodyKey: "ideas.sample.reel.body",
+    ageKey: "ideas.sample.reel.age",
+  },
+  {
+    titleKey: "ideas.sample.morning.title",
+    bodyKey: "ideas.sample.morning.body",
+    ageKey: "ideas.sample.morning.age",
+  },
+];
+
+const usedIdeas: Idea[] = [
+  {
+    titleKey: "ideas.sample.cliche.title",
+    ageKey: "ideas.sample.cliche.age",
+    used: true,
+  },
+];
+
+const allIdeas = [...openIdeas, ...usedIdeas];
+
+const otherLang: Lang = lang === "de" ? "en" : "de";
+const switchHref = switchLangPath(lang, otherLang, lang === "de" ? "/" : "/en");
+
+// JS-seitige Strings als JSON ans Script weiterreichen.
+const jsStrings = {
+  copy: t(lang, "install.copy"),
+  copied: t(lang, "install.copied"),
+  copyManual: t(lang, "install.copyManual"),
+  sprintLabel: t(lang, "sprint.label"),
+  sprintFormat: lang === "de" ? "{r} / {t} W" : "{r} / {t} W",
+};
+---
+
+<!-- ============== HERO (bricht das Script-Frame) ============== -->
+<section class="v2-hero">
+  <div class="v2-hero-inner">
+    <span class="v2-eyebrow">{t(lang, "hero.eyebrow")}</span>
+    <h1 class="v2-h1">
+      {t(lang, "hero.h1.line1")}<br/>
+      {t(lang, "hero.h1.line2")}
+    </h1>
+    <p class="v2-lead">{t(lang, "hero.lead")}</p>
+    <div class="v2-hero-cta">
+      <a class="v2-btn v2-btn-primary v2-btn-lg" href={release.dmgUrl}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
+        </svg>
+        {t(lang, "hero.cta.download")}
+      </a>
+      <a class="v2-btn v2-btn-ghost v2-btn-lg" href={site.github} target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2.01-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.2 1.18a11.1 11.1 0 0 1 2.91-.39c.99 0 1.98.13 2.91.39 2.22-1.5 3.2-1.18 3.2-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.27 5.69.41.35.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.13 0 .31.2.67.8.55C20.71 21.38 24 17.07 24 12 24 5.65 18.85.5 12.5.5h-.5z"/>
+        </svg>
+        {t(lang, "hero.cta.github")}
+      </a>
+    </div>
+    <div class="v2-hero-meta">
+      <span><b>v{release.version}</b> · {t(lang, "hero.meta.os")}</span>
+      <span class="v2-meta-sep">·</span>
+      <span>{t(lang, "hero.meta.zero")}</span>
+    </div>
+
+    <p class="v2-hero-web">
+      {t(lang, "hero.web.intro")}{" "}
+      <a href={site.webAppUrl} target="_blank" rel="noopener">
+        {t(lang, "hero.web.link")}
+      </a>
+      <span class="v2-hero-web-hint">{t(lang, "hero.web.hint")}</span>
+    </p>
+
+    <details class="v2-install v2-install-hero">
+      <summary>
+        <span class="v2-install-summary-text">{t(lang, "install.summary")}</span>
+        <span class="v2-install-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <div class="v2-install-body">
+        <p class="v2-install-text">{t(lang, "install.body")}</p>
+        <div class="v2-install-code">
+          <code>xattr -cr /Applications/ScriptZ.app</code>
+          <button class="v2-install-copy" type="button" data-copy="xattr -cr /Applications/ScriptZ.app">
+            {t(lang, "install.copy")}
+          </button>
+        </div>
+        <p class="v2-install-why">{t(lang, "install.why")}</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============== APP-SHELL ================================== -->
+<div class="v2-shell" data-theme="light">
+
+  <!-- Chrome-Wrapper: titlebar + toolbar als sticky Einheit, damit
+       kein Karo-Gap zwischen den beiden Bändern entsteht. -->
+  <div class="v2-chrome">
+
+    <!-- TAB-BAR -->
+    <header class="v2-titlebar">
+      <div class="v2-traffic" aria-hidden="true">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+      </div>
+
+      <div class="v2-tabs">
+        <button class="v2-tab v2-tab-icon" type="button" data-tab="home" data-title={t(lang, "tab.home.title")} aria-label={t(lang, "tab.home.aria")}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>
+          </svg>
+        </button>
+        <button class="v2-tab v2-tab-icon" type="button" data-tab="ideen" data-title={t(lang, "tab.ideas.title")} aria-label={t(lang, "tab.ideas.aria")}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M9 18h6"/><path d="M10 22h4"/>
+            <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>
+          </svg>
+          <span class="v2-tab-badge">{openIdeas.length}</span>
+        </button>
+
+        <button class="v2-tab v2-tab-script is-active" type="button" data-tab="warum" data-title={t(lang, "tab.warum.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.warum.short")}</span>
+        </button>
+        <button class="v2-tab v2-tab-script" type="button" data-tab="quickmodus" data-title={t(lang, "tab.quickmodus.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.quickmodus.short")}</span>
+        </button>
+        <button class="v2-tab v2-tab-script" type="button" data-tab="no-ai" data-title={t(lang, "tab.noai.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.noai.short")}</span>
+        </button>
+        <button class="v2-tab v2-tab-script" type="button" data-tab="vergleich" data-title={t(lang, "tab.compare.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.compare.short")}</span>
+        </button>
+        <button class="v2-tab v2-tab-script" type="button" data-tab="download" data-title={t(lang, "tab.download.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.download.short")}</span>
+        </button>
+      </div>
+
+      <div class="v2-status">
+        <div class="v2-lang" role="group" aria-label={t(lang, "lang.toggle.aria")}>
+          {lang === "de" ? (
+            <>
+              <span class="v2-lang-pill is-active" aria-current="true">{t(lang, "lang.toggle.de")}</span>
+              <a class="v2-lang-pill" href={switchHref} hreflang="en" data-lang-set="en">{t(lang, "lang.toggle.en")}</a>
+            </>
+          ) : (
+            <>
+              <a class="v2-lang-pill" href={switchHref} hreflang="de" data-lang-set="de">{t(lang, "lang.toggle.de")}</a>
+              <span class="v2-lang-pill is-active" aria-current="true">{t(lang, "lang.toggle.en")}</span>
+            </>
+          )}
+        </div>
+        <a class="v2-status-pill" href={site.github} target="_blank" rel="noopener">
+          <span class="v2-dot v2-dot-on"></span>
+          {t(lang, "status.opensource")}
+        </a>
+        <span class="v2-status-pill v2-status-saved">
+          <span class="v2-dot v2-dot-on"></span>
+          {t(lang, "status.saved")}
+        </span>
+      </div>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="v2-toolbar">
+      <button class="v2-toolbar-back" type="button" data-tab="home" aria-label={t(lang, "toolbar.back.aria")}>
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        {t(lang, "toolbar.back.label")}
+      </button>
+      <div class="v2-toolbar-title" id="toolbar-title">{t(lang, "tab.warum.long")}</div>
+      <div class="v2-toolbar-pills">
+        <span class="v2-pill is-active">{t(lang, "toolbar.pill.action")} <span class="v2-kbd">1</span></span>
+        <span class="v2-pill">{t(lang, "toolbar.pill.character")} <span class="v2-kbd">2</span></span>
+        <span class="v2-pill">{t(lang, "toolbar.pill.dialog")} <span class="v2-kbd">3</span></span>
+        <span class="v2-pill v2-pill-more">…</span>
+      </div>
+      <div class="v2-toolbar-actions">
+        <a class="v2-toolbar-btn" href={release.dmgUrl}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
+          </svg>
+          {t(lang, "toolbar.download")}
+        </a>
+      </div>
+    </div>
+
+  </div><!-- /v2-chrome -->
+
+  <!-- ============== PAPER (Tab-Content) ====================== -->
+  <main class="v2-paper" id="paper">
+
+    <!-- ===== TAB: WARUM ===== -->
+    <section class="v2-tab-content is-active" data-content="warum">
+      <div class="v2-block v2-caption">{t(lang, "warum.caption")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "warum.action1")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "warum.action2")}</div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-parenthetical" data-speaker="TIMO"><span class="v2-t">{t(lang, "warum.timo1.paren")}</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "warum.timo1.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="AXEL"><span class="v2-t">AXEL</span></div>
+      <div class="v2-block v2-dialog" data-speaker="AXEL"><span class="v2-t">{t(lang, "warum.axel1.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "warum.timo2.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="AXEL"><span class="v2-t">AXEL</span></div>
+      <div class="v2-block v2-parenthetical" data-speaker="AXEL"><span class="v2-t">{t(lang, "warum.axel2.paren")}</span></div>
+      <div class="v2-block v2-dialog" data-speaker="AXEL"><span class="v2-t">{t(lang, "warum.axel2.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "warum.timo3.dialog")}</span></div>
+
+      <div class="v2-block v2-camera">{t(lang, "warum.cut")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "warum.action3")}</div>
+
+      <div class="v2-shot-wrap">
+        <div class="v2-shot-tabs" role="tablist">
+          <button class="v2-shot-tab is-active" type="button" data-shot="overview" role="tab" aria-selected="true">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>
+            </svg>
+            {t(lang, "shot.tab.overview")}
+          </button>
+          <button class="v2-shot-tab" type="button" data-shot="ideas" role="tab" aria-selected="false">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M9 18h6"/><path d="M10 22h4"/>
+              <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>
+            </svg>
+            {t(lang, "shot.tab.ideas")}
+          </button>
+          <button class="v2-shot-tab" type="button" data-shot="editor" role="tab" aria-selected="false">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+            </svg>
+            {t(lang, "shot.tab.editor")}
+          </button>
+        </div>
+        <div class="v2-shot-frame">
+          <img class="v2-shot is-active" src="/img/app/overview.png" alt={t(lang, "shot.alt.overview")} data-shot="overview" loading="lazy" />
+          <img class="v2-shot" src="/img/app/ideas.png" alt={t(lang, "shot.alt.ideas")} data-shot="ideas" loading="lazy" />
+          <img class="v2-shot" src="/img/app/editor.png" alt={t(lang, "shot.alt.editor")} data-shot="editor" loading="lazy" />
+        </div>
+      </div>
+
+      <div class="v2-jump">
+        <span class="v2-jump-label">{t(lang, "jump.label.long")}</span>
+        <button class="v2-jump-btn" type="button" data-tab="quickmodus">{t(lang, "jump.btn.quickmodus")}</button>
+        <button class="v2-jump-btn" type="button" data-tab="no-ai">{t(lang, "jump.btn.noai")}</button>
+        <button class="v2-jump-btn" type="button" data-tab="vergleich">{t(lang, "jump.btn.compare")}</button>
+      </div>
+    </section>
+
+    <!-- ===== TAB: QUICKMODUS ===== -->
+    <section class="v2-tab-content" data-content="quickmodus">
+      <div class="v2-block v2-caption">{t(lang, "quick.caption")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "quick.action1")}</div>
+
+      <div class="v2-block v2-sfx">{t(lang, "quick.sfxLabel")} <span class="v2-t-plain">{t(lang, "quick.sfxText")}</span></div>
+
+      <div class="v2-block v2-action">{t(lang, "quick.action2")}</div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "quick.timo1.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="AXEL"><span class="v2-t">AXEL</span></div>
+      <div class="v2-block v2-dialog" data-speaker="AXEL"><span class="v2-t">{t(lang, "quick.axel1.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "quick.timo2.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="AXEL"><span class="v2-t">AXEL</span></div>
+      <div class="v2-block v2-dialog" data-speaker="AXEL"><span class="v2-t">{t(lang, "quick.axel2.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "quick.timo3.dialog")}</span></div>
+
+      <div class="v2-block v2-action">{t(lang, "quick.action3")}</div>
+
+      <div class="v2-callout">
+        <span class="v2-callout-eyebrow">{t(lang, "quick.callout.eyebrow")}</span>
+        <p>{t(lang, "quick.callout.body")}</p>
+      </div>
+
+      <div class="v2-jump">
+        <span class="v2-jump-label">{t(lang, "jump.label.short")}</span>
+        <button class="v2-jump-btn" type="button" data-tab="no-ai">{t(lang, "jump.btn.noaiAlt")}</button>
+        <button class="v2-jump-btn" type="button" data-tab="vergleich">{t(lang, "jump.btn.compareShort")}</button>
+        <button class="v2-jump-btn" type="button" data-tab="download">{t(lang, "jump.btn.download")}</button>
+      </div>
+    </section>
+
+    <!-- ===== TAB: NO-AI ===== -->
+    <section class="v2-tab-content" data-content="no-ai">
+      <div class="v2-block v2-caption">{t(lang, "noai.caption")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "noai.action1")}</div>
+
+      <div class="v2-block v2-character" data-speaker="AXEL"><span class="v2-t">AXEL</span></div>
+      <div class="v2-block v2-parenthetical" data-speaker="AXEL"><span class="v2-t">{t(lang, "noai.axel1.paren")}</span></div>
+      <div class="v2-block v2-dialog" data-speaker="AXEL"><span class="v2-t">{t(lang, "noai.axel1.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "noai.timo1.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="AXEL"><span class="v2-t">AXEL</span></div>
+      <div class="v2-block v2-dialog" data-speaker="AXEL"><span class="v2-t">{t(lang, "noai.axel2.dialog")}</span></div>
+
+      <div class="v2-block v2-character" data-speaker="TIMO"><span class="v2-t">TIMO</span></div>
+      <div class="v2-block v2-dialog" data-speaker="TIMO"><span class="v2-t">{t(lang, "noai.timo2.dialog")}</span></div>
+
+      <div class="v2-block v2-camera">{t(lang, "noai.camera")}</div>
+
+      <div class="v2-noai-grid">
+        <div class="v2-noai-card">
+          <span class="v2-noai-icon" aria-hidden="true">×</span>
+          <h3>{t(lang, "noai.card1.title")}</h3>
+          <p>{t(lang, "noai.card1.body")}</p>
+        </div>
+        <div class="v2-noai-card">
+          <span class="v2-noai-icon" aria-hidden="true">×</span>
+          <h3>{t(lang, "noai.card2.title")}</h3>
+          <p>{t(lang, "noai.card2.body")}</p>
+        </div>
+        <div class="v2-noai-card">
+          <span class="v2-noai-icon" aria-hidden="true">×</span>
+          <h3>{t(lang, "noai.card3.title")}</h3>
+          <p>{t(lang, "noai.card3.body")}</p>
+        </div>
+        <div class="v2-noai-card v2-noai-card-yes">
+          <span class="v2-noai-icon-yes" aria-hidden="true">✓</span>
+          <h3>{t(lang, "noai.card4.title")}</h3>
+          <p>{t(lang, "noai.card4.body")}</p>
+        </div>
+      </div>
+
+      <div class="v2-jump">
+        <span class="v2-jump-label">{t(lang, "jump.label.short")}</span>
+        <button class="v2-jump-btn" type="button" data-tab="vergleich">{t(lang, "jump.btn.compareShort")}</button>
+        <button class="v2-jump-btn" type="button" data-tab="download">{t(lang, "jump.btn.download")}</button>
+      </div>
+    </section>
+
+    <!-- ===== TAB: VERGLEICH ===== -->
+    <section class="v2-tab-content" data-content="vergleich">
+      <div class="v2-block v2-caption">{t(lang, "cmp.caption")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "cmp.action1")}</div>
+
+      <div class="v2-table-wrap">
+        <table class="v2-table">
+          <thead>
+            <tr>
+              <th class="v2-table-crit">{t(lang, "cmp.head.crit")}</th>
+              <th class="v2-table-us">SCRIPTZ</th>
+              <th>Word / Docs</th>
+              <th>Notion</th>
+              <th>ChatGPT</th>
+              <th>Final Draft</th>
+              <th>Apple Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.format")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark meh">{t(lang, "cmp.mark.feature")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+            </tr>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.quick")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+            </tr>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.chars")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+            </tr>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.short")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.featureNo")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+            </tr>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.noai")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.copilot")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.notionai")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.isai")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.beatai")}</span></td>
+              <td><span class="v2-mark meh">{t(lang, "cmp.mark.appleint")}</span></td>
+            </tr>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.local")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.cloud")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.cloud")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.paid")}</span></td>
+              <td><span class="v2-mark meh">{t(lang, "cmp.mark.appleonly")}</span></td>
+            </tr>
+            <tr>
+              <td class="v2-table-crit">{t(lang, "cmp.row.fast")}</td>
+              <td class="v2-table-us"><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+              <td><span class="v2-mark meh">{t(lang, "cmp.mark.meh")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark no">{t(lang, "cmp.mark.no")}</span></td>
+              <td><span class="v2-mark yes">{t(lang, "cmp.mark.yes")}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="v2-block v2-action">{t(lang, "cmp.action2")}</div>
+
+      <div class="v2-jump">
+        <span class="v2-jump-label">{t(lang, "jump.label.short")}</span>
+        <button class="v2-jump-btn" type="button" data-tab="download">{t(lang, "jump.btn.download")}</button>
+        <button class="v2-jump-btn" type="button" data-tab="warum">{t(lang, "jump.btn.backToStart")}</button>
+      </div>
+    </section>
+
+    <!-- ===== TAB: DOWNLOAD ===== -->
+    <section class="v2-tab-content" data-content="download">
+      <div class="v2-block v2-caption">{t(lang, "dl.caption")}</div>
+
+      <div class="v2-block v2-action">{t(lang, "dl.action1")}</div>
+
+      <div class="v2-download">
+        <div class="v2-download-meta">
+          <span class="v2-download-eyebrow">v{release.version} · {t(lang, "dl.eyebrow.os")}</span>
+          <h2 class="v2-download-h">{t(lang, "dl.h")}</h2>
+          <p class="v2-download-sub">{t(lang, "dl.sub")}</p>
+        </div>
+        <div class="v2-download-cta">
+          <a class="v2-btn v2-btn-primary v2-btn-lg" href={release.dmgUrl}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
+            </svg>
+            {t(lang, "dl.cta.dmg")}
+          </a>
+          <a class="v2-btn v2-btn-ghost-dark v2-btn-lg" href={site.github} target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2.01-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.2 1.18a11.1 11.1 0 0 1 2.91-.39c.99 0 1.98.13 2.91.39 2.22-1.5 3.2-1.18 3.2-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.27 5.69.41.35.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.13 0 .31.2.67.8.55C20.71 21.38 24 17.07 24 12 24 5.65 18.85.5 12.5.5h-.5z"/>
+            </svg>
+            {t(lang, "dl.cta.code")}
+          </a>
+        </div>
+        <div class="v2-download-stats">
+          <span><b>{release.version}</b> {t(lang, "dl.stat.version")}</span>
+          <span class="v2-stat-sep">|</span>
+          <span><b>0</b> {t(lang, "dl.stat.tracker")}</span>
+          <span class="v2-stat-sep">|</span>
+          <span><b>0</b> {t(lang, "dl.stat.accounts")}</span>
+          <span class="v2-stat-sep">|</span>
+          <span><b>0</b> {t(lang, "dl.stat.ai")}</span>
+          <span class="v2-stat-sep">|</span>
+          <span><b>1</b> {t(lang, "dl.stat.dmg")}</span>
+        </div>
+        <div class="v2-download-webhint">
+          {t(lang, "dl.web.intro")}{" "}
+          <a href={site.webAppUrl} target="_blank" rel="noopener">
+            {t(lang, "dl.web.link")}
+          </a>
+          <span class="v2-download-webhint-sub">{t(lang, "dl.web.sub")}</span>
+        </div>
+      </div>
+
+      <div class="v2-block v2-sfx">{t(lang, "dl.sfxLabel")} <span class="v2-t-plain">{t(lang, "dl.sfxText")}</span></div>
+
+      <div class="v2-block v2-action">{t(lang, "dl.action2")}</div>
+
+      <div class="v2-install v2-install-paper">
+        <div class="v2-install-body">
+          <div class="v2-install-code">
+            <code>xattr -cr /Applications/ScriptZ.app</code>
+            <button class="v2-install-copy" type="button" data-copy="xattr -cr /Applications/ScriptZ.app">
+              {t(lang, "install.copy")}
+            </button>
+          </div>
+          <p class="v2-install-why">
+            <strong>{t(lang, "install.whyShort.label")}</strong> {t(lang, "install.whyShort.body")}
+          </p>
+        </div>
+      </div>
+
+      <div class="v2-block v2-camera">{t(lang, "dl.fadeOut")}</div>
+
+      <div class="v2-end">
+        <div class="v2-end-line"></div>
+        <span class="v2-end-text">{t(lang, "dl.end")}</span>
+        <div class="v2-end-line"></div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: IDEEN (App-Replika) ===== -->
+    <section class="v2-tab-content v2-ideas" data-content="ideen">
+      <div class="v2-ideas-head">
+        <h2 class="v2-ideas-h">{t(lang, "ideas.h")}</h2>
+        <p class="v2-ideas-sub">{t(lang, "ideas.sub")}</p>
+      </div>
+
+      <div class="v2-ideas-input" role="button" tabindex="0">
+        <span class="v2-ideas-input-plus" aria-hidden="true">+</span>
+        <span class="v2-ideas-input-text">{t(lang, "ideas.input.placeholder")}</span>
+      </div>
+
+      <div class="v2-ideas-controls">
+        <div class="v2-ideas-search">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <span>{t(lang, "ideas.search.placeholder")}</span>
+        </div>
+        <div class="v2-ideas-filters">
+          <button class="v2-ideas-filter is-active" type="button">{t(lang, "ideas.filter.open")} <span class="v2-ideas-filter-c">{openIdeas.length}</span></button>
+          <button class="v2-ideas-filter" type="button">{t(lang, "ideas.filter.all")} <span class="v2-ideas-filter-c">{allIdeas.length}</span></button>
+          <button class="v2-ideas-filter" type="button">{t(lang, "ideas.filter.used")} <span class="v2-ideas-filter-c">{usedIdeas.length}</span></button>
+        </div>
+        <div class="v2-ideas-sort">{t(lang, "ideas.sort")}</div>
+      </div>
+
+      <ul class="v2-ideas-list">
+        {openIdeas.map((idea) => (
+          <li class="v2-idea-card">
+            <span class="v2-idea-dot" aria-hidden="true"></span>
+            <div class="v2-idea-body">
+              <h3 class="v2-idea-title">{t(lang, idea.titleKey)}</h3>
+              {idea.bodyKey && <p class="v2-idea-text">{t(lang, idea.bodyKey)}</p>}
+              <span class="v2-idea-age">{t(lang, idea.ageKey)}</span>
+            </div>
+            <div class="v2-idea-actions">
+              <button class="v2-idea-btn" type="button">{t(lang, "ideas.btn.script")}</button>
+              <button class="v2-idea-trash" type="button" aria-label={t(lang, "ideas.btn.delete.aria")}>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                </svg>
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div class="v2-ideas-hint">
+        <span class="v2-kbd-pill">⌘ I</span> {t(lang, "ideas.hint.before")}
+      </div>
+    </section>
+
+    <!-- ============== Footer (immer sichtbar) =============== -->
+    <footer class="v2-footer">
+      <div class="v2-footer-cols">
+        <div>
+          <span class="v2-footer-h">{t(lang, "footer.col.project")}</span>
+          <ul>
+            <li><a href={site.github} target="_blank" rel="noopener">{t(lang, "footer.link.github")}</a></li>
+            <li><a href={release.releasePageUrl} target="_blank" rel="noopener">{t(lang, "footer.link.releases")}</a></li>
+          </ul>
+        </div>
+        <div>
+          <span class="v2-footer-h">{t(lang, "footer.col.legal")}</span>
+          <ul>
+            <li><a href="/impressum">{t(lang, "footer.link.imprint")}</a></li>
+            <li><a href="/datenschutz">{t(lang, "footer.link.privacy")}</a></li>
+          </ul>
+        </div>
+        <div>
+          <span class="v2-footer-h">{t(lang, "footer.col.contact")}</span>
+          <ul>
+            <li><a href={`mailto:${site.contactEmail}`}>{t(lang, "footer.link.email")}</a></li>
+          </ul>
+        </div>
+        <div class="v2-footer-meta">
+          <span class="v2-footer-eyebrow">{t(lang, "footer.about.eyebrow")}</span>
+          <p>{t(lang, "footer.about.body")}</p>
+          <p class="v2-footer-version">v{release.version} · {t(lang, "footer.about.os")}</p>
+        </div>
+      </div>
+    </footer>
+
+  </main><!-- /paper -->
+
+  <!-- SPRINT-PILLE
+       Der Fortschrittsring wird per JS via stroke-dashoffset auf dem
+       zweiten <circle> live aktualisiert. r=9 → Umfang 2*PI*9 ≈ 56.55.
+       Initialer Text und Format-Strings kommen via data-Attribute aus
+       dem i18n-Katalog, damit das Script lang-agnostisch bleibt. -->
+  <div
+    class="v2-sprint"
+    id="sprint"
+    data-label={jsStrings.sprintLabel}
+    data-format={jsStrings.sprintFormat}
+  >
+    <span class="v2-sprint-ring">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-opacity="0.22"/>
+        <circle
+          class="v2-sprint-progress"
+          cx="12" cy="12" r="9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-dasharray="56.5487"
+          stroke-dashoffset="56.5487"
+          transform="rotate(-90 12 12)"
+        />
+      </svg>
+    </span>
+    <span class="v2-sprint-txt">{jsStrings.sprintLabel}</span>
+  </div>
+</div><!-- /v2-shell -->
+
+<script is:inline define:vars={{ jsStrings }}>
+  (function () {
+    // ===== Reaktive Tabs ==========================================
+    // Jeder Knopf mit data-tab schaltet die Sichtbarkeit der
+    // .v2-tab-content-Sektion mit passendem data-content.
+    // data-tab="home" ist Sonderfall: scrollt zurueck zum Hero.
+    const tabs = document.querySelectorAll('[data-tab]');
+    const contents = document.querySelectorAll('.v2-tab-content');
+    const toolbarTitle = document.getElementById('toolbar-title');
+
+    const activate = (id, opts) => {
+      opts = opts || {};
+      if (id === 'home') {
+        // Home scrollt zum Hero, aber laesst den aktiven Tab in Ruhe.
+        document.documentElement.scrollIntoView({ behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      let activeTab = null;
+      document.querySelectorAll('.v2-titlebar [data-tab]').forEach((b) => {
+        const on = b.getAttribute('data-tab') === id;
+        b.classList.toggle('is-active', on);
+        if (on) activeTab = b;
+      });
+
+      contents.forEach((c) => {
+        c.classList.toggle('is-active', c.getAttribute('data-content') === id);
+      });
+
+      if (activeTab && toolbarTitle) {
+        const title = activeTab.getAttribute('data-title');
+        if (title) toolbarTitle.textContent = title;
+      }
+
+      if (opts.scroll !== false) {
+        // Scroll-Position so anpassen, dass die App-Chrome oben sichtbar
+        // bleibt. Wir scrollen zum oberen Rand der Chrome.
+        const chrome = document.querySelector('.v2-chrome');
+        if (chrome) {
+          const rect = chrome.getBoundingClientRect();
+          const top = window.scrollY + rect.top;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      }
+    };
+
+    tabs.forEach((t) => {
+      t.addEventListener('click', () => {
+        const id = t.getAttribute('data-tab');
+        if (id) activate(id);
+      });
+    });
+
+    // ===== Screenshot-Galerie =====================================
+    const shotTabs = document.querySelectorAll('.v2-shot-tab');
+    const shots = document.querySelectorAll('.v2-shot');
+    shotTabs.forEach((t) => {
+      t.addEventListener('click', () => {
+        const id = t.getAttribute('data-shot');
+        shotTabs.forEach((x) => {
+          const on = x === t;
+          x.classList.toggle('is-active', on);
+          x.setAttribute('aria-selected', String(on));
+        });
+        shots.forEach((s) => {
+          s.classList.toggle('is-active', s.getAttribute('data-shot') === id);
+        });
+      });
+    });
+
+    // ===== Copy-Button im Install-Hinweis =========================
+    document.querySelectorAll('.v2-install-copy').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const cmd = btn.getAttribute('data-copy') || '';
+        try {
+          await navigator.clipboard.writeText(cmd);
+          btn.textContent = jsStrings.copied;
+          btn.classList.add('is-done');
+          setTimeout(() => {
+            btn.textContent = jsStrings.copy;
+            btn.classList.remove('is-done');
+          }, 1600);
+        } catch (e) {
+          btn.textContent = jsStrings.copyManual;
+          setTimeout(() => { btn.textContent = jsStrings.copy; }, 2000);
+        }
+      });
+    });
+
+    // ===== Sprint-Pille: Lese-Fortschritt =========================
+    const sprintEl = document.getElementById('sprint');
+    const sprintTxt = document.querySelector('.v2-sprint-txt');
+    const sprintRing = document.querySelector('.v2-sprint-progress');
+    const RING_CIRC = 56.5487; // 2 * PI * r mit r=9
+    const paper = document.getElementById('paper');
+    const sprintLabel = sprintEl ? sprintEl.getAttribute('data-label') || 'Sprint' : 'Sprint';
+    const sprintFormat = sprintEl ? sprintEl.getAttribute('data-format') || '{r} / {t} W' : '{r} / {t} W';
+    if (sprintTxt && paper) {
+      const recount = () => {
+        const active = document.querySelector('.v2-tab-content.is-active');
+        const text = active ? active.textContent.trim() : '';
+        const words = text ? text.split(/\s+/).length : 0;
+        sprintTxt.dataset.total = String(words);
+      };
+      recount();
+      // Recount bei Tab-Wechsel
+      tabs.forEach((t) => t.addEventListener('click', () => setTimeout(recount, 50)));
+
+      const updateProgress = () => {
+        const total = parseInt(sprintTxt.dataset.total || '0', 10);
+        const top = window.scrollY;
+        const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+        const ratio = Math.min(Math.max(top / max, 0), 1);
+        if (sprintRing) {
+          sprintRing.setAttribute('stroke-dashoffset', String(RING_CIRC * (1 - ratio)));
+        }
+        if (total === 0) {
+          sprintTxt.textContent = sprintLabel;
+          return;
+        }
+        const read = Math.round(ratio * total);
+        sprintTxt.textContent = sprintFormat.replace('{r}', String(read)).replace('{t}', String(total));
+      };
+      updateProgress();
+      window.addEventListener('scroll', updateProgress, { passive: true });
+    }
+
+    // ===== Sprach-Toggle: Auswahl persistieren ====================
+    // Damit der Auto-Detect-Redirect (in Base.astro) nach einem
+    // bewussten Wechsel den Nutzer in Ruhe laesst.
+    document.querySelectorAll('[data-lang-set]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const target = el.getAttribute('data-lang-set');
+        if (target) {
+          try {
+            localStorage.setItem('scriptz-lang', target);
+          } catch (_) { /* private mode etc. */ }
+        }
+      });
+    });
+  })();
+</script>

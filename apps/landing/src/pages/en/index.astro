@@ -1,0 +1,17 @@
+---
+/**
+ * English landing - `/en`.
+ * Shares markup and CSS with the German default at `/` via
+ * `LandingPage.astro`.
+ */
+import Base from "../../layouts/Base.astro";
+import LandingPage from "../../components/LandingPage.astro";
+import { t } from "../../i18n";
+---
+<Base
+  lang="en"
+  title={t("en", "meta.title")}
+  description={t("en", "meta.description")}
+>
+  <LandingPage lang="en" />
+</Base>
