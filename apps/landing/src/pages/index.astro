@@ -104,10 +104,6 @@ const allIdeas = [...openIdeas, ...usedIdeas];
         <span class="v2-meta-sep">·</span>
         <span>0 Tracker · 0 Konten · 0 KI</span>
       </div>
-
-      <div class="v2-hint" aria-hidden="true">
-        ↓ Diese ganze Landing ist die App. Klick durch die Tabs.
-      </div>
     </div>
   </section>
 
@@ -846,25 +842,6 @@ const allIdeas = [...openIdeas, ...usedIdeas];
   }
   .v2-hero-meta b { color: #1c1814; font-weight: 700; }
   .v2-meta-sep { opacity: 0.4; }
-
-  .v2-hint {
-    margin-top: 64px;
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: 999px;
-    background: #1c1814;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 500;
-    animation: v2-bob 2.2s ease-in-out infinite;
-  }
-  @keyframes v2-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(4px); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .v2-hint { animation: none; }
-  }
 
   /* === Shell-Container ====================================== */
   .v2-shell {
