@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#222222" media="(prefers-color-scheme: dark)" />
+    <title>ScriptZ - Test-Editor im Browser</title>
+    <style>
+      /* Pergament-Hintergrund vor dem CSS-Load - identische Logik wie in der Desktop-Shell. */
+      html, body { background: #f5f3ee; margin: 0; }
+      html[data-theme="dark"], html[data-theme="dark"] body { background: #222222; }
+      @media (prefers-color-scheme: dark) {
+        html[data-theme="auto"], html[data-theme="auto"] body { background: #222222; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

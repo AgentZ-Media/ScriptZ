@@ -130,8 +130,12 @@
   );
 }
 
-/* macOS-spezifisch: Platz fuer die Trafficlight-Knoepfe oben links. */
-[data-platform="macos"] {
+/* macOS-spezifisch: Platz fuer die Trafficlight-Knoepfe oben links.
+   Web-Shells (apps/web) setzen `data-shell="web"` zusaetzlich, damit
+   ein Mac-User im Browser keinen leeren Spacer sieht - dort gibt es
+   schlicht keine Trafficlights. Keyboard-Anzeige (⌘ vs Ctrl) bleibt
+   davon unberuehrt, die haengt am `data-platform`. */
+[data-platform="macos"]:not([data-shell="web"]) {
   --titlebar-traffic-width: 78px;
 }
 
