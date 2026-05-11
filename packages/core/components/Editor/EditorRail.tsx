@@ -8,26 +8,17 @@ import {
 import { settingsStore } from "../../stores/settings";
 import type { ScriptCharacter } from "../../lib/types";
 import { K } from "../../lib/keys";
+import { t } from "../../i18n";
 import "./EditorRail.css";
 
 export interface EditorRailProps {
-  /** Aktueller Skript-Inhalt als Lexical-JSON (für Cast-Statistik). */
   contentJson: string | null | undefined;
-  /** Charaktere mit Sticky-Farben (aus dem Skript-Modell). */
   characters: ScriptCharacter[];
-  /** "Versionen"-Tab → öffnet die existierende SnapshotsDialog-Komponente. */
   onOpenSnapshots(): void;
 }
 
 type RailTab = "cast" | "versions";
 
-/**
- * Rechte Seitenleiste im Editor — Re-Design `editor.jsx::editor-rail`.
- * Zwei Tabs: **Cast** (Wörter pro Charakter, Spielzeit, Wörter, Dialog)
- * und **Versionen** (öffnet den vorhandenen SnapshotsDialog).
- *
- * Im Fokus-Modus blendet die Rail komplett weg (CSS).
- */
 export function EditorRail(props: EditorRailProps) {
   const [tab, setTab] = createSignal<RailTab>("cast");
 
@@ -35,21 +26,16 @@ export function EditorRail(props: EditorRailProps) {
     extractBlocks(props.contentJson ?? "")
   );
 
-  /** Wörter pro Charakter — geteilte Logik mit `scripts.ts`
-   *  (`characters_meta.share` beim Save). Quelle ist
-   *  `dialogWordsByCharacter` in `lib/lex.ts`. */
   const wordsByChar = createMemo(() =>
     dialogWordsByCharacter(props.contentJson ?? ""),
   );
 
-  /** Summe Dialog-Wörter (für Prozent-Berechnung). */
   const totalDialog = createMemo(() => {
     let n = 0;
     for (const v of Object.values(wordsByChar())) n += v;
     return n;
   });
 
-  /** Charaktere sortiert nach Dialog-Wörtern absteigend, mit Farbe. */
   const cast = createMemo(() => {
     const wbc = wordsByChar();
     const colorByName = new Map(
@@ -66,7 +52,6 @@ export function EditorRail(props: EditorRailProps) {
     return list;
   });
 
-  /** Gesamt-Wortzahl (alle Block-Texte zusammen). */
   const totalWords = createMemo(() => {
     let n = 0;
     for (const b of blocks()) {
@@ -75,17 +60,14 @@ export function EditorRail(props: EditorRailProps) {
     return n;
   });
 
-  /** Spielzeit-Schätzung: Formel und Eingangsgrößen leben in
-   *  `lib/runtime.ts`, weil dieselbe Berechnung auch in der
-   *  Browser-Übersicht läuft (dort gegen die persistierten Stats statt
-   *  gegen Live-Blöcke). Hier rechnen wir live, damit jede Tastatur-
-   *  Eingabe die Anzeige sofort bewegt. */
   const runtimeSec = createMemo(() =>
     runtimeSeconds(runtimeStatsFromBlocks(blocks()), settingsStore.dialogWpm()),
   );
 
+  const emptyParts = createMemo(() => t("rail.empty").split("{block}"));
+
   return (
-    <aside class="editor-rail" aria-label="Skript-Statistik">
+    <aside class="editor-rail" aria-label={t("rail.aria")}>
       <div class="rail-tabs" role="tablist">
         <button
           type="button"
@@ -94,7 +76,7 @@ export function EditorRail(props: EditorRailProps) {
           classList={{ "is-on": tab() === "cast" }}
           onClick={() => setTab("cast")}
         >
-          Cast
+          {t("rail.tab.cast")}
         </button>
         <button
           type="button"
@@ -103,7 +85,7 @@ export function EditorRail(props: EditorRailProps) {
           classList={{ "is-on": tab() === "versions" }}
           onClick={() => setTab("versions")}
         >
-          Versionen
+          {t("rail.tab.versions")}
         </button>
       </div>
 
@@ -112,8 +94,9 @@ export function EditorRail(props: EditorRailProps) {
           when={cast().length > 0}
           fallback={
             <div class="rail-empty">
-              Noch niemand spricht. Tipp einen Namen in einen{" "}
-              <b>Charakter</b>-Block.
+              {emptyParts()[0]}
+              <b>{t("block.character")}</b>
+              {emptyParts()[1] ?? ""}
             </div>
           }
         >
@@ -135,22 +118,17 @@ export function EditorRail(props: EditorRailProps) {
           </div>
         </Show>
 
-        {/* Reihenfolge: Spielzeit zuerst (das ist DIE Metrik für TikTok/
-            Reels-Skripte - User denken in Sekunden, nicht in Seiten),
-            dann Wörter und Dialog. A4-Seitenanzahl raus, weil sie für
-            kurze Vertical-Video-Skripte schlicht irreführend ist - der
-            PDF-Export paginiert weiterhin sauber, das ist genug. */}
         <div class="rail-stats">
           <div>
-            <div class="rail-stat-label">Spielzeit</div>
+            <div class="rail-stat-label">{t("rail.stat.runtime")}</div>
             <div class="rail-stat-val">{formatRuntime(runtimeSec())}</div>
           </div>
           <div>
-            <div class="rail-stat-label">Wörter</div>
+            <div class="rail-stat-label">{t("rail.stat.words")}</div>
             <div class="rail-stat-val">{totalWords()}</div>
           </div>
           <div>
-            <div class="rail-stat-label">Dialog</div>
+            <div class="rail-stat-label">{t("rail.stat.dialog")}</div>
             <div class="rail-stat-val">{totalDialog()}</div>
           </div>
         </div>
@@ -158,18 +136,18 @@ export function EditorRail(props: EditorRailProps) {
 
       <Show when={tab() === "versions"}>
         <div class="rail-versions-info">
-          Verlauf der automatischen und manuellen Snapshots dieses Skripts.
+          {t("rail.versions.info")}
         </div>
         <button
           type="button"
           class="rail-versions-open"
           onClick={props.onOpenSnapshots}
         >
-          Verlauf öffnen
+          {t("rail.versions.open")}
         </button>
         <div class="rail-versions-hint">
-          <span class="kbd kbd-inline">{K("Mod+Shift+S")}</span> sichert manuell ·{" "}
-          <span class="kbd kbd-inline">{K("Mod+Shift+H")}</span> öffnet diesen Verlauf
+          <span class="kbd kbd-inline">{K("Mod+Shift+S")}</span>{" "}{t("rail.versions.hintSave")} ·{" "}
+          <span class="kbd kbd-inline">{K("Mod+Shift+H")}</span>{" "}{t("rail.versions.hintOpen")}
         </div>
       </Show>
     </aside>

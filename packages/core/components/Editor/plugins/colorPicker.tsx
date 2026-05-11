@@ -17,6 +17,7 @@ import { api } from "../../../lib/api";
 import { scriptsBus } from "../../../lib/scriptsBus";
 import { pushToast } from "../../../stores/toasts";
 import type { ScriptCharacter } from "../../../lib/types";
+import { t } from "../../../i18n";
 
 const NEUTRAL_PLACEHOLDER = "#9aa0a6";
 
@@ -97,7 +98,7 @@ export function installColorPicker(
       // does NOT need to wait for the refetch — the value will match.
       scriptsBus.bump();
     } catch (err) {
-      pushToast(`Farbe speichern fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("settings.toast.colorFailed", { message: (err as Error).message ?? String(err) }), "error");
     }
   };
 
@@ -124,7 +125,7 @@ export function installColorPicker(
       }
       scriptsBus.bump();
     } catch (err) {
-      pushToast(`Reset fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("settings.toast.resetFailed", { message: (err as Error).message ?? String(err) }), "error");
     }
   };
 
@@ -327,8 +328,8 @@ export function installColorPicker(
         <button
           type="button"
           class="scriptz-marge-swatch scriptz-color-picker-trigger"
-          aria-label={`Farbe von ${swatchName()} ändern`}
-          title={`Farbe von ${swatchName()} ändern`}
+          aria-label={t("charDropdown.colorAria", { name: swatchName() })}
+          title={t("charDropdown.colorAria", { name: swatchName() })}
           style={{
             position: "absolute",
             left: `${swatchPos().x}px`,

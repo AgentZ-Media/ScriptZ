@@ -24,6 +24,7 @@ import {
   captureCursor,
   type CursorAddress,
 } from "../../lib/scriptViewCache";
+import { t } from "../../i18n";
 import "./PaperLayout.css";
 import "./EditorToolbar.css";
 import "./EditorRail.css";
@@ -207,12 +208,9 @@ export function ScriptView(props: ScriptViewProps) {
       setScript(fresh);
       setLiveChars(updated.characters ?? []);
       setParseError(null);
-      pushToast(
-        "Skript zurückgesetzt. Snapshot des alten Inhalts liegt im Verlauf.",
-        "ok",
-      );
+      pushToast(t("editor.toast.resetDone"), "ok");
     } catch (err) {
-      pushToast(`Reset fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("editor.toast.resetFailed", { message: (err as Error).message ?? String(err) }), "error");
     } finally {
       setRecovering(false);
     }
@@ -257,7 +255,7 @@ export function ScriptView(props: ScriptViewProps) {
       scriptsBus.bump();
     } catch (err) {
       pushToast(
-        `Highlight-Wechsel fehlgeschlagen: ${(err as Error).message ?? err}`,
+        t("editor.toast.highlightFailed", { message: (err as Error).message ?? String(err) }),
         "error",
       );
     }
@@ -273,9 +271,9 @@ export function ScriptView(props: ScriptViewProps) {
         ev.preventDefault();
         try {
           await api.createSnapshot(props.scriptId, "manual");
-          pushToast("Snapshot gespeichert", "ok");
+          pushToast(t("editor.toast.snapshotSaved"), "ok");
         } catch (err) {
-          pushToast(`Snapshot-Fehler: ${(err as Error).message ?? err}`, "error");
+          pushToast(t("editor.toast.snapshotError", { message: (err as Error).message ?? String(err) }), "error");
         }
         return;
       }
@@ -297,7 +295,7 @@ export function ScriptView(props: ScriptViewProps) {
       scriptsBus.bump();
     } catch (err) {
       pushToast(
-        `Umbenennen fehlgeschlagen: ${(err as Error).message ?? err}`,
+        t("editor.toast.renameFailed", { message: (err as Error).message ?? String(err) }),
         "error",
       );
     }
@@ -305,7 +303,7 @@ export function ScriptView(props: ScriptViewProps) {
 
   return (
     <div class="script-shell">
-      <Show when={script.latest} fallback={<div style="padding: 40px;">Lade…</div>}>
+      <Show when={script.latest} fallback={<div style="padding: 40px;">{t("editor.loading")}</div>}>
         {(s) => (
           <>
             <EditorToolbar
@@ -328,8 +326,8 @@ export function ScriptView(props: ScriptViewProps) {
             <Show when={props.focusMode}>
               <button
                 class="focus-toggle"
-                title={`Fokus verlassen (${K("Mod+Shift+F")})`}
-                aria-label="Fokus verlassen"
+                title={t("editor.focus.exit", { hotkey: K("Mod+Shift+F") })}
+                aria-label={t("editor.focus.exitAria")}
                 onClick={props.onToggleFocus}
               >
                 <EyeIcon />
@@ -404,30 +402,27 @@ function RecoveryPanel(props: {
 }) {
   return (
     <div class="recovery-panel" role="alert">
-      <h3 class="recovery-title">Skript-Inhalt nicht lesbar</h3>
+      <h3 class="recovery-title">{t("editor.recovery.title")}</h3>
       <p class="recovery-body">
-        Die gespeicherte Struktur dieses Skripts konnte nicht geladen werden.
-        Damit dein Inhalt nicht durch eine leere Version überschrieben wird,
-        ist der Editor pausiert.
+        {t("editor.recovery.body")}
       </p>
       <p class="recovery-body muted small">
-        Empfohlen: Öffne den Snapshot-Verlauf und stelle eine ältere Version
-        wieder her — dort liegt der Inhalt aller bisherigen Auto-Snapshots.
+        {t("editor.recovery.hint")}
       </p>
       <div class="recovery-actions">
         <button class="btn btn-primary" onClick={props.onOpenSnapshots}>
-          Snapshots öffnen
+          {t("editor.recovery.openSnapshots")}
         </button>
         <button
           class="btn btn-danger"
           onClick={props.onReset}
           disabled={props.resetting}
         >
-          {props.resetting ? "Setze zurück…" : "Trotzdem leer fortfahren"}
+          {props.resetting ? t("editor.recovery.resetting") : t("editor.recovery.reset")}
         </button>
       </div>
       <details class="recovery-details">
-        <summary>Technische Info</summary>
+        <summary>{t("editor.recovery.tech")}</summary>
         <pre class="recovery-raw">{props.broken.slice(0, 4000)}</pre>
       </details>
     </div>

@@ -4,6 +4,7 @@ import { settingsStore } from "../../stores/settings";
 import { ActivityModal } from "./ActivityModal";
 import type { ScriptSummary } from "../../lib/types";
 import { stripeBackground } from "../../lib/stripe";
+import { t, tPlural, getCurrentLocale } from "../../i18n";
 import "./MomentumStrip.css";
 
 export interface MomentumStripProps {
@@ -45,9 +46,9 @@ export function MomentumStrip(props: MomentumStripProps) {
           when={props.lastScript}
           fallback={
             <div class="mom-strip-empty">
-              <span class="mom-strip-label">Noch nichts geschrieben</span>
+              <span class="mom-strip-label">{t("momentum.empty.label")}</span>
               <span class="mom-strip-empty-sub">
-                Leg ein Skript an und ScriptZ merkt sich, wo du zuletzt warst.
+                {t("momentum.empty.sub")}
               </span>
             </div>
           }
@@ -56,11 +57,11 @@ export function MomentumStrip(props: MomentumStripProps) {
             <button
               class="mom-strip-continue"
               onClick={() => props.onContinue(s())}
-              title={`„${s().title}" weiterschreiben`}
+              title={t("momentum.continue.title", { title: s().title })}
             >
               <span class="mom-strip-stripe" style={`background:${stripeBg()};`} />
-              <span class="mom-strip-label">Weiterschreiben</span>
-              <span class="mom-strip-title">{s().title || "Unbenannt"}</span>
+              <span class="mom-strip-label">{t("momentum.continue.label")}</span>
+              <span class="mom-strip-title">{s().title || t("common.untitled")}</span>
               <span class="mom-strip-cta" aria-hidden="true">→</span>
             </button>
           )}
@@ -68,25 +69,25 @@ export function MomentumStrip(props: MomentumStripProps) {
 
         <span class="mom-strip-divider" aria-hidden="true" />
 
-        <span class="mom-strip-pill" title="Aufeinanderfolgende Schreibtage">
+        <span class="mom-strip-pill" title={t("momentum.streak.title")}>
           <SparkleIcon />
           <strong>{streak()}</strong>
-          <span class="mom-strip-pill-label">{streak() === 1 ? "Tag" : "Tage"}</span>
+          <span class="mom-strip-pill-label">{tPlural("units.days", streak())}</span>
         </span>
 
-        <span class="mom-strip-pill" title={`Diese Woche / Wochenziel (${goal()} Wörter)`}>
+        <span class="mom-strip-pill" title={t("momentum.goal.title", { goal: goal() })}>
           <strong classList={{ "is-met": goalMet() }}>
-            {wordsThisWeek().toLocaleString("de-DE")}
+            {wordsThisWeek().toLocaleString(getCurrentLocale())}
           </strong>
-          <span class="mom-strip-pill-label">/ {goal().toLocaleString("de-DE")} W Woche</span>
+          <span class="mom-strip-pill-label">/ {goal().toLocaleString(getCurrentLocale())} {t("momentum.weekUnit")}</span>
         </span>
 
         <button
           class="mom-strip-link"
           onClick={() => setActivityOpen(true)}
-          title="Heatmap + Streak + Tagesziel"
+          title={t("momentum.activity.title")}
         >
-          Aktivität ansehen <span aria-hidden="true">↗</span>
+          {t("momentum.activity.link")} <span aria-hidden="true">↗</span>
         </button>
       </div>
 

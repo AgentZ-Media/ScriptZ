@@ -121,6 +121,89 @@ sein - "tut dasselbe, sieht gleich aus, sagt das Gleiche, wo nötig
 ehrlich anders". Nie eine App-Variante haben, die ein Feature *still*
 weglässt.
 
+## Mehrsprachigkeit (wichtig)
+
+Die App ist mehrsprachig (aktuell Deutsch + Englisch, Auto folgt
+`navigator.language`). Das ganze i18n-System lebt in
+[`packages/core/i18n/`](packages/core/i18n/). User-sichtbare Strings
+laufen **immer** durch `t()` / `tPlural()` aus `@scriptz/core/i18n`
+oder den relativen `../../i18n`-Import, niemals als Literal in JSX,
+in einem Toast oder in einem Error, der per `pushToast` rauskommt.
+
+### Grundregel
+
+**Jeder neue User-sichtbare String wird in ALLEN verfügbaren Sprachen
+eingetragen, immer.** Aktuell heißt das: ein Eintrag in
+[`packages/core/i18n/de.ts`](packages/core/i18n/de.ts) UND ein
+korrespondierender Eintrag in
+[`packages/core/i18n/en.ts`](packages/core/i18n/en.ts). Wenn später
+weitere Sprach-Dateien dazukommen, gilt dieselbe Regel für alle:
+keine Sprache darf ein Key-Loch haben. TypeScript erzwingt das
+(`Record<keyof typeof de, string>` in `en.ts`), aber das fängt nur
+die Form, nicht die inhaltliche Qualität - "TODO"-Strings sind
+verboten, jeder Wert ist eine echte Übersetzung.
+
+### Was zählt als "User-sichtbar"
+
+- JSX-Children (Button-Labels, Headings, Body-Text)
+- `title=`, `aria-label=`, `placeholder=`, `alt=` und vergleichbare
+  Attribute
+- Toast-Texte (`pushToast("...")`)
+- `throw new Error("...")`, **wenn** die Message via `pushToast` an
+  den User durchgereicht wird. Reine Dev-Errors wie
+  `not found: script ${id}` bleiben Englisch, weil sie nie an den
+  User gelangen.
+- Datums-/Zeit-/Zahlen-Formatierung (über
+  `getCurrentLocale()` statt hardcoded `"de-DE"`)
+- Pluralregeln: `tPlural("units.scripts", count)` statt
+  `n === 1 ? "Skript" : "Skripte"`
+- Sort-Vergleiche: `localeCompare(a, b)` aus i18n statt
+  `a.localeCompare(b, "de")`
+
+Nicht User-sichtbar: Code-Kommentare (bleiben Deutsch), JSDoc, interne
+Object-Keys/Identifier, `console.log/warn/error`, Strings in
+Test-Dateien (haben eigenes Setup, das die Sprache pinnt).
+
+### Wenn du ein neues Feature mit User-Text baust
+
+1. **Key in `de.ts` anlegen.** Naming-Konvention: `bereich.kontext.was`
+   (flach, dot-separated, lowercase). Beispiele: `browser.empty.title`,
+   `editor.toast.snapshotSaved`, `settings.weeklyGoal.label`.
+   Pluralregeln nutzen `_one` / `_other`-Suffix.
+2. **Korrespondierenden Key in `en.ts` anlegen.** Reihenfolge bitte
+   1:1 zur DE-Datei halten, damit Diffs sauber bleiben. TypeScript
+   zwingt dich beim nächsten `pnpm typecheck` ohnehin dazu.
+3. **In der Komponente nutzen**: `t("browser.empty.title")` oder mit
+   Platzhalter `t("folder.toast.created", { name: folderName })`. Für
+   eingebettete `<kbd>`-Hotkeys oder andere JSX-Inserts den String
+   per `.split("{placeholder}")` zerlegen statt HTML in den Key zu
+   schreiben (siehe `EditorRail.tsx`, `Browser.tsx::welcome.hint`).
+4. **Verifikation**: `pnpm typecheck` (deckt fehlende EN-Keys),
+   `pnpm test`, und mindestens einmal mit `language: "en"` in den
+   Einstellungen ausprobieren - sonst übersieht man Plurale, die nur
+   in einer Sprache aufgehen.
+
+### Anti-Pattern (NICHT machen)
+
+- `pushToast("Skript gespeichert")` - hardcoded DE, nicht
+  übersetzbar.
+- `<h1>Aktivität</h1>` - dito.
+- `n === 1 ? "Tag" : "Tage"` - umgeht das Pluralsystem.
+- `date.toLocaleString("de-DE", ...)` - hardcoded Locale, nutzt
+  nicht die User-Sprache.
+- HTML im i18n-Key (`<b>foo</b>`) - macht den String fragil, lieber
+  via `split("{slot}")` + JSX-Teile zusammensetzen.
+- "TODO"-Werte in `en.ts` "weil ich später übersetze" - das passiert
+  nie. Lieber gleich eine ehrliche Übersetzung.
+
+### Welcome-/Tutorial-Skript
+
+Pro Sprache liegt der Tutorial-Skriptinhalt in
+[`packages/core/i18n/welcomeContent.ts`](packages/core/i18n/welcomeContent.ts).
+Wird beim ersten Start gemäß der aufgelösten Sprache geseedet. Spätere
+Sprachwechsel übersetzen **nicht** nachträglich - das Skript ist dann
+User-Content und gehört dem User.
+
 ## Konsistenz App ↔ Landing (wichtig)
 
 Die Landing ist das **Schaufenster** der App. Wenn an der App etwas
@@ -324,13 +407,15 @@ Aufgabe ähnlich abgewickelt hat. Jede Änderung ist neu zu bewerten.
 
 ## Deutsche Texte
 
-App und Landing sind beide auf Deutsch. In Code-Kommentaren und
-Doku-Markdown wird normaler Bindestrich verwendet, **kein
+Die App ist mehrsprachig (siehe Sektion "Mehrsprachigkeit" weiter
+oben), Landing ist auf Deutsch. Code-Kommentare, Doku-Markdown,
+Release-Notes und die DE-Hälfte der i18n-Kataloge sind alle deutsch.
+In all diesen Texten wird normaler Bindestrich verwendet, **kein
 Em-Dash**. Auch in von Claude generierten Texten.
 
 **Echte Umlaute, keine ASCII-Ersatzschreibung.** In allen
 deutschsprachigen Texten (Release-Notes, README, Landing,
-UI-Strings, Code-Kommentare) immer `ä`, `ö`, `ü`, `ß` statt
+`i18n/de.ts`, Code-Kommentare) immer `ä`, `ö`, `ü`, `ß` statt
 `ae`, `oe`, `ue`, `ss`. Auch wenn die Tastatur das gerade
 nicht hergibt - dann lieber kurz suchen als ein "haendisch"
 ins Repo schreiben. Gilt insbesondere für Release-Notes,

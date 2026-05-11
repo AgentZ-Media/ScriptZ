@@ -5,6 +5,7 @@ import { pushToast } from "../../stores/toasts";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { foldersBus } from "../../lib/foldersBus";
 import { Modal } from "../Common/Modal";
+import { t } from "../../i18n";
 
 export interface NewScriptDialogProps {
   onClose: () => void;
@@ -41,7 +42,7 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
       props.onCreated?.();
       props.onClose();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     } finally {
       setSubmitting(false);
     }
@@ -51,27 +52,27 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
     <Modal
       open={true}
       onClose={props.onClose}
-      title="Neues Skript"
+      title={t("newScript.title")}
       footer={
         <>
           <button class="btn" onClick={props.onClose}>
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button
             class="btn btn-primary"
             onClick={submit}
             disabled={submitting()}
           >
-            Erstellen
+            {t("common.create")}
           </button>
         </>
       }
     >
       <div class="field">
-        <label>Titel</label>
+        <label>{t("newScript.titleField")}</label>
         <input
           type="text"
-          placeholder="Unbenannt"
+          placeholder={t("common.untitled")}
           value={title()}
           onInput={(e) => setTitle(e.currentTarget.value)}
           onKeyDown={(e) => {
@@ -85,14 +86,14 @@ export function NewScriptDialog(props: NewScriptDialogProps) {
       </div>
       <Show when={(folders() ?? []).length > 0}>
         <div class="field">
-          <label>Ordner</label>
+          <label>{t("newScript.folder")}</label>
           <select
             value={folderId() ?? ""}
             onChange={(e) =>
               setFolderId(e.currentTarget.value === "" ? null : e.currentTarget.value)
             }
           >
-            <option value="">Kein Ordner</option>
+            <option value="">{t("newScript.folder.none")}</option>
             <For each={folders()}>
               {(f) => <option value={f.id}>{f.name}</option>}
             </For>

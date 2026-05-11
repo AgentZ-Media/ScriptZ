@@ -1,5 +1,6 @@
 import { Show, onMount, onCleanup } from "solid-js";
 import { settingsStore } from "@scriptz/core/stores/settings";
+import { t } from "@scriptz/core/i18n";
 import { updatesStore } from "~/stores/updates";
 import "./UpdateIndicator.css";
 
@@ -22,19 +23,19 @@ export function UpdateIndicator() {
 
   const label = () => {
     const s = updatesStore.stage();
-    if (s === "downloading") return `Lade Update… ${updatesStore.progress()}%`;
-    if (s === "ready") return "Neustart für Update";
-    if (s === "error") return "Update fehlgeschlagen";
+    if (s === "downloading") return t("updateIndicator.label.downloading", { progress: updatesStore.progress() });
+    if (s === "ready") return t("updateIndicator.label.ready");
+    if (s === "error") return t("updateIndicator.label.error");
     const v = updatesStore.available()?.version;
-    return v ? `Update v${v}` : "Update";
+    return v ? t("updateIndicator.label.available", { version: v }) : t("updateIndicator.label.generic");
   };
 
   const title = () => {
     const s = updatesStore.stage();
-    if (s === "ready") return "Klicken zum Neustart und Update installieren";
-    if (s === "downloading") return "Update wird heruntergeladen und installiert";
-    if (s === "error") return "Update fehlgeschlagen — erneut versuchen";
-    return "Update herunterladen und installieren";
+    if (s === "ready") return t("updateIndicator.title.ready");
+    if (s === "downloading") return t("updateIndicator.title.downloading");
+    if (s === "error") return t("updateIndicator.title.error");
+    return t("updateIndicator.title.default");
   };
 
   return (

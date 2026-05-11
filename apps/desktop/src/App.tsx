@@ -29,6 +29,7 @@ import { IdeasView } from "@scriptz/core/components/Ideas/IdeasView";
 import { ensureWelcomeContent } from "@scriptz/core/lib/welcome";
 import { flushAll } from "@scriptz/core/lib/saveFlush";
 import { OnboardingDialog, ONBOARDING_KEY } from "@scriptz/core/components/Onboarding/OnboardingDialog";
+import { t } from "@scriptz/core/i18n";
 
 import "@scriptz/core/components/Common/Common.css";
 
@@ -66,7 +67,7 @@ export default function App() {
     }
   };
   const activeScriptTitle = (): string =>
-    tabsStore.activeScript()?.scriptTitle || "Unbenannt";
+    tabsStore.activeScript()?.scriptTitle || t("common.untitled");
 
   const openExport = () => {
     if (activeScriptId()) setExportOpen(true);
@@ -86,7 +87,7 @@ export default function App() {
       foldersBus.bump();
       tabsStore.openScript(created.id, created.title);
     } catch (err) {
-      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     }
   };
 
@@ -115,7 +116,7 @@ export default function App() {
       ]);
     } catch (err) {
       console.error("[scriptz] boot failed", err);
-      pushToast(`Start fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("boot.failed", { message: (err as Error).message ?? String(err) }), "error");
     } finally {
       setBootReady(true);
     }
@@ -291,7 +292,7 @@ export default function App() {
 
     const scriptId = tabsStore.activeScript()?.scriptId ?? null;
     const title = (tabsStore.activeScript()?.scriptTitle ?? "").trim();
-    if (title === "" || title === "Unbenannt") {
+    if (title === "" || title === t("common.untitled")) {
       setFocusMode(false);
       return;
     }
@@ -403,11 +404,11 @@ export default function App() {
                 <IdeasView />
               </Match>
               <Match when={tabsStore.activeScript()}>
-                {(t) => (
-                  <ErrorBoundary fallback={(err) => <div class="error-pane">Fehler: {String(err)}</div>}>
-                    <Suspense fallback={<div class="loading-pane">Lade Skript…</div>}>
+                {(tab) => (
+                  <ErrorBoundary fallback={(err) => <div class="error-pane">{t("boot.error", { message: String(err) })}</div>}>
+                    <Suspense fallback={<div class="loading-pane">{t("boot.loadingScript")}</div>}>
                       <ScriptView
-                        scriptId={t().scriptId}
+                        scriptId={tab().scriptId}
                         focusMode={focusMode()}
                         onToggleFocus={toggleFocusMode}
                         onBackToHome={() => tabsStore.openBrowser()}

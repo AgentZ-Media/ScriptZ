@@ -3,6 +3,8 @@ import { Portal } from "solid-js/web";
 import { settingsStore, type Theme } from "../../stores/settings";
 import { tabsStore } from "../../stores/tabs";
 import { api } from "../../lib/api";
+import { K } from "../../lib/keys";
+import { t, type LanguagePref } from "../../i18n";
 import "./OnboardingDialog.css";
 
 export const ONBOARDING_KEY = "onboarding_completed_v1";
@@ -10,9 +12,6 @@ export const ONBOARDING_KEY = "onboarding_completed_v1";
 export interface OnboardingDialogProps {
   open: boolean;
   onClose(): void;
-  /** Callback der aus der Final-Karte direkt ein neues Skript anlegt
-   *  und in den Editor wechselt. App.tsx liefert hier den
-   *  quickCreateScript-Helper. */
   onCreateFirstScript?(): void;
   /** Wenn true: blendet einen zusaetzlichen Hinweisblock in Schritt 1
    *  ein, der erklaert, dass es sich um die Web-Test-Version handelt
@@ -22,17 +21,13 @@ export interface OnboardingDialogProps {
 
 type StepDir = "forward" | "backward" | "none";
 
-// 3 Karten: Erscheinungsbild → Schreiben → Final-CTA. Die ehemalige
-// Welcome-Karte mit Feature-Grid ist raus - wer die App installiert
-// hat, hat die Landing schon gesehen, und das Tutorial-Skript erklärt
-// den Editor besser als ein Onboarding-Step.
+// 3 Karten: Erscheinungsbild (inkl. Sprache + Theme) → Schreiben → Final-CTA.
 const TOTAL_STEPS = 3;
 
 export function OnboardingDialog(props: OnboardingDialogProps) {
   const [step, setStep] = createSignal(0);
   const [dir, setDir] = createSignal<StepDir>("none");
 
-  // Reset on each open so re-opening from Settings starts at 0.
   let lastOpen = false;
   createEffect(() => {
     if (props.open && !lastOpen) {
@@ -44,9 +39,6 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 
   const next = () => {
     if (step() >= TOTAL_STEPS - 1) {
-      // Auf der letzten Karte ersetzen wir den "Weiter"-CTA durch zwei
-      // explizite Aktionen (siehe StepFinal). Enter / ArrowRight führen
-      // dort still zum Standard-Ausgang "Zur Übersicht".
       void completeAndClose();
       return;
     }
@@ -91,7 +83,6 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 
   const skip = () => void completeAndClose();
 
-  // Tastatur: Enter = weiter, ESC = überspringen, Pfeile navigieren.
   const onKey = (e: KeyboardEvent) => {
     if (!props.open) return;
     if (e.key === "Escape") {
@@ -101,10 +92,8 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
       return;
     }
     if (e.key === "Enter") {
-      // Nur wenn der Fokus nicht in einem Input liegt — sonst würde
-      // Enter im Wochenziel-Feld unbeabsichtigt weiterspringen.
-      const t = e.target as HTMLElement | null;
-      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
+      const target = e.target as HTMLElement | null;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
       e.preventDefault();
       next();
       return;
@@ -126,7 +115,6 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
     onCleanup(() => document.removeEventListener("keydown", onKey, true));
   });
 
-  // Re-trigger card animation on every step change.
   const animKey = createMemo(() => `${step()}-${dir()}`);
 
   const isFinalStep = () => step() === TOTAL_STEPS - 1;
@@ -134,13 +122,13 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
   return (
     <Show when={props.open}>
       <Portal>
-        <div class="ob-backdrop" role="dialog" aria-modal="true" aria-label="Willkommen bei ScriptZ">
+        <div class="ob-backdrop" role="dialog" aria-modal="true" aria-label={t("onboarding.aria")}>
           <div class="ob-shell">
             <button
               type="button"
               class="ob-skip-x"
-              aria-label="Onboarding überspringen"
-              title="Überspringen"
+              aria-label={t("onboarding.skipAria")}
+              title={t("onboarding.skipTitle")}
               onClick={skip}
             >
               ✕
@@ -166,12 +154,12 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
                   when={step() > 0}
                   fallback={
                     <button type="button" class="ob-link" onClick={skip}>
-                      Überspringen
+                      {t("onboarding.skip")}
                     </button>
                   }
                 >
                   <button type="button" class="ob-link" onClick={back}>
-                    ← Zurück
+                    {t("onboarding.back")}
                   </button>
                 </Show>
               </div>
@@ -188,16 +176,16 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
                   fallback={
                     <div class="ob-final-actions">
                       <button type="button" class="btn" onClick={() => void completeAndOpenBrowser()}>
-                        Zur Übersicht
+                        {t("onboarding.toOverview")}
                       </button>
                       <button type="button" class="btn btn-primary ob-cta" onClick={() => void completeAndCreateScript()}>
-                        Erstes Skript schreiben
+                        {t("onboarding.firstScript")}
                       </button>
                     </div>
                   }
                 >
                   <button type="button" class="btn btn-primary ob-cta" onClick={next}>
-                    Weiter
+                    {t("onboarding.next")}
                   </button>
                 </Show>
               </div>
@@ -210,56 +198,78 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 }
 
 /* =========================================================================
-   Schritt 1 – Erscheinungsbild (Theme + Charakter-Highlighting)
+   Schritt 1 - Erscheinungsbild (Sprache + Theme + Charakter-Highlighting)
    ========================================================================= */
 function StepAppearance(props: { webIntro?: boolean }) {
-  const themes: { id: Theme; label: string; sub: string }[] = [
-    { id: "light", label: "Hell",   sub: "Heller App-Rahmen, weisses Papier." },
-    { id: "dark",  label: "Dunkel", sub: "Dunkles Grau – Papier bleibt hell." },
-    { id: "auto",  label: "Auto",   sub: "Folgt deinem System-Theme." },
+  const themes = (): { id: Theme; label: string; sub: string }[] => [
+    { id: "light", label: t("theme.light"), sub: t("theme.lightSub") },
+    { id: "dark",  label: t("theme.dark"),  sub: t("theme.darkSub") },
+    { id: "auto",  label: t("theme.auto"),  sub: t("theme.autoSub") },
+  ];
+  const languages = (): { id: LanguagePref; label: string }[] => [
+    { id: "de",   label: t("lang.de") },
+    { id: "en",   label: t("lang.en") },
+    { id: "auto", label: t("lang.auto") },
   ];
   const on = () => settingsStore.highlightingDefault();
   return (
     <div class="ob-step">
-      <div class="ob-eyebrow">Schritt 1 von 2 · Erscheinungsbild</div>
-      <h1 class="ob-h1">Sieh aus, wie du willst.</h1>
+      <div class="ob-eyebrow">{t("onboarding.appearance.eyebrow")}</div>
+      <h1 class="ob-h1">{t("onboarding.appearance.h1")}</h1>
       <p class="ob-lede">
-        Theme und Charakter-Farben - beides änderst du jederzeit später in
-        den Einstellungen.
+        {t("onboarding.appearance.lede")}
       </p>
 
       <Show when={props.webIntro}>
         <div class="ob-web-note" role="note">
           <div class="ob-web-note-title">
-            Du nutzt gerade die Web-Version zum Ausprobieren.
+            {t("onboarding.appearance.webNote.title")}
           </div>
           <p class="ob-web-note-text">
-            Sie läuft komplett in deinem Browser - ohne Konto, ohne Sync.
-            Deine Skripte liegen lokal in diesem Browser. Für den Alltag
-            empfehlen wir die Desktop-App: schneller, offline-stabil,
-            eigene Daten-Datei.{" "}
+            {t("onboarding.appearance.webNote.text")}{" "}
             <a
               href="https://write-scriptz.com"
               target="_blank"
               rel="noopener"
             >
-              Hier laden →
+              {t("onboarding.appearance.webNote.link")}
             </a>
           </p>
         </div>
       </Show>
 
+      {/* Sprache: kompaktes segmentiertes Control, direkt über den Theme-
+          Karten. Bewusst kein eigener Schritt - User soll Theme + Sprache
+          in einem Atemzug einstellen. */}
+      <div class="ob-hl-row" style="margin-bottom: 16px;">
+        <div class="ob-hl-row-label">
+          <div class="ob-field-label">{t("lang.label")}</div>
+          <div class="ob-field-help">{t("lang.help")}</div>
+        </div>
+        <div class="seg" role="group" aria-label={t("lang.label")}>
+          {languages().map((l) => (
+            <button
+              type="button"
+              classList={{ "is-on": settingsStore.language() === l.id }}
+              onClick={() => void settingsStore.setLanguage(l.id)}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div class="ob-themes">
-        {themes.map((t) => (
+        {themes().map((th) => (
           <button
             type="button"
             class="ob-theme"
-            classList={{ "is-on": settingsStore.theme() === t.id }}
-            onClick={() => void settingsStore.setTheme(t.id)}
-            data-variant={t.id}
-            aria-pressed={settingsStore.theme() === t.id}
+            classList={{ "is-on": settingsStore.theme() === th.id }}
+            onClick={() => void settingsStore.setTheme(th.id)}
+            data-variant={th.id}
+            aria-pressed={settingsStore.theme() === th.id}
           >
-            <div class="ob-theme-preview" data-variant={t.id}>
+            <div class="ob-theme-preview" data-variant={th.id}>
               <div class="ob-theme-window">
                 <div class="ob-theme-tl">
                   <span /><span /><span />
@@ -274,8 +284,8 @@ function StepAppearance(props: { webIntro?: boolean }) {
               </div>
             </div>
             <div class="ob-theme-meta">
-              <div class="ob-theme-label">{t.label}</div>
-              <div class="ob-theme-sub">{t.sub}</div>
+              <div class="ob-theme-label">{th.label}</div>
+              <div class="ob-theme-sub">{th.sub}</div>
             </div>
             <span class="ob-theme-check" aria-hidden="true">✓</span>
           </button>
@@ -285,23 +295,23 @@ function StepAppearance(props: { webIntro?: boolean }) {
       <div class="ob-hl-preview" data-on={on() ? "1" : "0"} aria-hidden="true">
         <div class="ob-hl-paper">
           <ObHlBlock kind="character" tint="--char-1" text="MIRA" />
-          <ObHlBlock kind="dialog"    tint="--char-1" text="Du bist spät." />
+          <ObHlBlock kind="dialog"    tint="--char-1" text={t("onboarding.appearance.highlight.dialog1")} />
           <ObHlBlock kind="character" tint="--char-2" text="JONAS" />
-          <ObHlBlock kind="dialog"    tint="--char-2" text="Ich nenn’s dramatischen Auftritt." />
+          <ObHlBlock kind="dialog"    tint="--char-2" text={t("onboarding.appearance.highlight.dialog2")} />
         </div>
       </div>
 
       <div class="ob-hl-row">
         <div class="ob-hl-row-label">
-          <div class="ob-field-label">Charakter-Highlighting standardmässig</div>
+          <div class="ob-field-label">{t("onboarding.appearance.highlight.label")}</div>
           <div class="ob-field-help">
-            Hinterlegt Dialog-Blöcke dezent in der Charakter-Farbe.
+            {t("onboarding.appearance.highlight.help")}
           </div>
         </div>
         <ObToggle
           checked={settingsStore.highlightingDefault()}
           onChange={(v) => void settingsStore.setHighlightingDefault(v)}
-          label="Charakter-Highlighting standardmäßig"
+          label={t("onboarding.appearance.highlight.label")}
         />
       </div>
     </div>
@@ -325,26 +335,23 @@ function ObHlBlock(props: {
 }
 
 /* =========================================================================
-   Schritt 2 – Schreib-Defaults (Wochenziel + Fokus-Modus)
+   Schritt 2 - Schreib-Defaults (Wochenziel + Fokus-Modus)
    ========================================================================= */
 function StepWriting() {
   return (
     <div class="ob-step">
-      <div class="ob-eyebrow">Schritt 2 von 2 · Schreiben</div>
-      <h1 class="ob-h1">Zwei Defaults zum Starten.</h1>
+      <div class="ob-eyebrow">{t("onboarding.writing.eyebrow")}</div>
+      <h1 class="ob-h1">{t("onboarding.writing.h1")}</h1>
       <p class="ob-lede">
-        Beides änderst du jederzeit in den Einstellungen. Hier nur ein
-        guter Start.
+        {t("onboarding.writing.lede")}
       </p>
 
       <div class="ob-fields">
         <div class="ob-field">
           <div class="ob-field-head">
-            <div class="ob-field-label">Wochenziel</div>
+            <div class="ob-field-label">{t("onboarding.writing.weeklyGoal.label")}</div>
             <div class="ob-field-help">
-              Wörter pro Woche (seit Montag). Wird in der Statusleiste oben
-              und auf der Startseite angezeigt. 1500 entspricht etwa 7
-              Skripten à 200 Wörter.
+              {t("onboarding.writing.weeklyGoal.help")}
             </div>
           </div>
           <div class="ob-goal">
@@ -359,22 +366,21 @@ function StepWriting() {
                 if (Number.isFinite(n)) void settingsStore.setWeeklyWordGoal(n);
               }}
             />
-            <span class="ob-goal-unit">Wörter / Woche</span>
+            <span class="ob-goal-unit">{t("onboarding.writing.weeklyGoal.unit")}</span>
           </div>
         </div>
 
         <div class="ob-field">
           <div class="ob-field-head">
-            <div class="ob-field-label">Fokus-Modus standardmässig aktiv</div>
+            <div class="ob-field-label">{t("onboarding.writing.focus.label")}</div>
             <div class="ob-field-help">
-              Beim Öffnen eines Skripts sind Toolbar und Cast-Leiste
-              ausgeblendet – nur das Papier. ⇧⌘F holt sie zurück.
+              {t("onboarding.writing.focus.help", { hotkey: K("Mod+Shift+F") })}
             </div>
           </div>
           <ObToggle
             checked={settingsStore.focusModeDefault()}
             onChange={(v) => void settingsStore.setFocusModeDefault(v)}
-            label="Fokus-Modus standardmässig"
+            label={t("onboarding.writing.focus.label")}
           />
         </div>
       </div>
@@ -383,38 +389,31 @@ function StepWriting() {
 }
 
 /* =========================================================================
-   Final-Karte – CTA zur ersten Aktion
+   Final-Karte - CTA zur ersten Aktion
    ========================================================================= */
 function StepFinal() {
   return (
     <div class="ob-step ob-step-final">
-      <div class="ob-eyebrow">Fertig.</div>
-      <h1 class="ob-h1">Los geht’s.</h1>
+      <div class="ob-eyebrow">{t("onboarding.final.eyebrow")}</div>
+      <h1 class="ob-h1">{t("onboarding.final.h1")}</h1>
       <p class="ob-lede">
-        Setup ist durch. Du kannst jetzt direkt dein erstes Skript
-        anlegen, oder erst durch die Übersicht stöbern - dort liegt das
-        kurze Tutorial-Skript, das die Block-Typen und Hotkeys erklärt.
+        {t("onboarding.final.lede")}
       </p>
       <div class="ob-final-hints">
         <div class="ob-final-hint">
-          <span class="kbd kbd-inline">⌘N</span> legt jederzeit ein neues
-          Skript an
+          <span class="kbd kbd-inline">{K("Mod+N")}</span> {t("onboarding.final.hint.newScript")}
         </div>
         <div class="ob-final-hint">
-          <span class="kbd kbd-inline">⌘K</span> findet jedes Skript per
-          Suche
+          <span class="kbd kbd-inline">{K("Mod+K")}</span> {t("onboarding.final.hint.search")}
         </div>
         <div class="ob-final-hint">
-          <span class="kbd kbd-inline">⌘I</span> merkt eine Idee für später
+          <span class="kbd kbd-inline">{K("Mod+I")}</span> {t("onboarding.final.hint.idea")}
         </div>
       </div>
     </div>
   );
 }
 
-/* =========================================================================
-   Lokale UI-Bausteine
-   ========================================================================= */
 function ObToggle(props: { checked: boolean; onChange(v: boolean): void; label?: string }) {
   return (
     <button
@@ -429,6 +428,4 @@ function ObToggle(props: { checked: boolean; onChange(v: boolean): void; label?:
   );
 }
 
-// JSX import bleibt erhalten, falls künftig wieder Icon-Karten zurück
-// kommen sollten - wir wollen das CSS nicht doppelt umstellen müssen.
 void (null as unknown as JSX.Element);

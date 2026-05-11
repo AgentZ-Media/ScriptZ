@@ -1,23 +1,30 @@
-/** Localised relative-time formatter. */
+// Locale-aware Formatierung. Liest die aktuelle Sprache via i18n, daher
+// passen sich relative-time-Strings, Monats-/Wochentag-Namen, Plurale
+// und Datums-Layouts automatisch dem Sprach-Setting an. Re-evaluation
+// in Komponenten passiert, weil `t()` reaktiv die i18n-Language liest.
+
+import { getCurrentLocale, t, tPlural } from "../i18n";
+
+/** Locale-aware relative time. Format passt sich der aktiven Sprache an. */
 export function relativeTime(ms: number, now = Date.now()): string {
   const diff = Math.max(0, now - ms);
   const sec = diff / 1000;
-  if (sec < 30) return "Gerade eben";
-  if (sec < 60) return `vor ${Math.floor(sec)}s`;
+  if (sec < 30) return t("time.justNow");
+  if (sec < 60) return t("time.secondsAgo", { n: Math.floor(sec) });
   const min = sec / 60;
-  if (min < 60) return `vor ${Math.floor(min)} Min.`;
+  if (min < 60) return t("time.minutesAgo", { n: Math.floor(min) });
   const hr = min / 60;
-  if (hr < 24) return `vor ${Math.floor(hr)} Std.`;
+  if (hr < 24) return t("time.hoursAgo", { n: Math.floor(hr) });
   const days = hr / 24;
-  if (days < 2) return "Gestern";
+  if (days < 2) return t("time.yesterday");
   if (days < 7) {
     const d = new Date(ms);
-    return ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"][
-      d.getDay()
-    ];
+    return t(`weekday.${d.getDay()}` as
+      | "weekday.0" | "weekday.1" | "weekday.2" | "weekday.3"
+      | "weekday.4" | "weekday.5" | "weekday.6");
   }
   const date = new Date(ms);
-  return date.toLocaleDateString("de-DE", {
+  return date.toLocaleDateString(getCurrentLocale(), {
     day: "2-digit",
     month: "short",
     year: date.getFullYear() !== new Date(now).getFullYear() ? "numeric" : undefined,
@@ -25,7 +32,7 @@ export function relativeTime(ms: number, now = Date.now()): string {
 }
 
 export function formatAbsolute(ms: number): string {
-  return new Date(ms).toLocaleString("de-DE", {
+  return new Date(ms).toLocaleString(getCurrentLocale(), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -35,7 +42,7 @@ export function formatAbsolute(ms: number): string {
 }
 
 export function formatPageCount(n: number): string {
-  return n === 1 ? "1 Seite" : `${n} Seiten`;
+  return tPlural("units.pages", n);
 }
 
 export function debounce<F extends (...args: any[]) => void>(fn: F, ms: number): F & { cancel(): void; flush(): void } {

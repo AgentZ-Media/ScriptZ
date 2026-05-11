@@ -3,6 +3,7 @@ import { Modal } from "../Common/Modal";
 import { dailyStatsStore } from "../../stores/dailyStats";
 import { settingsStore } from "../../stores/settings";
 import { Heatmap } from "./Heatmap";
+import { t, tPlural, getCurrentLocale } from "../../i18n";
 import "./ActivityModal.css";
 
 export interface ActivityModalProps {
@@ -26,23 +27,23 @@ export function ActivityModal(props: ActivityModalProps) {
     <Modal
       open={props.open}
       onClose={props.onClose}
-      title="Aktivität"
+      title={t("activity.title")}
       maxWidth={920}
       footer={
-        <button class="btn" onClick={props.onClose}>Schließen</button>
+        <button class="btn" onClick={props.onClose}>{t("common.close")}</button>
       }
     >
       <div class="activity">
         <div class="activity-cards">
           <div class="activity-card">
-            <div class="activity-card-label">Diese Woche</div>
+            <div class="activity-card-label">{t("activity.thisWeek")}</div>
             <div class="activity-card-value">
-              {wordsThisWeek().toLocaleString("de-DE")}
-              <span class="activity-card-unit">/ {goal().toLocaleString("de-DE")}</span>
+              {wordsThisWeek().toLocaleString(getCurrentLocale())}
+              <span class="activity-card-unit">/ {goal().toLocaleString(getCurrentLocale())}</span>
             </div>
             <div class="activity-card-sub">
-              <Show when={goalMet()} fallback={<>Noch {remaining().toLocaleString("de-DE")} Wörter</>}>
-                Wochenziel erreicht ✓
+              <Show when={goalMet()} fallback={<>{t("activity.remainingWords", { count: remaining().toLocaleString(getCurrentLocale()) })}</>}>
+                {t("activity.goalMet")}
               </Show>
             </div>
             <div class={"activity-progress" + (goalMet() ? " is-met" : "")}>
@@ -50,29 +51,29 @@ export function ActivityModal(props: ActivityModalProps) {
             </div>
           </div>
           <div class="activity-card">
-            <div class="activity-card-label">Streak</div>
+            <div class="activity-card-label">{t("activity.streak")}</div>
             <div class="activity-card-value">
               {stats().streakDays}
-              <span class="activity-card-unit">{stats().streakDays === 1 ? "Tag" : "Tage"}</span>
+              <span class="activity-card-unit">{tPlural("units.days", stats().streakDays)}</span>
             </div>
             <div class="activity-card-sub">
-              {stats().activeDays} Schreibtage / 365
+              {t("activity.activeDays", { count: stats().activeDays })}
             </div>
           </div>
           <div class="activity-card">
-            <div class="activity-card-label">Insgesamt</div>
+            <div class="activity-card-label">{t("activity.total")}</div>
             <div class="activity-card-value">
-              {stats().totalWords.toLocaleString("de-DE")}
+              {stats().totalWords.toLocaleString(getCurrentLocale())}
             </div>
-            <div class="activity-card-sub">Wörter im letzten Jahr</div>
+            <div class="activity-card-sub">{t("activity.wordsLastYear")}</div>
           </div>
         </div>
 
         <div class="activity-heatmap">
           <div class="activity-heatmap-head">
-            <div class="activity-heatmap-title">Aktivität · 365 Tage</div>
+            <div class="activity-heatmap-title">{t("activity.heatmap.title")}</div>
             <div class="activity-heatmap-sub">
-              {stats().activeDays.toLocaleString("de-DE")} aktive Tage
+              {t("activity.heatmap.activeDays", { count: stats().activeDays.toLocaleString(getCurrentLocale()) })}
             </div>
           </div>
           <Heatmap dailyWords={stats().dailyWords} />

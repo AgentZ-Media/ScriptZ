@@ -20,6 +20,7 @@ import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { extractBlocks, type ExtractedBlock } from "./lex";
 import type { ExportPdfDeps } from "./platform";
+import { t } from "../i18n";
 
 // ---- Geometrie (mm) - 1:1 wie Rust src-tauri/src/commands/export.rs ----
 const A4_W_MM = 210.0;
@@ -296,7 +297,7 @@ export async function buildPdfBytes(
     );
     if (deps.characters.length > 0) {
       const names = deps.characters.map((c) => c.name);
-      const line = `Charaktere: ${names.join(", ")}`;
+      const line = t("export.pdf.characters", { names: names.join(", ") });
       layout.writeLine(
         line,
         MARGIN_LEFT_MM,

@@ -7,6 +7,7 @@ import { pushToast } from "../../stores/toasts";
 import { getPlatformAdapter } from "../../lib/platform";
 import { getUpdatesStore } from "../../lib/updates";
 import { K } from "../../lib/keys";
+import { t, type LanguagePref } from "../../i18n";
 import { ColorPickerPopover } from "../Editor/ColorPickerPopover";
 import type { CharacterColorRecord } from "../../lib/types";
 import "./SettingsDialog.css";
@@ -25,14 +26,16 @@ interface SectionDef {
   Icon: Component;
 }
 
-const ALL_SECTIONS: SectionDef[] = [
-  { id: "appearance", label: "Erscheinungsbild", Icon: TypeIcon },
-  { id: "editor",     label: "Editor",           Icon: EditIcon },
-  { id: "characters", label: "Charaktere",       Icon: PaletteIcon },
-  { id: "shortcuts",  label: "Tastatur",         Icon: KbdIcon },
-  { id: "updates",    label: "Updates",          Icon: ShieldIcon },
-  { id: "about",      label: "Über",             Icon: InfoIcon },
-];
+function allSections(): SectionDef[] {
+  return [
+    { id: "appearance", label: t("settings.section.appearance"), Icon: TypeIcon },
+    { id: "editor",     label: t("settings.section.editor"),     Icon: EditIcon },
+    { id: "characters", label: t("settings.section.characters"), Icon: PaletteIcon },
+    { id: "shortcuts",  label: t("settings.section.shortcuts"),  Icon: KbdIcon },
+    { id: "updates",    label: t("settings.section.updates"),    Icon: ShieldIcon },
+    { id: "about",      label: t("settings.section.about"),      Icon: InfoIcon },
+  ];
+}
 
 interface ShortcutGroup {
   title: string;
@@ -40,43 +43,45 @@ interface ShortcutGroup {
 }
 
 // Shortcut-Anzeige plattform-aware: K() rendert "⌘N" auf macOS und
-// "Ctrl+N" auf Windows/Linux. Eager evaluation am Modul-Load reicht,
-// weil die Platform sich zur Laufzeit nicht aendert.
-const SHORTCUT_GROUPS: ShortcutGroup[] = [
-  {
-    title: "Allgemein",
-    items: [
-      { keys: K("Mod+N"), desc: "Neues Skript anlegen" },
-      { keys: K("Mod+T"), desc: "Zur Übersicht" },
-      { keys: K("Mod+W"), desc: "Aktiven Tab schließen" },
-      { keys: K("Mod+K"), desc: "Skript-Suche öffnen" },
-      { keys: K("Mod+F"), desc: "Suchfeld in der Übersicht fokussieren" },
-      { keys: K("Mod+,"), desc: "Einstellungen öffnen" },
-      { keys: K("Mod+I"), desc: "Idee schnell erfassen" },
-      { keys: `${K("Mod+0")}-${K("Mod+9")}`, desc: "Tab per Index aktivieren (0 = Übersicht)" },
-      { keys: `${K("Mod+Alt+ArrowLeft")} / ${K("Mod+Alt+ArrowRight")}`, desc: "Zwischen Tabs wechseln" },
-    ],
-  },
-  {
-    title: "Editor",
-    items: [
-      { keys: "Tab", desc: "Block-Typ-Picker öffnen" },
-      { keys: K("Mod+1"), desc: "Block-Typ → Action" },
-      { keys: K("Mod+2"), desc: "Block-Typ → Charakter" },
-      { keys: K("Mod+3"), desc: "Block-Typ → Dialog" },
-      { keys: K("Mod+4"), desc: "Block-Typ → Parenthetical" },
-      { keys: K("Mod+5"), desc: "Block-Typ → Kamera" },
-      { keys: K("Mod+6"), desc: "Block-Typ → Caption" },
-      { keys: K("Mod+7"), desc: "Block-Typ → SFX" },
-      { keys: K("Enter"), desc: "Smart-Enter: nächster passender Block" },
-      { keys: `${K("Mod+B")} / ${K("Mod+I")} / ${K("Mod+U")}`, desc: "Fett / Kursiv / Unterstrichen" },
-      { keys: K("Mod+E"), desc: "Skript exportieren" },
-      { keys: K("Mod+Shift+F"), desc: "Fokus-Modus an/aus" },
-      { keys: K("Mod+Shift+S"), desc: "Manuellen Snapshot anlegen" },
-      { keys: K("Mod+Shift+H"), desc: "Snapshot-Verlauf öffnen" },
-    ],
-  },
-];
+// "Ctrl+N" auf Windows/Linux. Per-Call-Build damit Sprach-Wechsel die
+// Beschreibungen sofort aktualisiert.
+function shortcutGroups(): ShortcutGroup[] {
+  return [
+    {
+      title: t("shortcuts.group.general"),
+      items: [
+        { keys: K("Mod+N"), desc: t("shortcut.newScript") },
+        { keys: K("Mod+T"), desc: t("shortcut.toOverview") },
+        { keys: K("Mod+W"), desc: t("shortcut.closeTab") },
+        { keys: K("Mod+K"), desc: t("shortcut.openSearch") },
+        { keys: K("Mod+F"), desc: t("shortcut.focusSearch") },
+        { keys: K("Mod+,"), desc: t("shortcut.openSettings") },
+        { keys: K("Mod+I"), desc: t("shortcut.captureIdea") },
+        { keys: `${K("Mod+0")}-${K("Mod+9")}`, desc: t("shortcut.tabByIndex") },
+        { keys: `${K("Mod+Alt+ArrowLeft")} / ${K("Mod+Alt+ArrowRight")}`, desc: t("shortcut.cycleTabs") },
+      ],
+    },
+    {
+      title: t("shortcuts.group.editor"),
+      items: [
+        { keys: "Tab", desc: t("shortcut.blockPicker") },
+        { keys: K("Mod+1"), desc: t("shortcut.blockAction") },
+        { keys: K("Mod+2"), desc: t("shortcut.blockCharacter") },
+        { keys: K("Mod+3"), desc: t("shortcut.blockDialog") },
+        { keys: K("Mod+4"), desc: t("shortcut.blockParenthetical") },
+        { keys: K("Mod+5"), desc: t("shortcut.blockCamera") },
+        { keys: K("Mod+6"), desc: t("shortcut.blockCaption") },
+        { keys: K("Mod+7"), desc: t("shortcut.blockSfx") },
+        { keys: K("Enter"), desc: t("shortcut.smartEnter") },
+        { keys: `${K("Mod+B")} / ${K("Mod+I")} / ${K("Mod+U")}`, desc: t("shortcut.formatting") },
+        { keys: K("Mod+E"), desc: t("shortcut.exportScript") },
+        { keys: K("Mod+Shift+F"), desc: t("shortcut.focusMode") },
+        { keys: K("Mod+Shift+S"), desc: t("shortcut.snapshotCreate") },
+        { keys: K("Mod+Shift+H"), desc: t("shortcut.snapshotHistory") },
+      ],
+    },
+  ];
+}
 
 export interface SettingsDialogProps {
   open: boolean;
@@ -84,23 +89,10 @@ export interface SettingsDialogProps {
   onStartOnboarding?(): void;
 }
 
-/**
- * 2-spaltiges Settings-Modal nach Re-Design (`modals.jsx::SettingsModal`):
- * linke Nav (180 px) + rechtes Pane mit `settings-row`-Pattern.
- * Sektionen: Erscheinungsbild · Editor · Updates · Über.
- *
- * Die "Drucken"-Sektion aus dem Design-Mock fehlt bewusst — das Print-
- * Feature ist im Repo entfernt (Commit a3b016c, 2026-05). Tags-Section
- * und KI-Sektion gibt es im Design ebenfalls nicht (bewusste Auslassungen).
- */
 export function SettingsDialog(props: SettingsDialogProps) {
   const [section, setSection] = createSignal<SectionId>("appearance");
   const [appVersion, setAppVersion] = createSignal("0.6.0");
 
-  // App-weite Charakter-Farb-Overrides. Wir filtern auf Einträge mit
-  // gesetztem `override_color` — nur die zählen als "eigene Farbe".
-  // Die Liste steuert sowohl die Sichtbarkeit des Charaktere-Tabs als
-  // auch den Inhalt des Panes.
   const [overrides, setOverrides] = createSignal<CharacterColorRecord[]>([]);
   const reloadOverrides = async () => {
     try {
@@ -111,7 +103,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
     }
   };
 
-  // Popover-State für die Farbänderung in der Liste.
   const [pickerOpen, setPickerOpen] = createSignal(false);
   const [pickerName, setPickerName] = createSignal("");
   const [pickerColor, setPickerColor] = createSignal("#000000");
@@ -125,22 +116,17 @@ export function SettingsDialog(props: SettingsDialogProps) {
     }
   });
 
-  // Bei jedem Öffnen des Dialogs frische Liste laden.
   createEffect(() => {
     if (props.open) void reloadOverrides();
   });
 
   const sections = createMemo<SectionDef[]>(() => {
-    let list = ALL_SECTIONS;
+    let list = allSections();
     if (overrides().length === 0) list = list.filter((s) => s.id !== "characters");
-    // Host platform doesn't provide an auto-updater (e.g. web build):
-    // hide the section so users don't see a dead "Updates" tab.
     if (!updates()) list = list.filter((s) => s.id !== "updates");
     return list;
   });
 
-  // Falls die aktive Sektion nicht mehr existiert (letzter Override
-  // gerade entfernt), zurück zu Erscheinungsbild fallen.
   createEffect(() => {
     if (!sections().some((s) => s.id === section())) {
       setSection("appearance");
@@ -165,7 +151,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       scriptsBus.bump();
       await reloadOverrides();
     } catch (err) {
-      pushToast(`Farbe speichern fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("settings.toast.colorFailed", { message: (err as Error).message ?? String(err) }), "error");
     }
   };
 
@@ -177,7 +163,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       scriptsBus.bump();
       await reloadOverrides();
     } catch (err) {
-      pushToast(`Reset fehlgeschlagen: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("settings.toast.resetFailed", { message: (err as Error).message ?? String(err) }), "error");
     }
   };
 
@@ -203,11 +189,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
     <Modal
       open={props.open}
       onClose={props.onClose}
-      title="Einstellungen"
+      title={t("settings.title")}
       maxWidth={760}
     >
       <div class="settings-grid">
-        <nav class="settings-nav" aria-label="Abschnitte">
+        <nav class="settings-nav" aria-label={t("settings.aria.sections")}>
           <For each={sections()}>
             {(s) => (
               <button
@@ -225,21 +211,38 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
         <div class="settings-pane">
           <Show when={section() === "appearance"}>
-            <h3>Erscheinungsbild</h3>
-            <div class="settings-pane-sub">Theme der App.</div>
+            <h3>{t("settings.section.appearance")}</h3>
+            <div class="settings-pane-sub">{t("settings.appearance.sub")}</div>
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Theme</div>
-                <div class="row-help">Hell, Dunkel oder dem System folgen.</div>
+                <div class="row-label">{t("lang.label")}</div>
+                <div class="row-help">{t("lang.help")}</div>
               </div>
-              <div class="seg" role="group" aria-label="Theme">
+              <div class="seg" role="group" aria-label={t("settings.section.language")}>
+                {(["de", "en", "auto"] as LanguagePref[]).map((value) => (
+                  <button
+                    type="button"
+                    classList={{ "is-on": settingsStore.language() === value }}
+                    onClick={() => void settingsStore.setLanguage(value)}
+                  >
+                    {value === "de" ? t("lang.de") : value === "en" ? t("lang.en") : t("lang.auto")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <div class="row-label">{t("settings.theme.label")}</div>
+                <div class="row-help">{t("settings.theme.help")}</div>
+              </div>
+              <div class="seg" role="group" aria-label={t("settings.theme.aria")}>
                 {(["light", "dark", "auto"] as Theme[]).map((value) => (
                   <button
                     type="button"
                     classList={{ "is-on": settingsStore.theme() === value }}
                     onClick={() => void settingsStore.setTheme(value)}
                   >
-                    {value === "light" ? "Light" : value === "dark" ? "Dark" : "Auto"}
+                    {value === "light" ? t("theme.light") : value === "dark" ? t("theme.dark") : t("theme.auto")}
                   </button>
                 ))}
               </div>
@@ -247,67 +250,50 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Dunkles Skript-Sheet</div>
-                <div class="row-help">
-                  Im Dark-Modus auch das Skript-Sheet dunkel statt hell.
-                  Standardmäßig bleibt das Sheet hell, weil das den
-                  Druck-Look spiegelt. Greift nur, wenn das Theme
-                  tatsächlich dunkel ist - im Auto-Modus also nur,
-                  wenn dein System gerade dunkel ist.
-                </div>
+                <div class="row-label">{t("settings.darkPaper.label")}</div>
+                <div class="row-help">{t("settings.darkPaper.help")}</div>
               </div>
               <Toggle
                 checked={settingsStore.darkPaper()}
                 onChange={(v) => void settingsStore.setDarkPaper(v)}
                 disabled={settingsStore.resolvedTheme() !== "dark"}
-                label="Dunkles Skript-Sheet im Dark-Mode"
+                label={t("settings.darkPaper.aria")}
               />
             </div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Fokus-Modus standardmäßig aktiv</div>
-                <div class="row-help">
-                  Beim Öffnen eines Skripts sind Toolbar und Cast-Leiste
-                  ausgeblendet. {K("Mod+Shift+F")} holt sie zurück.
-                </div>
+                <div class="row-label">{t("settings.focusDefault.label")}</div>
+                <div class="row-help">{t("settings.focusDefault.help", { hotkey: K("Mod+Shift+F") })}</div>
               </div>
               <Toggle
                 checked={settingsStore.focusModeDefault()}
                 onChange={(v) => void settingsStore.setFocusModeDefault(v)}
-                label="Fokus-Modus standardmäßig"
+                label={t("settings.focusDefault.aria")}
               />
             </div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Zähler am Ideen-Tab</div>
-                <div class="row-help">
-                  Zeigt die Anzahl offener Ideen als kleines Badge oben am
-                  Glühbirnen-Tab. Bei sehr großen Idee-Sammlungen kannst
-                  du den Zähler hier abschalten.
-                </div>
+                <div class="row-label">{t("settings.ideasBadge.label")}</div>
+                <div class="row-help">{t("settings.ideasBadge.help")}</div>
               </div>
               <Toggle
                 checked={settingsStore.showIdeasBadge()}
                 onChange={(v) => void settingsStore.setShowIdeasBadge(v)}
-                label="Ideen-Zähler im Tab anzeigen"
+                label={t("settings.ideasBadge.aria")}
               />
             </div>
           </Show>
 
           <Show when={section() === "editor"}>
-            <h3>Editor</h3>
-            <div class="settings-pane-sub">Verhalten beim Schreiben.</div>
+            <h3>{t("settings.section.editor")}</h3>
+            <div class="settings-pane-sub">{t("settings.editor.sub")}</div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Wochenziel</div>
-                <div class="row-help">
-                  Anzahl Wörter pro Woche (seit Montag). Wird in der
-                  Statusleiste oben und auf der Startseite angezeigt.
-                  1500 entspricht etwa 7 Skripten à 200 Wörter.
-                </div>
+                <div class="row-label">{t("settings.weeklyGoal.label")}</div>
+                <div class="row-help">{t("settings.weeklyGoal.help")}</div>
               </div>
               <div class="settings-goal-input">
                 <input
@@ -321,19 +307,14 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     if (Number.isFinite(n)) void settingsStore.setWeeklyWordGoal(n);
                   }}
                 />
-                <span class="settings-goal-unit">Wörter</span>
+                <span class="settings-goal-unit">{t("settings.weeklyGoal.unit")}</span>
               </div>
             </div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Sprech-Tempo</div>
-                <div class="row-help">
-                  Wörter pro Minute für die Spielzeit-Schätzung in der
-                  Cast-Leiste. Default 210 ist auf TikTok-/Sketch-Tempo
-                  kalibriert; klassisches Drehbuch liegt bei ~150,
-                  schnelles Reden bei ~250.
-                </div>
+                <div class="row-label">{t("settings.wpm.label")}</div>
+                <div class="row-help">{t("settings.wpm.help")}</div>
               </div>
               <div class="settings-goal-input">
                 <input
@@ -347,44 +328,38 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     if (Number.isFinite(n)) void settingsStore.setDialogWpm(n);
                   }}
                 />
-                <span class="settings-goal-unit">WPM</span>
+                <span class="settings-goal-unit">{t("settings.wpm.unit")}</span>
               </div>
             </div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Charakter-Highlighting standardmäßig aktiviert</div>
+                <div class="row-label">{t("settings.highlighting.label")}</div>
               </div>
               <Toggle
                 checked={settingsStore.highlightingDefault()}
                 onChange={(v) => void settingsStore.setHighlightingDefault(v)}
-                label="Charakter-Highlighting standardmäßig"
+                label={t("settings.highlighting.aria")}
               />
             </div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Quick-Modus automatisch aktivieren bei genau 2 Charakteren</div>
-                <div class="row-help">
-                  Greift pro Skript nur, solange du den Toggle nicht selbst
-                  angefasst hast. Sobald du Quick-Modus in einem Skript
-                  manuell ein- oder ausschaltest, bleibt diese Wahl in dem
-                  Skript bestehen.
-                </div>
+                <div class="row-label">{t("settings.quickMode.label")}</div>
+                <div class="row-help">{t("settings.quickMode.help")}</div>
               </div>
               <Toggle
                 checked={settingsStore.quickModeAutoEnable()}
                 onChange={(v) => void settingsStore.setQuickModeAutoEnable(v)}
-                label="Quick-Modus auto"
+                label={t("settings.quickMode.aria")}
               />
             </div>
           </Show>
 
           <Show when={section() === "characters"}>
-            <h3>Charaktere</h3>
+            <h3>{t("settings.section.characters")}</h3>
             <div class="settings-pane-sub">
-              Charaktere mit eigener Farbe. Klick auf den Punkt ändert die
-              Farbe, „Zurücksetzen" löscht die App-weite Vorgabe.
+              {t("settings.characters.sub")}
             </div>
             <For each={overrides()}>
               {(rec) => (
@@ -393,8 +368,8 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     type="button"
                     class="settings-character-swatch scriptz-color-picker-trigger"
                     style={{ background: rec.override_color ?? "#000" }}
-                    aria-label={`Farbe von ${rec.name} ändern`}
-                    title={`Farbe von ${rec.name} ändern`}
+                    aria-label={t("settings.characters.colorAria", { name: rec.name })}
+                    title={t("settings.characters.colorAria", { name: rec.name })}
                     onClick={(ev) => openPickerFor(rec, ev)}
                   />
                   <div class="settings-character-name">{rec.name}</div>
@@ -403,7 +378,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     class="btn btn--sm"
                     onClick={() => void onResetColor(rec.name)}
                   >
-                    Zurücksetzen
+                    {t("settings.characters.reset")}
                   </button>
                 </div>
               )}
@@ -411,12 +386,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           </Show>
 
           <Show when={section() === "shortcuts"}>
-            <h3>Tastatur</h3>
+            <h3>{t("settings.section.shortcuts")}</h3>
             <div class="settings-pane-sub">
-              Alle Hotkeys auf einen Blick. Anpassen kommt in einer
-              späteren Version.
+              {t("settings.shortcuts.sub")}
             </div>
-            <For each={SHORTCUT_GROUPS}>
+            <For each={shortcutGroups()}>
               {(group) => (
                 <div class="settings-shortcuts-group">
                   <div class="settings-shortcuts-title">{group.title}</div>
@@ -438,29 +412,29 @@ export function SettingsDialog(props: SettingsDialogProps) {
           </Show>
 
           <Show when={section() === "updates"}>
-            <h3>Updates</h3>
-            <div class="settings-pane-sub">Bezogen über GitHub Releases. Keine Telemetrie.</div>
+            <h3>{t("settings.section.updates")}</h3>
+            <div class="settings-pane-sub">{t("settings.updates.sub")}</div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Auf Updates prüfen</div>
+                <div class="row-label">{t("settings.updates.enabled.label")}</div>
               </div>
               <Toggle
                 checked={settingsStore.updateCheckEnabled()}
                 onChange={(v) => void settingsStore.setUpdateCheckEnabled(v)}
-                label="Auf Updates prüfen"
+                label={t("settings.updates.enabled.aria")}
               />
             </div>
 
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Stündlich automatisch prüfen</div>
+                <div class="row-label">{t("settings.updates.hourly.label")}</div>
               </div>
               <Toggle
                 checked={settingsStore.hourlyUpdateCheck()}
                 disabled={!settingsStore.updateCheckEnabled()}
                 onChange={(v) => void settingsStore.setHourlyUpdateCheck(v)}
-                label="Stündlich prüfen"
+                label={t("settings.updates.hourly.aria")}
               />
             </div>
 
@@ -471,27 +445,27 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   fallback={
                     <Show
                       when={updates()!.manualCheck()?.kind === "uptodate"}
-                      fallback={<div class="row-label">Update-Status</div>}
+                      fallback={<div class="row-label">{t("settings.updates.status")}</div>}
                     >
-                      <div class="row-label">Du hast die neueste Version</div>
+                      <div class="row-label">{t("settings.updates.upToDate")}</div>
                     </Show>
                   }
                 >
                   <div class="row-label">
-                    Update verfügbar: v{updates()!.available()?.version}
+                    {t("settings.updates.available", { version: updates()!.available()?.version ?? "" })}
                   </div>
                 </Show>
                 <Show when={updates()!.stage() === "downloading"}>
                   <div class="row-help">
-                    Lade Update… {updates()!.progress()}%
+                    {t("settings.updates.downloading", { progress: updates()!.progress() })}
                   </div>
                 </Show>
                 <Show when={updates()!.stage() === "ready"}>
-                  <div class="row-help">Update bereit zum Neustart.</div>
+                  <div class="row-help">{t("settings.updates.ready")}</div>
                 </Show>
                 <Show when={updates()!.manualCheck()?.kind === "error"}>
                   <div class="row-help" style="color:var(--status-err);">
-                    Fehler beim Prüfen
+                    {t("settings.updates.checkError")}
                   </div>
                 </Show>
               </div>
@@ -499,21 +473,21 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 <Show when={updates()!.stage() === "available"}>
                   <button class="btn btn-primary btn--sm"
                     onClick={() => void onDownloadInstall()}>
-                    Herunterladen
+                    {t("settings.updates.action.download")}
                   </button>
                   <button class="link-like" onClick={openLatestRelease}>
-                    Auf GitHub
+                    {t("settings.updates.action.onGithub")}
                   </button>
                 </Show>
                 <Show when={updates()!.stage() === "ready"}>
                   <button class="btn btn-primary btn--sm"
                     onClick={() => void onRestart()}>
-                    Neu starten
+                    {t("settings.updates.action.restart")}
                   </button>
                 </Show>
                 <Show when={updates()!.stage() === "error"}>
                   <button class="btn btn--sm" onClick={() => void onDownloadInstall()}>
-                    Erneut versuchen
+                    {t("settings.updates.action.retry")}
                   </button>
                 </Show>
                 <button
@@ -525,24 +499,24 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     updates()!.stage() === "ready"
                   }
                 >
-                  {isChecking() ? "Prüfe…" : "Jetzt prüfen"}
+                  {isChecking() ? t("settings.updates.action.checking") : t("settings.updates.action.check")}
                 </button>
               </div>
             </div>
           </Show>
 
           <Show when={section() === "about"}>
-            <h3>Über</h3>
-            <div class="settings-pane-sub">Schnell. Lokal. Mac-first.</div>
+            <h3>{t("settings.section.about")}</h3>
+            <div class="settings-pane-sub">{t("settings.about.sub")}</div>
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">ScriptZ · v{appVersion()}</div>
-                <div class="row-help">Lizenz: MIT</div>
+                <div class="row-label">{t("settings.about.version", { version: appVersion() })}</div>
+                <div class="row-help">{t("settings.about.license")}</div>
               </div>
             </div>
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Entwickelt von</div>
+                <div class="row-label">{t("settings.about.developer")}</div>
               </div>
               <button
                 class="link-like"
@@ -553,7 +527,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
             </div>
             <div class="settings-row">
               <div class="settings-row-label">
-                <div class="row-label">Repository</div>
+                <div class="row-label">{t("settings.about.repository")}</div>
               </div>
               <button class="link-like settings-mono" onClick={openRepo}>
                 github.com/AgentZ-Media/ScriptZ
@@ -562,16 +536,14 @@ export function SettingsDialog(props: SettingsDialogProps) {
             <Show when={props.onStartOnboarding}>
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <div class="row-label">Onboarding</div>
-                  <div class="row-help">
-                    Die Kurz-Tour zur App nochmal anzeigen.
-                  </div>
+                  <div class="row-label">{t("settings.about.onboarding.label")}</div>
+                  <div class="row-help">{t("settings.about.onboarding.help")}</div>
                 </div>
                 <button
                   class="btn btn--sm"
                   onClick={() => props.onStartOnboarding?.()}
                 >
-                  Nochmal anzeigen
+                  {t("settings.about.onboarding.button")}
                 </button>
               </div>
             </Show>
@@ -592,7 +564,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
   );
 }
 
-/* ---- Custom Toggle (Pill mit Knubbel) ---- */
 function Toggle(props: {
   checked: boolean;
   disabled?: boolean;
@@ -616,7 +587,6 @@ function Toggle(props: {
   );
 }
 
-/* ---- Icons ---- */
 function TypeIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"

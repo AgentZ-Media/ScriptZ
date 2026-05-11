@@ -12,6 +12,7 @@
 // Setting-Änderung sofort überall greift, ohne jedes Skript neu zu speichern.
 
 import { extractBlocks, type ExtractedBlock } from "./lex";
+import { t } from "../i18n";
 
 /** Eingangswerte der Spielzeit-Formel. Werden beim Save in den
  *  Spalten `dialog_word_count` und `direction_block_count` festgehalten. */
@@ -72,10 +73,12 @@ export function runtimeSeconds(stats: RuntimeStats, wpm: number): number {
 /** "5 s" / "1:23 Min" / "3 Min" - identisches Format wie seit v0.6 in
  *  der Rail. */
 export function formatRuntime(sec: number): string {
-  if (sec < 60) return `${sec} s`;
+  if (sec < 60) return t("runtime.seconds", { n: sec });
   const m = Math.floor(sec / 60);
   const r = sec % 60;
-  return r === 0 ? `${m} Min` : `${m}:${String(r).padStart(2, "0")} Min`;
+  return r === 0
+    ? t("runtime.minutes", { m })
+    : t("runtime.minutesSeconds", { m, s: String(r).padStart(2, "0") });
 }
 
 /** Fertig gerendertes Label aus persistierten Stats. `null` bei Sentinel

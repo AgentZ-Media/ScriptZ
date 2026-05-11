@@ -1,5 +1,6 @@
 import { JSX, Show, createEffect, onCleanup, onMount } from "solid-js";
 import { Portal } from "solid-js/web";
+import { t } from "../../i18n";
 import "./Modal.css";
 
 export interface ModalProps {
@@ -77,15 +78,6 @@ export function Modal(props: ModalProps) {
     onCleanup(() => document.removeEventListener("keydown", onKey, true));
   });
 
-  /** Focus management — runs on every open/close transition.
-      Open: remember the previously-focused element, then focus the first
-      focusable inside the modal on the next frame (after Solid commits).
-      Close: restore focus to the element that had it before the modal.
-
-      The selector is identical to the Tab-cycle selector below — so the
-      element that gets initial focus is also the one Tab+Shift wraps to,
-      no surprise edge case where the initial focus is on a disabled
-      button that Tab then skips. */
   let lastOpen = false;
   createEffect(() => {
     const isOpen = props.open;
@@ -99,8 +91,6 @@ export function Modal(props: ModalProps) {
         first?.focus();
       });
     } else if (!isOpen && lastOpen) {
-      // The previous element may have been removed from the DOM in the
-      // meantime — guard against errors.
       try {
         previousFocus?.focus?.();
       } catch {
@@ -138,8 +128,8 @@ export function Modal(props: ModalProps) {
                 <button
                   class="modal-close"
                   type="button"
-                  aria-label="Schließen"
-                  title="Schließen"
+                  aria-label={t("modal.close.aria")}
+                  title={t("modal.close.title")}
                   onClick={closeWithFlush}
                 >
                   ✕

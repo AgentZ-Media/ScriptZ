@@ -1,4 +1,5 @@
 import { Show, createEffect, createSignal, onCleanup } from "solid-js";
+import { t } from "../../i18n";
 import "./SprintPill.css";
 
 const SPRINT_ROOT_CLASS = "sprint";
@@ -90,14 +91,14 @@ export function SprintPill() {
         <div class="sprint-panel" onClick={(e) => e.stopPropagation()}>
           <div class="sprint-clock">{fmt(secondsLeft())}</div>
           <div class="sprint-bar"><span style={`width:${progress()}%`} /></div>
-          <div class="sprint-meta">Schreib-Sprint · ohne Unterbrechung</div>
+          <div class="sprint-meta">{t("sprint.meta")}</div>
           <div class="sprint-presets">
             {PRESETS.map((m) => (
               <button
                 classList={{ "is-on": minutes() === m }}
                 onClick={() => chooseMinutes(m)}
               >
-                {m} Min
+                {t("sprint.minutes", { n: m })}
               </button>
             ))}
           </div>
@@ -106,15 +107,15 @@ export function SprintPill() {
               when={!running()}
               fallback={
                 <button class="btn btn-primary" onClick={() => setRunning(false)}>
-                  Pause
+                  {t("sprint.pause")}
                 </button>
               }
             >
               <button class="btn btn-primary" onClick={() => start(minutes())}>
-                Start
+                {t("sprint.start")}
               </button>
             </Show>
-            <button class="btn" onClick={reset}>Reset</button>
+            <button class="btn" onClick={reset}>{t("sprint.reset")}</button>
           </div>
         </div>
       </Show>
@@ -122,7 +123,7 @@ export function SprintPill() {
         class="sprint-pill"
         classList={{ "is-running": running() }}
         onClick={() => setOpen((o) => !o)}
-        title={running() ? "Sprint läuft" : "Schreib-Sprint starten"}
+        title={running() ? t("sprint.title.running") : t("sprint.title.start")}
       >
         <span class="sprint-pill-ic" aria-hidden="true">
           <Show when={running()} fallback={<SparkleIcon />}>
@@ -130,7 +131,7 @@ export function SprintPill() {
           </Show>
         </span>
         <span class="sprint-pill-label">
-          <Show when={running()} fallback={"Sprint"}>{fmt(secondsLeft())}</Show>
+          <Show when={running()} fallback={t("sprint.label")}>{fmt(secondsLeft())}</Show>
         </span>
       </button>
     </div>

@@ -6,6 +6,7 @@ import { scriptsBus } from "../../lib/scriptsBus";
 import { formatAbsolute } from "../../lib/format";
 import type { Snapshot, SnapshotMeta } from "../../lib/types";
 import { pushToast } from "../../stores/toasts";
+import { t } from "../../i18n";
 import "./SnapshotsDialog.css";
 
 export interface SnapshotsDialogProps {
@@ -20,19 +21,16 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
   const [reloadKey, setReloadKey] = createSignal(0);
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
 
-  // List of snapshots — refetches when scriptId/open/reloadKey changes
   const [snapshots] = createResource(
     () =>
       props.open ? { scriptId: props.scriptId, reload: reloadKey() } : null,
     async (q) => {
       if (!q) return [] as SnapshotMeta[];
       const list = await api.listSnapshots(q.scriptId);
-      // sort newest first
       return [...list].sort((a, b) => b.created_at - a.created_at);
     },
   );
 
-  // Selection: ensure default to newest
   const ensureSelection = () => {
     const list = snapshots();
     if (!list || list.length === 0) {
@@ -67,10 +65,10 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
   const onCreateManual = async () => {
     try {
       await api.createSnapshot(props.scriptId, "manual");
-      pushToast("Snapshot erstellt", "ok");
+      pushToast(t("snapshots.toast.created"), "ok");
       setReloadKey(reloadKey() + 1);
     } catch (e) {
-      pushToast(`Snapshot fehlgeschlagen: ${String(e)}`, "error");
+      pushToast(t("snapshots.toast.createFailed", { message: String(e) }), "error");
     }
   };
 
@@ -78,19 +76,19 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
     const id = selectedId();
     if (!id) return;
     const ok = await confirmDialog({
-      title: "Snapshot löschen?",
-      body: "Dieser Snapshot wird unwiderruflich entfernt.",
-      confirmLabel: "Löschen",
+      title: t("snapshots.confirm.delete.title"),
+      body: t("snapshots.confirm.delete.body"),
+      confirmLabel: t("common.delete"),
       danger: true,
     });
     if (!ok) return;
     try {
       await api.deleteSnapshot(id);
-      pushToast("Snapshot gelöscht", "ok");
+      pushToast(t("snapshots.toast.deleted"), "ok");
       setSelectedId(null);
       setReloadKey(reloadKey() + 1);
     } catch (e) {
-      pushToast(`Löschen fehlgeschlagen: ${String(e)}`, "error");
+      pushToast(t("snapshots.toast.deleteFailed", { message: String(e) }), "error");
     }
   };
 
@@ -98,24 +96,27 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
     const id = selectedId();
     if (!id) return;
     const ok = await confirmDialog({
-      title: "Snapshot wiederherstellen?",
-      body: "Aktueller Stand wird als Auto-Snapshot gesichert. Fortfahren?",
-      confirmLabel: "Wiederherstellen",
+      title: t("snapshots.confirm.restore.title"),
+      body: t("snapshots.confirm.restore.body"),
+      confirmLabel: t("snapshots.restore"),
     });
     if (!ok) return;
     try {
       await api.restoreSnapshot(id);
       scriptsBus.bump();
-      pushToast("Snapshot wiederhergestellt", "ok");
+      pushToast(t("snapshots.toast.restored"), "ok");
       props.onRestore?.(id);
       setReloadKey(reloadKey() + 1);
       props.onClose();
     } catch (e) {
-      pushToast(`Wiederherstellen fehlgeschlagen: ${String(e)}`, "error");
+      pushToast(t("snapshots.toast.restoreFailed", { message: String(e) }), "error");
     }
   };
 
-  const title = () => `Snapshots${props.scriptTitle ? ` — ${props.scriptTitle}` : ""}`;
+  const title = () =>
+    props.scriptTitle
+      ? t("snapshots.titleWithScript", { title: props.scriptTitle })
+      : t("snapshots.title");
 
   return (
     <Modal
@@ -126,21 +127,21 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
       footer={
         <>
           <button class="btn btn-danger" onClick={onDelete} disabled={!selectedId()}>
-            Löschen
+            {t("snapshots.delete")}
           </button>
           <span class="snap-spacer" />
           <button class="btn" onClick={props.onClose}>
-            Schließen
+            {t("common.close")}
           </button>
           <button class="btn btn-primary" onClick={onRestore} disabled={!selectedId()}>
-            Wiederherstellen
+            {t("snapshots.restore")}
           </button>
         </>
       }
     >
       <div class="snap-toolbar">
         <button class="btn" onClick={onCreateManual}>
-          Manueller Snapshot jetzt erstellen
+          {t("snapshots.createManual")}
         </button>
       </div>
       <div class="snap-grid">
@@ -171,7 +172,7 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
         >
           <Show
             when={(snapshots()?.length ?? 0) > 0}
-            fallback={<div class="snap-empty">Noch keine Snapshots.</div>}
+            fallback={<div class="snap-empty">{t("snapshots.empty")}</div>}
           >
             <For each={snapshots()}>
               {(snap) => (
@@ -182,7 +183,7 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
                 >
                   <span class="snap-time">{formatAbsolute(snap.created_at)}</span>
                   <span class={`snap-badge snap-badge-${snap.trigger}`}>
-                    {snap.trigger === "manual" ? "Manuell" : "Auto"}
+                    {snap.trigger === "manual" ? t("snapshots.badge.manual") : t("snapshots.badge.auto")}
                   </span>
                 </button>
               )}
@@ -192,9 +193,9 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
         <div class="snap-preview">
           <Show
             when={selectedSnap()}
-            fallback={<div class="snap-empty">Kein Snapshot ausgewählt.</div>}
+            fallback={<div class="snap-empty">{t("snapshots.noneSelected")}</div>}
           >
-            <pre class="snap-preview-text">{previewText() || "(leer)"}</pre>
+            <pre class="snap-preview-text">{previewText() || t("snapshots.previewEmpty")}</pre>
           </Show>
         </div>
       </div>
@@ -202,9 +203,6 @@ export function SnapshotsDialog(props: SnapshotsDialogProps) {
   );
 }
 
-/** Extract a plain-text preview from a Lexical EditorState JSON string.
- * Hard-bounded so a malformed/extremely-deep state can never block the
- * main thread. Limits are generous for any realistic ScriptZ document. */
 const MAX_WALK_DEPTH = 200;
 const MAX_BLOCKS = 5000;
 const MAX_TEXT_NODES_PER_BLOCK = 2000;

@@ -4,21 +4,18 @@ import { api } from "../../lib/api";
 import { tabsStore } from "../../stores/tabs";
 import { pushToast } from "../../stores/toasts";
 import { K } from "../../lib/keys";
+import { t } from "../../i18n";
 
 export interface IdeaQuickCaptureProps {
   open: boolean;
   onClose(): void;
 }
 
-/** ⌘I-Overlay zum schnellen Erfassen einer Idee. Zwei Aktionen:
- *  ⏎ legt die Idee an, ⌘⏎ legt sie an UND macht direkt ein Skript
- *  daraus (ein Klick weniger als „erst speichern, dann konvertieren"). */
 export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
   const [val, setVal] = createSignal("");
   const [saving, setSaving] = createSignal(false);
   let inputRef: HTMLInputElement | undefined;
 
-  // Fokus beim Aufgehen + Reset des Werts.
   let lastOpen = false;
   createEffect(() => {
     const isOpen = props.open;
@@ -31,27 +28,25 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
   });
 
   async function save(convertToScript = false) {
-    if (saving()) return; // Reentrancy-Guard: kein Doppel-Submit.
-    const t = val().trim();
-    if (!t) {
+    if (saving()) return;
+    const txt = val().trim();
+    if (!txt) {
       props.onClose();
       return;
     }
     setSaving(true);
     try {
-      const idea = await api.createIdea({ title: t });
+      const idea = await api.createIdea({ title: txt });
       if (convertToScript) {
         const { script } = await api.convertIdeaToScript({ ideaId: idea.id });
         tabsStore.openScript(script.id, script.title);
-        pushToast(`„${script.title}" angelegt`, "ok");
+        pushToast(t("idea.quick.toast.scriptCreated", { title: script.title }), "ok");
       } else {
-        pushToast(`Idee „${idea.title}" gemerkt`, "ok");
+        pushToast(t("idea.quick.toast.remembered", { title: idea.title }), "ok");
       }
-      // Erfolg: erst dann schließen, damit der User bei Fehlern den
-      // getippten Text nicht verliert und neu tippen muss.
       props.onClose();
     } catch (err) {
-      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     } finally {
       setSaving(false);
     }
@@ -64,7 +59,7 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
           <div class="qcap" onClick={(e) => e.stopPropagation()}>
             <div class="qcap-head">
               <span class="qcap-bulb"><BulbIcon /></span>
-              <span class="qcap-label">Neue Idee</span>
+              <span class="qcap-label">{t("idea.quick.label")}</span>
               <span class="qcap-spacer" />
               <span class="kbd kbd-inline">Esc</span>
             </div>
@@ -73,7 +68,7 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
               class="qcap-input"
               value={val()}
               onInput={(e) => setVal(e.currentTarget.value)}
-              placeholder="Worüber willst du schreiben?"
+              placeholder={t("idea.quick.placeholder")}
               spellcheck={false}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -89,23 +84,23 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
               }}
             />
             <div class="qcap-foot">
-              <button class="btn" onClick={props.onClose}>Abbrechen</button>
+              <button class="btn" onClick={props.onClose}>{t("common.cancel")}</button>
               <div style="flex:1" />
               <button
                 class="btn"
                 disabled={!val().trim() || saving()}
                 onClick={() => void save(true)}
-                title="Idee speichern und sofort als Skript öffnen"
+                title={t("idea.quick.createScript.title")}
               >
-                Skript erstellen <span class="kbd kbd-inline">{K("Mod+Enter")}</span>
+                {t("idea.quick.createScript")} <span class="kbd kbd-inline">{K("Mod+Enter")}</span>
               </button>
               <button
                 class="btn btn-primary"
                 disabled={!val().trim() || saving()}
                 onClick={() => void save(false)}
-                title="Idee merken"
+                title={t("idea.quick.remember.title")}
               >
-                Merken <span class="kbd kbd-inline">⏎</span>
+                {t("idea.quick.remember")} <span class="kbd kbd-inline">⏎</span>
               </button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   isValidHexColor,
   normalizeHexColor,
 } from "../../lib/colors";
+import { t } from "../../i18n";
 
 export interface ColorPickerPopoverProps {
   open: boolean;
@@ -89,7 +90,7 @@ export function ColorPickerPopover(props: ColorPickerPopoverProps) {
           width: `${POPOVER_WIDTH}px`,
         }}
         role="dialog"
-        aria-label={`Farbe für ${props.characterName}`}
+        aria-label={t("colorPicker.aria", { name: props.characterName })}
         onMouseDown={(ev) => ev.stopPropagation()}
       >
         <div class="scriptz-color-popover-title">{props.characterName}</div>
@@ -123,7 +124,7 @@ export function ColorPickerPopover(props: ColorPickerPopoverProps) {
                 submitHex();
               }
             }}
-            placeholder="#rrggbb"
+            placeholder={t("colorPicker.placeholder")}
           />
           <button
             type="button"
@@ -131,16 +132,16 @@ export function ColorPickerPopover(props: ColorPickerPopoverProps) {
             disabled={!isValidHexColor(hex())}
             onClick={submitHex}
           >
-            OK
+            {t("colorPicker.apply")}
           </button>
         </div>
         <button
           type="button"
           class="scriptz-color-reset"
           onClick={props.onReset}
-          title="App-weiten Override löschen — die Farbe fällt auf den nächsten freien Palette-Slot zurück."
+          title={t("colorPicker.reset.title")}
         >
-          Auf Standard zurücksetzen
+          {t("colorPicker.reset.label")}
         </button>
       </div>
     </Show>

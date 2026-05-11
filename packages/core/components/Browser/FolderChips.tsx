@@ -1,5 +1,6 @@
 import { For, Show, createSignal } from "solid-js";
 import type { Folder } from "../../lib/types";
+import { t } from "../../i18n";
 
 export const SCRIPT_DRAG_MIME = "application/x-scriptz-script-id";
 
@@ -23,9 +24,9 @@ export interface FolderChipsProps {
 export function FolderChips(props: FolderChipsProps) {
   return (
     <div class="folder-chips-row">
-      <div class="folder-chips-scroll" role="tablist" aria-label="Ordner">
+      <div class="folder-chips-scroll" role="tablist" aria-label={t("folder.aria.tablist")}>
         <Chip
-          label="Alle"
+          label={t("folder.all")}
           count={props.allCount}
           active={props.activeFolderId === null}
           onClick={() => props.onSelect(null)}
@@ -53,10 +54,10 @@ export function FolderChips(props: FolderChipsProps) {
       <button
         class="folder-chips-new"
         onClick={() => props.onCreateFolder()}
-        title="Neuer Ordner"
+        title={t("folder.new")}
         type="button"
       >
-        + Ordner
+        {t("folder.newButton")}
       </button>
     </div>
   );
@@ -119,4 +120,3 @@ function Chip(props: ChipProps) {
     </button>
   );
 }
-

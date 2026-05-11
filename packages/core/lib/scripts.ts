@@ -41,6 +41,7 @@ import {
   runtimeStatsFromContent,
 } from "./runtime";
 import type { Script, ScriptCharacter, ScriptSummary } from "./types";
+import { t } from "../i18n";
 
 interface SummaryRow {
   id: string;
@@ -184,7 +185,7 @@ export async function createScript(
   const db = await getDb();
   const id = crypto.randomUUID();
   const now = Date.now();
-  const finalTitle = title ?? "Unbenannt";
+  const finalTitle = title ?? t("common.untitled");
   const contentJson = initialContentJson ?? emptyLexicalState();
 
   const records = await loadColorRecords();
@@ -240,7 +241,7 @@ export async function duplicateScript(id: string): Promise<ScriptSummary> {
   const db = await getDb();
   const newId = crypto.randomUUID();
   const now = Date.now();
-  const newTitle = `${src.title} (Kopie)`;
+  const newTitle = `${src.title}${t("script.duplicateSuffix")}`;
   const charsJson = serializeCharsMeta(src.characters);
   // Duplikat: last_word_count auf den aktuellen Wortcount der Quelle
   // setzen, damit ein direktes Bearbeiten danach nur den Delta zählt

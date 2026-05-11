@@ -13,17 +13,20 @@ import { tabsStore } from "../../stores/tabs";
 import { pushToast } from "../../stores/toasts";
 import { relativeTime } from "../../lib/format";
 import { ConfirmDialog } from "../Common/ConfirmDialog";
+import { t, localeCompare } from "../../i18n";
 import type { Idea } from "../../lib/types";
 import "./IdeasView.css";
 
 type Filter = "open" | "all" | "used";
 type Sort = "newest" | "oldest" | "title";
 
-const SORTS: Array<{ id: Sort; label: string }> = [
-  { id: "newest", label: "Neueste" },
-  { id: "oldest", label: "Älteste" },
-  { id: "title", label: "Titel" },
-];
+function sortOptions(): Array<{ id: Sort; label: string }> {
+  return [
+    { id: "newest", label: t("ideas.sort.newest") },
+    { id: "oldest", label: t("ideas.sort.oldest") },
+    { id: "title", label: t("ideas.sort.title") },
+  ];
+}
 
 export function IdeasView() {
   const [filter, setFilter] = createSignal<Filter>("open");
@@ -42,8 +45,6 @@ export function IdeasView() {
     used: ideas().filter((i) => i.used_at).length,
   }));
 
-  // Skript-Titel-Lookup für die "Verwendet"-Ansicht. Wird neu geladen
-  // wenn sich die Skript-Liste ändert (Bus-Subscription).
   const [scriptIndex] = createResource(
     () => scriptsBus.version(),
     async () => {
@@ -71,22 +72,22 @@ export function IdeasView() {
     });
     const s = sort();
     list.sort((a, b) => {
-      if (s === "title") return a.title.localeCompare(b.title, "de");
+      if (s === "title") return localeCompare(a.title, b.title);
       if (s === "oldest") return a.created_at - b.created_at;
-      return b.created_at - a.created_at; // newest
+      return b.created_at - a.created_at;
     });
     return list;
   });
 
   async function commitDraft() {
-    const t = draft().trim();
-    if (!t) return;
+    const tx = draft().trim();
+    if (!tx) return;
     try {
-      await ideasStore.createIdea({ title: t });
+      await ideasStore.createIdea({ title: tx });
       setDraft("");
       captureRef?.focus();
     } catch (err) {
-      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     }
   }
 
@@ -96,10 +97,10 @@ export function IdeasView() {
         ideaId: idea.id,
         notesAsAction: true,
       });
-      pushToast(`„${script.title}" angelegt`, "ok");
+      pushToast(t("script.toast.created", { title: script.title }), "ok");
       tabsStore.openScript(script.id, script.title);
     } catch (err) {
-      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     }
   }
 
@@ -108,9 +109,9 @@ export function IdeasView() {
     if (!idea) return;
     try {
       await ideasStore.deleteIdea(idea.id);
-      pushToast(`„${idea.title}" gelöscht`, "ok");
+      pushToast(t("ideas.toast.deleted", { title: idea.title }), "ok");
     } catch (err) {
-      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     } finally {
       setPendingDelete(null);
     }
@@ -129,11 +130,8 @@ export function IdeasView() {
       <div class="ideas-view-inner">
         <header class="ideas-view-head">
           <div class="ideas-view-greet">
-            <h1 class="ideas-view-h">Ideen</h1>
-            <p class="ideas-view-sub">
-              Sammle, was du als Nächstes schreiben willst — und mach
-              daraus ein Skript, sobald die Idee Beine bekommt.
-            </p>
+            <h1 class="ideas-view-h">{t("ideas.h1")}</h1>
+            <p class="ideas-view-sub">{t("ideas.sub")}</p>
           </div>
         </header>
 
@@ -144,7 +142,7 @@ export function IdeasView() {
             class="ideas-view-capture-input"
             value={draft()}
             onInput={(e) => setDraft(e.currentTarget.value)}
-            placeholder="Was schreibst du als Nächstes?"
+            placeholder={t("ideas.capture.placeholder")}
             spellcheck={false}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -157,9 +155,9 @@ export function IdeasView() {
             <button
               class="ideas-view-capture-go"
               onClick={() => void commitDraft()}
-              title="Speichern (⏎)"
+              title={t("ideas.capture.title")}
             >
-              Hinzufügen
+              {t("ideas.capture.add")}
             </button>
           </Show>
         </div>
@@ -172,29 +170,29 @@ export function IdeasView() {
             <input
               value={query()}
               onInput={(e) => setQuery(e.currentTarget.value)}
-              placeholder="In Ideen suchen…"
+              placeholder={t("ideas.search.placeholder")}
               spellcheck={false}
             />
             <Show when={query()}>
               <button
                 class="ideas-view-search-clear"
                 onClick={() => setQuery("")}
-                title="Suche zurücksetzen"
-                aria-label="Suche zurücksetzen"
+                title={t("ideas.search.clear")}
+                aria-label={t("ideas.search.clear")}
               >
                 ×
               </button>
             </Show>
           </div>
 
-          <div class="ideas-view-segs" role="group" aria-label="Ideenfilter">
+          <div class="ideas-view-segs" role="group" aria-label={t("ideas.filter.aria")}>
             <button
               type="button"
               aria-pressed={filter() === "open"}
               classList={{ "is-on": filter() === "open" }}
               onClick={() => setFilter("open")}
             >
-              Offen <span class="ideas-view-seg-n">{counts().open}</span>
+              {t("ideas.filter.open")} <span class="ideas-view-seg-n">{counts().open}</span>
             </button>
             <button
               type="button"
@@ -202,7 +200,7 @@ export function IdeasView() {
               classList={{ "is-on": filter() === "all" }}
               onClick={() => setFilter("all")}
             >
-              Alle <span class="ideas-view-seg-n">{counts().all}</span>
+              {t("ideas.filter.all")} <span class="ideas-view-seg-n">{counts().all}</span>
             </button>
             <button
               type="button"
@@ -210,18 +208,18 @@ export function IdeasView() {
               classList={{ "is-on": filter() === "used" }}
               onClick={() => setFilter("used")}
             >
-              Verwendet <span class="ideas-view-seg-n">{counts().used}</span>
+              {t("ideas.filter.used")} <span class="ideas-view-seg-n">{counts().used}</span>
             </button>
           </div>
 
           <div class="ideas-view-sort">
-            <label class="ideas-view-sort-label" for="ideas-sort">Sortieren</label>
+            <label class="ideas-view-sort-label" for="ideas-sort">{t("ideas.sort.label")}</label>
             <select
               id="ideas-sort"
               value={sort()}
               onChange={(e) => setSort(e.currentTarget.value as Sort)}
             >
-              <For each={SORTS}>
+              <For each={sortOptions()}>
                 {(s) => <option value={s.id}>{s.label}</option>}
               </For>
             </select>
@@ -268,9 +266,9 @@ export function IdeasView() {
         {(idea) => (
           <ConfirmDialog
             open
-            title="Idee löschen?"
-            body={`„${idea().title}" wird endgültig gelöscht. Ein eventuell verknüpftes Skript bleibt bestehen.`}
-            confirmLabel="Löschen"
+            title={t("ideas.confirm.delete.title")}
+            body={t("ideas.confirm.delete.body", { title: idea().title })}
+            confirmLabel={t("common.delete")}
             danger
             onConfirm={() => void confirmDelete()}
             onCancel={() => setPendingDelete(null)}
@@ -295,15 +293,15 @@ function IdeasViewEmpty(props: {
         when={!hasQuery()}
         fallback={
           <>
-            <div class="ideas-view-empty-h">Keine Treffer.</div>
+            <div class="ideas-view-empty-h">{t("ideas.empty.search.h")}</div>
             <div class="ideas-view-empty-sub">
-              Nichts gefunden für „{props.query}".
+              {t("ideas.empty.search.sub", { query: props.query })}
             </div>
             <button
               class="btn ideas-view-empty-cta"
               onClick={props.onClearQuery}
             >
-              Suche zurücksetzen
+              {t("ideas.search.clear")}
             </button>
           </>
         }
@@ -312,22 +310,22 @@ function IdeasViewEmpty(props: {
           when={props.filter !== "used"}
           fallback={
             <>
-              <div class="ideas-view-empty-h">Noch keine Idee verwendet.</div>
+              <div class="ideas-view-empty-h">{t("ideas.empty.used.h")}</div>
               <div class="ideas-view-empty-sub">
-                Wenn du aus einer Idee ein Skript machst, landet sie hier.
+                {t("ideas.empty.used.sub")}
               </div>
             </>
           }
         >
-          <div class="ideas-view-empty-h">Noch keine Ideen.</div>
+          <div class="ideas-view-empty-h">{t("ideas.empty.h")}</div>
           <div class="ideas-view-empty-sub">
-            Tipp ein, was dir gerade einfällt — auch halbfertig.
+            {t("ideas.empty.sub")}
           </div>
           <button
             class="btn ideas-view-empty-cta"
             onClick={props.onFocusCapture}
           >
-            + Erste Idee
+            {t("ideas.empty.cta")}
           </button>
         </Show>
       </Show>
@@ -350,17 +348,17 @@ function IdeaCard(props: {
   const used = () => !!props.idea.used_at;
 
   async function save() {
-    const t = titleDraft().trim();
-    if (!t) {
+    const tx = titleDraft().trim();
+    if (!tx) {
       props.onCancelEdit();
       setTitleDraft(props.idea.title);
       return;
     }
     try {
-      await ideasStore.updateIdea({ id: props.idea.id, title: t, notes: notesDraft() });
+      await ideasStore.updateIdea({ id: props.idea.id, title: tx, notes: notesDraft() });
       props.onCancelEdit();
     } catch (err) {
-      pushToast(`Fehler: ${(err as Error).message ?? err}`, "error");
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     }
   }
 
@@ -389,14 +387,14 @@ function IdeaCard(props: {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void save(); }
                 if (e.key === "Escape") { e.preventDefault(); props.onCancelEdit(); }
               }}
-              placeholder="Titel"
+              placeholder={t("ideas.card.titlePlaceholder")}
             />
             <textarea
               class="idea-card-notes-input"
               rows={4}
               value={notesDraft()}
               onInput={(e) => setNotesDraft(e.currentTarget.value)}
-              placeholder="Stichpunkte, Hook, Setting … (optional)"
+              placeholder={t("ideas.card.notesPlaceholder")}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void save(); }
                 if (e.key === "Escape") { e.preventDefault(); props.onCancelEdit(); }
@@ -404,11 +402,11 @@ function IdeaCard(props: {
             />
             <div class="idea-card-edit-foot">
               <button class="idea-card-edit-del" onClick={() => props.onDelete()}>
-                Löschen
+                {t("common.delete")}
               </button>
               <div style="flex:1" />
-              <button class="btn" onClick={() => props.onCancelEdit()}>Abbrechen</button>
-              <button class="btn btn-primary" onClick={() => void save()}>Speichern</button>
+              <button class="btn" onClick={() => props.onCancelEdit()}>{t("common.cancel")}</button>
+              <button class="btn btn-primary" onClick={() => void save()}>{t("common.save")}</button>
             </div>
           </div>
         }
@@ -427,21 +425,21 @@ function IdeaCard(props: {
             <div class="idea-card-meta">
               <span class="idea-card-meta-time">
                 {used() && props.idea.used_at
-                  ? `Verwendet ${relativeTime(props.idea.used_at)}`
+                  ? t("ideas.card.usedAt", { when: relativeTime(props.idea.used_at) })
                   : relativeTime(props.idea.created_at)}
               </span>
               <Show when={used() && props.linkedScriptTitle}>
                 <button
                   class="idea-card-link"
                   onClick={(e) => { e.stopPropagation(); props.onOpenScript(); }}
-                  title="Verbundenes Skript öffnen"
+                  title={t("ideas.card.linked.title")}
                 >
                   <DocIcon /> {props.linkedScriptTitle}
                 </button>
               </Show>
               <Show when={used() && !props.linkedScriptTitle}>
-                <span class="idea-card-link is-stale" title="Das verbundene Skript existiert nicht mehr">
-                  <DocIcon /> Skript gelöscht
+                <span class="idea-card-link is-stale" title={t("ideas.card.linked.staleTitle")}>
+                  <DocIcon /> {t("ideas.card.linked.stale")}
                 </span>
               </Show>
             </div>
@@ -451,16 +449,16 @@ function IdeaCard(props: {
               <button
                 class="idea-card-cta"
                 onClick={(e) => { e.stopPropagation(); props.onConvert(); }}
-                title="Aus Idee ein Skript machen"
+                title={t("ideas.card.convert.title")}
               >
-                Skript →
+                {t("ideas.card.convert")}
               </button>
             </Show>
             <button
               class="idea-card-icon-btn"
               onClick={(e) => { e.stopPropagation(); props.onDelete(); }}
-              title="Idee löschen"
-              aria-label="Idee löschen"
+              title={t("ideas.card.delete.title")}
+              aria-label={t("ideas.card.delete.title")}
             >
               <TrashIcon />
             </button>

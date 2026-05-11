@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { pushToast } from "../../stores/toasts";
 import { settingsStore } from "../../stores/settings";
 import { getPlatformAdapter } from "../../lib/platform";
+import { t } from "../../i18n";
 import "./ExportDialog.css";
 
 const revealItemInDir = (path: string) => getPlatformAdapter().revealInFolder(path);
@@ -23,20 +24,12 @@ export function ExportDialog(props: ExportDialogProps) {
   const [titlePage, setTitlePage] = createSignal<boolean>(false);
   const [exporting, setExporting] = createSignal(false);
 
-  // Beim Öffnen Default-Highlighting aus der per-Skript-Einstellung
-  // ableiten, mit Fallback aufs globale Setting - identisch zur
-  // Resolution in ScriptView (`highlightingOn`). Wenn der User im
-  // Editor das Highlighting aktiv hat, soll die Checkbox hier von Haus
-  // aus angehakt sein.
   let prevOpen = false;
   createEffect(() => {
     const isOpen = props.open;
     if (isOpen && !prevOpen) {
       setTitlePage(false);
       setFormat("pdf");
-      // Optimistic default while the fetch is in flight - der Lookup
-      // ist in der Praxis Millisekunden, aber falls er trotzdem nach
-      // dem Dialog-Close zurueckkommt, ignorieren wir den Wert.
       setHighlighting(settingsStore.highlightingDefault());
       const id = props.scriptId;
       void (async () => {
@@ -48,7 +41,7 @@ export function ExportDialog(props: ExportDialogProps) {
           else if (enabled === 0) setHighlighting(false);
           else setHighlighting(settingsStore.highlightingDefault());
         } catch {
-          // Fallback bereits gesetzt - nichts zu tun.
+          /* Fallback bereits gesetzt */
         }
       })();
     }
@@ -74,15 +67,9 @@ export function ExportDialog(props: ExportDialogProps) {
       }
 
       if (result.cancelled) {
-        // User hat den Save-Dialog abgebrochen - kein Toast, kein Close.
-        // Dialog bleibt offen, damit ein zweiter Versuch keinen Klick
-        // extra kostet.
         return;
       }
 
-      // Desktop liefert den Pfad zurück, Web nicht. Wir versuchen nur
-      // dann zu revealen, wenn wir einen Pfad haben - sonst Toast mit
-      // "Heruntergeladen"-Wording, das im Browser auch ehrlich ist.
       if (result.path) {
         let revealed = true;
         try {
@@ -92,16 +79,16 @@ export function ExportDialog(props: ExportDialogProps) {
           console.warn("[scriptz] revealItemInDir failed", err);
         }
         if (revealed) {
-          pushToast("Export gespeichert", "ok");
+          pushToast(t("export.toast.saved"), "ok");
         } else {
-          pushToast(`Export gespeichert: ${result.path}`, "ok");
+          pushToast(t("export.toast.savedAt", { path: result.path }), "ok");
         }
       } else {
-        pushToast("Datei heruntergeladen", "ok");
+        pushToast(t("export.toast.downloaded"), "ok");
       }
       props.onClose();
     } catch (e) {
-      pushToast(`Export fehlgeschlagen: ${String(e)}`, "error");
+      pushToast(t("export.toast.failed", { message: String(e) }), "error");
     } finally {
       setExporting(false);
     }
@@ -118,14 +105,14 @@ export function ExportDialog(props: ExportDialogProps) {
     <Modal
       open={props.open}
       onClose={() => (exporting() ? null : props.onClose())}
-      title="Skript exportieren"
+      title={t("export.title")}
       footer={
         <>
           <button class="btn" onClick={() => props.onClose()} disabled={exporting()}>
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button class="btn btn-primary" onClick={onExport} disabled={exporting()}>
-            {exporting() ? "Exportiere…" : "Exportieren"}
+            {exporting() ? t("export.exporting") : t("export.button")}
           </button>
         </>
       }
@@ -140,7 +127,7 @@ export function ExportDialog(props: ExportDialogProps) {
               checked={format() === "pdf"}
               onChange={() => setFormat("pdf")}
             />
-            <span>PDF</span>
+            <span>{t("export.format.pdf")}</span>
           </label>
           <label class="settings-radio">
             <input
@@ -150,7 +137,7 @@ export function ExportDialog(props: ExportDialogProps) {
               checked={format() === "txt"}
               onChange={() => setFormat("txt")}
             />
-            <span>Plain Text (für Teleprompter)</span>
+            <span>{t("export.format.txt")}</span>
           </label>
           <label class="settings-radio">
             <input
@@ -160,7 +147,7 @@ export function ExportDialog(props: ExportDialogProps) {
               checked={format() === "scriptz"}
               onChange={() => setFormat("scriptz")}
             />
-            <span>ScriptZ-Datei (.scriptz)</span>
+            <span>{t("export.format.scriptz")}</span>
           </label>
         </div>
 
@@ -173,7 +160,7 @@ export function ExportDialog(props: ExportDialogProps) {
                 checked={highlighting()}
                 onChange={(e) => setHighlighting(e.currentTarget.checked)}
               />
-              <span>Charakter-Highlighting</span>
+              <span>{t("export.opt.highlighting")}</span>
             </label>
             <label class="export-opt">
               <input
@@ -181,7 +168,7 @@ export function ExportDialog(props: ExportDialogProps) {
                 checked={titlePage()}
                 onChange={(e) => setTitlePage(e.currentTarget.checked)}
               />
-              <span>Titelblatt einschließen</span>
+              <span>{t("export.opt.titlePage")}</span>
             </label>
           </div>
         </Show>
@@ -189,10 +176,7 @@ export function ExportDialog(props: ExportDialogProps) {
         <Show when={format() === "scriptz"}>
           <div class="export-divider" />
           <p class="export-help">
-            Eine ScriptZ-Datei enthält dieses Skript als Container und
-            kann auf einem anderen Gerät importiert werden (Datei →
-            Importieren). Nur das aktuelle Skript - ohne Ordner-
-            Zuordnung, ohne Versions-Verlauf.
+            {t("export.help.scriptz")}
           </p>
         </Show>
       </div>

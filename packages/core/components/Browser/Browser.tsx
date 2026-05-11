@@ -20,6 +20,7 @@ import {
   relativeTime,
   debounce,
 } from "../../lib/format";
+import { t, tPlural } from "../../i18n";
 
 /** Spielzeit-Label aus den persistierten Eingangswerten - dieselbe Formel
  *  wie in der Editor-Rail, gerendert über `runtimeLabelFromStats`.
@@ -48,12 +49,12 @@ import "./Browser.css";
  *  Vornamen zu (kein Onboarding mit Namensabfrage). */
 function greeting(): string {
   const h = new Date().getHours();
-  if (h < 5)  return "Noch wach";
-  if (h < 11) return "Guten Morgen";
-  if (h < 14) return "Mittag";
-  if (h < 18) return "Hallo";
-  if (h < 22) return "Guten Abend";
-  return "Späte Stunde";
+  if (h < 5)  return t("greeting.lateNight");
+  if (h < 11) return t("greeting.morning");
+  if (h < 14) return t("greeting.noon");
+  if (h < 18) return t("greeting.day");
+  if (h < 22) return t("greeting.evening");
+  return t("greeting.lateHour");
 }
 
 type Region = "scripts" | "trash";
@@ -74,13 +75,15 @@ const BUCKET_ORDER: BucketKey[] = [
   "diesen-monat",
   "aelter",
 ];
-const BUCKET_LABEL: Record<BucketKey, string> = {
-  "heute":         "Heute",
-  "gestern":       "Gestern",
-  "diese-woche":   "Diese Woche",
-  "diesen-monat": "Diesen Monat",
-  "aelter":        "Älter",
-};
+function bucketLabel(k: BucketKey): string {
+  switch (k) {
+    case "heute": return t("bucket.today");
+    case "gestern": return t("bucket.yesterday");
+    case "diese-woche": return t("bucket.thisWeek");
+    case "diesen-monat": return t("bucket.thisMonth");
+    case "aelter": return t("bucket.older");
+  }
+}
 
 function bucketOf(updatedAt: number): BucketKey {
   // Kalendertag-basiertes Bucketing: vergleicht zwei Daten an
@@ -102,11 +105,13 @@ function bucketOf(updatedAt: number): BucketKey {
   return "aelter";
 }
 
-const SORTS: { id: SortKey; label: string }[] = [
-  { id: "updated", label: "Geändert" },
-  { id: "created", label: "Erstellt" },
-  { id: "title",   label: "Titel" },
-];
+function sorts(): { id: SortKey; label: string }[] {
+  return [
+    { id: "updated", label: t("browser.sort.updated") },
+    { id: "created", label: t("browser.sort.created") },
+    { id: "title",   label: t("browser.sort.title") },
+  ];
+}
 
 export interface BrowserProps {
   /** Called with the currently active folder filter so the App-level
@@ -185,9 +190,9 @@ export function Browser(props: BrowserProps = {}) {
       scriptsBus.bump();
       foldersBus.bump();
       tabsStore.openScript(result.scriptId, result.title);
-      pushToast("Skript importiert", "ok");
+      pushToast(t("script.toast.imported"), "ok");
     } catch (e) {
-      pushToast(`Import fehlgeschlagen: ${(e as Error).message ?? e}`, "error");
+      pushToast(t("script.toast.importFailed", { message: (e as Error).message ?? String(e) }), "error");
     }
   }
 
@@ -270,7 +275,7 @@ export function Browser(props: BrowserProps = {}) {
     };
     for (const s of items) buckets[bucketOf(s.updated_at)].push(s);
     return BUCKET_ORDER
-      .map((k) => ({ key: k as string, label: BUCKET_LABEL[k], items: buckets[k] }))
+      .map((k) => ({ key: k as string, label: bucketLabel(k), items: buckets[k] }))
       .filter((g) => g.items.length > 0);
   });
 
@@ -282,22 +287,22 @@ export function Browser(props: BrowserProps = {}) {
   async function archive(s: ScriptSummary) {
     try {
       await api.archiveScript(s.id);
-      pushToast(`"${s.title}" in den Papierkorb verschoben`, "ok");
+      pushToast(t("script.toast.archived", { title: s.title }), "ok");
       scriptsBus.bump();
       foldersBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
   async function duplicate(s: ScriptSummary) {
     try {
       const dup = await api.duplicateScript(s.id);
-      pushToast("Skript dupliziert", "ok");
+      pushToast(t("script.toast.duplicated"), "ok");
       scriptsBus.bump();
       foldersBus.bump();
       tabsStore.openScript(dup.id, dup.title, { newTab: true });
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
   function startRename(s: ScriptSummary) {
@@ -315,10 +320,10 @@ export function Browser(props: BrowserProps = {}) {
     try {
       const updated = await api.renameScript(target.id, v);
       tabsStore.setScriptTitle(target.id, updated.title);
-      pushToast("Umbenannt", "ok");
+      pushToast(t("script.toast.renamed"), "ok");
       scriptsBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     } finally {
       setRenameTarget(null);
     }
@@ -329,20 +334,20 @@ export function Browser(props: BrowserProps = {}) {
       await api.moveScript(s.id, folderId);
       const fname =
         folderId === null
-          ? "Alle"
-          : folders()?.find((f) => f.id === folderId)?.name ?? "Ordner";
-      pushToast(`Verschoben nach „${fname}"`, "ok");
+          ? t("folder.all")
+          : folders()?.find((f) => f.id === folderId)?.name ?? t("folder.new");
+      pushToast(t("folder.toast.movedTo", { name: fname }), "ok");
       scriptsBus.bump();
       foldersBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
   }
 
   function ctxMenuItems(s: ScriptSummary): ContextMenuItem[] {
     const moveChildren: ContextMenuItem[] = [];
     moveChildren.push({
-      label: "Kein Ordner",
+      label: t("folder.none"),
       onClick: () => void moveScriptTo(s, null),
       disabled: s.folder_id === null,
     });
@@ -357,7 +362,7 @@ export function Browser(props: BrowserProps = {}) {
       }
     }
     moveChildren.push({
-      label: "Neuer Ordner…",
+      label: t("folder.newDots"),
       onClick: () => {
         setPendingMoveAfterCreate(s);
         setFolderCreateValue("");
@@ -366,13 +371,13 @@ export function Browser(props: BrowserProps = {}) {
     });
 
     return [
-      { label: "Öffnen", onClick: () => openScript(s) },
-      { label: "In neuem Tab öffnen", onClick: () => openScript(s, true) },
-      { label: "Umbenennen", onClick: () => startRename(s) },
-      { label: "Duplizieren", onClick: () => void duplicate(s) },
-      { label: "In Ordner verschieben", children: moveChildren },
+      { label: t("script.menu.open"), onClick: () => openScript(s) },
+      { label: t("script.menu.openNewTab"), onClick: () => openScript(s, true) },
+      { label: t("script.menu.rename"), onClick: () => startRename(s) },
+      { label: t("script.menu.duplicate"), onClick: () => void duplicate(s) },
+      { label: t("script.menu.move"), children: moveChildren },
       {
-        label: "In Papierkorb verschieben",
+        label: t("script.menu.trash"),
         onClick: () => void archive(s),
         danger: true,
       },
@@ -385,14 +390,14 @@ export function Browser(props: BrowserProps = {}) {
       y: ev.clientY,
       items: [
         {
-          label: "Umbenennen",
+          label: t("folder.menu.rename"),
           onClick: () => {
             setFolderRenameTarget(folder);
             setFolderRenameValue(folder.name);
           },
         },
         {
-          label: "Ordner löschen",
+          label: t("folder.menu.delete"),
           onClick: () => setFolderDeleteTarget(folder),
           danger: true,
         },
@@ -418,12 +423,12 @@ export function Browser(props: BrowserProps = {}) {
         await api.moveScript(pending.id, created.id);
         scriptsBus.bump();
         foldersBus.bump();
-        pushToast(`Verschoben nach „${created.name}"`, "ok");
+        pushToast(t("folder.toast.movedTo", { name: created.name }), "ok");
       } else {
-        pushToast(`Ordner „${created.name}" angelegt`, "ok");
+        pushToast(t("folder.toast.created", { name: created.name }), "ok");
       }
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     } finally {
       setFolderCreateOpen(false);
       setPendingMoveAfterCreate(null);
@@ -440,10 +445,10 @@ export function Browser(props: BrowserProps = {}) {
     }
     try {
       await api.renameFolder(target.id, v);
-      pushToast("Ordner umbenannt", "ok");
+      pushToast(t("folder.toast.renamed"), "ok");
       foldersBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     } finally {
       setFolderRenameTarget(null);
     }
@@ -454,12 +459,12 @@ export function Browser(props: BrowserProps = {}) {
     if (!target) return;
     try {
       await api.deleteFolder(target.id);
-      pushToast(`Ordner „${target.name}" gelöscht`, "ok");
+      pushToast(t("folder.toast.deleted", { name: target.name }), "ok");
       if (activeFolderId() === target.id) setActiveFolderId(null);
       foldersBus.bump();
       scriptsBus.bump();
     } catch (e) {
-      pushToast(`Fehler: ${(e as Error).message}`, "error");
+      pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     } finally {
       setFolderDeleteTarget(null);
     }
@@ -500,7 +505,7 @@ export function Browser(props: BrowserProps = {}) {
         <div class="home-header">
           <div class="home-greet">
             <h1 class="home-greet-h">{greeting()}.</h1>
-            <p class="home-greet-sub">Was schreibst du heute?</p>
+            <p class="home-greet-sub">{t("greeting.sub")}</p>
           </div>
 
           <MomentumStrip
@@ -514,7 +519,7 @@ export function Browser(props: BrowserProps = {}) {
               <input
                 ref={searchInputRef}
                 type="search"
-                placeholder="Skripte, Charaktere, Inhalte durchsuchen ..."
+                placeholder={t("browser.search.placeholder")}
                 value={searchInput()}
                 onInput={(e) => setSearchInput(e.currentTarget.value)}
                 spellcheck={false}
@@ -522,7 +527,7 @@ export function Browser(props: BrowserProps = {}) {
               />
               <button
                 class="home-search-kbd"
-                title={`Befehle (${K("Mod+K")})`}
+                title={t("browser.commands.title", { hotkey: K("Mod+K") })}
                 onClick={(e) => {
                   e.preventDefault();
                   props.onOpenCmdK?.();
@@ -532,13 +537,13 @@ export function Browser(props: BrowserProps = {}) {
               </button>
             </label>
 
-            <div class="viewseg" role="group" aria-label="Ansicht">
+            <div class="viewseg" role="group" aria-label={t("browser.view")}>
               <button
                 type="button"
                 classList={{ "is-on": viewMode() === "list" }}
                 onClick={() => setViewMode("list")}
-                title="Liste"
-                aria-label="Liste"
+                title={t("browser.view.list")}
+                aria-label={t("browser.view.list")}
               >
                 <ListIcon />
               </button>
@@ -546,8 +551,8 @@ export function Browser(props: BrowserProps = {}) {
                 type="button"
                 classList={{ "is-on": viewMode() === "grid" }}
                 onClick={() => setViewMode("grid")}
-                title="Raster"
-                aria-label="Raster"
+                title={t("browser.view.grid")}
+                aria-label={t("browser.view.grid")}
               >
                 <GridIcon />
               </button>
@@ -556,8 +561,8 @@ export function Browser(props: BrowserProps = {}) {
             <button
               class="icon-btn"
               onClick={onImportScriptz}
-              title="ScriptZ-Datei importieren"
-              aria-label="Importieren"
+              title={t("browser.import.title")}
+              aria-label={t("browser.import.aria")}
               type="button"
             >
               <ImportIcon />
@@ -567,8 +572,8 @@ export function Browser(props: BrowserProps = {}) {
               class="icon-btn"
               classList={{ "is-active": activeRegion() === "trash" }}
               onClick={() => setActiveRegion((r) => (r === "trash" ? "scripts" : "trash"))}
-              title="Papierkorb"
-              aria-label="Papierkorb"
+              title={t("browser.trash")}
+              aria-label={t("browser.trash")}
               type="button"
             >
               <TrashIcon />
@@ -580,7 +585,7 @@ export function Browser(props: BrowserProps = {}) {
               type="button"
             >
               <span class="home-new-plus" aria-hidden="true">+</span>
-              <span>Neu</span>
+              <span>{t("browser.new")}</span>
             </button>
           </div>
         </div>
@@ -607,24 +612,32 @@ export function Browser(props: BrowserProps = {}) {
         <Show when={!isWelcome()} fallback={
           <div class="home-welcome">
             <div class="home-empty-mark">z</div>
-            <div class="home-empty-h">Schreib dein erstes Skript</div>
+            <div class="home-empty-h">{t("browser.welcome.title")}</div>
             <div class="home-empty-sub">
-              Eine Idee in fünf Minuten zu einem ausgedruckten Skript.
-              Lokal, schnell, ohne Anmeldung.
+              {t("browser.welcome.body")}
             </div>
             <div class="home-empty-actions">
               <button class="btn btn-primary" onClick={() => openNewScript()}>
-                <span aria-hidden="true">+</span> Neues Skript
+                <span aria-hidden="true">+</span> {t("browser.newScript")}
               </button>
             </div>
             <div class="home-empty-hint">
-              Drück <span class="kbd kbd-inline">{K("Mod+N")}</span> um zu beginnen
+              {(() => {
+                const parts = t("browser.welcome.hint").split("{key}");
+                return (
+                  <>
+                    {parts[0]}
+                    <span class="kbd kbd-inline">{K("Mod+N")}</span>
+                    {parts[1] ?? ""}
+                  </>
+                );
+              })()}
             </div>
           </div>
         }>
           <div class="home-sortbar">
             <span class="home-count-line">
-              {list().length} {list().length === 1 ? "Skript" : "Skripte"}
+              {tPlural("units.scripts", list().length)}
               <Show when={activeFolderName()}> · {activeFolderName()}</Show>
               <Show when={isSearching()}> · „{debouncedSearch()}"</Show>
             </span>
@@ -637,7 +650,7 @@ export function Browser(props: BrowserProps = {}) {
               }}
             >
               <SortIcon />
-              <span>Sortieren · {SORTS.find((x) => x.id === sort())?.label}</span>
+              <span>{t("browser.sort.label", { value: sorts().find((x) => x.id === sort())?.label ?? "" })}</span>
               <ChevronDownIcon />
             </button>
           </div>
@@ -648,9 +661,9 @@ export function Browser(props: BrowserProps = {}) {
                 <Show when={list().length > 0} fallback={
                   <div class="home-empty">
                     <div class="home-empty-mark home-empty-mark-search"><SearchIcon /></div>
-                    <div class="home-empty-h">Nichts gefunden für „{debouncedSearch()}"</div>
+                    <div class="home-empty-h">{t("browser.empty.search.title", { query: debouncedSearch() })}</div>
                     <div class="home-empty-sub">
-                      Tipp: Suche schließt Titel und Charaktere ein.
+                      {t("browser.empty.search.hint")}
                     </div>
                   </div>
                 }>
@@ -718,7 +731,7 @@ export function Browser(props: BrowserProps = {}) {
                         class="btn btn-ghost"
                         onClick={() => setPageLimit((n) => n + PAGE_SIZE)}
                       >
-                        {PAGE_SIZE} weitere laden
+                        {t("browser.loadMore", { n: PAGE_SIZE })}
                       </button>
                     </div>
                   </Show>
@@ -726,9 +739,9 @@ export function Browser(props: BrowserProps = {}) {
               </Show>
             }>
               <div class="home-empty">
-                <div class="home-empty-h">„{activeFolderName()}" ist leer.</div>
+                <div class="home-empty-h">{t("browser.empty.folder.title", { folder: activeFolderName() ?? "" })}</div>
                 <div class="home-empty-sub">
-                  Skripte hierher ziehen oder per Rechtsklick „In Ordner verschieben" zuweisen.
+                  {t("browser.empty.folder.hint")}
                 </div>
               </div>
             </Show>
@@ -739,7 +752,7 @@ export function Browser(props: BrowserProps = {}) {
       <Show when={activeRegion() === "trash"}>
         <div class="trash-header">
           <button class="btn btn-ghost" onClick={() => setActiveRegion("scripts")}>
-            ← Übersicht
+            {t("browser.backToOverview")}
           </button>
         </div>
         <TrashView />
@@ -771,22 +784,22 @@ export function Browser(props: BrowserProps = {}) {
       <Modal
         open={renameTarget() !== null}
         onClose={() => setRenameTarget(null)}
-        title="Umbenennen"
+        title={t("script.renameTitle")}
         footer={
           <>
             <button class="btn" onClick={() => setRenameTarget(null)}>
-              Abbrechen
+              {t("common.cancel")}
             </button>
             <button class="btn btn-primary" onClick={commitRename}>
-              Speichern
+              {t("common.save")}
             </button>
           </>
         }
       >
         <Show when={renameTarget()}>
-          {(t) => (
+          {(target) => (
             <div class="field">
-              <label>Neuer Titel</label>
+              <label>{t("script.titleLabel")}</label>
               <input
                 type="text"
                 value={renameValue()}
@@ -796,7 +809,7 @@ export function Browser(props: BrowserProps = {}) {
                   if (e.key === "Enter") void commitRename();
                 }}
               />
-              <div class="muted small">Aktuell: {t().title}</div>
+              <div class="muted small">{t("common.current", { value: target().title })}</div>
             </div>
           )}
         </Show>
@@ -808,27 +821,27 @@ export function Browser(props: BrowserProps = {}) {
           setFolderCreateOpen(false);
           setPendingMoveAfterCreate(null);
         }}
-        title="Neuer Ordner"
+        title={t("folder.createTitle")}
         footer={
           <>
             <button class="btn" onClick={() => {
               setFolderCreateOpen(false);
               setPendingMoveAfterCreate(null);
             }}>
-              Abbrechen
+              {t("common.cancel")}
             </button>
             <button class="btn btn-primary" onClick={commitFolderCreate}>
-              Anlegen
+              {t("folder.createSubmit")}
             </button>
           </>
         }
       >
         <div class="field">
-          <label>Name</label>
+          <label>{t("common.name")}</label>
           <input
             type="text"
             value={folderCreateValue()}
-            placeholder="z. B. TikTok"
+            placeholder={t("folder.placeholder")}
             autofocus
             onInput={(e) => setFolderCreateValue(e.currentTarget.value)}
             onKeyDown={(e) => {
@@ -841,22 +854,22 @@ export function Browser(props: BrowserProps = {}) {
       <Modal
         open={folderRenameTarget() !== null}
         onClose={() => setFolderRenameTarget(null)}
-        title="Ordner umbenennen"
+        title={t("folder.renameTitle")}
         footer={
           <>
             <button class="btn" onClick={() => setFolderRenameTarget(null)}>
-              Abbrechen
+              {t("common.cancel")}
             </button>
             <button class="btn btn-primary" onClick={commitFolderRename}>
-              Speichern
+              {t("common.save")}
             </button>
           </>
         }
       >
         <Show when={folderRenameTarget()}>
-          {(t) => (
+          {(target) => (
             <div class="field">
-              <label>Neuer Name</label>
+              <label>{t("folder.renameLabel")}</label>
               <input
                 type="text"
                 value={folderRenameValue()}
@@ -866,25 +879,25 @@ export function Browser(props: BrowserProps = {}) {
                   if (e.key === "Enter") void commitFolderRename();
                 }}
               />
-              <div class="muted small">Aktuell: {t().name}</div>
+              <div class="muted small">{t("common.current", { value: target().name })}</div>
             </div>
           )}
         </Show>
       </Modal>
 
       <Show when={folderDeleteTarget()}>
-        {(t) => (
+        {(target) => (
           <ConfirmDialog
             open={true}
-            title={`„${t().name}" löschen?`}
+            title={t("folder.deleteTitle", { name: target().name })}
             body={
-              t().script_count === 0
-                ? "Der Ordner ist leer."
-                : t().script_count === 1
-                ? `Das eine Skript darin bleibt erhalten und ist danach unter „Alle" zu finden.`
-                : `Die ${t().script_count} Skripte darin bleiben erhalten und sind danach unter „Alle" zu finden.`
+              target().script_count === 0
+                ? t("folder.deleteBody.empty")
+                : target().script_count === 1
+                ? t("folder.deleteBody.one")
+                : t("folder.deleteBody.many", { count: target().script_count })
             }
-            confirmLabel="Löschen"
+            confirmLabel={t("common.delete")}
             danger
             onCancel={() => setFolderDeleteTarget(null)}
             onConfirm={() => void commitFolderDelete()}
@@ -909,7 +922,7 @@ function SortPopover(props: {
     <>
       <div class="popover-scrim" onClick={() => props.onClose()} />
       <div class="popover-menu" style={`left:${props.x}px;top:${props.y}px;`}>
-        <For each={SORTS}>
+        <For each={sorts()}>
           {(o) => (
             <button
               type="button"
@@ -951,7 +964,7 @@ function ScriptCard(props: ScriptCardProps) {
         }
       }}
       tabIndex={0}
-      aria-label={props.script.title || "Unbenannt"}
+      aria-label={props.script.title || t("common.untitled")}
     >
       <div
         class="card-v2-strip"
@@ -963,7 +976,7 @@ function ScriptCard(props: ScriptCardProps) {
         <div class="card-v2-head">
           <div class="card-v2-folder">{props.folderName}</div>
         </div>
-        <div class="card-v2-title">{props.script.title || "Unbenannt"}</div>
+        <div class="card-v2-title">{props.script.title || t("common.untitled")}</div>
         <div class="card-v2-meta-row">
           <span class="card-v2-meta">
             {relativeTime(props.script.updated_at)}
@@ -979,7 +992,7 @@ function ScriptCard(props: ScriptCardProps) {
               )}
             </For>
             <Show when={props.script.characters.length === 0}>
-              <span class="card-v2-meta-faint">Notiz</span>
+              <span class="card-v2-meta-faint">{t("browser.notes")}</span>
             </Show>
           </span>
         </div>
@@ -1013,14 +1026,14 @@ function ScriptRow(props: ScriptRowProps) {
           props.onOpen();
         }
       }}
-      aria-label={props.script.title || "Unbenannt"}
+      aria-label={props.script.title || t("common.untitled")}
     >
       <div
         class="row-stripe"
         classList={{ "row-stripe-empty": bg() === null }}
         style={bg() ? `background: ${bg()};` : ""}
       />
-      <div class="row-v2-title">{props.script.title || "Unbenannt"}</div>
+      <div class="row-v2-title">{props.script.title || t("common.untitled")}</div>
       <div class="row-v2-chars">
         <For each={props.script.characters.slice(0, 2)}>
           {(c) => (
@@ -1044,7 +1057,7 @@ function ScriptRow(props: ScriptRowProps) {
       </div>
       <button
         class="row-v2-more"
-        aria-label="Mehr Aktionen"
+        aria-label={t("browser.rowMore")}
         onClick={(e) => {
           e.stopPropagation();
           props.onMore(e as MouseEvent & { currentTarget: HTMLElement });

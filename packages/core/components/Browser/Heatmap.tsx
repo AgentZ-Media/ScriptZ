@@ -1,4 +1,5 @@
 import { For, Show, createMemo } from "solid-js";
+import { t, tPlural, getCurrentLocale, language } from "../../i18n";
 import "./Heatmap.css";
 
 export interface HeatmapProps {
@@ -10,17 +11,33 @@ export interface HeatmapProps {
  *  à 7 Tage, älteste Spalte links, „heute" rechts unten. Tooltip pro
  *  Zelle zeigt das Datum + die Wortzahl. */
 export function Heatmap(props: HeatmapProps) {
+  // language() lesen, damit Sprach-Wechsel die Wochentag-/Monat-Labels
+  // sofort neu rendert (Memo trackt das Signal).
   const grid = createMemo(() => buildGrid(props.dailyWords));
-  const monthLabels = createMemo(() => buildMonthLabels(grid()));
+  const monthLabels = createMemo(() => {
+    void language();
+    return buildMonthLabels(grid());
+  });
   // Wochentag-Labels: nur jede zweite Spalte ist sichtbar (Mo/Mi/Fr/So),
   // aria-Variante listet alle sieben für Screen-Reader, damit die Grid-
   // Struktur lesbar bleibt.
-  const dayLabelsVisible = ["Mo", "", "Mi", "", "Fr", "", "So"];
+  const dayLabelsVisible = createMemo(() => {
+    void language();
+    return [
+      t("weekday.short.1"), // Mo
+      "",
+      t("weekday.short.3"), // Mi
+      "",
+      t("weekday.short.5"), // Fr
+      "",
+      t("weekday.short.0"), // So
+    ];
+  });
   return (
     <div
       class="hm"
       role="grid"
-      aria-label="Aktivitätsverlauf der letzten 365 Tage"
+      aria-label={t("activity.heatmap.aria")}
     >
       <div
         class="hm-months"
@@ -31,7 +48,7 @@ export function Heatmap(props: HeatmapProps) {
       </div>
       <div class="hm-grid-wrap">
         <div class="hm-days">
-          <For each={dayLabelsVisible}>
+          <For each={dayLabelsVisible()}>
             {(label) => <span aria-hidden="true">{label}</span>}
           </For>
         </div>
@@ -65,13 +82,13 @@ export function Heatmap(props: HeatmapProps) {
         </div>
       </div>
       <div class="hm-legend" aria-hidden="true">
-        <span>Weniger</span>
+        <span>{t("activity.heatmap.less")}</span>
         <span class="hm-cell" data-l={0} />
         <span class="hm-cell" data-l={1} />
         <span class="hm-cell" data-l={2} />
         <span class="hm-cell" data-l={3} />
         <span class="hm-cell" data-l={4} />
-        <span>Mehr</span>
+        <span>{t("activity.heatmap.more")}</span>
       </div>
     </div>
   );
@@ -125,8 +142,6 @@ function buildGrid(daily: number[]): (Cell | null)[][] {
   return weeks;
 }
 
-const MONTH_LABELS = ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
-
 function buildMonthLabels(weeks: (Cell | null)[][]): string[] {
   // Pro Wochenspalte ein Label - aber nur einmal pro Monat. Wenn die
   // Woche den 1. eines Monats enthält (auch mitten in der Woche, also
@@ -143,16 +158,22 @@ function buildMonthLabels(weeks: (Cell | null)[][]): string[] {
     const month = monthMarker.date.getMonth();
     if (month === lastMonth) return "";
     lastMonth = month;
-    return MONTH_LABELS[month];
+    return t(`month.short.${month}` as
+      | "month.short.0" | "month.short.1" | "month.short.2" | "month.short.3"
+      | "month.short.4" | "month.short.5" | "month.short.6" | "month.short.7"
+      | "month.short.8" | "month.short.9" | "month.short.10" | "month.short.11");
   });
 }
 
 function tooltip(date: Date, words: number): string {
-  const fmt = date.toLocaleDateString("de-DE", {
+  const fmt = date.toLocaleDateString(getCurrentLocale(), {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
-  if (words === 0) return `${fmt} · keine Aktivität`;
-  return `${fmt} · ${words.toLocaleString("de-DE")} ${words === 1 ? "Wort" : "Wörter"}`;
+  if (words === 0) return t("activity.heatmap.tooltip.noActivity", { date: fmt });
+  return tPlural("activity.heatmap.tooltip.words", words, {
+    date: fmt,
+    count: words.toLocaleString(getCurrentLocale()),
+  });
 }
