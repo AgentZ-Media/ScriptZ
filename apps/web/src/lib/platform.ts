@@ -46,9 +46,12 @@ const webAdapter: PlatformAdapter = {
     );
   },
   async getVersion() {
-    // Phase D: Platzhalter-Version. Wird in Phase H aus apps/web/package.json
-    // gezogen und im Footer angezeigt.
-    return "0.0.0-web";
+    // Auto-synchron mit apps/desktop/package.json - vite.config.ts liest
+    // den Wert dort zum Build-Zeitpunkt und injectet ihn als
+    // __APP_VERSION__. Settings rendert "ScriptZ · v{appVersion()}", und
+    // die soll auf Web und Desktop identisch sein - jede Tag-Push-Release
+    // zieht die Web-Anzeige damit ohne Extra-Aufwand mit.
+    return __APP_VERSION__;
   },
   async openUrl(url) {
     window.open(url, "_blank", "noopener,noreferrer");
