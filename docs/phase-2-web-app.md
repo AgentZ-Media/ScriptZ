@@ -76,10 +76,41 @@ erzwungen - sonst fällt die Web-App stillschweigend auseinander.
 Streng in dieser Reihenfolge. Jede Phase ist einzeln merge-bar und
 für sich verifizierbar.
 
-### Phase A - Workspace-Paket `core` einziehen, Files umziehen (~2-3 Tage)
+### Phase A - Workspace-Paket `core` einziehen, Files umziehen (~2-3 Tage) ✅ ERLEDIGT (2026-05-11, PR #6)
 
 Ziel: Desktop-App läuft identisch wie vorher, aber Code lebt in
 `packages/core/`. Kein neues Feature, kein Web-Skelett.
+
+**Was wirklich gemacht wurde** (Stand `e2b273a` auf main):
+
+- ~95 Dateien via `git mv` nach [`packages/core/`](../packages/core/)
+  verschoben (lib, stores, components, styles, assets). History
+  erhalten dank `git mv`.
+- **Platform-Abstraktion** in [`packages/core/lib/platform.ts`](../packages/core/lib/platform.ts)
+  schon eingebaut (`DbConnection`-Interface, `PlatformAdapter` mit
+  `getDb`, `getVersion`, `openUrl`, `revealInFolder`, `saveDialog`,
+  `exportPdf`, `exportPlaintext`). Das war eigentlich für Phase C
+  geplant, musste aber jetzt schon rein - sonst hätte die Zirkular-
+  Kopplung core → db.ts → Tauri Phase A blockiert.
+- Tauri-Implementierung in neuer [`apps/desktop/src/lib/platform.ts`](../apps/desktop/src/lib/platform.ts),
+  registriert sich beim Modul-Load via `setPlatformAdapter()`.
+- Updates-Store-Slot analog in [`packages/core/lib/updates.ts`](../packages/core/lib/updates.ts):
+  SettingsDialog blendet "Updates"-Section auf Plattformen ohne
+  registrierten Store dezent aus (Web-Case).
+- ESLint-Regel `no-restricted-imports` blockt `@tauri-apps/*` in core.
+- 18 Sanity-Tests in [`packages/core/lib/__tests__/`](../packages/core/lib/__tests__/)
+  (extractCharacterNames, dialogWordsByCharacter,
+  extractTeleprompterText, parseCharsMeta-Roundtrip,
+  eqIgnoreAsciiCase, Jaccard).
+- Verbleibend in `apps/desktop/src/`: `App.tsx`, `index.tsx`,
+  `vite-env.d.ts`, `lib/{tauri,exportPdf,exportPlaintext,platform}.ts`,
+  `stores/updates.ts`, `components/Common/UpdateIndicator.{tsx,css}`.
+
+**Konsequenz für Phase C**: Storage-Adapter-Vollausbau hat schon das
+Platform-Adapter-Pattern als Basis. Phase C wird kleiner als
+ursprünglich geplant - es geht nur noch um das volle
+`StorageAdapter`-Interface mit allen CRUDs als Erweiterung
+von `PlatformAdapter.getDb()`.
 
 Schritte:
 
