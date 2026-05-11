@@ -6,7 +6,7 @@
 // Migration Phase 1.
 
 import { writeTextFile, mkdir } from "@tauri-apps/plugin-fs";
-import { extractTeleprompterText } from "./lex";
+import { extractTeleprompterText } from "@scriptz/core/lib/lex";
 
 export interface ExportPlaintextInput {
   scriptId: string;

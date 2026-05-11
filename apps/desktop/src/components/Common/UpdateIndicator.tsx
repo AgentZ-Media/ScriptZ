@@ -1,5 +1,5 @@
 import { Show, onMount, onCleanup } from "solid-js";
-import { settingsStore } from "~/stores/settings";
+import { settingsStore } from "@scriptz/core/stores/settings";
 import { updatesStore } from "~/stores/updates";
 import "./UpdateIndicator.css";
 

@@ -22,6 +22,9 @@ importers:
       '@pdf-lib/fontkit':
         specifier: ^1.1.1
         version: 1.1.1
+      '@scriptz/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@tauri-apps/api':
         specifier: ^2
         version: 2.11.0
@@ -99,6 +102,43 @@ importers:
       typescript:
         specifier: ~5.6.2
         version: 5.6.3
+
+  packages/core:
+    dependencies:
+      '@lexical/history':
+        specifier: ^0.44.0
+        version: 0.44.0
+      '@lexical/rich-text':
+        specifier: ^0.44.0
+        version: 0.44.0
+      '@lexical/utils':
+        specifier: ^0.44.0
+        version: 0.44.0
+      lexical:
+        specifier: ^0.44.0
+        version: 0.44.0
+      solid-js:
+        specifier: ^1.9.3
+        version: 1.9.12
+    devDependencies:
+      '@solidjs/testing-library':
+        specifier: ^0.8.10
+        version: 0.8.10(@solidjs/router@0.16.1(solid-js@1.9.12))(solid-js@1.9.12)
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+      typescript:
+        specifier: ~5.6.2
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.3
+        version: 6.4.2(yaml@2.8.4)
+      vite-plugin-solid:
+        specifier: ^2.11.0
+        version: 2.11.12(solid-js@1.9.12)(vite@6.4.2(yaml@2.8.4))
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(jsdom@25.0.1)
 
 packages:
 
