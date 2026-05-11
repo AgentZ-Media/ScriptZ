@@ -1,7 +1,7 @@
 // Dexie-basierter StorageAdapter (Phase E).
 //
-// Erfuellt das StorageAdapter-Interface aus @scriptz/core und ersetzt
-// damit den In-Memory-Stub aus Phase D. Persistenz via IndexedDB ueber
+// Erfüllt das StorageAdapter-Interface aus @scriptz/core und ersetzt
+// damit den In-Memory-Stub aus Phase D. Persistenz via IndexedDB über
 // Dexie - dieselben Tabellen wie der SQLite-Stamm der Desktop-App,
 // nur ohne FTS5 (kommt in Phase F via MiniSearch) und ohne SQL-
 // Transactions-Semantik (Dexie's `transaction("rw", ...)` ist die
@@ -9,8 +9,8 @@
 //
 // Schema bewusst flach indiziert. IndexedDB kann nullable Felder
 // schlecht indizieren, und unsere Filter (archiviert ja/nein, folder
-// = X / kein Folder) wuerden mit Indizes kaum schneller sein. Bei
-// Datenmengen im persoenlichen Drehbuch-Volumen (< 1000 Skripte) ist
+// = X / kein Folder) würden mit Indizes kaum schneller sein. Bei
+// Datenmengen im persönlichen Drehbuch-Volumen (< 1000 Skripte) ist
 // ein Voll-Scan pro Listing irrelevant. Wenn jemand mal 5000 Skripte
 // pflegt, machen wir das gezielt schneller.
 
@@ -120,9 +120,9 @@ class ScriptzDb extends Dexie {
 
   constructor() {
     super("scriptz");
-    // Schema-Version 1. Sekundaer-Indizes minimal halten - was wir oft
+    // Schema-Version 1. Sekundär-Indizes minimal halten - was wir oft
     // sortieren (updated_at, created_at) bekommt einen Index, der Rest
-    // laeuft ueber den Voll-Scan, der bei den ueblichen Datenmengen
+    // läuft über den Voll-Scan, der bei den üblichen Datenmengen
     // schneller ist als Index-Maintenance.
     this.version(1).stores({
       scripts: "id, updated_at, created_at",
@@ -141,7 +141,7 @@ const db = new ScriptzDb();
 
 // ===== Persistenz-Schutz =====
 //
-// IndexedDB darf vom Browser bei Speicherdruck geraeumt werden. Mit
+// IndexedDB darf vom Browser bei Speicherdruck geräumt werden. Mit
 // `navigator.storage.persist()` bitten wir um den "persistent"-Status,
 // damit nichts ungefragt gekippt wird. Best-effort: kein User-Dialog,
 // kein Throw, kein Retry - wenn der Browser ablehnt (z.B. Safari ITP
@@ -161,7 +161,7 @@ function ensurePersisted(): void {
         .then((granted) => {
           if (!granted) {
             console.info(
-              "[scriptz-web] storage.persist() abgelehnt - Daten koennten bei Speicherdruck geraeumt werden",
+              "[scriptz-web] storage.persist() abgelehnt - Daten könnten bei Speicherdruck geräumt werden",
             );
           }
         })
@@ -174,7 +174,7 @@ function ensurePersisted(): void {
   }
 }
 
-// ===== Helper: Lexical-State-Leeres, Wortzaehlung, Reconcile =====
+// ===== Helper: Lexical-State-Leeres, Wortzählung, Reconcile =====
 
 function emptyLexicalState(): string {
   return JSON.stringify({
@@ -514,7 +514,7 @@ class IndexedDbStorage implements StorageAdapter {
     folderId?: string | null;
   } = {}): Promise<ScriptSummary[]> {
     // Voll-Scan plus In-Memory-Filter. Bei < 1000 Skripten irrelevant -
-    // die Sortierung darunter laeuft sowieso auf dem JS-Array.
+    // die Sortierung darunter läuft sowieso auf dem JS-Array.
     let list = await db.scripts.toArray();
     const onlyArchived = query.onlyArchived ?? false;
     const includeArchived = query.includeArchived ?? false;
@@ -774,7 +774,7 @@ class IndexedDbStorage implements StorageAdapter {
 
   // ---------- Search ----------
   // Phase E: einfache Substring-Suche in Title + Block-Text. Phase F
-  // bringt MiniSearch fuer BM25-Ranking + Tokenisierung.
+  // bringt MiniSearch für BM25-Ranking + Tokenisierung.
   async globalSearch(query: string, limit = 50): Promise<SearchHit[]> {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -980,9 +980,9 @@ class IndexedDbStorage implements StorageAdapter {
     folderId?: string | null;
     notesAsAction?: boolean;
   }): Promise<{ idea: Idea; script: ScriptSummary }> {
-    // Idee reservieren -> Skript anlegen -> script_id zurueckschreiben.
+    // Idee reservieren -> Skript anlegen -> script_id zurückschreiben.
     // Schritt 1 + 3 atomar; Schritt 2 (createScript) hat seine eigene
-    // Transaktion, weil Dexie keine verschachtelten unterstuetzt.
+    // Transaktion, weil Dexie keine verschachtelten unterstützt.
     const claimedAt = Date.now();
     const idea = await db.transaction("rw", db.ideas, async () => {
       const i = await db.ideas.get(input.ideaId);
@@ -1073,5 +1073,5 @@ function daysSinceMondayInclusive(d: Date = new Date()): number {
 
 // Slot-Registrierung beim Modul-Load. main.tsx ordnet die Imports so,
 // dass der SQL-Default-Adapter aus core/lib/api zuerst greift und hier
-// direkt danach ueberschrieben wird.
+// direkt danach überschrieben wird.
 setStorageAdapter(new IndexedDbStorage());
