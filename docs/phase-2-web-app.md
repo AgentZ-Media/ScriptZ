@@ -345,22 +345,127 @@ ruft er ein Interface auf, das der Desktop-Code per Adapter erfüllt.
 Ein Grep nach `@tauri-apps/plugin-sql` in `packages/core/` ergibt
 nichts.
 
-### Phase D - `apps/web/` Skelett (~1 Tag)
+### Phase D - `apps/web/` Skelett (~1 Tag) ✅ ERLEDIGT (2026-05-11)
 
-Ziel: Im Browser läuft ein leerer Editor, der aus `core` kommt - noch
-ohne Persistenz.
+**Was wirklich gemacht wurde** (Stand `ae08790` auf main):
 
-1. `apps/web/` mit Vite+Solid (TypeScript) bootstrappen. `index.html`,
-   `main.tsx`, ein `App.tsx`-Stub.
-2. Editor aus `core` mounten. Storage-Adapter ist ein **In-Memory-
-   Stub** (Map im RAM), nur damit was funktioniert.
-3. Tippen, Block-Hotkeys (⌘1..7), Charakter-Erkennung, Tab-Picker -
-   alles muss out-of-the-box gehen, weil keine Tauri-Annahmen drin
-   sind. Wenn nicht: Bug in Phase A, B oder C, zurück und fixen.
-4. Build und Dev-Server konfigurieren.
+- Neuer Workspace `apps/web/` als reine `@scriptz/core`-Schale (Vite +
+  Solid, Port 5173, kein Tauri). [apps/web/package.json](../apps/web/package.json),
+  [tsconfig.json](../apps/web/tsconfig.json), [vite.config.ts](../apps/web/vite.config.ts),
+  [index.html](../apps/web/index.html).
+- [`apps/web/src/lib/platform.ts`](../apps/web/src/lib/platform.ts) -
+  Web-`PlatformAdapter` ohne `@tauri-apps/*`. `detectPlatform()` liest
+  via `navigator.userAgentData?.platform || navigator.userAgent`.
+  `getDb()` wirft bewusst (der StorageAdapter ersetzt die SQL-Schicht
+  komplett). `exportPdf`/`exportPlaintext` werfen mit Phase-F-Hinweis.
+  `openUrl` geht ueber `window.open`, `revealInFolder` ist No-op.
+- [`apps/web/src/lib/storage.ts`](../apps/web/src/lib/storage.ts) -
+  In-Memory-`StorageAdapter` mit allen 30 Methoden des Interfaces.
+  Re-used die reinen Core-Helper (`extractCharacterNames`,
+  `dialogWordsByCharacter`, `runtimeStatsFromContent`,
+  `DEFAULT_PALETTE`) fuer 1:1-Verhalten bei Character-Reconciliation.
+  *(In Phase E durch IndexedDB-Variante ersetzt und geloescht.)*
+- [`apps/web/src/main.tsx`](../apps/web/src/main.tsx) - Import-
+  Reihenfolge load-bearing: Platform -> `@scriptz/core/lib/api`
+  (registriert SQL-Default) -> Memory-Adapter (ueberschreibt Slot)
+  -> Styles -> App.
+- [`apps/web/src/App.tsx`](../apps/web/src/App.tsx) - Spiegel der
+  Desktop-`App.tsx`, **ohne** Tauri-`onCloseRequested`-Block und
+  ohne `flushAll`-Aufruf (kommt in Phase F als
+  `beforeunload`/`pagehide`).
+- **Trafficlight-Spacer**: macOS-Regel in
+  [`tokens.css`](../packages/core/styles/tokens.css) verlangt jetzt
+  zusaetzlich `:not([data-shell="web"])`. Der Web-Adapter setzt
+  `<html data-shell="web">` neben dem `data-platform`. Mac-Browser-User
+  sehen weiter ⌘-Hotkeys (das haengt am `data-platform`), aber der
+  78px-Spacer fuer Trafficlights faellt weg - im Browser gibt's eh
+  keine.
+- Root-Scripts: `dev:web` + `build:web` in
+  [`package.json`](../package.json) ergaenzt.
 
-**Akzeptanzkriterium**: `pnpm dev:web` startet, Editor lädt, Schreiben
-funktioniert. Beim Reload sind die Daten weg - das ist hier OK.
+**Was bewusst NICHT gemacht wurde** (per Phase-D-Scope):
+
+- IndexedDB / Dexie (Phase E), FTS-Suche / PDF / Plain-Text-Export
+  (Phase F), Disclaimer / Branding / Deploy (Phase H).
+- `beforeunload`-Save-Flush. Bei Reload mitten im Tippen koennen die
+  letzten ~250 ms verloren gehen (Editor-Debounce). Erwartetes
+  Phase-D-Verhalten: "Reload = Daten weg".
+
+**Akzeptanzkriterium (verifiziert)**: `pnpm dev:web` startet, Editor
+laedt, Welcome-Skript wird seeded, ⌘N erzeugt neue Skripte, Tippen
+funktioniert (Lexical mountet, `beforeinput` schreibt korrekt in
+Blocks). Beim Reload sind die Daten weg - das ist hier OK.
+
+### Phase E - IndexedDB-Adapter via Dexie (~1-2 Tage) ✅ ERLEDIGT (2026-05-11)
+
+**Was wirklich gemacht wurde** (Stand auf main):
+
+- `dexie@^4.0.10` als Dependency in
+  [`apps/web/package.json`](../apps/web/package.json).
+- Neuer Adapter unter
+  [`apps/web/src/adapters/indexeddb.ts`](../apps/web/src/adapters/indexeddb.ts) -
+  vollstaendige `StorageAdapter`-Implementierung gegen IndexedDB via
+  Dexie. Schema v1 mit 8 Tabellen, 1:1-Spiegel der SQLite-Migrations
+  001 + 003: `scripts`, `folders`, `snapshots`, `ideas`,
+  `character_colors`, `daily_word_log`, `settings`, `app_state`.
+  Sekundaer-Indizes minimal gehalten (nur was wirklich sortiert wird,
+  z.B. `updated_at` / `created_at`); Filter wie "archived = null"
+  oder "folder_id = X" laufen ueber In-Memory-Filter, weil
+  IndexedDB nullable Felder schlecht indizieren kann und die
+  Skripte-Volumina im persoenlichen Bereich (< 1000) Voll-Scan
+  vertragen.
+- **Character-Reconciliation** identisch zur Desktop-Logik
+  (override > sticky > default > Palette), inkl. Default-Backfill in
+  `character_colors` bei jedem neuen Namen. Logik live-portiert aus
+  [`scripts.ts::reconcileCharsFromContent`](../packages/core/lib/scripts.ts),
+  ohne die SQL-Variante zu modifizieren.
+- **Wort-Delta-Buchung**: `updateScript` schreibt positive Deltas in
+  `daily_word_log` (lokales YYYY-MM-DD-Bucket) und bumpt
+  `dailyStatsBus`. Sentinel `-1` aus Migration 003 wird respektiert -
+  erstes Save normalisiert nur den Count.
+- **Snapshot-Cap 50**: nach jedem `createSnapshot` / `restoreSnapshot`
+  werden ueberzaehlige Eintraege per `bulkDelete` getrimmt.
+- **Folder-Delete** verhaelt sich wie SQLite `ON DELETE SET NULL` -
+  Skripte bleiben, `folder_id` wird geleert.
+- **Idee-Konvertierung** atomar via Dexie-Transaction; bumpt
+  `scriptsBus + foldersBus + ideasBus` wie der Core. Rollback bei
+  Skript-Anlage-Fehlern setzt `used_at` der Idee zurueck.
+- **Persistenz-Schutz**: `navigator.storage.persist()` wird beim
+  ersten Schreibvorgang best-effort angefragt. Kein User-Dialog,
+  kein Throw bei Ablehnung - der Disclaimer in Phase H macht das
+  Verhalten ehrlich.
+- [`main.tsx`](../apps/web/src/main.tsx) importiert jetzt
+  `./adapters/indexeddb` statt des Memory-Stubs. Der Phase-D-Stub
+  `apps/web/src/lib/storage.ts` wurde geloescht.
+- **Version-Sync**: `apps/web` liest zum Build-Zeitpunkt
+  `apps/desktop/package.json` und injectet die Version via Vite-`define`
+  als `__APP_VERSION__`. Settings rendert `ScriptZ · v{Version}`
+  damit immer synchron - keine zusaetzliche Version-Stelle in der
+  Release-Checkliste.
+
+**Was bewusst NICHT gemacht wurde** (per Phase-E-Scope):
+
+- **Volltextsuche**: `globalSearch` macht aktuell eine einfache
+  Substring-Suche in Title + Block-Text. MiniSearch (BM25-Ranking,
+  Tokenisierung mit Diacritic-Folding) kommt in Phase F.
+- **PDF/Plain-Text-Export**: `exportPdf` / `exportPlaintext`
+  delegieren an den Platform-Adapter, der weiterhin den Phase-F-
+  Hinweis wirft. Erst wenn der Web-Export-Pfad in Phase F gebaut ist,
+  greift der Dialog.
+- **CAS-Schutz fuer Multi-Tab-Saves**: Dexie-Transactions serialisieren
+  innerhalb eines Tabs. Multi-Tab ist bei einer Single-Writer-App
+  selten - falls noetig spaeter via BroadcastChannel oder
+  `storage`-Event.
+- **Lazy-Loading der Skript-Karten**: erst bei realer Volumina-Lage
+  optimieren (siehe Plan), nicht spekulativ.
+
+**Akzeptanzkriterium (verifiziert)**: Skript mit Marker-Text
+`PHASE-E-MARKER` gespeichert, `window.location.reload()`, Marker
+weiterhin im Editor sichtbar. `app_state` enthaelt
+`onboarding_completed_v1`, `welcome_seeded_v3`, `open_tabs`,
+`browser.view_mode`, `browser.active_folder`. `daily_word_log`
+zaehlt einzelne Wort-Deltas auf den lokalen Tagesbucket. Build:
+488 KB JS (+100 KB ggue Phase D - das ist Dexie).
 
 ### Phase E - IndexedDB-Adapter via Dexie (~1-2 Tage)
 
