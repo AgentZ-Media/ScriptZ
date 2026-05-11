@@ -13,8 +13,8 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { writeFile, mkdir } from "@tauri-apps/plugin-fs";
-import { extractBlocks, type ExtractedBlock } from "./lex";
-import type { ScriptCharacter } from "./types";
+import { extractBlocks, type ExtractedBlock } from "@scriptz/core/lib/lex";
+import type { ScriptCharacter } from "@scriptz/core/lib/types";
 
 // ---- Geometry (mm) — verbatim from src-tauri/src/commands/export.rs ----
 const A4_W_MM = 210.0;

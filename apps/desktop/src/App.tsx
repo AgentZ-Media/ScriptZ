@@ -9,28 +9,28 @@ import {
   ErrorBoundary,
   Suspense,
 } from "solid-js";
-import { settingsStore } from "~/stores/settings";
-import { tabsStore } from "~/stores/tabs";
-import { pushToast } from "~/stores/toasts";
-import { scriptsBus } from "~/lib/scriptsBus";
-import { foldersBus } from "~/lib/foldersBus";
-import { dailyStatsBus } from "~/lib/dailyStatsBus";
-import { api } from "~/lib/api";
-import TabBar from "~/components/TabBar";
-import ScriptView from "~/components/Editor/ScriptView";
-import Browser from "~/components/Browser/Browser";
-import { CommandBar } from "~/components/CommandBar/CommandBar";
-import { SettingsDialog } from "~/components/Settings/SettingsDialog";
-import { NewScriptDialog } from "~/components/Browser/NewScriptDialog";
-import { ExportDialog } from "~/components/Editor/ExportDialog";
-import ToastHost from "~/components/Common/ToastHost";
-import { IdeaQuickCapture } from "~/components/Ideas/IdeaQuickCapture";
-import { IdeasView } from "~/components/Ideas/IdeasView";
-import { ensureWelcomeContent } from "~/lib/welcome";
-import { flushAll } from "~/lib/saveFlush";
-import { OnboardingDialog, ONBOARDING_KEY } from "~/components/Onboarding/OnboardingDialog";
+import { settingsStore } from "@scriptz/core/stores/settings";
+import { tabsStore } from "@scriptz/core/stores/tabs";
+import { pushToast } from "@scriptz/core/stores/toasts";
+import { scriptsBus } from "@scriptz/core/lib/scriptsBus";
+import { foldersBus } from "@scriptz/core/lib/foldersBus";
+import { dailyStatsBus } from "@scriptz/core/lib/dailyStatsBus";
+import { api } from "@scriptz/core/lib/api";
+import TabBar from "@scriptz/core/components/TabBar";
+import ScriptView from "@scriptz/core/components/Editor/ScriptView";
+import Browser from "@scriptz/core/components/Browser/Browser";
+import { CommandBar } from "@scriptz/core/components/CommandBar/CommandBar";
+import { SettingsDialog } from "@scriptz/core/components/Settings/SettingsDialog";
+import { NewScriptDialog } from "@scriptz/core/components/Browser/NewScriptDialog";
+import { ExportDialog } from "@scriptz/core/components/Editor/ExportDialog";
+import ToastHost from "@scriptz/core/components/Common/ToastHost";
+import { IdeaQuickCapture } from "@scriptz/core/components/Ideas/IdeaQuickCapture";
+import { IdeasView } from "@scriptz/core/components/Ideas/IdeasView";
+import { ensureWelcomeContent } from "@scriptz/core/lib/welcome";
+import { flushAll } from "@scriptz/core/lib/saveFlush";
+import { OnboardingDialog, ONBOARDING_KEY } from "@scriptz/core/components/Onboarding/OnboardingDialog";
 
-import "./components/Common/Common.css";
+import "@scriptz/core/components/Common/Common.css";
 
 export default function App() {
   const [bootReady, setBootReady] = createSignal(false);

@@ -1,7 +1,8 @@
 import { createSignal } from "solid-js";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { settingsStore } from "./settings";
+import { settingsStore } from "@scriptz/core/stores/settings";
+import { setUpdatesStore, type UpdatesStore } from "@scriptz/core/lib/updates";
 
 export type UpdateStage =
   | "idle"
@@ -126,7 +127,7 @@ function stopBackgroundPolling(): void {
   }
 }
 
-export const updatesStore = {
+export const updatesStore: UpdatesStore = {
   stage,
   available,
   progress,
@@ -138,3 +139,7 @@ export const updatesStore = {
   startBackgroundPolling,
   stopBackgroundPolling,
 };
+
+// Register with @scriptz/core so SettingsDialog can pick it up. Web
+// builds skip this and the "Updates" section stays hidden.
+setUpdatesStore(updatesStore);
