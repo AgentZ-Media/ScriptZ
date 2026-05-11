@@ -104,6 +104,32 @@ const allIdeas = [...openIdeas, ...usedIdeas];
         <span class="v2-meta-sep">·</span>
         <span>0 Tracker · 0 Konten · 0 KI</span>
       </div>
+
+      <details class="v2-install v2-install-hero">
+        <summary>
+          <span class="v2-install-summary-text">Beim ersten Öffnen blockiert macOS die App?</span>
+          <span class="v2-install-chevron" aria-hidden="true">▾</span>
+        </summary>
+        <div class="v2-install-body">
+          <p class="v2-install-text">
+            Das ist normal - ScriptZ ist Open Source und nicht bei
+            Apple registriert. Einmal diesen Befehl im Terminal
+            ausführen, danach läuft alles wie gewohnt:
+          </p>
+          <div class="v2-install-code">
+            <code>xattr -cr /Applications/ScriptZ.app</code>
+            <button class="v2-install-copy" type="button" data-copy="xattr -cr /Applications/ScriptZ.app">
+              Kopieren
+            </button>
+          </div>
+          <p class="v2-install-why">
+            Apple verlangt eine kostenpflichtige Signatur, die diesen
+            Schritt überflüssig machen würde. Bis sich das lohnt, ist
+            der kurze Befehl der Preis dafür, dass ScriptZ kostenlos
+            und ohne Konto bleibt.
+          </p>
+        </div>
+      </details>
     </div>
   </section>
 
@@ -556,6 +582,32 @@ const allIdeas = [...openIdeas, ...usedIdeas];
           </div>
         </div>
 
+        <div class="v2-block v2-sfx">SFX: <span class="v2-t-plain">Erster Start</span></div>
+
+        <div class="v2-block v2-action">
+          Beim ersten Öffnen meldet macOS, dass die App nicht überprüft
+          werden kann. Das ist normal - ScriptZ ist Open Source und
+          nicht bei Apple registriert. Einmal den Befehl unten im
+          Terminal ausführen, danach läuft alles wie gewohnt.
+        </div>
+
+        <div class="v2-install v2-install-paper">
+          <div class="v2-install-body">
+            <div class="v2-install-code">
+              <code>xattr -cr /Applications/ScriptZ.app</code>
+              <button class="v2-install-copy" type="button" data-copy="xattr -cr /Applications/ScriptZ.app">
+                Kopieren
+              </button>
+            </div>
+            <p class="v2-install-why">
+              <strong>Warum?</strong> Apple verlangt eine kostenpflichtige
+              Signatur, die diesen Schritt überflüssig machen würde. Bis
+              sich das lohnt, ist der kurze Befehl der Preis dafür, dass
+              ScriptZ kostenlos und ohne Konto bleibt.
+            </p>
+          </div>
+        </div>
+
         <div class="v2-block v2-camera">FADE OUT.</div>
 
         <div class="v2-end">
@@ -735,6 +787,26 @@ const allIdeas = [...openIdeas, ...usedIdeas];
           shots.forEach((s) => {
             s.classList.toggle('is-active', s.getAttribute('data-shot') === id);
           });
+        });
+      });
+
+      // ===== Copy-Button im Install-Hinweis =========================
+      document.querySelectorAll('.v2-install-copy').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const cmd = btn.getAttribute('data-copy') || '';
+          try {
+            await navigator.clipboard.writeText(cmd);
+            const original = btn.textContent;
+            btn.textContent = 'Kopiert ✓';
+            btn.classList.add('is-done');
+            setTimeout(() => {
+              btn.textContent = original;
+              btn.classList.remove('is-done');
+            }, 1600);
+          } catch (e) {
+            btn.textContent = 'Bitte manuell kopieren';
+            setTimeout(() => { btn.textContent = 'Kopieren'; }, 2000);
+          }
         });
       });
 
@@ -1270,6 +1342,107 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     font-size: 15px;
     line-height: 1.6;
     color: rgba(255,255,255,0.92);
+  }
+
+  /* === Install-Hinweis (xattr-Befehl) ====================
+     Zwei Varianten: im Hero collabsierbar (<details>), im Paper
+     immer offen. Code-Zeile mit Kopier-Button. */
+  .v2-install {
+    margin: 28px auto 0;
+    max-width: 640px;
+    border: 1px dashed rgba(28,24,20,0.22);
+    border-radius: 8px;
+    text-align: left;
+    background: rgba(255,255,255,0.55);
+  }
+  .v2-install summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1c1814;
+    user-select: none;
+  }
+  .v2-install summary::-webkit-details-marker { display: none; }
+  .v2-install-chevron {
+    color: #5b554c;
+    font-size: 10px;
+    transition: transform 200ms ease;
+  }
+  .v2-install[open] .v2-install-chevron { transform: rotate(180deg); }
+  .v2-install-body {
+    padding: 0 18px 16px;
+  }
+  .v2-install[open] .v2-install-body {
+    border-top: 1px dashed rgba(28,24,20,0.12);
+    padding-top: 16px;
+  }
+  .v2-install-text {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #5b554c;
+    line-height: 1.55;
+  }
+  .v2-install-code {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 14px;
+    border-radius: 6px;
+    background: rgba(28,24,20,0.05);
+    border: 1px solid rgba(28,24,20,0.08);
+  }
+  .v2-install-code code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 13px;
+    color: #1c1814;
+    padding: 6px 0;
+    background: transparent;
+  }
+  .v2-install-code code::-webkit-scrollbar { display: none; }
+  .v2-install-copy {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 4px;
+    background: #1c1814;
+    color: #fff;
+    border: 0;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .v2-install-copy:hover { background: #0f0d0a; }
+  .v2-install-copy.is-done { background: #4f9a6c; }
+  .v2-install-why {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: #8a8276;
+    line-height: 1.55;
+  }
+  .v2-install-why strong { color: #1c1814; font-weight: 700; }
+
+  /* Im Paper voll sichtbar (kein <details>), volle Breite des
+     Paper-Bereichs. Body bekommt Padding rundherum, damit der Text
+     nicht an der gestrichelten Linie klemmt. */
+  .v2-install-paper {
+    max-width: none;
+    margin: 16px 0 0;
+    background: transparent;
+  }
+  .v2-install-paper .v2-install-body {
+    padding: 18px;
+    border-top: 0;
   }
 
   /* === No-AI Grid ========================================== */
