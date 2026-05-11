@@ -992,9 +992,11 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     position: relative;
   }
   .v2-tab-badge {
+    /* Innerhalb der Tab-Bounds positioniert, weil .v2-tabs durch
+       overflow-x: auto auch vertikal clippt. */
     position: absolute;
-    top: -2px;
-    right: 0;
+    top: 2px;
+    right: 2px;
     min-width: 14px;
     height: 14px;
     border-radius: 999px;
@@ -1006,6 +1008,7 @@ const allIdeas = [...openIdeas, ...usedIdeas];
     align-items: center;
     justify-content: center;
     padding: 0 3px;
+    line-height: 1;
   }
   .v2-tab-script {
     min-width: 110px;
