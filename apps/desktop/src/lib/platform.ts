@@ -13,13 +13,34 @@ import Database from "@tauri-apps/plugin-sql";
 import { save } from "@tauri-apps/plugin-dialog";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
+import { platform as osPlatform } from "@tauri-apps/plugin-os";
 import {
+  applyPlatformToDocument,
   setPlatformAdapter,
   type DbConnection,
+  type Platform,
   type PlatformAdapter,
 } from "@scriptz/core/lib/platform";
 import { exportPdf as runExportPdf } from "./exportPdf";
 import { exportPlaintext as runExportPlaintext } from "./exportPlaintext";
+
+// Map Tauri's OS string to our three-bucket Platform. iOS / Android
+// would arrive on Tauri Mobile; for the desktop bundle we collapse
+// anything non-Mac/Windows to "linux" so the keyboard + chrome path
+// degrades sensibly.
+function detectPlatform(): Platform {
+  try {
+    const p = osPlatform();
+    if (p === "macos") return "macos";
+    if (p === "windows") return "windows";
+    return "linux";
+  } catch {
+    // Dev-mode without Tauri (pure `vite dev`): default to macos so
+    // the keyboard handling matches the historical behaviour. The
+    // host process always has Tauri in production builds.
+    return "macos";
+  }
+}
 
 // Lazy plugin-sql connection. Cached, with reset-on-failure so a
 // transient open failure (file locked mid-write, plugin not yet ready)
@@ -39,6 +60,7 @@ function loadDesktopDb(): Promise<DbConnection> {
 }
 
 const tauriAdapter: PlatformAdapter = {
+  platform: detectPlatform(),
   getDb: loadDesktopDb,
   getVersion: () => getVersion(),
   openUrl: (url) => openUrl(url),
@@ -52,3 +74,4 @@ const tauriAdapter: PlatformAdapter = {
 };
 
 setPlatformAdapter(tauriAdapter);
+applyPlatformToDocument();

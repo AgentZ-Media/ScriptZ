@@ -9,6 +9,7 @@ import {
 import type { LexicalEditor } from "lexical";
 import { Editor } from "./Editor";
 import { api } from "../../lib/api";
+import { K } from "../../lib/keys";
 import { tabsStore } from "../../stores/tabs";
 import { settingsStore } from "../../stores/settings";
 import { pushToast } from "../../stores/toasts";
@@ -327,7 +328,7 @@ export function ScriptView(props: ScriptViewProps) {
             <Show when={props.focusMode}>
               <button
                 class="focus-toggle"
-                title="Fokus verlassen (⇧⌘F)"
+                title={`Fokus verlassen (${K("Mod+Shift+F")})`}
                 aria-label="Fokus verlassen"
                 onClick={props.onToggleFocus}
               >

@@ -14,6 +14,14 @@
    ========================================================================= */
 
 :root {
+  /* ---- Plattform-spezifisches Window-Chrome ----
+     Auf macOS sitzen die Trafficlights links oben (78 px breit) -
+     die Titlebar braucht entsprechend Platz, damit die Tabs nicht
+     darunterrutschen. Auf Windows/Linux sind die Fenster-Buttons
+     rechts, also kein Spacer links noetig. `applyPlatformToDocument()`
+     setzt `<html data-platform="...">` beim Adapter-Setup. */
+  --titlebar-traffic-width: 0px;
+
   /* ---- Tinte (Akzent, vorher Brand Orange) ----
      Light: #1c1814  (Tinte)
      Dark:  ueberschrieben im [data-theme="dark"]-Block weiter unten. */
@@ -49,10 +57,17 @@
   --char-4: #2fa56b;
   --char-5: #d04141;
 
-  /* ---- Type ---- */
-  --font-sans:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
-  --font-mono:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
-  --font-paper: "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, monospace;
+  /* ---- Type ----
+     iA Writer Quattro ist gebundlet (siehe fonts.css) und laedt auf
+     allen Plattformen. Die Fallback-Kette deckt den Moment vor dem
+     Font-Load und exotische Fehlerfaelle ab:
+       - ui-monospace + SF Mono + Menlo: macOS
+       - "Cascadia Mono" + Consolas: Windows
+       - "DejaVu Sans Mono": Linux
+       - monospace: harter Schluss-Fallback. */
+  --font-sans:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+  --font-mono:  "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+  --font-paper: "iA Writer Quattro", ui-monospace, "SF Mono", Menlo, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
 
   --fs-11: 11px;
   --fs-12: 12px;
@@ -113,6 +128,11 @@
   --paper-content-h: calc(
     var(--paper-h) - var(--paper-margin-top) - var(--paper-margin-bottom)
   );
+}
+
+/* macOS-spezifisch: Platz fuer die Trafficlight-Knoepfe oben links. */
+[data-platform="macos"] {
+  --titlebar-traffic-width: 78px;
 }
 
 /* ============================================================

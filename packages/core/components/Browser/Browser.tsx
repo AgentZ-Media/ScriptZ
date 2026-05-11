@@ -15,6 +15,7 @@ import { runtimeLabelFromStats } from "../../lib/runtime";
 import { tabsStore } from "../../stores/tabs";
 import { settingsStore } from "../../stores/settings";
 import { pushToast } from "../../stores/toasts";
+import { K } from "../../lib/keys";
 import {
   relativeTime,
   debounce,
@@ -508,13 +509,13 @@ export function Browser(props: BrowserProps = {}) {
               />
               <button
                 class="home-search-kbd"
-                title="Befehle (⌘K)"
+                title={`Befehle (${K("Mod+K")})`}
                 onClick={(e) => {
                   e.preventDefault();
                   props.onOpenCmdK?.();
                 }}
               >
-                ⌘K
+                {K("Mod+K")}
               </button>
             </label>
 
@@ -594,7 +595,7 @@ export function Browser(props: BrowserProps = {}) {
               </button>
             </div>
             <div class="home-empty-hint">
-              Drück <span class="kbd kbd-inline">⌘N</span> um zu beginnen
+              Drück <span class="kbd kbd-inline">{K("Mod+N")}</span> um zu beginnen
             </div>
           </div>
         }>

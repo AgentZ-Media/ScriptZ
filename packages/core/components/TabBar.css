@@ -27,7 +27,9 @@
      vom Editor-Inhalt trennt, beim Modal-Open aber wie gewohnt blurst. */
   z-index: 60;
   display: grid;
-  grid-template-columns: 78px 1fr auto auto;
+  /* Erste Spalte ist Spacer fuer die macOS-Trafficlights (78 px) bzw.
+     0 auf Windows/Linux (siehe --titlebar-traffic-width in tokens.css). */
+  grid-template-columns: var(--titlebar-traffic-width) 1fr auto auto;
   align-items: center;
   height: 34px;
   padding: 0 12px;
@@ -47,8 +49,10 @@
   }
 }
 
-/* Spacer für die macOS-Trafficlights (78 px nativ, +12 px Atemluft). */
-.titlebar-traffic { width: 78px; height: 34px; }
+/* Spacer fuer die macOS-Trafficlights (78 px nativ, +12 px Atemluft).
+   Auf Windows/Linux wird --titlebar-traffic-width 0 und der Spacer
+   verschwindet (Fenster-Buttons sitzen dort rechts). */
+.titlebar-traffic { width: var(--titlebar-traffic-width); height: 34px; }
 
 /* ----- Tab-Reihe ----- */
 .tabs {

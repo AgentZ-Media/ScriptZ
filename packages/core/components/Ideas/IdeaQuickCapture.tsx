@@ -3,6 +3,7 @@ import { Portal } from "solid-js/web";
 import { api } from "../../lib/api";
 import { tabsStore } from "../../stores/tabs";
 import { pushToast } from "../../stores/toasts";
+import { K } from "../../lib/keys";
 
 export interface IdeaQuickCaptureProps {
   open: boolean;
@@ -96,7 +97,7 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
                 onClick={() => void save(true)}
                 title="Idee speichern und sofort als Skript öffnen"
               >
-                Skript erstellen <span class="kbd kbd-inline">⌘⏎</span>
+                Skript erstellen <span class="kbd kbd-inline">{K("Mod+Enter")}</span>
               </button>
               <button
                 class="btn btn-primary"

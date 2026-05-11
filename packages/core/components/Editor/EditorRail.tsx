@@ -7,6 +7,7 @@ import {
 } from "../../lib/runtime";
 import { settingsStore } from "../../stores/settings";
 import type { ScriptCharacter } from "../../lib/types";
+import { K } from "../../lib/keys";
 import "./EditorRail.css";
 
 export interface EditorRailProps {
@@ -167,8 +168,8 @@ export function EditorRail(props: EditorRailProps) {
           Verlauf öffnen
         </button>
         <div class="rail-versions-hint">
-          <span class="kbd kbd-inline">⌘⇧S</span> sichert manuell ·{" "}
-          <span class="kbd kbd-inline">⌘⇧H</span> öffnet diesen Verlauf
+          <span class="kbd kbd-inline">{K("Mod+Shift+S")}</span> sichert manuell ·{" "}
+          <span class="kbd kbd-inline">{K("Mod+Shift+H")}</span> öffnet diesen Verlauf
         </div>
       </Show>
     </aside>

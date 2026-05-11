@@ -12,6 +12,14 @@
 
 import type { ScriptCharacter } from "./types";
 
+// ===== Host platform =====
+//
+// The three OS families we care about. iOS / Android map to "linux"
+// for now (their webview behaviour is closer to linux than to macos
+// from the editor's perspective). Stays sync for the app's lifetime.
+
+export type Platform = "macos" | "windows" | "linux";
+
 // ===== Database connection =====
 //
 // Structural interface - Tauri's @tauri-apps/plugin-sql Database class
@@ -66,6 +74,10 @@ export interface SaveDialogOptions {
 // ===== Adapter interface =====
 
 export interface PlatformAdapter {
+  /** Operating system this app runs on. Synchronous and static for the
+   * app's lifetime - host detects once at startup. */
+  platform: Platform;
+
   /** Return a live database connection. May be lazy. */
   getDb(): Promise<DbConnection>;
 
@@ -107,4 +119,13 @@ export function getPlatformAdapter(): PlatformAdapter {
     );
   }
   return adapter;
+}
+
+/** Write the host platform onto `<html data-platform="...">` so plattform-
+ * spezifische CSS-Regeln (Trafficlight-Padding etc.) greifen koennen.
+ * No-op in non-DOM environments. Hosts rufen das am Ende ihrer
+ * platform.ts auf, nachdem `setPlatformAdapter()` durch ist. */
+export function applyPlatformToDocument(): void {
+  if (typeof document === "undefined" || !adapter) return;
+  document.documentElement.dataset.platform = adapter.platform;
 }

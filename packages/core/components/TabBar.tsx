@@ -3,6 +3,7 @@ import { tabsStore } from "../stores/tabs";
 import { dailyStatsStore } from "../stores/dailyStats";
 import { settingsStore } from "../stores/settings";
 import { ideasStore } from "../stores/ideas";
+import { K } from "../lib/keys";
 
 import "./TabBar.css";
 
@@ -114,7 +115,7 @@ export function TabBar(props: TabBarProps) {
 
         <button
           class="tab-new"
-          title="Neues Skript (⌘N)"
+          title={`Neues Skript (${K("Mod+N")})`}
           aria-label="Neues Skript"
           onClick={() => props.onNewScript?.()}
           type="button"
@@ -129,7 +130,7 @@ export function TabBar(props: TabBarProps) {
         type="button"
         class="titlebar-gear"
         onClick={() => props.onOpenSettings?.()}
-        title="Einstellungen (⌘,)"
+        title={`Einstellungen (${K("Mod+,")})`}
         aria-label="Einstellungen"
       >
         <GearIcon />

@@ -6,6 +6,7 @@ import { scriptsBus } from "../../lib/scriptsBus";
 import { pushToast } from "../../stores/toasts";
 import { getPlatformAdapter } from "../../lib/platform";
 import { getUpdatesStore } from "../../lib/updates";
+import { K } from "../../lib/keys";
 import { ColorPickerPopover } from "../Editor/ColorPickerPopover";
 import type { CharacterColorRecord } from "../../lib/types";
 import "./SettingsDialog.css";
@@ -38,38 +39,41 @@ interface ShortcutGroup {
   items: Array<{ keys: string; desc: string }>;
 }
 
+// Shortcut-Anzeige plattform-aware: K() rendert "⌘N" auf macOS und
+// "Ctrl+N" auf Windows/Linux. Eager evaluation am Modul-Load reicht,
+// weil die Platform sich zur Laufzeit nicht aendert.
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Allgemein",
     items: [
-      { keys: "⌘N",   desc: "Neues Skript anlegen" },
-      { keys: "⌘T",   desc: "Zur Übersicht" },
-      { keys: "⌘W",   desc: "Aktiven Tab schließen" },
-      { keys: "⌘K",   desc: "Skript-Suche öffnen" },
-      { keys: "⌘F",   desc: "Suchfeld in der Übersicht fokussieren" },
-      { keys: "⌘,",   desc: "Einstellungen öffnen" },
-      { keys: "⌘I",   desc: "Idee schnell erfassen" },
-      { keys: "⌘0–⌘9", desc: "Tab per Index aktivieren (0 = Übersicht)" },
-      { keys: "⌘⌥← / ⌘⌥→", desc: "Zwischen Tabs wechseln" },
+      { keys: K("Mod+N"), desc: "Neues Skript anlegen" },
+      { keys: K("Mod+T"), desc: "Zur Übersicht" },
+      { keys: K("Mod+W"), desc: "Aktiven Tab schließen" },
+      { keys: K("Mod+K"), desc: "Skript-Suche öffnen" },
+      { keys: K("Mod+F"), desc: "Suchfeld in der Übersicht fokussieren" },
+      { keys: K("Mod+,"), desc: "Einstellungen öffnen" },
+      { keys: K("Mod+I"), desc: "Idee schnell erfassen" },
+      { keys: `${K("Mod+0")}-${K("Mod+9")}`, desc: "Tab per Index aktivieren (0 = Übersicht)" },
+      { keys: `${K("Mod+Alt+ArrowLeft")} / ${K("Mod+Alt+ArrowRight")}`, desc: "Zwischen Tabs wechseln" },
     ],
   },
   {
     title: "Editor",
     items: [
-      { keys: "Tab",  desc: "Block-Typ-Picker öffnen" },
-      { keys: "⌘1",   desc: "Block-Typ → Action" },
-      { keys: "⌘2",   desc: "Block-Typ → Charakter" },
-      { keys: "⌘3",   desc: "Block-Typ → Dialog" },
-      { keys: "⌘4",   desc: "Block-Typ → Parenthetical" },
-      { keys: "⌘5",   desc: "Block-Typ → Kamera" },
-      { keys: "⌘6",   desc: "Block-Typ → Caption" },
-      { keys: "⌘7",   desc: "Block-Typ → SFX" },
-      { keys: "⏎",    desc: "Smart-Enter: nächster passender Block" },
-      { keys: "⌘B / ⌘I / ⌘U", desc: "Fett / Kursiv / Unterstrichen" },
-      { keys: "⌘E",   desc: "Skript exportieren" },
-      { keys: "⇧⌘F",  desc: "Fokus-Modus an/aus" },
-      { keys: "⌘⇧S",  desc: "Manuellen Snapshot anlegen" },
-      { keys: "⌘⇧H",  desc: "Snapshot-Verlauf öffnen" },
+      { keys: "Tab", desc: "Block-Typ-Picker öffnen" },
+      { keys: K("Mod+1"), desc: "Block-Typ → Action" },
+      { keys: K("Mod+2"), desc: "Block-Typ → Charakter" },
+      { keys: K("Mod+3"), desc: "Block-Typ → Dialog" },
+      { keys: K("Mod+4"), desc: "Block-Typ → Parenthetical" },
+      { keys: K("Mod+5"), desc: "Block-Typ → Kamera" },
+      { keys: K("Mod+6"), desc: "Block-Typ → Caption" },
+      { keys: K("Mod+7"), desc: "Block-Typ → SFX" },
+      { keys: K("Enter"), desc: "Smart-Enter: nächster passender Block" },
+      { keys: `${K("Mod+B")} / ${K("Mod+I")} / ${K("Mod+U")}`, desc: "Fett / Kursiv / Unterstrichen" },
+      { keys: K("Mod+E"), desc: "Skript exportieren" },
+      { keys: K("Mod+Shift+F"), desc: "Fokus-Modus an/aus" },
+      { keys: K("Mod+Shift+S"), desc: "Manuellen Snapshot anlegen" },
+      { keys: K("Mod+Shift+H"), desc: "Snapshot-Verlauf öffnen" },
     ],
   },
 ];
@@ -246,7 +250,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 <div class="row-label">Fokus-Modus standardmäßig aktiv</div>
                 <div class="row-help">
                   Beim Öffnen eines Skripts sind Toolbar und Cast-Leiste
-                  ausgeblendet. ⇧⌘F holt sie zurück.
+                  ausgeblendet. {K("Mod+Shift+F")} holt sie zurück.
                 </div>
               </div>
               <Toggle

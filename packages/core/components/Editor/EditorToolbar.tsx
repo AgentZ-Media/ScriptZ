@@ -2,6 +2,7 @@ import { For, Show, createSignal, createEffect } from "solid-js";
 import type { LexicalEditor } from "lexical";
 import { setBlockType } from "./plugins/blockHotkeys";
 import type { BlockType } from "../../lib/types";
+import { K } from "../../lib/keys";
 import "./EditorToolbar.css";
 
 interface BlockDef {
@@ -16,16 +17,16 @@ interface BlockDef {
 // die Toolbar für die Zielgruppe (TikTok / Reels) nicht überladen
 // wirkt - per Tab-Picker und ⌘4..7 sind sie weiter direkt erreichbar.
 const PRIMARY_BLOCKS: BlockDef[] = [
-  { id: "scriptz-action",        label: "Action",     hint: "⌘1" },
-  { id: "scriptz-character",     label: "Charakter",  hint: "⌘2" },
-  { id: "scriptz-dialog",        label: "Dialog",     hint: "⌘3" },
+  { id: "scriptz-action",        label: "Action",     hint: K("Mod+1") },
+  { id: "scriptz-character",     label: "Charakter",  hint: K("Mod+2") },
+  { id: "scriptz-dialog",        label: "Dialog",     hint: K("Mod+3") },
 ];
 
 const SECONDARY_BLOCKS: BlockDef[] = [
-  { id: "scriptz-parenthetical", label: "Paren.",     hint: "⌘4" },
-  { id: "scriptz-camera",        label: "Kamera",     hint: "⌘5" },
-  { id: "scriptz-caption",       label: "Caption",    hint: "⌘6" },
-  { id: "scriptz-sfx",           label: "SFX",        hint: "⌘7" },
+  { id: "scriptz-parenthetical", label: "Paren.",     hint: K("Mod+4") },
+  { id: "scriptz-camera",        label: "Kamera",     hint: K("Mod+5") },
+  { id: "scriptz-caption",       label: "Caption",    hint: K("Mod+6") },
+  { id: "scriptz-sfx",           label: "SFX",        hint: K("Mod+7") },
 ];
 
 export interface EditorToolbarProps {
@@ -234,7 +235,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
       <button
         class="editor-toolbar-action"
         onClick={props.onToggleFocus}
-        title="Fokus-Modus (⇧⌘F)"
+        title={`Fokus-Modus (${K("Mod+Shift+F")})`}
         aria-label="Fokus-Modus"
       >
         <FocusIcon />
@@ -243,7 +244,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
       <button
         class="editor-toolbar-action editor-toolbar-export"
         onClick={props.onOpenExport}
-        title="Exportieren (⌘E)"
+        title={`Exportieren (${K("Mod+E")})`}
       >
         <PdfIcon />
         <span>Export</span>
