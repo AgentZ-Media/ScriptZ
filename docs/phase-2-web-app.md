@@ -500,10 +500,93 @@ Ziel: Web-App speichert dauerhaft im Browser.
 Folder/Ideas/Snapshots ebenso. Sortierung und Filter im Browser
 funktionieren analog zur Desktop-App.
 
-### Phase F - Browser-Ersatz für native Features (~1-2 Tage)
+### Phase F - Browser-Ersatz für native Features (~1-2 Tage) ✅ ERLEDIGT (2026-05-11)
 
-Ziel: Volltextsuche, PDF-Export und Schließen-Flush funktionieren im
-Browser.
+**Was wirklich gemacht wurde** (Stand auf main):
+
+- **PDF-Generator nach core gezogen**: Aus
+  `apps/desktop/src/lib/exportPdf.ts` (Tauri-spezifisch) wurde
+  [`packages/core/lib/exportPdf.ts`](../packages/core/lib/exportPdf.ts)
+  - reine Pure-Function `buildPdfBytes(deps, opts) -> Uint8Array`.
+  pdf-lib + @pdf-lib/fontkit sind als Dependencies in core
+  gewandert; sie sind beide browser-tauglich. Die Schriften (iA
+  Writer Quattro S TTFs) liegen jetzt in beiden public-Ordnern -
+  desktop ist unverändert, web hat sie via `cp` dazubekommen, der
+  `fetch("/fonts/...")`-Pfad funktioniert in beiden Vite-Servern
+  identisch.
+- **Lazy-Import**: `buildPdfBytes` wird via `await import()` geladen,
+  damit pdf-lib + fontkit (~1 MB Bundle) nur dann auf dem Wire sind,
+  wenn der User wirklich PDF-Export öffnet. Initial-Bundle der
+  Web-App: 517 KB (statt 1.67 MB ohne Lazy-Load).
+- **`PlatformAdapter` aufgeräumt** in
+  [`packages/core/lib/platform.ts`](../packages/core/lib/platform.ts):
+  Die alten Methoden `exportPdf(input, loadDeps)` und
+  `exportPlaintext(input, loadContent)` sind raus. Stattdessen zwei
+  generische Datei-Persistenz-Methoden:
+  - `saveAs(opts, bytes) -> { cancelled, path }` - Desktop öffnet
+    nativen Save-Dialog + plugin-fs, Web triggert Blob-Download via
+    `<a download>` (kein Pfad-Rückgabewert).
+  - `openFile(accept) -> { name, bytes } | null` - Desktop nativer
+    Open-Dialog + plugin-fs::readFile, Web zeigt versteckten
+    `<input type="file">` (Cancel-Detection über window-focus +
+    250 ms-Timeout, weil `change` bei Abbruch nicht feuert).
+- **`StorageAdapter.exportPdf/Plaintext`** ohne `path`-Feld: Liefern
+  `ExportResult = { cancelled, path: string | null }`. Wer den Export
+  startet, kümmert sich nicht mehr um Pfad-Auswahl; das passiert
+  intern via saveAs.
+- **api.ts** in core baut Bytes (pdf via dynamic import, plaintext via
+  `extractTeleprompterText`) und reicht sie an `saveAs`. Web-IndexedDB-
+  Adapter spiegelt dieselbe Logik mit eigenem `getScript`.
+- **FTS via MiniSearch** in
+  [`apps/web/src/adapters/indexeddb.ts`](../apps/web/src/adapters/indexeddb.ts):
+  Lazy gebauter Index, inkrementell aktualisiert auf
+  `createScript` / `updateScript` / `renameScript` / `archiveScript` /
+  `restoreScript` / `purgeScript`. BM25-Ranking, Title-Boost ×3,
+  Prefix + Fuzzy 15%, Diacritic-Folding mit deutscher Normalisierung
+  (NFKD + Combining-Mark-Strip), sodass `erzaehler` weiter `ERZÄHLER`
+  findet. Bundle-Cost: ~30 KB.
+- **Save-Flush im Web** in
+  [`apps/web/src/App.tsx`](../apps/web/src/App.tsx): `beforeunload`
+  + `pagehide` (iOS-Safari) feuern `flushAll(2000)` aus
+  `@scriptz/core/lib/saveFlush`. Drainet pending Editor-Saves + Tab-
+  State binnen 2 s. Garantie ist Browser-typisch best-effort, aber
+  der Normalfall (Tab schließen mit ungespeicherten Edits) ist
+  abgedeckt.
+- **ExportDialog refactored** in
+  [`packages/core/components/Editor/ExportDialog.tsx`](../packages/core/components/Editor/ExportDialog.tsx):
+  Keine explizite Pfad-Wahl mehr (saveDialog-Call ist weg).
+  Drei Format-Radios: PDF / Plain Text / **ScriptZ-Datei (.scriptz)**.
+  Toast-Wording adaptiv: "Export gespeichert" mit Reveal-in-Finder
+  bei Desktop, "Datei heruntergeladen" im Browser. Cancel im Save-
+  Dialog (Desktop) macht keinen Fehler-Toast mehr, der Dialog bleibt
+  offen.
+- **Auto-Updater fällt im Web weg** - war schon in Phase A so
+  geregelt (Updates-Store-Slot leer = SettingsDialog blendet
+  "Updates"-Section aus). Bonus-Hinweis auf die Desktop-App kommt
+  in Phase H.
+- **Tests**: `keys.test.ts` an die neue PlatformAdapter-Signatur
+  angepasst (saveAs/openFile statt exportPdf/exportPlaintext). Plus
+  15 neue Tests für scriptzFile (siehe Phase G).
+
+**Was bewusst NICHT gemacht wurde** (per Phase-F-Scope):
+
+- **sql.js-Fallback**: MiniSearch reicht bislang in Qualität +
+  Performance. Wenn der User später meldet, dass die Suche schwächer
+  als Desktop trifft, ist sql.js (WASM mit FTS5) die nächste Stufe.
+- **File-System-Access-API** im Web: Wäre Bonus für Browser, die das
+  unterstützen (Chromium-only). Aktuell rein Blob-Download +
+  `<input>` - kompatibel mit allen Browsern, weniger UX-Reibung beim
+  Maintenance.
+- **Drag&Drop von .scriptz**: Im Browser wäre das nett. Phase G's
+  Plan hatte das schon explizit als "nicht in V1" markiert; bleibt
+  auch hier draußen.
+
+**Akzeptanzkriterium (verifiziert)**: ⌘K-Suche findet das Welcome-
+Skript via MiniSearch (`tutorial`, `erzaehler` ohne Umlaut greift
+Diacritic-Folding); ExportDialog zeigt PDF/TXT/ScriptZ; Web-Bundle
+mit Lazy-PDF auf 517 KB Initial.
+
+**Urspruengliche Planung** (Stand vor Umsetzung, zur Nachvollziehbarkeit):
 
 1. **FTS-Suche**: **MiniSearch** als Default - leichtgewichtig, pure
    JS, baut Index in-memory beim App-Start (oder lazy nach erstem
@@ -544,7 +627,66 @@ Browser.
 funktioniert, Browser-Tab schließen verliert keine ungespeicherten
 Änderungen.
 
-### Phase G - `.scriptz`-Dateiformat (Import/Export, ~0.5-1 Tag)
+### Phase G - `.scriptz`-Dateiformat (Import/Export, ~0.5-1 Tag) ✅ ERLEDIGT (2026-05-11)
+
+**Was wirklich gemacht wurde** (Stand auf main):
+
+- **Format-Definition + Serializer** in
+  [`packages/core/lib/scriptzFile.ts`](../packages/core/lib/scriptzFile.ts):
+  Konstanten `SCRIPTZ_EXTENSION = "scriptz"`,
+  `SCRIPTZ_MIME = "application/x-scriptz+json"`,
+  `SCRIPTZ_VERSION_CURRENT = 1`. Reine Pure-Functions
+  `serializeScript`, `serializeScriptToBytes`, `parseScriptzBytes`,
+  `defaultScriptzFilename`. Container-Felder genauso wie im Plan
+  geplant: `format / version / exportedAt / script.{title,
+  contentJson, characters, highlightingEnabled, createdAt,
+  updatedAt}`. `folder_id`, Snapshots, app-weite Character-Color-
+  Overrides, App-State, Settings, Ideas und Daily-Word-Log bleiben
+  draussen.
+- **Validierung**: `parseScriptzBytes` wirft `ScriptzParseError` mit
+  klarer Meldung bei kaputtem JSON, fehlendem/falschem
+  Format-Marker, unbekannter Version, fehlendem `script`-Objekt,
+  ungueltigen Charakter-Eintraegen. Datumsfelder sind tolerant -
+  fehlt `createdAt`, wird `exportedAt` benutzt; fehlt `exportedAt`,
+  der jetzige Zeitpunkt.
+- **StorageAdapter** um zwei Methoden erweitert:
+  `exportScriptz(scriptId) -> ExportResult`,
+  `importScriptz() -> { scriptId, title } | null`. Importiertes Skript
+  landet in der Wurzel (kein folder_id), bekommt eigene Zeitstempel
+  (die importierten createdAt/updatedAt wandern nicht in die DB -
+  Idee siehe Format-Doku, Geräte-State bleibt Geräte-State). Die
+  ID wird beim Import neu vergeben, damit Imports von kopierten
+  Dateien nicht miteinander kollidieren.
+- **UI-Touchpoints**:
+  - [`ExportDialog.tsx`](../packages/core/components/Editor/ExportDialog.tsx)
+    hat ein drittes Radio "ScriptZ-Datei (.scriptz)" mit Erklär-
+    Hilfetext.
+  - [`Browser.tsx`](../packages/core/components/Browser/Browser.tsx)
+    hat einen Import-Button (Pfeil-ins-Tablett-Icon) neben dem
+    Papierkorb. Klick öffnet platform.openFile, parsed via
+    parseScriptzBytes, legt Skript an, bumpt Buses, öffnet das
+    Skript als neuen Tab.
+- **15 Tests** in
+  [`packages/core/lib/__tests__/scriptzFile.test.ts`](../packages/core/lib/__tests__/scriptzFile.test.ts):
+  Format-Roundtrip (serialize → parse → tief-vergleichen), strikte
+  Validierung (kaputtes JSON, fehlender/falscher Format-Marker,
+  unbekannte Version, ungueltige Charaktere), Tolerant-Pfade
+  (fehlende Datumsfelder), `defaultScriptzFilename`-Edge-Cases
+  (Sonderzeichen-Cleanup, leerer Titel).
+
+**Was bewusst NICHT gemacht wurde** (per Phase-G-Scope, alles dem
+Original-Plan entnommen):
+
+- Doppelklick-Öffnen im Finder/Explorer (würde Tauri-Manifest-
+  Eintrag für File-Associations brauchen, Browser kann's eh nicht).
+- Versions-Migration: Format ist auf V1. Sobald V2 kommt, kriegt
+  der Parser einen V1-Reader-Pfad - additive Felder brechen nichts.
+
+**Akzeptanzkriterium (verifiziert über Tests + UI-Smoketest)**:
+ExportDialog bietet `.scriptz`-Option an, Browser-Header hat den
+Import-Button. Roundtrip-Test grün (15 / 15).
+
+**Urspruengliche Planung** (Stand vor Umsetzung, zur Nachvollziehbarkeit):
 
 Ziel: Klassisches "Datei → Speichern als" und "Datei → Öffnen" mit
 einem eigenen Dateiformat. Funktioniert in **beiden** Apps. Kein
