@@ -41,7 +41,7 @@ import { Modal } from "../Common/Modal";
 import { ConfirmDialog } from "../Common/ConfirmDialog";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { foldersBus } from "../../lib/foldersBus";
-import { FolderChips } from "./FolderChips";
+import { FolderChips, SCRIPT_DRAG_MIME } from "./FolderChips";
 import { MomentumStrip } from "./MomentumStrip";
 import "./Browser.css";
 
@@ -997,10 +997,21 @@ interface ScriptCardProps {
 }
 function ScriptCard(props: ScriptCardProps) {
   const bg = () => stripeBackground(props.script.characters, "to right");
+  const [dragging, setDragging] = createSignal(false);
   return (
     <article
       class="card-v2"
+      classList={{ "is-dragging": dragging() }}
       role="button"
+      draggable={true}
+      onDragStart={(e) => {
+        if (!e.dataTransfer) return;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
+        e.dataTransfer.setData("text/plain", props.script.title);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
       onKeyDown={(e) => {
@@ -1058,11 +1069,21 @@ interface ScriptRowProps {
 }
 function ScriptRow(props: ScriptRowProps) {
   const bg = () => stripeBackground(props.script.characters, "to bottom");
+  const [dragging, setDragging] = createSignal(false);
   return (
     <div
       class="row-v2"
       role="button"
-      classList={{ "is-context": props.isContext }}
+      classList={{ "is-context": props.isContext, "is-dragging": dragging() }}
+      draggable={true}
+      onDragStart={(e) => {
+        if (!e.dataTransfer) return;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
+        e.dataTransfer.setData("text/plain", props.script.title);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
       onClick={props.onOpen}
       onContextMenu={props.onContextMenu}
       tabIndex={0}
