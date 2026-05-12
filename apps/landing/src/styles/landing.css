@@ -1269,3 +1269,104 @@
     .v2-paper { padding: 20px 18px 32px; }
     .v2-download-h { font-size: 18px; }
   }
+
+  /* === Mobile-Stack-Modus ==================================
+     Auf schmalen Viewports kippt die Landing aus dem App-Nachbau
+     in eine klassische, von oben nach unten gelesene Seite:
+     - Chrome (Trafficlight, Tabs, Toolbar, Sprint-Pille) wird
+       komplett ausgeblendet, weil eine simulierte App auf 375 px
+       nichts erklärt - sie behindert nur.
+     - Alle Tab-Sektionen werden gleichzeitig gerendert, jede mit
+       einer eigenen Heading-Pille (Inhalt via attr(data-section-title)).
+     - Inline-Jump-Buttons innerhalb der Sektionen verschwinden -
+       auf einer linearen Stack-Page sind sie reiner Lärm.
+     - Der Sprach-Toggle bleibt als schmaler Sticky-Strip oben
+       erhalten, damit DE/EN-Wechsel weiterhin auffindbar ist. */
+  @media (max-width: 768px) {
+    /* Shell verliert Box-Optik (Border, Schatten, Radius). Die Seite
+       fließt edge-to-edge wie eine normale Marketing-Page. */
+    .v2-shell {
+      max-width: 100%;
+      border-radius: 0;
+      box-shadow: none;
+      padding-bottom: 0;
+    }
+
+    /* Titlebar bleibt sticky, schrumpft aber zu einem Mini-Strip
+       mit nur dem Sprach-Toggle rechts. */
+    .v2-titlebar {
+      padding: 6px 12px;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+    .v2-traffic,
+    .v2-tabs,
+    .v2-status-pill,
+    .v2-status-saved {
+      display: none;
+    }
+
+    /* Toolbar (Back-Pille, Tab-Titel, Pills, Download-Knopf) komplett
+       weg - die Funktionen leben auf Mobil im Hero und in den
+       einzelnen Sektionen. */
+    .v2-toolbar { display: none; }
+
+    /* Floating Sprint-Pille weg: bezieht sich auf einen "aktiven" Tab,
+       den es im Stack-Modus nicht mehr gibt. */
+    .v2-sprint { display: none; }
+
+    /* Paper: alle Sektionen sichtbar, kein Filter mehr auf .is-active.
+       Wir nutzen Animation nicht, weil sie pro Sektion einmal beim
+       Page-Load feuern würde - irritierend. */
+    .v2-paper {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      border-radius: 0;
+      padding: 16px 18px 28px;
+      box-shadow: none;
+      min-height: 0;
+    }
+    .v2-tab-content {
+      display: block;
+      animation: none;
+    }
+
+    /* Section-Heading-Pille pro Tab-Inhalt, gespeist aus
+       data-section-title (i18n-fähig, weil der Wert zur Build-Zeit
+       per t(lang, ...) gerendert wird). Die Ideen-Sektion hat eine
+       eigene Heading im Markup und wird daher ausgeschlossen. */
+    .v2-tab-content[data-section-title]::before {
+      content: attr(data-section-title);
+      display: block;
+      margin: 32px -18px 24px;
+      padding: 14px 22px;
+      background: #1c1814;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      line-height: 1.35;
+    }
+    /* Erste Sektion bekommt etwas mehr Luft nach oben, damit sie
+       sich vom sticky Sprach-Strip löst. */
+    .v2-tab-content:first-of-type[data-section-title]::before {
+      margin-top: 16px;
+    }
+
+    /* Inline-Jump-Buttons sind auf einer Stack-Page redundant - die
+       nächste Sektion kommt ohnehin direkt darunter. */
+    .v2-jump { display: none; }
+
+    /* Ideen-Sektion: oben eine Trennlinie ziehen, weil sie ohne
+       Heading-Pille sonst nahtlos in den Download-Inhalt darüber
+       übergeht. */
+    .v2-ideas {
+      border-top: 1px solid var(--v2-border);
+      margin-top: 32px;
+      padding-top: 32px;
+    }
+  }
