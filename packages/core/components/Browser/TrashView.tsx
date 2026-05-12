@@ -12,7 +12,16 @@ type Confirm =
   | { kind: "empty" }
   | { kind: "purge"; script: ScriptSummary };
 
-export function TrashView() {
+export interface TrashViewProps {
+  /** Wird aufgerufen, wenn der Papierkorb durch eine Wiederherstell-Aktion
+   *  vollständig geleert wurde. Browser benutzt das, um automatisch zur
+   *  Skript-Übersicht zurückzunavigieren - sonst landet der User vor der
+   *  „Der Papierkorb ist leer"-Zeile und muss raten, wo das Skript hin
+   *  ist. */
+  onTrashEmptiedByRestore?: () => void;
+}
+
+export function TrashView(props: TrashViewProps = {}) {
   const [confirm, setConfirm] = createSignal<Confirm | null>(null);
   const [scripts] = createResource(
     () => scriptsBus.version(),
@@ -21,10 +30,13 @@ export function TrashView() {
 
   async function restoreAll() {
     const arr = scripts() ?? [];
+    if (arr.length === 0) return;
     try {
       await Promise.all(arr.map((s) => api.restoreScript(s.id)));
       pushToast(tPlural("trash.toast.restoredAll", arr.length), "ok");
       scriptsBus.bump();
+      // restoreAll leert den Papierkorb per Definition -> raus aus der View.
+      props.onTrashEmptiedByRestore?.();
     } catch (e) {
       pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }
@@ -41,10 +53,15 @@ export function TrashView() {
   }
 
   async function restoreOne(id: string) {
+    // Vor dem API-Call merken, ob das hier das letzte Element war - sonst
+    // wäre die Liste nach dem Bump schon neu und der Check würde immer
+    // false ergeben.
+    const wasLast = (scripts() ?? []).length <= 1;
     try {
       await api.restoreScript(id);
       pushToast(t("trash.toast.restored"), "ok");
       scriptsBus.bump();
+      if (wasLast) props.onTrashEmptiedByRestore?.();
     } catch (e) {
       pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
     }

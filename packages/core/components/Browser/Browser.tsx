@@ -254,7 +254,19 @@ export function Browser(props: BrowserProps = {}) {
     }
   });
 
-  const list = createMemo(() => scripts() ?? []);
+  // Skripte, deren Archive-Call gerade läuft. Werden aus `list()`
+  // optimistisch ausgeblendet, damit MomentumStrip + Liste nicht mehr
+  // den gerade getrashten Titel als „Weiterschreiben"-Geist zeigen,
+  // bevor der Refetch durch ist. Muss VOR `list` deklariert sein, weil
+  // die createMemo-Callback liest pendingArchive(), und das Signal sonst
+  // beim ersten Tracking-Run noch im TDZ-Status wäre.
+  const [pendingArchive, setPendingArchive] = createSignal<Set<string>>(new Set());
+  const list = createMemo(() => {
+    const all = scripts() ?? [];
+    const archiving = pendingArchive();
+    if (archiving.size === 0) return all;
+    return all.filter((s) => !archiving.has(s.id));
+  });
   const hasMore = createMemo(() => list().length >= pageLimit());
   const isSearching = createMemo(() => debouncedSearch().trim().length > 0);
   const activeFolderName = createMemo(() => {
@@ -285,6 +297,11 @@ export function Browser(props: BrowserProps = {}) {
   }
 
   async function archive(s: ScriptSummary) {
+    setPendingArchive((prev) => {
+      const next = new Set(prev);
+      next.add(s.id);
+      return next;
+    });
     try {
       await api.archiveScript(s.id);
       pushToast(t("script.toast.archived", { title: s.title }), "ok");
@@ -292,6 +309,13 @@ export function Browser(props: BrowserProps = {}) {
       foldersBus.bump();
     } catch (e) {
       pushToast(t("common.errorPrefix", { message: (e as Error).message }), "error");
+    } finally {
+      setPendingArchive((prev) => {
+        if (!prev.has(s.id)) return prev;
+        const next = new Set(prev);
+        next.delete(s.id);
+        return next;
+      });
     }
   }
   async function duplicate(s: ScriptSummary) {
@@ -313,7 +337,10 @@ export function Browser(props: BrowserProps = {}) {
     const target = renameTarget();
     if (!target) return;
     const v = renameValue().trim();
-    if (!v || v === target.title) {
+    // Leere Titel werden weder gespeichert noch schließen sie still den
+    // Dialog - sonst wirkt es, als hätte der User den Titel gelöscht.
+    if (!v) return;
+    if (v === target.title) {
       setRenameTarget(null);
       return;
     }
@@ -755,7 +782,7 @@ export function Browser(props: BrowserProps = {}) {
             {t("browser.backToOverview")}
           </button>
         </div>
-        <TrashView />
+        <TrashView onTrashEmptiedByRestore={() => setActiveRegion("scripts")} />
       </Show>
 
       <Show when={contextMenu()}>
@@ -790,7 +817,11 @@ export function Browser(props: BrowserProps = {}) {
             <button class="btn" onClick={() => setRenameTarget(null)}>
               {t("common.cancel")}
             </button>
-            <button class="btn btn-primary" onClick={commitRename}>
+            <button
+              class="btn btn-primary"
+              onClick={commitRename}
+              disabled={renameValue().trim().length === 0}
+            >
               {t("common.save")}
             </button>
           </>
@@ -809,7 +840,18 @@ export function Browser(props: BrowserProps = {}) {
                   if (e.key === "Enter") void commitRename();
                 }}
               />
-              <div class="muted small">{t("common.current", { value: target().title })}</div>
+              <Show
+                when={renameValue().trim().length === 0}
+                fallback={
+                  <div class="muted small">
+                    {t("common.current", { value: target().title })}
+                  </div>
+                }
+              >
+                <div class="field-hint field-hint-warn">
+                  {t("script.renameEmptyHint")}
+                </div>
+              </Show>
             </div>
           )}
         </Show>

@@ -73,7 +73,7 @@
   align-items: center;
   gap: 6px;
   height: 26px;        /* in 34 px Bar bottom-aligned → Top y=8 (8 px Atemluft) */
-  padding: 0 10px;
+  padding: 0 8px 0 10px;
   border-radius: 7px 7px 0 0;
   font-family: var(--font-sans);
   font-size: 12px;
@@ -82,9 +82,11 @@
   border: 0;
   cursor: pointer;
   /* Chrome-Logik: alle Skript-Tabs teilen sich die Breite gleichmäßig
-     (flex 1 1 0), wachsen bis 200 px, schrumpfen bis 52 px. */
+     (flex 1 1 0), wachsen bis 200 px, schrumpfen bis 120 px. Unter
+     120 px hat selbst ein abgekürzter Titel + ✕ keinen Platz mehr -
+     dann lieber horizontal scrollen lassen statt Titel ganz schlucken. */
   flex: 1 1 0;
-  min-width: 52px;
+  min-width: 120px;
   max-width: 200px;
   position: relative;
   overflow: hidden;
@@ -104,6 +106,45 @@
     -0.5px 0 0 var(--border-strong),
     0.5px 0 0 var(--border-strong),
     0 1px 0 var(--bg);
+}
+
+/* Dezente Trennstriche zwischen aufeinanderfolgenden Tabs.
+   Ohne diese Linie verschmelzen mehrere offene Skript-Tabs optisch
+   zu einem Streifen aus Doc-Icon + Titel - es ist nicht sofort
+   erkennbar, wo ein Tab endet und der nächste beginnt. Der Strich
+   sitzt im 2 px-Gap zwischen den Tabs (über `gap: 2px` der `.tabs`-
+   Flexbox), 14 px hoch + vertikal zentriert.
+   Versteckt, wenn:
+   - der Tab selbst aktiv ist (active hat schon eine eigene Border),
+   - sein direkter linker Nachbar aktiv ist (sonst stünde die Linie
+     direkt an der rechten Schulter des aktiven Tabs - doppelt). */
+.tab + .tab::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 18px;
+  margin-top: -9px;
+  background: rgba(28, 24, 20, 0.18);
+  pointer-events: none;
+  transition: opacity var(--t-fast);
+}
+.tab.is-active::before,
+.tab.is-active + .tab::before,
+.tab:hover::before,
+.tab:hover + .tab::before {
+  opacity: 0;
+}
+[data-theme="dark"] .tab + .tab::before {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+[data-theme="dark"] .tab.is-active::before,
+[data-theme="dark"] .tab.is-active + .tab::before,
+[data-theme="dark"] .tab:hover::before,
+[data-theme="dark"] .tab:hover + .tab::before {
+  opacity: 0;
 }
 
 /* Home-Tab: 40 px fix, nur Icon, niemals flex. */
@@ -180,18 +221,17 @@
   min-width: 0;
 }
 
-/* Container-Query: schmaler Tab → Titel + ✕ unsichtbar, nur Doc-Icon. */
-.tab:not(.tab-home) { container-type: inline-size; }
-@container (max-width: 80px) {
-  .tab-title, .tab-x { display: none; }
-}
-
+/* Close-Button ist immer rechts in der Zelle, unabhängig davon, ob der
+   Titel auf null Pixel kollabiert wäre. Der `margin-left: auto` greift
+   nur, wenn der Titel keinen Platz mehr ausspannt - in der Praxis
+   blockiert die min-width des Tabs (120 px) das aber sowieso. */
 .tab-x {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   opacity: 0.5;
   padding: 2px;
+  margin-left: auto;
   border-radius: 4px;
   flex: 0 0 auto;
   color: inherit;

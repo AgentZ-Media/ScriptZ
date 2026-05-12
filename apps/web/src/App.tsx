@@ -33,6 +33,7 @@ import {
   ONBOARDING_KEY,
 } from "@scriptz/core/components/Onboarding/OnboardingDialog";
 import { WebDisclaimerBanner } from "./components/WebDisclaimerBanner";
+import { StoragePersistedBadge } from "./components/StoragePersistedBadge";
 import { t } from "@scriptz/core/i18n";
 
 import "@scriptz/core/components/Common/Common.css";
@@ -47,6 +48,23 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
   const [newScriptFolder, setNewScriptFolder] = createSignal<string | null>(null);
+  // Schutz gegen Doppel-Klicks auf den "Neu"-Button direkt nach dem
+  // Schließen des Dialogs (per Backdrop-Click, ESC, oder erfolgreicher
+  // Erstellung). Solid rendert das Modal asynchron - ohne diesen Block
+  // konnte ein zweiter Klick den Dialog mit frischem leeren State
+  // wieder hochziehen, und ein noch wartender Submit hätte ein leeres
+  // "Unbenannt" als Phantom-Skript angelegt.
+  let lastNewScriptCloseAt = 0;
+  const openNewScriptDialog = (folderId: string | null) => {
+    if (newScriptOpen()) return;
+    if (Date.now() - lastNewScriptCloseAt < 250) return;
+    setNewScriptFolder(folderId);
+    setNewScriptOpen(true);
+  };
+  const closeNewScriptDialog = () => {
+    lastNewScriptCloseAt = Date.now();
+    setNewScriptOpen(false);
+  };
   const [exportOpen, setExportOpen] = createSignal(false);
   const [ideaCaptureOpen, setIdeaCaptureOpen] = createSignal(false);
   const [onboardingOpen, setOnboardingOpen] = createSignal(false);
@@ -275,7 +293,7 @@ export default function App() {
     if (focusMode()) setIdeaCaptureOpen(false);
   });
 
-  const onCreatedScript = () => setNewScriptOpen(false);
+  const onCreatedScript = () => closeNewScriptDialog();
 
   // ---- View-Transition: Tab-Wechsel & Home <-> Editor ----
   let appMainRef: HTMLElement | undefined;
@@ -340,10 +358,7 @@ export default function App() {
             <Switch>
               <Match when={tabsStore.isHome()}>
                 <Browser
-                  onNewScript={(folderId) => {
-                    setNewScriptFolder(folderId ?? null);
-                    setNewScriptOpen(true);
-                  }}
+                  onNewScript={(folderId) => openNewScriptDialog(folderId ?? null)}
                   onOpenCmdK={() => setCmdkOpen(true)}
                 />
               </Match>
@@ -386,7 +401,7 @@ export default function App() {
         />
         <Show when={newScriptOpen()}>
           <NewScriptDialog
-            onClose={() => setNewScriptOpen(false)}
+            onClose={closeNewScriptDialog}
             onCreated={onCreatedScript}
             defaultFolderId={newScriptFolder()}
           />
@@ -406,6 +421,7 @@ export default function App() {
           />
         </Show>
         <ToastHost />
+        <StoragePersistedBadge />
       </Show>
     </div>
   );

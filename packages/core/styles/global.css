@@ -317,6 +317,16 @@ a:hover { text-decoration: underline; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+/* Validation/Hilfstext direkt unter einem Field-Input. `field-hint-warn`
+   ist die "User muss noch was tun"-Variante - rotbraun statt rot, damit
+   sie nicht als Fehler nach abgeschlossener Aktion wirkt. */
+.field-hint {
+  font-size: var(--fs-12);
+  color: var(--fg-muted);
+}
+.field-hint-warn {
+  color: var(--status-warn, #b9651b);
+}
 
 .checkbox {
   display: inline-flex;

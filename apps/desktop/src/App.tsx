@@ -326,8 +326,25 @@ export default function App() {
     }
   });
 
-  const onCreatedScript = () => {
+  // Schutz gegen Doppel-Klicks auf den "Neu"-Button direkt nach dem
+  // Schließen des Dialogs (per Backdrop-Click, ESC, oder erfolgreicher
+  // Erstellung). Ohne diesen Block konnte ein zweiter Klick den Dialog
+  // mit frischem leeren State wieder hochziehen, und ein noch wartender
+  // Submit hätte ein "Unbenannt"-Phantom-Skript angelegt.
+  let lastNewScriptCloseAt = 0;
+  const openNewScriptDialog = (folderId: string | null) => {
+    if (newScriptOpen()) return;
+    if (Date.now() - lastNewScriptCloseAt < 250) return;
+    setNewScriptFolder(folderId);
+    setNewScriptOpen(true);
+  };
+  const closeNewScriptDialog = () => {
+    lastNewScriptCloseAt = Date.now();
     setNewScriptOpen(false);
+  };
+
+  const onCreatedScript = () => {
+    closeNewScriptDialog();
   };
 
   // ---- View-Transition: Tab-Wechsel & Home <-> Editor ----
@@ -393,10 +410,7 @@ export default function App() {
             <Switch>
               <Match when={tabsStore.isHome()}>
                 <Browser
-                  onNewScript={(folderId) => {
-                    setNewScriptFolder(folderId ?? null);
-                    setNewScriptOpen(true);
-                  }}
+                  onNewScript={(folderId) => openNewScriptDialog(folderId ?? null)}
                   onOpenCmdK={() => setCmdkOpen(true)}
                 />
               </Match>
@@ -438,7 +452,7 @@ export default function App() {
         />
         <Show when={newScriptOpen()}>
           <NewScriptDialog
-            onClose={() => setNewScriptOpen(false)}
+            onClose={closeNewScriptDialog}
             onCreated={onCreatedScript}
             defaultFolderId={newScriptFolder()}
           />

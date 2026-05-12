@@ -57,7 +57,12 @@ export function ActivityModal(props: ActivityModalProps) {
               <span class="activity-card-unit">{tPlural("units.days", stats().streakDays)}</span>
             </div>
             <div class="activity-card-sub">
-              {t("activity.activeDays", { count: stats().activeDays })}
+              <Show
+                when={stats().activeDays > 0}
+                fallback={t("activity.activeDaysNone")}
+              >
+                {t("activity.activeDays", { count: stats().activeDays })}
+              </Show>
             </div>
           </div>
           <div class="activity-card">
