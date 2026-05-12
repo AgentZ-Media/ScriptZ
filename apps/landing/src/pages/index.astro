@@ -1,17 +1,35 @@
 ---
 /**
- * Deutsche Landing - `/` (Default-Sprache).
- * Englische Variante liegt unter `/en` und teilt sich Markup und CSS
- * via `LandingPage.astro`.
+ * Home (DE) - `/`. PageHero (Brand-Variant) + HomeSection.
+ *
+ * Eigener Inhalt unterhalb des Hero - kein Warum-Tab-Wiederholer.
+ * Aktiver Tab in der Bar ist das Haus-Icon ("home").
  */
 import Base from "../layouts/Base.astro";
-import LandingPage from "../components/LandingPage.astro";
+import AppShell from "../components/AppShell.astro";
+import PageHero from "../components/sections/PageHero.astro";
+import HomeSection from "../components/sections/HomeSection.astro";
 import { t } from "../i18n";
+
+const lang = "de" as const;
 ---
 <Base
-  lang="de"
-  title={t("de", "meta.title")}
-  description={t("de", "meta.description")}
+  lang={lang}
+  title={t(lang, "meta.title")}
+  description={t(lang, "meta.description")}
 >
-  <LandingPage lang="de" />
+  <PageHero
+    lang={lang}
+    variant="home"
+    subline={t(lang, "hero.lead")}
+  >
+    <span class="v2-h1-keyword">{t(lang, "hero.h1.keyword")}</span>
+    <span class="v2-h1-tagline">
+      {t(lang, "hero.h1.line1")}<br/>
+      {t(lang, "hero.h1.line2")}
+    </span>
+  </PageHero>
+  <AppShell lang={lang} activeTab="home">
+    <HomeSection lang={lang} />
+  </AppShell>
 </Base>

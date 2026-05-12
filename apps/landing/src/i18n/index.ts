@@ -31,8 +31,34 @@ export function t(lang: Lang, key: StringKey): string {
 }
 
 /**
- * Pfad-Helfer: hängt das Sprach-Prefix an einen lokalen Pfad an, wenn
- * `en` aktiv ist. Für DE bleibt der Pfad wie er ist (DE ist Default).
+ * Inhaltliche Tab-Routen. Jede Sprache hat eigene Slugs, damit die URL
+ * selbst keyword-relevant ist (DE "/keine-ki" statt "/no-ai", EN
+ * "/en/compare" statt "/en/vergleich"). Die Tab-ID (`warum`,
+ * `quickmodus`, ...) ist sprach-unabhaengig und entspricht den
+ * `data-tab`-Attributen in der Chrome-Komponente.
+ */
+export const ROUTES = {
+  home: { de: "/", en: "/en" },
+  warum: { de: "/warum-scriptz", en: "/en/why-scriptz" },
+  quickmodus: { de: "/quickmodus", en: "/en/quick-mode" },
+  "no-ai": { de: "/keine-ki", en: "/en/no-ai" },
+  vergleich: { de: "/vergleich", en: "/en/compare" },
+  download: { de: "/download", en: "/en/download" },
+  ideen: { de: "/ideen", en: "/en/ideas" },
+} as const;
+
+export type RouteKey = keyof typeof ROUTES;
+
+/**
+ * Pfad-Helfer fuer eine Tab-Route in der gewuenschten Sprache.
+ */
+export function routePath(lang: Lang, key: RouteKey): string {
+  return ROUTES[key][lang];
+}
+
+/**
+ * Pfad-Helfer: haengt das Sprach-Prefix an einen lokalen Pfad an, wenn
+ * `en` aktiv ist. Fuer DE bleibt der Pfad wie er ist (DE ist Default).
  *
  * Beispiele:
  *   localePath("de", "/")           → "/"
@@ -48,22 +74,44 @@ export function localePath(lang: Lang, path: string): string {
 }
 
 /**
- * Gibt die "Schwester-URL" für einen Sprachwechsel zurück. Wird vom
+ * Pfad-zu-RouteKey-Lookup. Fuer einen gegebenen Pfad (z.B.
+ * "/quickmodus" oder "/en/quick-mode") wird die zugehoerige Route-ID
+ * gefunden. Gibt `null` zurueck, wenn der Pfad nicht zu einer
+ * Tab-Route gehoert (Legal-Seiten u.ae.).
+ */
+export function routeKeyFromPath(path: string): RouteKey | null {
+  const normalized = path.replace(/\.html$/, "").replace(/\/$/, "") || "/";
+  for (const [key, paths] of Object.entries(ROUTES)) {
+    if (paths.de === normalized || paths.en === normalized) {
+      return key as RouteKey;
+    }
+  }
+  return null;
+}
+
+/**
+ * Gibt die "Schwester-URL" fuer einen Sprachwechsel zurueck. Wird vom
  * DE/EN-Toggle benutzt, um zwischen den Routen zu springen.
  */
 export function switchLangPath(currentLang: Lang, targetLang: Lang, currentPath: string): string {
+  const normalized = currentPath.replace(/\.html$/, "").replace(/\/$/, "") || "/";
   // Legal-Pfade bleiben in beiden Sprachen DE - der Toggle bringt den
-  // Nutzer zur Landing in der gewünschten Sprache zurück.
-  const isLegal = currentPath === "/impressum" || currentPath === "/datenschutz";
+  // Nutzer zur Landing in der gewuenschten Sprache zurueck.
+  const isLegal = normalized === "/impressum" || normalized === "/datenschutz";
   if (isLegal) {
     return targetLang === DEFAULT_LANG ? "/" : "/en";
   }
-  // Sonst: Sprach-Prefix tauschen.
+  // Tab-Route gefunden? Dann der gespiegelten Sprach-URL folgen.
+  const key = routeKeyFromPath(normalized);
+  if (key) {
+    return ROUTES[key][targetLang];
+  }
+  // Fallback: Sprach-Prefix tauschen wie frueher.
   if (targetLang === DEFAULT_LANG) {
-    return currentPath.replace(/^\/en\/?$/, "/").replace(/^\/en\//, "/");
+    return normalized.replace(/^\/en\/?$/, "/").replace(/^\/en\//, "/");
   }
   if (currentLang === DEFAULT_LANG) {
-    return currentPath === "/" ? "/en" : `/en${currentPath}`;
+    return normalized === "/" ? "/en" : `/en${normalized}`;
   }
-  return currentPath;
+  return normalized;
 }

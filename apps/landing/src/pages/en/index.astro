@@ -1,17 +1,32 @@
 ---
 /**
- * English landing - `/en`.
- * Shares markup and CSS with the German default at `/` via
- * `LandingPage.astro`.
+ * Home (EN) - `/en`. PageHero (home variant) + HomeSection.
  */
 import Base from "../../layouts/Base.astro";
-import LandingPage from "../../components/LandingPage.astro";
+import AppShell from "../../components/AppShell.astro";
+import PageHero from "../../components/sections/PageHero.astro";
+import HomeSection from "../../components/sections/HomeSection.astro";
 import { t } from "../../i18n";
+
+const lang = "en" as const;
 ---
 <Base
-  lang="en"
-  title={t("en", "meta.title")}
-  description={t("en", "meta.description")}
+  lang={lang}
+  title={t(lang, "meta.title")}
+  description={t(lang, "meta.description")}
 >
-  <LandingPage lang="en" />
+  <PageHero
+    lang={lang}
+    variant="home"
+    subline={t(lang, "hero.lead")}
+  >
+    <span class="v2-h1-keyword">{t(lang, "hero.h1.keyword")}</span>
+    <span class="v2-h1-tagline">
+      {t(lang, "hero.h1.line1")}<br/>
+      {t(lang, "hero.h1.line2")}
+    </span>
+  </PageHero>
+  <AppShell lang={lang} activeTab="home">
+    <HomeSection lang={lang} />
+  </AppShell>
 </Base>

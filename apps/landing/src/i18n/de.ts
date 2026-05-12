@@ -13,7 +13,8 @@
 export const de = {
   // ===================== Hero =====================
   "hero.eyebrow": "SCRIPTZ // FÜR CONTENT CREATOR",
-  "hero.h1.line1": "Schreiben",
+  "hero.h1.keyword": "Skripteditor für Content Creator.",
+  "hero.h1.line1": "Schreiben,",
   "hero.h1.line2": "statt formatieren.",
   "hero.lead":
     "Der Skripteditor für Content Creator. Eine Idee → ein fertiges Skript in wenigen Minuten. Kein Drehbuch-Korsett, keine KI, kein Abo. Nur du, deine Idee und ein Cursor, der dir aus dem Weg geht.",
@@ -27,6 +28,74 @@ export const de = {
   "hero.web.intro": "Lieber erst ausprobieren?",
   "hero.web.link": "Direkt im Browser testen →",
   "hero.web.hint": "Test-Editor, lokal in deinem Browser. Daten bleiben dort.",
+
+  // ===================== Page-Hero pro Route =====================
+  // Auf jeder Route sitzt oben ein einheitlicher Page-Hero (Keyword-
+  // Eyebrow + H1 + Subline + Download-CTA). Nur die Home-Variante
+  // (`/`) nutzt die historischen `hero.h1.*` / `hero.lead`-Keys, weil
+  // dort das Brand-Statement groesser bleibt. Sub-Routen ziehen aus
+  // den `hero.{route}.*`-Keys hier drunter.
+  "hero.warum.keyword": "WARUM SCRIPTZ",
+  "hero.warum.title": "Skripte schreiben, ohne dass die App im Weg steht.",
+  "hero.warum.subline":
+    "Für Content Creator, die Skripte für TikTok, Reels und YouTube Shorts schneller fertigbekommen wollen - ohne Drehbuch-Korsett, ohne KI, ohne Abo.",
+
+  "hero.quickmodus.keyword": "DAS DETAIL, DAS NIEMAND SONST KANN",
+  "hero.quickmodus.title": "Quickmodus: der Two-Hander-Workflow für Reels und Shorts.",
+  "hero.quickmodus.subline":
+    "Zwei Sprecher, ein Enter. Der Cursor springt automatisch in den nächsten Charakter - ohne Tab, ohne Sprechernamen tippen. Spart pro Skript eine Minute.",
+
+  "hero.noai.keyword": "DAS NO-AI-MANIFEST",
+  "hero.noai.title": "Skripteditor ohne KI. Deine Stimme bleibt deine.",
+  "hero.noai.subline":
+    "Keine Chatbox, keine Vorschläge, kein „Verbessern\"-Button. Deine Skripte liegen lokal in einer SQLite-Datei, nicht in der Cloud.",
+
+  "hero.vergleich.keyword": "DER EHRLICHE VERGLEICH",
+  "hero.vergleich.title": "ScriptZ vs. Final Draft, Notion, ChatGPT, Word.",
+  "hero.vergleich.subline":
+    "Was ScriptZ kann, das die anderen nicht können - und wo wir bewusst klein bleiben. Als kostenlose Final-Draft-Alternative für Short-Form gebaut.",
+
+  "hero.download.keyword": "KOSTENLOS, LOKAL, OPEN SOURCE",
+  "hero.download.title": "ScriptZ kostenlos herunterladen - macOS und Windows.",
+  "hero.download.subline":
+    "Ein .dmg oder .exe. Kein Konto, keine Tracker, keine KI. Updates kommen automatisch über den eingebauten Updater.",
+
+  "hero.ideen.keyword": "DIE IDEEN-INBOX",
+  "hero.ideen.title": "Sammle, was du als Nächstes schreibst.",
+  "hero.ideen.subline":
+    "Skript-Ideen für TikTok, Reels und Shorts an einem Ort. Per Klick wird daraus ein fertiges Skript - offline, ohne Konto.",
+
+  // ===================== Home-Section (`/`) =====================
+  // Eigener Inhalt unterhalb des Page-Hero, statt den Warum-Tab zu
+  // wiederholen: Screenshot-Galerie, drei Feature-Teaser, Vergleichs-
+  // Hinweis, Closing-Download-Block.
+  "home.gallery.h2": "Drei Ansichten, eine App.",
+  "home.gallery.sub":
+    "Übersicht, Ideen, Editor. Mehr braucht ein Skript-Tool nicht. Die Tabs oben sind die App.",
+
+  "home.features.h2": "Drei Dinge, die nur ScriptZ kann.",
+  "home.feature.quick.title": "Quickmodus für zwei Sprecher",
+  "home.feature.quick.body":
+    "Two-Hander-Dialog wie von selbst: Enter springt zum nächsten Charakter, kein Tab, kein Sprechername tippen. Spart pro 60-Sekunden-Reel eine Minute.",
+  "home.feature.quick.link": "Quickmodus erklärt →",
+  "home.feature.noai.title": "Bewusst ohne KI",
+  "home.feature.noai.body":
+    "Keine Vorschläge, kein „Verbessern\"-Button, kein Cloud-Upload. Deine Stimme bleibt deine, dein Skript bleibt lokal in einer SQLite-Datei.",
+  "home.feature.noai.link": "Das Kein-KI-Manifest →",
+  "home.feature.local.title": "Lokal, kostenlos, Open Source",
+  "home.feature.local.body":
+    "Ein Installer, kein Konto, keine Tracker. macOS oder Windows. Quellcode auf GitHub, alles in einer SQLite-Datei auf deinem Rechner.",
+  "home.feature.local.link": "Auf GitHub ansehen →",
+
+  "home.compare.h2": "Im Vergleich.",
+  "home.compare.body":
+    "Final Draft kann Spielfilm-Drehbücher. Notion kann Wikis. ChatGPT kann Brainstorming. ScriptZ kann: Skripte für Reels schnell. Das ist alles - und das wars uns wert.",
+  "home.compare.cta": "Den ganzen Vergleich sehen →",
+
+  "home.closing.eyebrow": "BEREIT?",
+  "home.closing.h2": "Kostenlos. Lokal. Ohne Konto.",
+  "home.closing.body":
+    "macOS 13+ oder Windows 10+. Ein Klick, ein Installer, fertig. Kein Sign-in, keine Mail-Liste, keine Abos.",
 
   // macOS-Install-Hinweis
   "install.mac.summary": "Beim ersten Öffnen blockiert macOS die App?",
@@ -57,6 +126,7 @@ export const de = {
 
   // ===================== App-Chrome / Tabs =====================
   "tab.home.title": "Übersicht",
+  "tab.home.long": "Skripteditor für TikTok, Reels und YouTube Shorts",
   "tab.home.aria": "Übersicht (zurück nach oben)",
   "tab.ideas.title": "Ideen",
   "tab.ideas.aria": "Ideen",
@@ -83,7 +153,7 @@ export const de = {
   "toolbar.download": "Download",
 
   // ===================== Tab: WARUM =====================
-  "warum.caption": "INT. WRITE-SCRIPTZ.COM — JETZT",
+  "warum.caption": "INT. SCRIPTZ — SKRIPTEDITOR FÜR TIKTOK, REELS UND YOUTUBE SHORTS",
   "warum.action1":
     "Eine leere Seite. Cursor blinkt. Du tippst und das Format passiert von allein. Charakter-Name? Automatisch zentriert und in Versalien. Tabulator? Block-Wechsel. Enter? Nächste Zeile - meistens schon im richtigen Block.",
   "warum.action2":
@@ -119,7 +189,7 @@ export const de = {
   "jump.btn.backToStart": "→ Zurück zum Anfang",
 
   // ===================== Tab: QUICKMODUS =====================
-  "quick.caption": "INT. QUICKMODUS — ZWEI SPRECHER, EIN FLOW",
+  "quick.caption": "INT. QUICKMODUS — DER TWO-HANDER-WORKFLOW FÜR REELS UND SHORTS",
   "quick.action1":
     "Der Quickmodus ist das, was ScriptZ nicht ersetzbar macht. Sobald dein Skript genau zwei Sprecher hat, übernimmt er. Nach jedem Dialog und einmal Enter springt der Cursor automatisch in den anderen Charakter und gleich rein in den nächsten Dialog. Kein Tab, kein Sprechername tippen, kein zweites Enter.",
   "quick.sfxLabel": "SFX:",
@@ -138,7 +208,7 @@ export const de = {
     "Das machen weder Word, noch Notion, noch Final Draft, noch ChatGPT, noch Apple Notes. Bei uns ist es ein Kernfeature, von Anfang an. Wer schon mal zwei Sprecher gleichzeitig getippt hat, weiß, was das pro Tag spart.",
 
   // ===================== Tab: NO-AI =====================
-  "noai.caption": "INT. KEIN-KI-MANIFEST",
+  "noai.caption": "INT. KEIN-KI-MANIFEST — SKRIPTEDITOR OHNE KI",
   "noai.action1":
     "ScriptZ hat keine KI eingebaut. Kein Chatfenster, kein „schreib mir ein Skript\", kein automatisches Umformulieren, keine Vorschläge, keine Auto-Vervollständigung jenseits der Charakter-Namen aus deinem eigenen Skript. Bewusst nicht.",
   "noai.axel1.paren": "(skeptisch)",
@@ -160,9 +230,9 @@ export const de = {
     "Quickmodus, Charakter-Auto-Erkennung, Block-Hotkeys. Tools, die deine Idee aus deinem Kopf auf die Seite tragen - ohne sie umzuschreiben.",
 
   // ===================== Tab: VERGLEICH =====================
-  "cmp.caption": "EXT. KONKURRENZ — DER EHRLICHE VERGLEICH",
+  "cmp.caption": "EXT. VERGLEICH — SCRIPTZ VS. FINAL DRAFT, NOTION, CHATGPT",
   "cmp.action1":
-    "Andere Tools können vieles, was wir nicht können. Hier ist die Liste, was wir können, was sie nicht können:",
+    "ScriptZ als Final-Draft-Alternative für Short-Form: andere Tools können vieles, was wir nicht können. Hier ist die Liste, was wir können, was sie nicht können:",
   "cmp.head.crit": "Was du brauchst",
   "cmp.row.format": "Format passiert ohne dich",
   "cmp.row.quick": "Quickmodus für 2 Sprecher",
@@ -188,7 +258,7 @@ export const de = {
     "Wir können nichts davon ersetzen. Final Draft kann eine Spielfilm-Drehbuchabgabe an die WGA. Notion kann ein Wiki. ChatGPT kann dir ein Brainstorming generieren. Wir können: Skripte für Reels schnell. Das ist alles - und das wars uns wert.",
 
   // ===================== Tab: DOWNLOAD =====================
-  "dl.caption": "INT. DOWNLOAD — EIN KLICK",
+  "dl.caption": "INT. DOWNLOAD — SCRIPTZ KOSTENLOS FÜR MACOS UND WINDOWS",
   "dl.action1.mac":
     "macOS 13 oder neuer. Kostenlos. Open Source. Beim ersten Start: Rechtsklick aufs App-Icon → „Öffnen\". Apple verlangt das für unsignierte Apps. Updates kommen danach automatisch.",
   "dl.action1.win":
@@ -288,8 +358,33 @@ export const de = {
   "lang.toggle.en": "EN",
 
   // ===================== Page-Meta =====================
+  // Home (`/`) - bleibt der dominante Brand-Eintrag.
   "meta.title": "ScriptZ - der Skripteditor für Content Creator",
   "meta.description":
     "Schreiben statt formatieren. Eine Idee → ein fertiges Skript in wenigen Minuten. Lokal, kostenlos, Open Source. Für TikTok, Reels und YouTube Shorts.",
+  // Warum-Route (`/warum-scriptz`)
+  "meta.warum.title": "Warum ScriptZ - Skripteditor ohne Drehbuch-Korsett | für Reels und Shorts",
+  "meta.warum.description":
+    "ScriptZ ist für Content Creator gebaut, nicht für Drehbuchautoren. Format passiert beim Tippen, Charaktere werden automatisch erkannt. Für TikTok, Reels und YouTube Shorts.",
+  // Quickmodus-Route (`/quickmodus`)
+  "meta.quickmodus.title": "Quickmodus - Two-Hander-Workflow für Reels und Shorts | ScriptZ",
+  "meta.quickmodus.description":
+    "Der Quickmodus von ScriptZ schreibt Two-Hander-Dialoge automatisch: Enter springt zum nächsten Sprecher. Spart pro Skript eine Minute, ohne Tab und ohne Sprechernamen tippen.",
+  // Keine-KI-Route (`/keine-ki`)
+  "meta.noai.title": "Skripteditor ohne KI - das No-AI-Manifest | ScriptZ",
+  "meta.noai.description":
+    "ScriptZ hat bewusst keine KI eingebaut. Keine Vorschläge, kein „Verbessern\"-Button, kein Cloud-Upload. Deine Stimme bleibt deine, dein Skript bleibt lokal.",
+  // Vergleichs-Route (`/vergleich`)
+  "meta.compare.title": "ScriptZ vs. Final Draft, Notion, ChatGPT - der ehrliche Vergleich",
+  "meta.compare.description":
+    "ScriptZ als kostenlose Final-Draft-Alternative für TikTok, Reels und Shorts. Was wir können, was Word, Notion, Final Draft, ChatGPT und Apple Notes nicht können - und umgekehrt.",
+  // Download-Route (`/download`)
+  "meta.download.title": "ScriptZ kostenlos herunterladen - macOS und Windows | Open Source",
+  "meta.download.description":
+    "Skripteditor für Content Creator. Kostenlos, lokal, Open Source. macOS 13+ (.dmg) oder Windows 10+ (.exe). Kein Konto, keine Tracker, keine KI.",
+  // Ideen-Route (`/ideen`)
+  "meta.ideas.title": "Ideen-Inbox - was du als Nächstes schreibst | ScriptZ",
+  "meta.ideas.description":
+    "Sammle Skript-Ideen für TikTok, Reels und YouTube Shorts, wandle sie per Klick in ein fertiges Skript. Offline, ohne Konto, in der ScriptZ-App und im Browser.",
   "meta.ogLocale": "de_DE",
 } as const;

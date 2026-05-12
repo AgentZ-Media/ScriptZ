@@ -1,0 +1,86 @@
+---
+/**
+ * IDEEN-Section - eigene Route (`/ideen`, `/en/ideas`). App-Replika.
+ */
+import { t, type Lang, type StringKey } from "../../i18n";
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+interface Idea {
+  titleKey: StringKey;
+  bodyKey?: StringKey;
+  ageKey: StringKey;
+  used?: boolean;
+}
+
+const openIdeas: Idea[] = [
+  { titleKey: "ideas.sample.tutorial.title", bodyKey: "ideas.sample.tutorial.body", ageKey: "ideas.sample.tutorial.age" },
+  { titleKey: "ideas.sample.fd.title",       bodyKey: "ideas.sample.fd.body",       ageKey: "ideas.sample.fd.age" },
+  { titleKey: "ideas.sample.word.title",     bodyKey: "ideas.sample.word.body",     ageKey: "ideas.sample.word.age" },
+  { titleKey: "ideas.sample.noai.title",     bodyKey: "ideas.sample.noai.body",     ageKey: "ideas.sample.noai.age" },
+  { titleKey: "ideas.sample.reel.title",     bodyKey: "ideas.sample.reel.body",     ageKey: "ideas.sample.reel.age" },
+  { titleKey: "ideas.sample.morning.title",  bodyKey: "ideas.sample.morning.body",  ageKey: "ideas.sample.morning.age" },
+];
+
+const usedIdeas: Idea[] = [
+  { titleKey: "ideas.sample.cliche.title", ageKey: "ideas.sample.cliche.age", used: true },
+];
+
+const allIdeas = [...openIdeas, ...usedIdeas];
+---
+
+<section class="v2-tab-content v2-ideas is-active" data-content="ideen">
+  <div class="v2-ideas-head">
+    <h1 class="v2-ideas-h">{t(lang, "ideas.h")}</h1>
+    <p class="v2-ideas-sub">{t(lang, "ideas.sub")}</p>
+  </div>
+
+  <div class="v2-ideas-input" role="button" tabindex="0">
+    <span class="v2-ideas-input-plus" aria-hidden="true">+</span>
+    <span class="v2-ideas-input-text">{t(lang, "ideas.input.placeholder")}</span>
+  </div>
+
+  <div class="v2-ideas-controls">
+    <div class="v2-ideas-search">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span>{t(lang, "ideas.search.placeholder")}</span>
+    </div>
+    <div class="v2-ideas-filters">
+      <button class="v2-ideas-filter is-active" type="button">{t(lang, "ideas.filter.open")} <span class="v2-ideas-filter-c">{openIdeas.length}</span></button>
+      <button class="v2-ideas-filter" type="button">{t(lang, "ideas.filter.all")} <span class="v2-ideas-filter-c">{allIdeas.length}</span></button>
+      <button class="v2-ideas-filter" type="button">{t(lang, "ideas.filter.used")} <span class="v2-ideas-filter-c">{usedIdeas.length}</span></button>
+    </div>
+    <div class="v2-ideas-sort">{t(lang, "ideas.sort")}</div>
+  </div>
+
+  <ul class="v2-ideas-list">
+    {openIdeas.map((idea) => (
+      <li class="v2-idea-card">
+        <span class="v2-idea-dot" aria-hidden="true"></span>
+        <div class="v2-idea-body">
+          <h2 class="v2-idea-title">{t(lang, idea.titleKey)}</h2>
+          {idea.bodyKey && <p class="v2-idea-text">{t(lang, idea.bodyKey)}</p>}
+          <span class="v2-idea-age">{t(lang, idea.ageKey)}</span>
+        </div>
+        <div class="v2-idea-actions">
+          <button class="v2-idea-btn" type="button">{t(lang, "ideas.btn.script")}</button>
+          <button class="v2-idea-trash" type="button" aria-label={t(lang, "ideas.btn.delete.aria")}>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            </svg>
+          </button>
+        </div>
+      </li>
+    ))}
+  </ul>
+
+  <div class="v2-ideas-hint">
+    <span class="v2-kbd-pill">⌘ I</span> {t(lang, "ideas.hint.before")}
+  </div>
+</section>

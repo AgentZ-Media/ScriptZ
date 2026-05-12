@@ -1459,3 +1459,195 @@
   .v2-install-steps li {
     padding: 4px 0;
   }
+
+  /* === Anker als Pseudo-Button: text-decoration zuruecksetzen ====
+     Die Tab-Bar, der Toolbar-Back und die Jump-Buttons waren frueher
+     `<button>` und sind jetzt echte Navigation-Links (`<a>`). Default-
+     Underline auf links muss raus, sonst sieht's bockig aus.            */
+  a.v2-tab,
+  a.v2-toolbar-back,
+  a.v2-jump-btn {
+    text-decoration: none;
+    cursor: pointer;
+  }
+  a.v2-jump-btn { display: inline-block; }
+
+  /* === Hero-H1: Keyword-Eyebrow + Tagline ========================
+     Auf der Home (`/`) ist das H1 ein zwei-zeiliger Brand-Statement
+     ("Schreiben, statt formatieren.") mit einer kleinen Keyword-
+     Zeile darueber ("Skripteditor fuer Content Creator."). Ueber den
+     `.v2-h1-keyword` / `.v2-h1-tagline` Spans steuern wir Groesse +
+     Gewicht der beiden Bestandteile.                                    */
+  .v2-h1-keyword {
+    display: block;
+    font-size: clamp(16px, 1.8vw, 22px);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: #5b554c;
+    margin-bottom: 0.5em;
+    line-height: 1.25;
+  }
+  .v2-h1-tagline {
+    display: block;
+    line-height: 0.98;
+  }
+
+  /* === Hero-Variant: compact =====================================
+     Auf allen Sub-Routen (Quickmodus, KeineKI, ...) sitzt PageHero
+     kompakter als auf der Home: kleinerer H1, weniger Top-Padding,
+     keine Install-Accordions (die werden im Markup ausgeblendet, die
+     Spacing-Regeln hier liefern den Rest).                               */
+  .v2-hero--compact {
+    padding: 56px 24px 40px;
+  }
+  .v2-hero--compact .v2-h1 {
+    font-size: clamp(32px, 4.5vw, 52px);
+    line-height: 1.08;
+  }
+  .v2-hero--compact .v2-lead {
+    margin-top: 18px;
+    font-size: clamp(15px, 1.4vw, 17px);
+  }
+  .v2-hero--compact .v2-hero-cta {
+    margin-top: 22px;
+  }
+
+  /* === Home-Section: Gallery + Features + Compare + Closing ======
+     Eigener Stil auf `/`, nicht der Skript-Look der Tab-Sections.
+     Bewusst luftiger - jeder Block ist eine in sich geschlossene
+     Einheit mit eigenem H2 und eigener Aufgabe (Galerie, Teaser,
+     Vergleich, Download).                                                */
+  .v2-home {
+    /* Reset: Home-Section ist Marketing-Content, nicht Script-Format.
+       Padding kommt vom v2-paper-Parent. */
+  }
+  .v2-home-block {
+    padding: 36px 0;
+    border-bottom: 1px dashed var(--v2-border);
+  }
+  .v2-home-block:last-of-type {
+    border-bottom: 0;
+    padding-bottom: 56px;
+  }
+  .v2-home-h2 {
+    margin: 0 0 8px;
+    font-size: clamp(22px, 2.4vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+  .v2-home-sub {
+    margin: 0 0 16px;
+    color: var(--v2-ink-muted);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  /* Drei Feature-Teaser als Grid. */
+  .v2-home-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .v2-home-card {
+    display: flex;
+    flex-direction: column;
+    padding: 22px 20px;
+    border: 1px solid var(--v2-border);
+    border-radius: 6px;
+    background: #fbfaf7;
+    color: var(--v2-ink);
+    text-decoration: none;
+    transition: all 140ms ease;
+  }
+  .v2-home-card:hover {
+    background: #fff;
+    border-color: rgba(28,24,20,0.22);
+    transform: translateY(-1px);
+  }
+  .v2-home-card h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .v2-home-card p {
+    margin: 0 0 14px;
+    color: var(--v2-ink-muted);
+    font-size: 13.5px;
+    line-height: 1.55;
+    flex: 1;
+  }
+  .v2-home-card-cta {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--v2-ink);
+  }
+  .v2-home-card:hover .v2-home-card-cta {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* Vergleichs-Teaser - schmaler Textblock + ein Inline-CTA. */
+  .v2-home-compare-body {
+    margin: 0 0 14px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--v2-ink);
+    max-width: 62ch;
+  }
+  .v2-home-compare-cta {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--v2-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .v2-home-compare-cta:hover { opacity: 0.78; }
+
+  /* Closing-Download-Block - zentrierter Call-to-Action am Page-Ende. */
+  .v2-home-closing {
+    text-align: center;
+  }
+  .v2-home-closing-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--v2-ink-muted);
+    margin-bottom: 10px;
+  }
+  .v2-home-closing-h2 {
+    margin: 0 0 10px;
+    font-size: clamp(26px, 3vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .v2-home-closing-body {
+    margin: 0 auto 22px;
+    max-width: 50ch;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--v2-ink-muted);
+  }
+  .v2-home-closing-cta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .v2-home-closing .v2-hero-meta {
+    justify-content: center;
+    margin-top: 6px;
+  }
+
+  /* Mobile: Feature-Grid bricht auf eine Spalte. */
+  @media (max-width: 760px) {
+    .v2-home-grid { grid-template-columns: 1fr; }
+    .v2-home-block { padding: 28px 0; }
+  }

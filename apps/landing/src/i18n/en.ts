@@ -10,6 +10,7 @@ import type { de } from "./de";
 export const en: Record<keyof typeof de, string> = {
   // ===================== Hero =====================
   "hero.eyebrow": "SCRIPTZ // FOR CONTENT CREATORS",
+  "hero.h1.keyword": "Script editor for content creators.",
   "hero.h1.line1": "Write,",
   "hero.h1.line2": "don't format.",
   "hero.lead":
@@ -24,6 +25,72 @@ export const en: Record<keyof typeof de, string> = {
   "hero.web.intro": "Want to try it first?",
   "hero.web.link": "Test it right in your browser →",
   "hero.web.hint": "Test editor, local in your browser. Data stays there.",
+
+  // ===================== Page hero per route =====================
+  // Each route has a unified page-hero on top (keyword eyebrow, H1,
+  // subline, download CTA). Only the home variant (`/en`) uses the
+  // historical `hero.h1.*` / `hero.lead` keys so the brand statement
+  // stays bigger. Sub-routes pull from the `hero.{route}.*` keys here.
+  "hero.warum.keyword": "WHY SCRIPTZ",
+  "hero.warum.title": "Write scripts without the app getting in the way.",
+  "hero.warum.subline":
+    "Built for content creators who want their TikTok, Reels and YouTube Shorts scripts done faster - no screenplay corset, no AI, no subscription.",
+
+  "hero.quickmodus.keyword": "THE DETAIL NOBODY ELSE HAS",
+  "hero.quickmodus.title": "Quick mode: the two-hander workflow for Reels and Shorts.",
+  "hero.quickmodus.subline":
+    "Two speakers, one Enter. The cursor jumps to the next character automatically - no Tab, no typing names. Saves a minute per script.",
+
+  "hero.noai.keyword": "THE NO-AI MANIFESTO",
+  "hero.noai.title": "Script editor without AI. Your voice stays yours.",
+  "hero.noai.subline":
+    "No chat window, no suggestions, no „improve\" button. Your scripts live locally in a SQLite file, not in the cloud.",
+
+  "hero.vergleich.keyword": "THE HONEST COMPARISON",
+  "hero.vergleich.title": "ScriptZ vs. Final Draft, Notion, ChatGPT, Word.",
+  "hero.vergleich.subline":
+    "What ScriptZ does that the others don't - and where we deliberately stay small. Built as a free Final Draft alternative for short-form.",
+
+  "hero.download.keyword": "FREE, LOCAL, OPEN SOURCE",
+  "hero.download.title": "Download ScriptZ free - macOS and Windows.",
+  "hero.download.subline":
+    "One .dmg or .exe. No account, no trackers, no AI. Updates come automatically via the built-in updater.",
+
+  "hero.ideen.keyword": "THE IDEAS INBOX",
+  "hero.ideen.title": "Collect what you'll write next.",
+  "hero.ideen.subline":
+    "Script ideas for TikTok, Reels and Shorts in one place. One click turns them into a finished script - offline, no account.",
+
+  // ===================== Home section (`/en`) =====================
+  // Dedicated home content below the page hero: screenshot gallery,
+  // three feature teasers, comparison hint, closing download block.
+  "home.gallery.h2": "Three views, one app.",
+  "home.gallery.sub":
+    "Overview, ideas, editor. That's all a script tool needs. The tabs above are the app.",
+
+  "home.features.h2": "Three things only ScriptZ does.",
+  "home.feature.quick.title": "Quick mode for two speakers",
+  "home.feature.quick.body":
+    "Two-hander dialog as if by itself: Enter jumps to the next character, no Tab, no typing names. Saves a minute per 60-second reel.",
+  "home.feature.quick.link": "Quick mode explained →",
+  "home.feature.noai.title": "No AI, on purpose",
+  "home.feature.noai.body":
+    "No suggestions, no „improve\" button, no cloud upload. Your voice stays yours, your script stays local in a SQLite file.",
+  "home.feature.noai.link": "The no-AI manifesto →",
+  "home.feature.local.title": "Local, free, open source",
+  "home.feature.local.body":
+    "One installer, no account, no trackers. macOS or Windows. Source on GitHub, everything in a SQLite file on your machine.",
+  "home.feature.local.link": "See it on GitHub →",
+
+  "home.compare.h2": "Compared.",
+  "home.compare.body":
+    "Final Draft can handle feature screenplays. Notion can run wikis. ChatGPT can brainstorm. ScriptZ can: scripts for reels, fast. That's all - and that was worth it to us.",
+  "home.compare.cta": "See the full comparison →",
+
+  "home.closing.eyebrow": "READY?",
+  "home.closing.h2": "Free. Local. No account.",
+  "home.closing.body":
+    "macOS 13+ or Windows 10+. One click, one installer, done. No sign-in, no mailing list, no subscription.",
 
   // macOS install hint
   "install.mac.summary": "macOS blocks the app the first time you open it?",
@@ -54,6 +121,7 @@ export const en: Record<keyof typeof de, string> = {
 
   // ===================== App-Chrome / Tabs =====================
   "tab.home.title": "Overview",
+  "tab.home.long": "Script editor for TikTok, Reels and YouTube Shorts",
   "tab.home.aria": "Overview (back to top)",
   "tab.ideas.title": "Ideas",
   "tab.ideas.aria": "Ideas",
@@ -80,7 +148,7 @@ export const en: Record<keyof typeof de, string> = {
   "toolbar.download": "Download",
 
   // ===================== Tab: WARUM =====================
-  "warum.caption": "INT. WRITE-SCRIPTZ.COM — NOW",
+  "warum.caption": "INT. SCRIPTZ — SCRIPT EDITOR FOR TIKTOK, REELS AND YOUTUBE SHORTS",
   "warum.action1":
     "An empty page. Cursor blinks. You type and the formatting just happens. Character name? Auto-centered, all caps. Tab? Block switch. Enter? Next line - usually already in the right block.",
   "warum.action2":
@@ -116,7 +184,7 @@ export const en: Record<keyof typeof de, string> = {
   "jump.btn.backToStart": "→ Back to start",
 
   // ===================== Tab: QUICKMODUS =====================
-  "quick.caption": "INT. QUICK MODE — TWO SPEAKERS, ONE FLOW",
+  "quick.caption": "INT. QUICK MODE — THE TWO-HANDER WORKFLOW FOR REELS AND SHORTS",
   "quick.action1":
     "Quick mode is what makes ScriptZ irreplaceable. Once your script has exactly two speakers, it kicks in. After each dialog, one Enter and the cursor jumps automatically to the other character and right into the next dialog. No Tab, no typing the speaker name, no second Enter.",
   "quick.sfxLabel": "SFX:",
@@ -135,7 +203,7 @@ export const en: Record<keyof typeof de, string> = {
     "Neither Word, nor Notion, nor Final Draft, nor ChatGPT, nor Apple Notes does this. For us it's a core feature, from day one. Anyone who's ever typed two speakers at once knows what that saves per day.",
 
   // ===================== Tab: NO-AI =====================
-  "noai.caption": "INT. NO-AI MANIFESTO",
+  "noai.caption": "INT. NO-AI MANIFESTO — SCRIPT EDITOR WITHOUT AI",
   "noai.action1":
     "ScriptZ has no AI built in. No chat window, no „write me a script\", no auto-rephrasing, no suggestions, no autocomplete beyond character names from your own script. Deliberately not.",
   "noai.axel1.paren": "(skeptical)",
@@ -157,9 +225,9 @@ export const en: Record<keyof typeof de, string> = {
     "Quick mode, character auto-detection, block hotkeys. Tools that carry your idea from your head to the page - without rewriting it.",
 
   // ===================== Tab: VERGLEICH =====================
-  "cmp.caption": "EXT. THE COMPETITION — AN HONEST COMPARISON",
+  "cmp.caption": "EXT. COMPARE — SCRIPTZ VS. FINAL DRAFT, NOTION, CHATGPT",
   "cmp.action1":
-    "Other tools can do plenty we can't. Here's the list of what we can do that they can't:",
+    "ScriptZ as a Final Draft alternative for short-form: other tools can do plenty we can't. Here's the list of what we can do that they can't:",
   "cmp.head.crit": "What you need",
   "cmp.row.format": "Format happens without you",
   "cmp.row.quick": "Quick mode for 2 speakers",
@@ -185,7 +253,7 @@ export const en: Record<keyof typeof de, string> = {
     "We can replace none of that. Final Draft can submit a feature screenplay to the WGA. Notion can run a wiki. ChatGPT can brainstorm with you. We can: scripts for reels, fast. That's all - and it was worth it to us.",
 
   // ===================== Tab: DOWNLOAD =====================
-  "dl.caption": "INT. DOWNLOAD — ONE CLICK",
+  "dl.caption": "INT. DOWNLOAD — SCRIPTZ FREE FOR MACOS AND WINDOWS",
   "dl.action1.mac":
     "macOS 13 or newer. Free. Open source. First launch: right-click the app icon → „Open\". Apple requires that for unsigned apps. Updates come automatically after that.",
   "dl.action1.win":
@@ -285,8 +353,33 @@ export const en: Record<keyof typeof de, string> = {
   "lang.toggle.en": "EN",
 
   // ===================== Page meta =====================
+  // Home (`/en`) - the dominant brand entry.
   "meta.title": "ScriptZ - the script editor for content creators",
   "meta.description":
     "Write, don't format. From idea to finished script in minutes. Local, free, open source. For TikTok, Reels and YouTube Shorts.",
+  // Why-route (`/en/why-scriptz`)
+  "meta.warum.title": "Why ScriptZ - script editor without screenplay corset | for Reels and Shorts",
+  "meta.warum.description":
+    "ScriptZ is built for content creators, not screenwriters. Format happens as you type, characters are auto-detected. For TikTok, Reels and YouTube Shorts.",
+  // Quick-mode route (`/en/quick-mode`)
+  "meta.quickmodus.title": "Quick mode - two-hander workflow for Reels and Shorts | ScriptZ",
+  "meta.quickmodus.description":
+    "ScriptZ quick mode writes two-hander dialog automatically: Enter jumps to the next speaker. Saves a minute per script - no Tab, no typing speaker names.",
+  // No-AI route (`/en/no-ai`)
+  "meta.noai.title": "Script editor without AI - the no-AI manifesto | ScriptZ",
+  "meta.noai.description":
+    "ScriptZ has no AI built in - on purpose. No suggestions, no „improve\" button, no cloud upload. Your voice stays yours, your script stays local.",
+  // Compare route (`/en/compare`)
+  "meta.compare.title": "ScriptZ vs. Final Draft, Notion, ChatGPT - the honest comparison",
+  "meta.compare.description":
+    "ScriptZ as a free Final Draft alternative for TikTok, Reels and Shorts. What we can do that Word, Notion, Final Draft, ChatGPT and Apple Notes can't - and vice versa.",
+  // Download route (`/en/download`)
+  "meta.download.title": "Download ScriptZ free - macOS and Windows | Open Source",
+  "meta.download.description":
+    "Script editor for content creators. Free, local, open source. macOS 13+ (.dmg) or Windows 10+ (.exe). No account, no trackers, no AI.",
+  // Ideas route (`/en/ideas`)
+  "meta.ideas.title": "Ideas inbox - what you write next | ScriptZ",
+  "meta.ideas.description":
+    "Collect script ideas for TikTok, Reels and YouTube Shorts, turn them into a finished script with one click. Offline, no account, in the ScriptZ app and in the browser.",
   "meta.ogLocale": "en_US",
 };

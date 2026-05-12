@@ -1,7 +1,8 @@
 ---
 import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
 import { getLatestRelease, site } from "../data/site";
-import { type Lang, t } from "../i18n";
+import { routeKeyFromPath, switchLangPath, t, type Lang } from "../i18n";
 
 interface Props {
   title?: string;
@@ -30,13 +31,11 @@ const ogImage = `${site.url}/img/icon-large.png`;
 const ogLocale = t(lang, "meta.ogLocale");
 const htmlLang = lang === "en" ? "en" : "de";
 
-// Canonical und hreflang. Die Landing existiert in DE (default, /) und
-// EN (/en). Legal-Seiten existieren nur in DE - dann ist `enHref` null
-// und wir setzen kein hreflang-en.
+// Canonical und hreflang.
 // `build.format: "file"` haengt an Pfaden ein `.html` an - auf
 // `Astro.url.pathname` kann also `/impressum.html` ankommen statt
 // `/impressum`. Wir normalisieren hier einmal, damit alle Vergleiche
-// (isLegal, isHome, deHref) das gleiche Schema sehen.
+// (isLegal, isHome, hreflang) das gleiche Schema sehen.
 const rawPath = Astro.url.pathname;
 const currentPath = (() => {
   let p = rawPath.replace(/\.html$/, "").replace(/\/$/, "");
@@ -46,18 +45,19 @@ const currentPath = (() => {
 })();
 const isLegal = currentPath === "/impressum" || currentPath === "/datenschutz";
 const isHome = currentPath === "/" || currentPath === "/en";
-const deHref = (() => {
-  if (isLegal) return new URL(currentPath, site.url).toString();
-  return new URL("/", site.url).toString();
-})();
-const enHref = isLegal ? null : new URL("/en", site.url).toString();
-const canonical = lang === "en" ? enHref ?? deHref : deHref;
+
+// hreflang-Pfade pro Sprache: Tab-Routen sind sprach-eigene Slugs
+// (`/quickmodus` <-> `/en/quick-mode`), Legal-Seiten existieren nur in
+// DE. `switchLangPath` deckt beide Faelle ab.
+const dePath = lang === "de" ? currentPath : switchLangPath(lang, "de", currentPath);
+const enPath = isLegal ? null : (lang === "en" ? currentPath : switchLangPath(lang, "en", currentPath));
+const deHref = new URL(dePath, site.url).toString();
+const enHref = enPath ? new URL(enPath, site.url).toString() : null;
+const canonical = lang === "en" ? (enHref ?? deHref) : deHref;
 
 // Structured Data (JSON-LD): hilft Suchmaschinen, ScriptZ als Software
 // und AgentZ Media als Publisher zu erkennen. `Organization` liegt auf
 // jeder Seite, `SoftwareApplication` nur auf den Home-Routen (`/`, `/en`).
-// Version + Download-Links kommen zur Build-Zeit aus der GitHub-Releases-
-// API (`getLatestRelease`), fail-soft auf `fallbackVersion`.
 const orgLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -95,6 +95,12 @@ if (isHome) {
     },
   };
 }
+
+// Soll diese Page den ClientRouter benutzen? Ja fuer alle Tab-Routen
+// (warum/quickmodus/no-ai/vergleich/download/ideen). Nein fuer Legal -
+// dort gibt es keine "Tab-Wechsel"-UX, ein Klick auf Impressum aus dem
+// Footer ist eine echte Page-Navigation, der Wiederaufbau ist OK.
+const isTabRoute = routeKeyFromPath(currentPath) !== null;
 ---
 
 <!DOCTYPE html>
@@ -139,6 +145,12 @@ if (isHome) {
 
     <script is:inline type="application/ld+json" set:html={JSON.stringify(orgLd)} />
     {softwareLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(softwareLd)} />}
+
+    <!-- View Transitions / ClientRouter: macht die Tab-Routen-Wechsel
+         zum gefuehlten Tab-Switch statt Full-Reload. Chrome + Sprint-
+         Pille tragen `transition:persist`, deshalb bleiben sie beim
+         Swap gemountet. -->
+    <ClientRouter fallback="swap" />
 
     <!-- Plattform-Auto-Detect: laeuft synchron vor dem ersten Paint
          und setzt `<html data-platform="windows|macos|linux">`. CSS-
@@ -202,25 +214,52 @@ if (isHome) {
       })();
     </script>
   </head>
-  <body data-lang={lang}>
+  <body data-lang={lang} data-is-tab-route={isTabRoute ? "true" : "false"}>
     <slot />
 
-    <script>
-      // Mikroanimationen: Reveal-on-scroll für Elemente mit .reveal.
-      // Wir benutzen IntersectionObserver, damit die Page auch ohne JS
-      // funktioniert (Reveal-Klasse zeigt dann einfach gar nicht).
-      const reveal = (entries: IntersectionObserverEntry[]) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
+    <!-- ClientRouter-After-Swap-Handler:
+         1. Shell-Init neu ausfuehren (re-bindet Copy-Button, Sprint,
+            Plattform-CTA, Screenshot-Galerie). Funktion stammt aus
+            AppShell.astro und liegt global an `window.__scriptzShellInit`.
+         2. Nach oben scrollen, damit jeder Tab-Wechsel den User wieder
+            an den Page-Anfang setzt (inkl. Hero), wie ein klassischer
+            Page-Load.
+         3. Reveal-on-scroll Observer neu starten - die `.reveal`-Targets
+            sind frisch im DOM. -->
+    <script is:inline>
+      (function () {
+        var scrollToPageTop = function () {
+          window.scrollTo({ top: 0, behavior: "instant" });
+        };
+
+        var reveal = function (entries) {
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].isIntersecting) {
+              entries[i].target.classList.add("is-visible");
+            }
           }
-        }
-      };
-      const observer = new IntersectionObserver(reveal, {
-        threshold: 0.12,
-        rootMargin: "0px 0px -40px 0px",
-      });
-      document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+        };
+        var observer = null;
+        var initReveal = function () {
+          if (observer) observer.disconnect();
+          observer = new IntersectionObserver(reveal, {
+            threshold: 0.12,
+            rootMargin: "0px 0px -40px 0px",
+          });
+          document.querySelectorAll(".reveal").forEach(function (el) { observer.observe(el); });
+        };
+
+        // Erstes Setup
+        initReveal();
+
+        document.addEventListener("astro:after-swap", function () {
+          if (typeof window.__scriptzShellInit === "function") {
+            window.__scriptzShellInit();
+          }
+          scrollToPageTop();
+          initReveal();
+        });
+      })();
     </script>
   </body>
 </html>

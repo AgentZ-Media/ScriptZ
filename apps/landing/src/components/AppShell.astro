@@ -1,0 +1,393 @@
+---
+/**
+ * AppShell - das Schaufenster der App auf der Landing.
+ *
+ * Enthaelt: Titlebar mit Tab-Bar (echte `<a>`-Links statt JS-Tabs),
+ * Toolbar mit Pills + Download-Button, Footer, Sprint-Pille, sowie
+ * das Inline-Script fuer Plattform-Detect, Copy-Button, Screenshot-
+ * Galerie, Sprint-Fortschritt und Sprach-Toggle-Persistenz.
+ *
+ * Was hier NICHT drinsteht: der Hero (nur Home), das Section-Markup
+ * pro Tab (kommt als `<slot/>` rein). So bleibt jede Page klein und
+ * tragsam fuer eigenen Title/Meta.
+ *
+ * View-Transitions: das Chrome traegt `transition:persist`, damit es
+ * beim Routen-Wechsel nicht neu gemountet wird. Aktiver-Tab- und
+ * Toolbar-Title-Update passieren im `astro:after-swap`-Handler in
+ * Base.astro, nicht hier.
+ */
+import { getLatestRelease, site } from "../data/site";
+import { routePath, switchLangPath, t, type Lang, type RouteKey } from "../i18n";
+import "../styles/landing.css";
+
+interface Props {
+  lang: Lang;
+  /** Welcher inhaltliche Tab gehoert zu dieser Page? Bestimmt
+   *  `is-active`-Klasse am Tab-Knopf und den Toolbar-Title. */
+  activeTab: RouteKey;
+}
+
+const { lang, activeTab } = Astro.props;
+const release = await getLatestRelease();
+
+const otherLang: Lang = lang === "de" ? "en" : "de";
+const currentRoutePath = routePath(lang, activeTab);
+const switchHref = switchLangPath(lang, otherLang, currentRoutePath);
+
+// Toolbar-Title pro aktivem Tab. Download-Tab haengt zusaetzlich an
+// der Plattform, das passt das Inline-Script per data-Attribut an.
+const titleKeyMap: Record<RouteKey, Parameters<typeof t>[1]> = {
+  home: "tab.home.long",
+  warum: "tab.warum.long",
+  quickmodus: "tab.quickmodus.long",
+  "no-ai": "tab.noai.long",
+  vergleich: "tab.compare.long",
+  download: "tab.download.long.mac",
+  ideen: "tab.ideas.title",
+};
+const toolbarTitle = t(lang, titleKeyMap[activeTab]);
+
+// Pfade pro Tab in der aktuellen Sprache, einmalig fertig gerechnet,
+// damit das Markup unten lesbar bleibt.
+const links = {
+  home: routePath(lang, "home"),
+  ideen: routePath(lang, "ideen"),
+  warum: routePath(lang, "warum"),
+  quickmodus: routePath(lang, "quickmodus"),
+  "no-ai": routePath(lang, "no-ai"),
+  vergleich: routePath(lang, "vergleich"),
+  download: routePath(lang, "download"),
+};
+
+// Ideen-Liste fuer das Tab-Badge (Anzahl offener Ideen). Im Footer und
+// in der Sprint-Logik werden die genauen Eintraege nicht gebraucht -
+// nur im Ideen-Tab selbst, da rendert die IdeenSection sie eigenstaendig.
+const openIdeasCount = 6;
+
+// JS-seitige Strings ans Inline-Script weiterreichen.
+const jsStrings = {
+  copy: t(lang, "install.copy"),
+  copied: t(lang, "install.copied"),
+  copyManual: t(lang, "install.copyManual"),
+  sprintLabel: t(lang, "sprint.label"),
+  sprintFormat: "{r} / {t} W",
+};
+---
+
+<div class="v2-shell" data-theme="light">
+
+  <!-- Chrome (Titlebar + Toolbar) - wird bei jedem Routen-Wechsel
+       neu gerendert. KEIN `transition:persist`, sonst bleiben die
+       Tab-Labels in der Sprache der ersten Seite stehen, und der
+       Lang-Toggle wechselt seinen Aktiv-Pill nicht mit. View-
+       Transitions liefern den weichen Cross-Fade trotzdem.              -->
+  <div class="v2-chrome">
+
+    <!-- TAB-BAR -->
+    <header class="v2-titlebar">
+      <div class="v2-traffic" aria-hidden="true">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+      </div>
+
+      <div class="v2-tabs">
+        <a class:list={["v2-tab", "v2-tab-icon", activeTab === "home" && "is-active"]} href={links.home} data-tab="home" data-title={t(lang, "tab.home.long")} aria-label={t(lang, "tab.home.aria")}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>
+          </svg>
+        </a>
+        <a class:list={["v2-tab", "v2-tab-icon", activeTab === "ideen" && "is-active"]} href={links.ideen} data-tab="ideen" data-title={t(lang, "tab.ideas.title")} aria-label={t(lang, "tab.ideas.aria")}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M9 18h6"/><path d="M10 22h4"/>
+            <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>
+          </svg>
+          <span class="v2-tab-badge">{openIdeasCount}</span>
+        </a>
+
+        <a class:list={["v2-tab", "v2-tab-script", activeTab === "warum" && "is-active"]} href={links.warum} data-tab="warum" data-title={t(lang, "tab.warum.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.warum.short")}</span>
+        </a>
+        <a class:list={["v2-tab", "v2-tab-script", activeTab === "quickmodus" && "is-active"]} href={links.quickmodus} data-tab="quickmodus" data-title={t(lang, "tab.quickmodus.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.quickmodus.short")}</span>
+        </a>
+        <a class:list={["v2-tab", "v2-tab-script", activeTab === "no-ai" && "is-active"]} href={links["no-ai"]} data-tab="no-ai" data-title={t(lang, "tab.noai.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.noai.short")}</span>
+        </a>
+        <a class:list={["v2-tab", "v2-tab-script", activeTab === "vergleich" && "is-active"]} href={links.vergleich} data-tab="vergleich" data-title={t(lang, "tab.compare.long")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.compare.short")}</span>
+        </a>
+        <a class:list={["v2-tab", "v2-tab-script", "js-tab-download", activeTab === "download" && "is-active"]} href={links.download} data-tab="download" data-title={t(lang, "tab.download.long.mac")} data-title-mac={t(lang, "tab.download.long.mac")} data-title-win={t(lang, "tab.download.long.win")}>
+          <span class="v2-tab-ic">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          </span>
+          <span class="v2-tab-title">{t(lang, "tab.download.short")}</span>
+        </a>
+      </div>
+
+      <div class="v2-status">
+        <div class="v2-lang" role="group" aria-label={t(lang, "lang.toggle.aria")}>
+          {lang === "de" ? (
+            <>
+              <span class="v2-lang-pill is-active" aria-current="true">{t(lang, "lang.toggle.de")}</span>
+              <a class="v2-lang-pill" href={switchHref} hreflang="en" data-lang-set="en">{t(lang, "lang.toggle.en")}</a>
+            </>
+          ) : (
+            <>
+              <a class="v2-lang-pill" href={switchHref} hreflang="de" data-lang-set="de">{t(lang, "lang.toggle.de")}</a>
+              <span class="v2-lang-pill is-active" aria-current="true">{t(lang, "lang.toggle.en")}</span>
+            </>
+          )}
+        </div>
+        <a class="v2-status-pill" href={site.github} target="_blank" rel="noopener">
+          <span class="v2-dot v2-dot-on"></span>
+          {t(lang, "status.opensource")}
+        </a>
+        <span class="v2-status-pill v2-status-saved">
+          <span class="v2-dot v2-dot-on"></span>
+          {t(lang, "status.saved")}
+        </span>
+      </div>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="v2-toolbar">
+      <a class="v2-toolbar-back" href={links.home} data-tab="home" aria-label={t(lang, "toolbar.back.aria")}>
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        {t(lang, "toolbar.back.label")}
+      </a>
+      <div class="v2-toolbar-title" id="toolbar-title">{toolbarTitle}</div>
+      <div class="v2-toolbar-pills">
+        <span class="v2-pill is-active">{t(lang, "toolbar.pill.action")} <span class="v2-kbd">1</span></span>
+        <span class="v2-pill">{t(lang, "toolbar.pill.character")} <span class="v2-kbd">2</span></span>
+        <span class="v2-pill">{t(lang, "toolbar.pill.dialog")} <span class="v2-kbd">3</span></span>
+        <span class="v2-pill v2-pill-more">…</span>
+      </div>
+      <div class="v2-toolbar-actions">
+        <a
+          class="v2-toolbar-btn js-platform-cta"
+          href={release.dmgUrl}
+          data-href-mac={release.dmgUrl}
+          data-href-win={release.exeUrl}
+        >
+          <svg class="js-platform-icon-mac" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
+          </svg>
+          <svg class="js-platform-icon-win" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M3 5.49 10.5 4.5v7.49H3zm0 13.02L10.5 19.5v-7.49H3zm8.5-13.65L21 3.5v8.49h-9.5zm0 14.28L21 20.5v-8.49h-9.5z"/>
+          </svg>
+          {t(lang, "toolbar.download")}
+        </a>
+      </div>
+    </div>
+
+  </div><!-- /v2-chrome -->
+
+  <!-- PAPER (Section-Content + Footer) - wechselt pro Route. -->
+  <main class="v2-paper" id="paper">
+    <slot />
+
+    <!-- Footer (immer sichtbar, gleicher Inhalt pro Route) -->
+    <footer class="v2-footer">
+      <div class="v2-footer-cols">
+        <div>
+          <span class="v2-footer-h">{t(lang, "footer.col.project")}</span>
+          <ul>
+            <li><a href={site.github} target="_blank" rel="noopener">{t(lang, "footer.link.github")}</a></li>
+            <li><a href={release.releasePageUrl} target="_blank" rel="noopener">{t(lang, "footer.link.releases")}</a></li>
+          </ul>
+        </div>
+        <div>
+          <span class="v2-footer-h">{t(lang, "footer.col.legal")}</span>
+          <ul>
+            <li><a href="/impressum">{t(lang, "footer.link.imprint")}</a></li>
+            <li><a href="/datenschutz">{t(lang, "footer.link.privacy")}</a></li>
+          </ul>
+        </div>
+        <div>
+          <span class="v2-footer-h">{t(lang, "footer.col.contact")}</span>
+          <ul>
+            <li><a href={`mailto:${site.contactEmail}`}>{t(lang, "footer.link.email")}</a></li>
+          </ul>
+        </div>
+        <div class="v2-footer-meta">
+          <span class="v2-footer-eyebrow">{t(lang, "footer.about.eyebrow")}</span>
+          <p>{t(lang, "footer.about.body")}</p>
+          <p class="v2-footer-version">v{release.version} · <span class="mac-only">{t(lang, "footer.about.os.mac")}</span><span class="win-only">{t(lang, "footer.about.os.win")}</span></p>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- SPRINT-PILLE - rendert pro Route neu (Wortzahl ist eh
+       page-spezifisch, und das Label muss bei Sprachwechsel mit). -->
+  <div
+    class="v2-sprint"
+    id="sprint"
+    data-label={jsStrings.sprintLabel}
+    data-format={jsStrings.sprintFormat}
+  >
+    <span class="v2-sprint-ring">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-opacity="0.22"/>
+        <circle
+          class="v2-sprint-progress"
+          cx="12" cy="12" r="9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-dasharray="56.5487"
+          stroke-dashoffset="56.5487"
+          transform="rotate(-90 12 12)"
+        />
+      </svg>
+    </span>
+    <span class="v2-sprint-txt">{jsStrings.sprintLabel}</span>
+  </div>
+</div><!-- /v2-shell -->
+
+<!-- Plattform-CTA-Update + Sprint-Recount + Copy-Button + Sprach-
+     Toggle-Persistenz + Screenshot-Galerie. Laeuft beim ersten Load und
+     wird in Base.astro nach jedem ClientRouter-Swap erneut angestossen
+     (astro:page-load). Daher `is:inline` ohne `data-astro-rerun`. -->
+<script is:inline define:vars={{ jsStrings }}>
+  // Globale Init-Funktion, damit Base.astro sie nach astro:page-load
+  // erneut aufrufen kann. Nutzt feste Symbole am window-Objekt.
+  window.__scriptzShellInit = function () {
+    // ===== Plattform-CTA-Update ===================================
+    var platform = document.documentElement.getAttribute('data-platform') || 'macos';
+    var isWin = platform === 'windows';
+
+    document.querySelectorAll('.js-platform-cta').forEach(function (el) {
+      var hrefMac = el.getAttribute('data-href-mac');
+      var hrefWin = el.getAttribute('data-href-win');
+      var labelMac = el.getAttribute('data-label-mac');
+      var labelWin = el.getAttribute('data-label-win');
+      if (isWin && hrefWin) el.setAttribute('href', hrefWin);
+      else if (hrefMac) el.setAttribute('href', hrefMac);
+      var labelEl = el.querySelector('.js-platform-label');
+      if (labelEl) labelEl.textContent = (isWin ? labelWin : labelMac) || labelEl.textContent;
+    });
+
+    var dlTab = document.querySelector('.js-tab-download');
+    if (dlTab) {
+      var tMac = dlTab.getAttribute('data-title-mac');
+      var tWin = dlTab.getAttribute('data-title-win');
+      dlTab.setAttribute('data-title', (isWin ? tWin : tMac) || dlTab.getAttribute('data-title'));
+    }
+
+    // ===== Screenshot-Galerie =====================================
+    var shotTabs = document.querySelectorAll('.v2-shot-tab');
+    var shots = document.querySelectorAll('.v2-shot');
+    shotTabs.forEach(function (tab) {
+      // Idempotent: alten Listener entfernen, neuen registrieren
+      if (tab.__handler) tab.removeEventListener('click', tab.__handler);
+      var handler = function () {
+        var id = tab.getAttribute('data-shot');
+        shotTabs.forEach(function (x) {
+          var on = x === tab;
+          x.classList.toggle('is-active', on);
+          x.setAttribute('aria-selected', String(on));
+        });
+        shots.forEach(function (s) {
+          s.classList.toggle('is-active', s.getAttribute('data-shot') === id);
+        });
+      };
+      tab.__handler = handler;
+      tab.addEventListener('click', handler);
+    });
+
+    // ===== Copy-Button im Install-Hinweis =========================
+    document.querySelectorAll('.v2-install-copy').forEach(function (btn) {
+      if (btn.__handler) btn.removeEventListener('click', btn.__handler);
+      var handler = async function () {
+        var cmd = btn.getAttribute('data-copy') || '';
+        try {
+          await navigator.clipboard.writeText(cmd);
+          btn.textContent = jsStrings.copied;
+          btn.classList.add('is-done');
+          setTimeout(function () {
+            btn.textContent = jsStrings.copy;
+            btn.classList.remove('is-done');
+          }, 1600);
+        } catch (e) {
+          btn.textContent = jsStrings.copyManual;
+          setTimeout(function () { btn.textContent = jsStrings.copy; }, 2000);
+        }
+      };
+      btn.__handler = handler;
+      btn.addEventListener('click', handler);
+    });
+
+    // ===== Sprint-Pille: Wortzahl-Recount =========================
+    var sprintEl = document.getElementById('sprint');
+    var sprintTxt = document.querySelector('.v2-sprint-txt');
+    var sprintRing = document.querySelector('.v2-sprint-progress');
+    var paper = document.getElementById('paper');
+    var sprintLabel = sprintEl ? sprintEl.getAttribute('data-label') || 'Sprint' : 'Sprint';
+    var sprintFormat = sprintEl ? sprintEl.getAttribute('data-format') || '{r} / {t} W' : '{r} / {t} W';
+    var RING_CIRC = 56.5487;
+
+    if (sprintTxt && paper) {
+      var contentEl = paper.querySelector('.v2-tab-content');
+      var text = contentEl ? contentEl.textContent.trim() : '';
+      var words = text ? text.split(/\s+/).length : 0;
+      sprintTxt.dataset.total = String(words);
+
+      // Alten Scroll-Listener am window entfernen, falls vorhanden
+      if (window.__sprintScrollHandler) {
+        window.removeEventListener('scroll', window.__sprintScrollHandler);
+      }
+      var updateProgress = function () {
+        var total = parseInt(sprintTxt.dataset.total || '0', 10);
+        var top = window.scrollY;
+        var max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+        var ratio = Math.min(Math.max(top / max, 0), 1);
+        if (sprintRing) {
+          sprintRing.setAttribute('stroke-dashoffset', String(RING_CIRC * (1 - ratio)));
+        }
+        if (total === 0) {
+          sprintTxt.textContent = sprintLabel;
+          return;
+        }
+        var read = Math.round(ratio * total);
+        sprintTxt.textContent = sprintFormat.replace('{r}', String(read)).replace('{t}', String(total));
+      };
+      window.__sprintScrollHandler = updateProgress;
+      updateProgress();
+      window.addEventListener('scroll', updateProgress, { passive: true });
+    }
+
+    // ===== Sprach-Toggle: Auswahl persistieren ====================
+    document.querySelectorAll('[data-lang-set]').forEach(function (el) {
+      if (el.__handler) el.removeEventListener('click', el.__handler);
+      var handler = function () {
+        var target = el.getAttribute('data-lang-set');
+        if (target) {
+          try { localStorage.setItem('scriptz-lang', target); } catch (_) { /* private mode */ }
+        }
+      };
+      el.__handler = handler;
+      el.addEventListener('click', handler);
+    });
+  };
+
+  // Erstes Aufrufen beim klassischen Seitenaufbau. Bei ClientRouter-
+  // Navigation triggert Base.astro die Funktion neu via astro:page-load.
+  window.__scriptzShellInit();
+</script>
