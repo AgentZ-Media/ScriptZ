@@ -1,0 +1,33 @@
+/* Persistenz-Verweigerungs-Badge. Floatet unten links, dezent aber
+   nicht dismissable - im Gegensatz zum WebDisclaimerBanner. Soll
+   wahrnehmbar sein, ohne die UI zu dominieren. */
+.storage-persist-badge {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 90; /* unter Toasts (200) + Modals (100), über Editor-Chrome */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--danger-soft, #fde8d9);
+  color: var(--status-warn, #b9651b);
+  border: 1px solid var(--danger-border, rgba(185, 101, 27, 0.25));
+  font-size: 11px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  line-height: 1;
+  pointer-events: auto;
+  user-select: none;
+  cursor: default;
+}
+
+.storage-persist-badge svg {
+  flex: 0 0 auto;
+}
+
+[data-theme="dark"] .storage-persist-badge {
+  background: rgba(185, 101, 27, 0.18);
+  color: #f5b97a;
+  border-color: rgba(245, 185, 122, 0.28);
+}

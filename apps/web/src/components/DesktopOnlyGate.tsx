@@ -2,7 +2,16 @@ import { Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { t } from "@scriptz/core/i18n";
 import "./DesktopOnlyGate.css";
 
-const MIN_DESKTOP_WIDTH = 1024;
+// 900 px ist die niedrigste Schwelle, ab der das Home-Layout (Greeting +
+// MomentumStrip + Folder-Chips + Sortbar) noch sauber nebeneinander
+// passt. Niedriger -> Sortbar wickelt um und sieht broken aus. Damit
+// erwischen wir:
+//  - iPad landscape (1024+) -> drin
+//  - iPad Pro 12.9" portrait (1024) -> drin
+//  - iPad 11"/10.9" landscape (1180/1194) -> drin
+//  - iPad mini portrait (744-768) -> Gate
+//  - Phones (375-430) -> Gate
+const MIN_DESKTOP_WIDTH = 900;
 
 function initialIsDesktop(): boolean {
   if (typeof window === "undefined") return true;
