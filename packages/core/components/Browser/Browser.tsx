@@ -835,6 +835,10 @@ export function Browser(props: BrowserProps = {}) {
                 type="text"
                 value={renameValue()}
                 autofocus
+                aria-invalid={renameValue().trim().length === 0}
+                aria-describedby={
+                  renameValue().trim().length === 0 ? "rename-empty-hint" : undefined
+                }
                 onInput={(e) => setRenameValue(e.currentTarget.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void commitRename();
@@ -848,7 +852,7 @@ export function Browser(props: BrowserProps = {}) {
                   </div>
                 }
               >
-                <div class="field-hint field-hint-warn">
+                <div id="rename-empty-hint" class="field-hint field-hint-warn">
                   {t("script.renameEmptyHint")}
                 </div>
               </Show>
