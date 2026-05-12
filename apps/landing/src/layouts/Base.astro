@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { site } from "../data/site";
+import { getLatestRelease, site } from "../data/site";
 import { type Lang, t } from "../i18n";
 
 interface Props {
@@ -33,14 +33,68 @@ const htmlLang = lang === "en" ? "en" : "de";
 // Canonical und hreflang. Die Landing existiert in DE (default, /) und
 // EN (/en). Legal-Seiten existieren nur in DE - dann ist `enHref` null
 // und wir setzen kein hreflang-en.
-const currentPath = Astro.url.pathname;
+// `build.format: "file"` haengt an Pfaden ein `.html` an - auf
+// `Astro.url.pathname` kann also `/impressum.html` ankommen statt
+// `/impressum`. Wir normalisieren hier einmal, damit alle Vergleiche
+// (isLegal, isHome, deHref) das gleiche Schema sehen.
+const rawPath = Astro.url.pathname;
+const currentPath = (() => {
+  let p = rawPath.replace(/\.html$/, "").replace(/\/$/, "");
+  // `/index` -> `/`, `/en/index` -> `/en` etc.
+  p = p.replace(/\/index$/, "");
+  return p || "/";
+})();
 const isLegal = currentPath === "/impressum" || currentPath === "/datenschutz";
+const isHome = currentPath === "/" || currentPath === "/en";
 const deHref = (() => {
   if (isLegal) return new URL(currentPath, site.url).toString();
   return new URL("/", site.url).toString();
 })();
 const enHref = isLegal ? null : new URL("/en", site.url).toString();
 const canonical = lang === "en" ? enHref ?? deHref : deHref;
+
+// Structured Data (JSON-LD): hilft Suchmaschinen, ScriptZ als Software
+// und AgentZ Media als Publisher zu erkennen. `Organization` liegt auf
+// jeder Seite, `SoftwareApplication` nur auf den Home-Routen (`/`, `/en`).
+// Version + Download-Links kommen zur Build-Zeit aus der GitHub-Releases-
+// API (`getLatestRelease`), fail-soft auf `fallbackVersion`.
+const orgLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "AgentZ Media",
+  url: site.url,
+  email: site.contactEmail,
+  sameAs: [site.github],
+  logo: `${site.url}/img/icon-large.png`,
+};
+
+let softwareLd: Record<string, unknown> | null = null;
+if (isHome) {
+  const release = await getLatestRelease();
+  softwareLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: site.name,
+    url: canonical,
+    description: finalDescription,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "macOS 13+, Windows 10+",
+    softwareVersion: release.version,
+    downloadUrl: release.releasePageUrl,
+    image: ogImage,
+    inLanguage: lang === "en" ? "en" : "de",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "AgentZ Media",
+      url: site.url,
+    },
+  };
+}
 ---
 
 <!DOCTYPE html>
@@ -82,6 +136,9 @@ const canonical = lang === "en" ? enHref ?? deHref : deHref;
     <meta name="twitter:image" content={ogImage} />
 
     <meta name="robots" content="index, follow" />
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(orgLd)} />
+    {softwareLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(softwareLd)} />}
 
     <!-- Plattform-Auto-Detect: laeuft synchron vor dem ersten Paint
          und setzt `<html data-platform="windows|macos|linux">`. CSS-
