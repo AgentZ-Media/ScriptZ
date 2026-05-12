@@ -328,24 +328,34 @@ NSIS-Installer; siehe [`apps/landing/src/data/site.ts`](apps/landing/src/data/si
 
 ### Release-Notes schreiben
 
+**Release-Notes sind auf Englisch.** Sie laden im GitHub-Release-Body
+und sind dort für ein internationales Publikum sichtbar - GitHub ist
+die englischsprachige Schaufront des Projekts. Auch die README im
+Repo-Root ist auf Englisch und bleibt es. Die App-i18n und die
+Landing-Texte bleiben davon unberührt (siehe Abschnitt
+"Mehrsprachigkeit" weiter oben).
+
 Pro Release **eine** Markdown-Datei unter
-[`docs/release-notes/vX.Y.Z.md`](docs/release-notes/) anlegen. Inhalt:
+[`docs/release-notes/vX.Y.Z.md`](docs/release-notes/) anlegen. Inhalt
+**immer auf Englisch**:
 
 - **Erste Zeile:** kurzes Headline-Statement, was dieses Release
-  ausmacht. `ScriptZ vX.Y.Z - <ein-Satz-Tagline>.`
-- **`## Was ist neu`** mit den User-sichtbaren Features seit dem
+  ausmacht. `ScriptZ vX.Y.Z - <one-sentence tagline>.`
+- **`## What's new`** mit den User-sichtbaren Features seit dem
   vorherigen Tag. Knackig, in Bullets gruppiert nach Themen.
   Keine Refactor-Listen. Keine internen Migration-Phasen. Was würde
   ein User merken, der die App benutzt?
-- **`## Bug-Fixes`** wenn vorhanden. Kurz beschreiben, was sich für
+- **`## Bug fixes`** wenn vorhanden. Kurz beschreiben, was sich für
   den User ändert (nicht *welche Datei* gefixt wurde).
 - **`## Updating`** als letzter inhaltlicher Abschnitt mit ein bis
   zwei Sätzen, wie die Auto-Update-Pille funktioniert.
 
-Die statische **Install-Footer** ("Install (first time only)" mit
-`xattr -cr`-Hinweis) hängt der Release-Workflow automatisch dran -
-**niemals** in die per-Version-Datei kopieren. Die kommt aus
-[`.github/workflows/release.yml`](.github/workflows/release.yml).
+Die statische **Install-Footer** ("Installation (first time only)"
+mit `xattr -cr`-Hinweis und SmartScreen-Anleitung) hängt der
+Release-Workflow automatisch dran - **niemals** in die per-Version-
+Datei kopieren. Die kommt aus
+[`.github/workflows/release.yml`](.github/workflows/release.yml) und
+ist ebenfalls auf Englisch.
 
 **Die Landing hat in den Release-Notes nichts zu suchen.** Die Notes
 beschreiben die App, nicht die Marketing-Site. Änderungen an
@@ -447,18 +457,42 @@ Zusammenfassung + Optionen geben:
 Diese Regel gilt **immer**, auch wenn der User vorher schon eine
 Aufgabe ähnlich abgewickelt hat. Jede Änderung ist neu zu bewerten.
 
-## Deutsche Texte
+## Sprache pro Artefakt (wichtig)
 
-Die App ist mehrsprachig (siehe Sektion "Mehrsprachigkeit" weiter
-oben), Landing ist auf Deutsch. Code-Kommentare, Doku-Markdown,
-Release-Notes und die DE-Hälfte der i18n-Kataloge sind alle deutsch.
-In all diesen Texten wird normaler Bindestrich verwendet, **kein
+Nicht alles im Repo läuft in derselben Sprache. Die Regel ist nach
+**Zielpublikum** sortiert:
+
+| Artefakt | Sprache | Warum |
+|---|---|---|
+| **README.md** im Repo-Root | **Englisch** | GitHub-Schaufront, internationales Publikum |
+| **docs/release-notes/vX.Y.Z.md** | **Englisch** | Lädt in den GitHub-Release-Body, internationale User |
+| **docs/release-notes/_install_footer.md** | **Englisch** | Ditto, wird an jeden Release-Body angehängt |
+| App-i18n `packages/core/i18n/de.ts` | Deutsch | DE-Hälfte des bilingualen App-Katalogs |
+| App-i18n `packages/core/i18n/en.ts` | Englisch | EN-Hälfte des bilingualen App-Katalogs |
+| Landing `apps/landing/src/i18n/de.ts` | Deutsch | DE-Hälfte des bilingualen Landing-Katalogs |
+| Landing `apps/landing/src/i18n/en.ts` | Englisch | EN-Hälfte des bilingualen Landing-Katalogs |
+| Impressum + Datenschutz | Deutsch | Deutsches Recht, deutscher Anbieter |
+| **Code-Kommentare** (alle Apps) | **Deutsch** | Team schreibt intern auf Deutsch |
+| **Doku-Markdown** (CLAUDE.md, docs/*.md außer release-notes) | **Deutsch** | Interne Doku, deutsches Team |
+| **Commit-Messages, PR-Texte** | Deutsch | Interne Kommunikation |
+
+Faustregel: Was **auf GitHub als Schaufront** sichtbar ist (README,
+Release-Notes), läuft auf Englisch. Was **interne Doku oder
+Kommentare** ist, bleibt Deutsch. Die zweisprachigen i18n-Kataloge
+sind ein Sonderfall und haben ihre eigenen Regeln im Abschnitt
+"Mehrsprachigkeit" weiter oben.
+
+### Stil
+
+In **deutschen Texten** wird normaler Bindestrich verwendet, **kein
 Em-Dash**. Auch in von Claude generierten Texten.
 
 **Echte Umlaute, keine ASCII-Ersatzschreibung.** In allen
-deutschsprachigen Texten (Release-Notes, README, Landing,
-`i18n/de.ts`, Code-Kommentare) immer `ä`, `ö`, `ü`, `ß` statt
-`ae`, `oe`, `ue`, `ss`. Auch wenn die Tastatur das gerade
-nicht hergibt - dann lieber kurz suchen als ein "haendisch"
-ins Repo schreiben. Gilt insbesondere für Release-Notes,
-weil die im GitHub-Release-Body stehen und User-sichtbar sind.
+deutschsprachigen Texten (Landing-DE, `i18n/de.ts`, Code-Kommentare,
+interne Doku) immer `ä`, `ö`, `ü`, `ß` statt `ae`, `oe`, `ue`, `ss`.
+Auch wenn die Tastatur das gerade nicht hergibt - dann lieber kurz
+suchen als ein "haendisch" ins Repo schreiben.
+
+In **englischen Texten** (README, Release-Notes, `i18n/en.ts`,
+Landing-EN) sind normale Bindestriche ebenfalls Default; Em-Dashes
+sind nicht verboten, aber sparsam. Keine Smart-Quotes erzwingen.

@@ -5,232 +5,237 @@
 <h1 align="center">ScriptZ</h1>
 
 <p align="center">
-  <strong>Der schnellste Skript-Editor für TikTok-, Reels- und Shorts-Creator.</strong><br/>
-  <em>Lokal. Offline. Für macOS und Windows.</em>
+  <strong>Write, don't format.</strong><br/>
+  <em>The script editor for TikTok, Reels and YouTube Shorts creators.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.7.8-1c1814?style=flat-square" alt="version" />
-  <img src="https://img.shields.io/badge/platform-macOS_|_Windows-1c1814?style=flat-square" alt="macOS and Windows" />
-  <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
-  <img src="https://img.shields.io/badge/telemetry-none-1c1814?style=flat-square" alt="no telemetry" />
-  <img src="https://img.shields.io/badge/license-MIT-1c1814?style=flat-square" alt="license" />
+  <a href="https://github.com/AgentZ-Media/ScriptZ/releases/latest"><img src="https://img.shields.io/github/v/release/AgentZ-Media/ScriptZ?style=for-the-badge&color=1c1814&label=download" alt="latest release" /></a>
+  <img src="https://img.shields.io/badge/macOS-13%2B-1c1814?style=for-the-badge" alt="macOS 13+" />
+  <img src="https://img.shields.io/badge/Windows-10%2B-1c1814?style=for-the-badge" alt="Windows 10+" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/0-trackers-1c1814?style=flat-square" alt="0 trackers" />
+  <img src="https://img.shields.io/badge/0-accounts-1c1814?style=flat-square" alt="0 accounts" />
+  <img src="https://img.shields.io/badge/0-AI-1c1814?style=flat-square" alt="0 AI" />
+  <img src="https://img.shields.io/badge/license-MIT-1c1814?style=flat-square" alt="MIT license" />
+</p>
+
+<p align="center">
+  <a href="https://write-scriptz.com">write-scriptz.com</a> ·
+  <a href="https://app.write-scriptz.com">try in browser</a> ·
+  <a href="https://github.com/AgentZ-Media/ScriptZ/releases/latest">download</a>
 </p>
 
 ---
 
-## Warum ScriptZ?
+## From empty cursor to finished script in minutes
 
-> **Final Draft** ist zu schwer. **Google Docs** zu generisch. **Arc Studio** will dein Abo. **ScriptZ ist die Mitte, die niemand sonst baut.**
+App opens → you type → format happens → export → done. No login, no cloud, no telemetry, no AI. Everything stays as a single SQLite file on your computer.
 
-App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine Telemetrie. Alles bleibt als eine SQLite-Datei auf deinem Computer.
-
----
-
-## Features im Überblick
-
-### Editor, der wie ein Drehbuch denkt
-
-| | |
-|---|---|
-| **Sieben Block-Typen** | Action · Charakter · Dialog · Parenthetical · Kamera · Caption · SFX — jeder mit eigener Einrückung, Gewicht und Verhalten. |
-| **Smart-Enter** | Charakter → Dialog → Charakter. Der Cursor weiß, was als nächstes kommt. |
-| **Live-Klammern** | `(` mitten im Dialog springt automatisch in einen Parenthetical-Block, `)` zurück in den nächsten Dialog. |
-| **ALLCAPS via CSS** | Charakternamen werden visuell groß geschrieben, ohne dass im Datenmodell rumgetippt wird. |
-| **⌘1–7** | Block-Typ pro Tastenkürzel wechseln. |
-
-### Charaktere als First-Class Citizen
-
-- **Automatische Farbzuweisung** aus einer Palette — jeder Name bekommt seine eigene Farbe.
-- **Per-Skript Charakterliste** (kein globales Adressbuch, keine Pflege).
-- **Intelligente Autovervollständigung**: tippst du `A`, ist `AXEL` markiert — Enter akzeptiert.
-- **Bigramm-Vorhersage** für die nächste Sprecher-Zeile: Dropdown highlightet vor, wer als Nächstes laut Gesprächsverlauf dran ist.
-- **Quick-Modus** für Dialog-Sketches mit zwei Personen: Enter im Dialog → der andere Charakter wird automatisch eingefügt.
-- **Live-Highlight-Toggle** in der Titelleiste — schaltet die Charakter-Farben pro Skript an/aus, identisch zur PDF-Darstellung (per-Zeile tight Pills, nicht block-breit).
-
-### Endlose Schreibfläche, sauber paginiert beim Druck
-
-- Editor ist **eine durchgehende Papierseite**, kein A4-Seitenumbruch beim Schreiben - du denkst in Spielzeit, nicht in Seiten.
-- **PDF-Export** paginiert sauber auf A4 mit Widow/Orphan-Kontrolle, damit Charaktername und Dialog nicht getrennt werden, wenn du das Skript ausdruckst.
-
-### Export 1:1 wie auf dem Papier
-
-- **PDF-Export** mit eingebetteter iA Writer Quattro Schrift, optional Titelblatt und Charakter-Highlighting.
-- **Plaintext-Export** für Teleprompter.
-- Per-Skript-Highlight-Farben im PDF genau wie im Editor — eng am Text, nicht als Block-Bänder.
-
-### Auto-Snapshots & Versionshistorie
-
-- Alle 5 Minuten ein automatischer Snapshot, manuell per ⌘⇧S.
-- Bis zu 50 Versionen pro Skript, jederzeit per ⌘⇧H wiederherstellbar.
-
-### Tab-Workflow wie im Browser
-
-- **Quick-Switcher** oben in der Titelleiste: Suche + zuletzt bearbeitete Skripte.
-- **⌘⌥← / ⌘⌥→** zwischen Skripten wechseln.
-- Geschlossene Tabs werden automatisch aufgeräumt, wenn das Skript gelöscht wird.
-
-### Schreibmotivation, ohne Druck
-
-- **Wochenziel** ("X / Y W Woche") oben rechts in der Tab-Bar mit live-aktualisiertem Zähler — anpassbar in den Einstellungen, Default 1500 Wörter pro Woche.
-- **Streak-Pille** zählt aufeinanderfolgende Schreibtage; Klick öffnet die **Aktivitäts-Übersicht** mit GitHub-Style-Heatmap über die letzten 365 Tage.
-- **Momentum-Strip** auf der Übersicht zeigt aktuellen Streak, Wochenfortschritt und einen "weiterschreiben"-Knopf zum letzten offenen Skript.
-- **Sprint-Timer** unten rechts im Editor: 5 / 15 / 25 Minuten, mit Fortschrittsbalken und Wortzähler — Pomodoro fürs Schreiben, ohne extra App.
-
-### Ideen-Inbox
-
-- **Quick-Capture** per `⌘I` aus jeder Ansicht — Idee tippen, Enter, weiter im aktuellen Skript.
-- **Ideen-Tab** in der Tab-Leiste mit drei Reitern: Offen, Alle, Verwendet — sortiert nach Heute / Gestern / Diese Woche / Älter.
-- **Ein-Klick-Konvertierung** Idee → neues Skript (`⌘↵`); die Notizen landen optional direkt im ersten ACTION-Block.
-
-### Cast-Panel im Editor
-
-- **Cast-Tab** in der rechten Editor-Schiene zeigt jeden Charakter mit Dialog-Wortanteil als getöntem Balken (gleiche Farbe wie im Editor und im PDF).
-- **Skript-Statistik**: geschätzte Spielzeit, Gesamtwortzahl, reine Dialog-Wörter.
-- **Versionen-Tab** im selben Panel — Snapshot-Verlauf nicht mehr im Modal versteckt, sondern direkt neben dem Text.
+**Final Draft** is too heavy. **Google Docs** is too generic. **Arc Studio** wants your subscription. **ScriptZ is the middle nobody else builds.**
 
 ---
 
-## Vergleich
+## What it looks like
 
-| | ScriptZ | Final Draft | Google Docs | Arc Studio |
-|---|:---:|:---:|:---:|:---:|
-| Lokal & offline | ✅ | ✅ | ❌ | ❌ |
-| Kein Account / Login | ✅ | ⚠️ | ❌ | ❌ |
-| Keine Telemetrie | ✅ | ⚠️ | ❌ | ❌ |
-| App-Start unter 1s | ✅ | ❌ | — | ⚠️ |
-| Sketch-/TikTok-Layout | ✅ | ❌ | ❌ | ⚠️ |
-| Sieben Block-Typen | ✅ | ⚠️ | ❌ | ✅ |
-| Charakter-Farben | ✅ | ❌ | ❌ | ✅ |
-| Quick-Modus für 2-Personen | ✅ | ❌ | ❌ | ❌ |
-| Bigramm-Predict für Charaktere | ✅ | ❌ | ❌ | ❌ |
-| Streak / Wochenziel / Heatmap | ✅ | ❌ | ❌ | ❌ |
-| Sprint-Timer eingebaut | ✅ | ❌ | ❌ | ❌ |
-| Ideen-Inbox mit Quick-Capture | ✅ | ❌ | ❌ | ❌ |
-| Kostenlos | ✅ | ❌ | ✅ | ⚠️ |
+### Overview – your scripts, characters, and writing streak in one place
+
+<p align="center">
+  <img src="apps/landing/public/img/app/overview.png" alt="ScriptZ overview with script list, characters and weekly goal" width="900" />
+</p>
+
+Folders, smart filters, character chips per script, weekly word goal, and a GitHub-style activity heatmap that turns your writing habit into something you can see.
+
+### Ideas Inbox – capture now, write later
+
+<p align="center">
+  <img src="apps/landing/public/img/app/ideas.png" alt="ScriptZ ideas inbox" width="900" />
+</p>
+
+Press `⌘I` from anywhere – overlay opens, type the idea, Enter, you're back where you were. One click turns any idea into a new script with the notes already in the first ACTION block.
+
+### Editor – format happens while you type
+
+<p align="center">
+  <img src="apps/landing/public/img/app/editor.png" alt="ScriptZ editor with character highlights and cast sidebar" width="900" />
+</p>
+
+Seven block types (Action · Character · Dialog · Parenthetical · Camera · Caption · SFX), auto character detection with per-name colors, a live cast panel with speaking-time bars, and a built-in sprint timer for focused writing.
 
 ---
 
-## Tastenkürzel
+## Why creators pick ScriptZ
+
+### ⚡ Quick Mode – the trick nobody else does
+
+Two speakers in your script? After every dialog line, **one Enter** jumps the cursor to the other character, right into the next dialog. No Tab, no typing the speaker name, no second Enter. Saves two keystrokes per switch – about a minute per 60-second reel.
+
+The moment a third character shows up, Quick Mode pauses on its own. Drop back to two, and it's back. No switch, no setting.
+
+### ✍️ Format happens, you don't
+
+- Character names auto-centered and visually all-caps – without rewriting your data.
+- Typing `(` mid-dialog drops you into a Parenthetical block. `)` jumps you back out.
+- `⌘1`–`⌘7` switches block type. `Tab` opens the block picker.
+- Bold and underline where they make sense. Italic is left alone, because `⌘I` belongs to the Ideas Inbox.
+
+### 🎨 Characters as first-class citizens
+
+Every character gets its own color, automatically. The cast panel shows everyone's speaking share as a tinted bar. Autocomplete predicts who's likely to speak next, based on the actual dialog flow. All per-script – no global address book, no setup.
+
+### 📄 Export 1:1 like on paper
+
+PDF export with the embedded iA Writer Quattro font, optional title page, and the same character highlights as in the editor – tight per-line pills, not block-wide bands. Plain text for teleprompters. Print-ready A4 with widow/orphan control so character names and dialog never split.
+
+### 🔁 Auto-snapshots, no panic
+
+Every 5 minutes ScriptZ takes a silent snapshot. Manual one with `⌘⇧S`. Up to 50 versions per script, restorable anytime via `⌘⇧H`. Right next to your text, not buried in a modal.
+
+### 🔥 Motivation without pressure
+
+- **Weekly goal** in the title bar (default 1,500 words/week, configurable).
+- **Streak pill** counts consecutive writing days. Click opens the activity overview with a 365-day heatmap.
+- **Sprint timer** in the editor: 5 / 15 / 25 minutes with a word counter. Pomodoro for writing, no extra app.
+
+### 🧠 No AI. On purpose.
+
+No "improve this" button. No autocomplete beyond character names from your own script. No chat sidebar. Your voice is the product – if a model writes half of it, half the voice is the model's. The sprint timer and the Ideas Inbox are there for the moments you'd otherwise reach for ChatGPT.
+
+### 🔒 Local. Offline. Yours.
+
+No login. No cloud. No telemetry. The entire app is a `~10 MB` native binary plus one SQLite file with your scripts. Works on a plane, in a basement, anywhere.
+
+---
+
+## Compared to what you might be using
+
+|                              | ScriptZ | Final Draft | Google Docs | Arc Studio |
+|------------------------------|:-------:|:-----------:|:-----------:|:----------:|
+| Local & offline              | ✅      | ✅          | ❌          | ❌         |
+| No account / login           | ✅      | ⚠️          | ❌          | ❌         |
+| No telemetry                 | ✅      | ⚠️          | ❌          | ❌         |
+| App start under 1s           | ✅      | ❌          | —           | ⚠️         |
+| Short-form / sketch layout   | ✅      | ❌          | ❌          | ⚠️         |
+| Seven block types            | ✅      | ⚠️          | ❌          | ✅         |
+| Auto character colors        | ✅      | ❌          | ❌          | ✅         |
+| Quick Mode (2 speakers)      | ✅      | ❌          | ❌          | ❌         |
+| Speaker prediction           | ✅      | ❌          | ❌          | ❌         |
+| Streak / weekly goal         | ✅      | ❌          | ❌          | ❌         |
+| Built-in sprint timer        | ✅      | ❌          | ❌          | ❌         |
+| Ideas Inbox with quick capture | ✅    | ❌          | ❌          | ❌         |
+| Free                         | ✅      | ❌          | ✅          | ⚠️         |
+
+---
+
+## Keyboard shortcuts
 
 ### Global
-| Shortcut | Aktion |
-|---|---|
-| `⌘N` | Neues Skript |
-| `⌘T` | Übersicht öffnen |
-| `⌘W` | Aktiven Tab schließen |
-| `⌘K` | Command-Bar |
-| `⌘,` | Einstellungen |
-| `⌘⌥←` / `⌘⌥→` | Vorheriger / nächster Tab |
 
-### Skript-Ansicht
-| Shortcut | Aktion |
+| Shortcut | Action |
 |---|---|
-| `⌘E` | Export-Dialog |
-| `⌘⇧S` | Manueller Snapshot |
-| `⌘⇧H` | Snapshot-Verlauf |
+| `⌘N` | New script |
+| `⌘T` | Open overview |
+| `⌘W` | Close active tab |
+| `⌘K` | Command bar |
+| `⌘,` | Settings |
+| `⌘⌥←` / `⌘⌥→` | Previous / next tab |
+| `⌘I` | Ideas quick-capture (works anywhere, even in the editor) |
 
-### Ideen
+### Script view
 
-| Shortcut | Aktion |
+| Shortcut | Action |
 |---|---|
-| `⌘I` | Quick-Capture (Idee tippen, Enter speichert) - app-weit, auch im Editor |
-| `⌘↵` | Idee in neues Skript konvertieren (im Drawer) |
+| `⌘E` | Export dialog |
+| `⌘⇧S` | Manual snapshot |
+| `⌘⇧H` | Snapshot history |
 
 ### Editor
 
-| Shortcut | Aktion |
+| Shortcut | Action |
 |---|---|
-| `⌘1` … `⌘7` | Block-Typ wechseln (Action … SFX) |
-| `⌘B` / `⌘U` | Bold / Underline (Action & Dialog) - Italic hat kein Shortcut, weil `⌘I` app-weit für die Ideen-Inbox reserviert ist |
-| `Tab` | Block-Typ-Picker im aktuellen Block |
-| `Enter` | Smart-Advance zum nächsten Block-Typ |
+| `⌘1` … `⌘7` | Switch block type (Action … SFX) |
+| `⌘B` / `⌘U` | Bold / Underline (Action & Dialog) |
+| `Tab` | Block-type picker for the current block |
+| `Enter` | Smart-advance to the next block type |
+| `⌘↵` | Convert idea to new script (in the Ideas drawer) |
+
+> On Windows, `⌘` means `Ctrl`. The app handles that automatically – the labels you see in-app match your platform.
 
 ---
 
-## Tech-Stack
+## Install
 
-| Layer | Tool |
-|---|---|
-| Shell | [Tauri 2](https://tauri.app) (Rust, ~10 MB Binary, native macOS + Windows) |
-| UI | [Solid.js](https://solidjs.com) + TypeScript (kein React, kein Virtual DOM) |
-| Editor | [Lexical](https://lexical.dev) (vanilla, ohne `@lexical/react`) |
-| Storage | SQLite mit FTS5 für Volltext-Suche |
-| Schrift | iA Writer Quattro (SIL OFL 1.1) |
-| Auto-Update | `tauri-plugin-updater` mit signierten Releases |
+### macOS (Apple Silicon)
 
----
+> Tested on macOS 26 Tahoe. Minimum: macOS 13.
 
-## Installation
+1. Grab the latest `.dmg` from [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest).
+2. Open it and drag **ScriptZ** to your **Applications** folder.
+3. First launch only – run this once in Terminal to remove the Apple quarantine flag:
 
-### macOS Apple Silicon
-
-> Getestet auf macOS 26 Tahoe (mindestens macOS 13).
-
-1. Aktuelles `.dmg` von [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest) laden.
-2. Installieren, in `/Applications` ziehen.
-3. Beim ersten Start einmal:
    ```bash
    xattr -cr /Applications/ScriptZ.app
    ```
-   (Apple-Quarantäne entfernen — die App ist nicht über das Apple Developer Program signiert.)
 
-In-App-Updates funktionieren danach automatisch und ohne weitere Hürden.
+ScriptZ is open source and not registered with Apple – that's why macOS asks for this step. Auto-updates work without any further friction after that.
 
-### Windows x64
+### Windows (x64)
 
-> Getestet auf Windows 11 (mindestens Windows 10).
+> Tested on Windows 11. Minimum: Windows 10.
 
-1. Aktuelles `.exe` (NSIS-Installer) von [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest) laden.
-2. Doppelklick → installiert in den User-Ordner (kein Admin nötig).
-3. Beim ersten Start meldet sich **Windows SmartScreen**: einmal auf
-   **"Weitere Informationen"** klicken, dann auf den Button
-   **"Trotzdem ausführen"**. Die App ist nicht über ein EV-Code-Signing-
-   Zertifikat signiert.
+1. Grab the latest `.exe` (NSIS installer) from [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest).
+2. Double-click – installs to your user folder, no admin needed.
+3. First launch only – **Windows SmartScreen** pops up. Click **"More info"**, then **"Run anyway"**.
 
-In-App-Updates funktionieren danach automatisch und ohne weitere Hürden.
+ScriptZ doesn't (yet) have an EV code-signing certificate – that's why SmartScreen asks for this step. Auto-updates work without any further friction after that.
 
----
+### Try it in your browser first
 
-## Entwicklung
-
-Dieses Repository ist ein pnpm-Monorepo. Die App selbst lebt in
-[`apps/desktop/`](apps/desktop/), die Marketing-Seite write-scriptz.com
-in [`apps/landing/`](apps/landing/).
-
-Vom Repo-Root:
-
-```bash
-pnpm install              # installiert Desktop + Landing
-pnpm dev:desktop          # Hot-Reload Frontend + Rust
-pnpm build:desktop        # Native .app bauen
-pnpm typecheck            # TypeScript über alle Apps
-
-pnpm dev:landing          # Astro-Devserver für die Landing
-pnpm build:landing        # Statische Landing bauen
-```
-
-Innerhalb von `apps/desktop/` funktionieren auch die App-eigenen
-Skripte:
-
-```bash
-cd apps/desktop
-pnpm tauri:dev
-pnpm tauri:build
-cargo check --manifest-path src-tauri/Cargo.toml
-```
-
-Code-Konventionen siehe [`CLAUDE.md`](CLAUDE.md) (Monorepo-Übersicht)
-und [`apps/desktop/CLAUDE.md`](apps/desktop/CLAUDE.md) (App-Details).
+No download required: [app.write-scriptz.com](https://app.write-scriptz.com). Same editor, runs locally in your browser, data stays in IndexedDB. Good for kicking the tires – the desktop app is what we recommend for real work.
 
 ---
 
-## Lizenz & Credits
+## Tech under the hood
 
-- **MIT-Lizenz** — siehe [LICENSE](LICENSE).
-- Schrift: **iA Writer Quattro** © Information Architects Inc., SIL OFL 1.1.
-- Entwickelt von [AgentZ](https://linktr.ee/deragentz).
+For the curious – this stays out of the way of writing, but if you want to know:
+
+| Layer | Tool |
+|---|---|
+| Shell | [Tauri 2](https://tauri.app) (Rust, ~10 MB binary, native macOS + Windows) |
+| UI | [Solid.js](https://solidjs.com) + TypeScript |
+| Editor | [Lexical](https://lexical.dev) (vanilla, no `@lexical/react`) |
+| Storage | SQLite with FTS5 for full-text search |
+| Font | iA Writer Quattro (SIL OFL 1.1) |
+| Auto-update | `tauri-plugin-updater` with signed releases |
+
+---
+
+## Building from source
+
+This repository is a pnpm monorepo. The app lives in [`apps/desktop/`](apps/desktop/), the browser version in [`apps/web/`](apps/web/), and the marketing site write-scriptz.com in [`apps/landing/`](apps/landing/).
+
+```bash
+pnpm install              # install all workspaces
+pnpm dev:desktop          # Tauri dev (hot-reload frontend + Rust)
+pnpm build:desktop        # build the native binary
+pnpm typecheck            # TypeScript across all apps
+
+pnpm dev:web              # browser version (localhost:5173)
+pnpm dev:landing          # Astro dev server for the landing
+```
+
+Code conventions are in [`CLAUDE.md`](CLAUDE.md) (monorepo overview) and [`apps/desktop/CLAUDE.md`](apps/desktop/CLAUDE.md) (app details).
+
+---
+
+## License & credits
+
+- **MIT License** – see [LICENSE](LICENSE).
+- Font: **iA Writer Quattro** © Information Architects Inc., SIL OFL 1.1.
+- Built by [AgentZ](https://linktr.ee/deragentz).
 
 <p align="center">
-  <sub>Kein Login. Kein Tracking. Keine Cloud. Nur du, dein Skript und dein Rechner.</sub>
+  <sub><strong>No login. No tracking. No cloud. Just you, your script, and your computer.</strong></sub>
 </p>
