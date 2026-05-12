@@ -357,6 +357,19 @@ export const de = {
   "lang.toggle.de": "DE",
   "lang.toggle.en": "EN",
 
+  // ===================== Mobile-Navigation =====================
+  // Eigene Top-Bar + Full-Screen-Drawer, die nur unter 768 px sichtbar
+  // ist. Ersetzt die App-Chrome-Tabs auf Mobilgeraeten, weil dort der
+  // gefakte App-Rahmen ausgeblendet wird.
+  "mobilenav.brand": "ScriptZ",
+  "mobilenav.open.aria": "Menü öffnen",
+  "mobilenav.close.aria": "Menü schließen",
+  "mobilenav.close.label": "Schließen",
+  "mobilenav.section.pages": "Seiten",
+  "mobilenav.section.legal": "Rechtliches",
+  "mobilenav.section.language": "Sprache",
+  "mobilenav.section.project": "Projekt",
+
   // ===================== Page-Meta =====================
   // Home (`/`) - bleibt der dominante Brand-Eintrag.
   "meta.title": "ScriptZ - der Skripteditor für Content Creator",

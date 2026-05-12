@@ -553,6 +553,25 @@ const release = await getLatestRelease();
     .v2-footer-cols { grid-template-columns: 1fr 1fr; }
     .v2-footer-meta { grid-column: 1 / -1; }
   }
+  /* Auf Mobil komplett ohne App-Chrome - Navigation kommt von
+     MobileNav.astro (Sticky-Bar oben + Drawer). */
+  @media (max-width: 768px) {
+    .v2-shell {
+      max-width: 100%;
+      border-radius: 0;
+      box-shadow: none;
+      padding-bottom: 0;
+    }
+    .v2-chrome { display: none; }
+    .v2-paper {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      border-radius: 0;
+      padding: 20px 18px 28px;
+      box-shadow: none;
+    }
+  }
   @media (max-width: 560px) {
     .v2-shell { font-size: 13px; }
     .v2-paper { padding: 20px 18px 24px; }

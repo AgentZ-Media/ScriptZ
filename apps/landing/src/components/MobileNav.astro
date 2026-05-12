@@ -1,0 +1,504 @@
+---
+/**
+ * MobileNav - eigenstaendige Mobile-Navigation fuer Viewports <= 768 px.
+ *
+ * Auf Mobil wird die App-Chrome (Trafficlight, Tabs, Toolbar, Sprint-
+ * Pille) komplett ausgeblendet, weil eine simulierte App auf 375 px
+ * nur stoert. Stattdessen rendert diese Komponente:
+ *
+ *  - Eine schlanke Sticky-Top-Bar mit Wort-Mark + Hamburger-Button.
+ *  - Einen Full-Screen-Overlay-Drawer mit Pages, Sprach-Toggle,
+ *    Rechts-Links und GitHub.
+ *
+ * Auf Desktop (>= 769 px) ist die Komponente komplett unsichtbar -
+ * dort uebernimmt die normale Chrome-Tab-Bar.
+ *
+ * Aktive Page wird via `activeRoute`-Prop hervorgehoben. Fuer
+ * Legal-Seiten existiert ein eigener Key ("impressum"/"datenschutz"),
+ * der zur DE-only-Sub-Liste passt.
+ *
+ * Re-Mount-Verhalten: Die Komponente traegt KEIN `transition:persist`,
+ * weil sich Labels und der Sprach-Toggle bei Sprachwechsel mitziehen
+ * muessen (analog zur Begruendung in AppShell.astro). Das ist OK -
+ * der Drawer ist beim Routen-Wechsel ohnehin geschlossen.
+ */
+import { site } from "../data/site";
+import { routePath, switchLangPath, t, type Lang, type RouteKey } from "../i18n";
+
+interface Props {
+  lang: Lang;
+  /** Welche Seite ist aktuell - eine Tab-Route oder eine Legal-Seite.
+   *  `null` wenn keine Hervorhebung gewuenscht ist (sollte nicht
+   *  vorkommen, aber sauber abgefangen). */
+  activeRoute: RouteKey | "impressum" | "datenschutz" | null;
+  /** Aktueller Pfad - wird fuer den Sprach-Toggle gebraucht, damit
+   *  DE/EN auf der "Schwester-URL" landet. */
+  currentPath: string;
+}
+
+const { lang, activeRoute, currentPath } = Astro.props;
+
+const otherLang: Lang = lang === "de" ? "en" : "de";
+const switchHref = switchLangPath(lang, otherLang, currentPath);
+
+// Pages-Reihenfolge folgt der Tab-Bar in AppShell.astro. Home zuerst,
+// dann inhaltliche Seiten, Download am Ende als CTA-naher Eintrag.
+type NavItem = { key: RouteKey; labelKey: Parameters<typeof t>[1] };
+const navItems: NavItem[] = [
+  { key: "home",       labelKey: "tab.home.title" },
+  { key: "warum",      labelKey: "tab.warum.short" },
+  { key: "quickmodus", labelKey: "tab.quickmodus.short" },
+  { key: "no-ai",      labelKey: "tab.noai.short" },
+  { key: "vergleich",  labelKey: "tab.compare.short" },
+  { key: "ideen",      labelKey: "tab.ideas.title" },
+  { key: "download",   labelKey: "tab.download.short" },
+];
+---
+
+<!-- Sticky-Top-Bar. Sichtbar nur <= 768 px (CSS unten). -->
+<header class="mn-bar" data-mobilenav-bar>
+  <a class="mn-brand" href={routePath(lang, "home")} aria-label={t(lang, "mobilenav.brand")}>
+    <img class="mn-brand-mark" src="/img/icon.png" alt="" width="28" height="28" />
+    <span class="mn-brand-text">{t(lang, "mobilenav.brand")}</span>
+  </a>
+  <button
+    type="button"
+    class="mn-burger"
+    aria-label={t(lang, "mobilenav.open.aria")}
+    aria-expanded="false"
+    aria-controls="mobilenav-drawer"
+    data-mobilenav-toggle
+  >
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+  </button>
+</header>
+
+<!-- Full-Screen-Overlay-Drawer. `aria-hidden="true"` im Default-Zustand,
+     JS toggelt das beim Oeffnen/Schliessen. Kein `<dialog>`, weil der
+     Drawer non-modal sein soll (Backdrop-Klick reicht) und wir das
+     Open-Animations-CSS einfacher halten. -->
+<div
+  class="mn-drawer"
+  id="mobilenav-drawer"
+  aria-hidden="true"
+  data-mobilenav-drawer
+>
+  <div class="mn-drawer-inner">
+    <div class="mn-drawer-top">
+      <span class="mn-drawer-brand">
+        <img class="mn-drawer-brand-mark" src="/img/icon.png" alt="" width="28" height="28" />
+        {t(lang, "mobilenav.brand")}
+      </span>
+      <button
+        type="button"
+        class="mn-close"
+        aria-label={t(lang, "mobilenav.close.aria")}
+        data-mobilenav-close
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="mn-nav" aria-label={t(lang, "mobilenav.section.pages")}>
+      <span class="mn-section">{t(lang, "mobilenav.section.pages")}</span>
+      <ul class="mn-list">
+        {navItems.map((item) => (
+          <li>
+            <a
+              class:list={["mn-link", activeRoute === item.key && "is-active"]}
+              href={routePath(lang, item.key)}
+              aria-current={activeRoute === item.key ? "page" : undefined}
+              data-mobilenav-link
+            >
+              {t(lang, item.labelKey)}
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <span class="mn-section">{t(lang, "mobilenav.section.language")}</span>
+      <div class="mn-lang" role="group" aria-label={t(lang, "lang.toggle.aria")}>
+        {lang === "de" ? (
+          <>
+            <span class="mn-lang-pill is-active" aria-current="true">{t(lang, "lang.toggle.de")}</span>
+            <a class="mn-lang-pill" href={switchHref} hreflang="en" data-lang-set="en">{t(lang, "lang.toggle.en")}</a>
+          </>
+        ) : (
+          <>
+            <a class="mn-lang-pill" href={switchHref} hreflang="de" data-lang-set="de">{t(lang, "lang.toggle.de")}</a>
+            <span class="mn-lang-pill is-active" aria-current="true">{t(lang, "lang.toggle.en")}</span>
+          </>
+        )}
+      </div>
+
+      <span class="mn-section">{t(lang, "mobilenav.section.project")}</span>
+      <ul class="mn-list mn-list-external">
+        <li>
+          <a class="mn-link" href={site.github} target="_blank" rel="noopener" data-mobilenav-link>
+            {t(lang, "footer.link.github")}
+            <span class="mn-link-ext" aria-hidden="true">↗</span>
+          </a>
+        </li>
+      </ul>
+
+      <span class="mn-section">{t(lang, "mobilenav.section.legal")}</span>
+      <ul class="mn-list mn-list-legal">
+        <li>
+          <a
+            class:list={["mn-link", "mn-link-sm", activeRoute === "impressum" && "is-active"]}
+            href="/impressum"
+            aria-current={activeRoute === "impressum" ? "page" : undefined}
+            data-mobilenav-link
+          >
+            {t(lang, "footer.link.imprint")}
+          </a>
+        </li>
+        <li>
+          <a
+            class:list={["mn-link", "mn-link-sm", activeRoute === "datenschutz" && "is-active"]}
+            href="/datenschutz"
+            aria-current={activeRoute === "datenschutz" ? "page" : undefined}
+            data-mobilenav-link
+          >
+            {t(lang, "footer.link.privacy")}
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<style>
+  /* ===== Sichtbarkeit ==================================== */
+  /* MobileNav nur unter 768 px aktiv. Darueber komplett aus dem Flow
+     (display:none), damit kein Sticky-Spacing am Desktop verbraucht
+     wird. */
+  .mn-bar,
+  .mn-drawer { display: none; }
+
+  @media (max-width: 768px) {
+    .mn-bar { display: flex; }
+    .mn-drawer { display: block; }
+  }
+
+  /* ===== Top-Bar ========================================= */
+  .mn-bar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(245, 243, 238, 0.94);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid rgba(28, 24, 20, 0.10);
+    color: #1c1814;
+    font-family: var(--font-sans);
+  }
+
+  .mn-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+  .mn-brand-mark {
+    display: block;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+  }
+
+  .mn-burger {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 1px solid rgba(28, 24, 20, 0.16);
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    color: #1c1814;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .mn-burger:hover,
+  .mn-burger:focus-visible {
+    background: rgba(28, 24, 20, 0.05);
+    border-color: rgba(28, 24, 20, 0.30);
+    outline: none;
+  }
+  .mn-burger span {
+    display: block;
+    width: 16px;
+    height: 1.5px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+
+  /* ===== Drawer ========================================== */
+  .mn-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: #f5f3ee;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+    /* Karo-Echo des Site-BG, damit der Drawer optisch zur Landing
+       passt, statt wie ein Modal-Overlay einer fremden App zu wirken. */
+    background-image:
+      linear-gradient(rgba(28, 24, 20, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28, 24, 20, 0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: 0 0, 0 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mn-drawer.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mn-drawer-inner {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 22px 40px;
+    font-family: var(--font-sans);
+    color: #1c1814;
+  }
+
+  .mn-drawer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 38px;
+    margin-bottom: 24px;
+  }
+  .mn-drawer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+  .mn-drawer-brand-mark {
+    display: block;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+  }
+  .mn-close {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 1px solid rgba(28, 24, 20, 0.16);
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #1c1814;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .mn-close:hover,
+  .mn-close:focus-visible {
+    background: rgba(28, 24, 20, 0.05);
+    border-color: rgba(28, 24, 20, 0.30);
+    outline: none;
+  }
+
+  /* ===== Nav-Inhalt ====================================== */
+  .mn-section {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(28, 24, 20, 0.55);
+    margin: 24px 0 10px;
+  }
+  .mn-section:first-of-type { margin-top: 0; }
+
+  .mn-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .mn-list li + li { margin-top: 2px; }
+
+  .mn-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 4px 14px 14px;
+    color: #1c1814;
+    text-decoration: none;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border-bottom: 1px solid rgba(28, 24, 20, 0.10);
+    border-left: 2px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .mn-link:hover { color: rgba(28, 24, 20, 0.65); }
+  .mn-link.is-active {
+    color: #1c1814;
+    font-weight: 700;
+    border-left-color: #1c1814;
+  }
+  .mn-link-sm {
+    font-size: 16px;
+    font-weight: 500;
+    padding: 10px 4px 10px 14px;
+  }
+  .mn-link-ext {
+    margin-left: auto;
+    font-size: 14px;
+    color: rgba(28, 24, 20, 0.45);
+  }
+
+  /* ===== Sprach-Toggle innerhalb des Drawers ============= */
+  .mn-lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid rgba(28, 24, 20, 0.16);
+    border-radius: 999px;
+    background: #fff;
+  }
+  .mn-lang-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(28, 24, 20, 0.55);
+    text-decoration: none;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .mn-lang-pill.is-active {
+    background: #1c1814;
+    color: #fff;
+  }
+  .mn-lang-pill:not(.is-active):hover {
+    color: #1c1814;
+  }
+
+  /* ===== Body-Lock beim offenen Drawer ===================
+     Globaler Selektor, weil der Body-Tag ausserhalb der Komponente
+     liegt. Astro-`<style>` ist per Default scoped - mit `:global(...)`
+     bekommen wir Zugriff auf den globalen Selektor. */
+  :global(body.mn-locked) {
+    overflow: hidden;
+  }
+</style>
+
+<script is:inline>
+  // Mobile-Nav-Init: Toggle-Buttons, Esc-Listener, Body-Lock.
+  // Wird beim ersten Page-Load und nach jedem astro:after-swap
+  // erneut aufgerufen (siehe Base.astro), weil die Komponente bei
+  // Sprachwechseln re-rendert wird und neue Knoten frische Listener
+  // brauchen.
+  window.__scriptzMobileNavInit = function () {
+    var bar = document.querySelector("[data-mobilenav-bar]");
+    var drawer = document.querySelector("[data-mobilenav-drawer]");
+    if (!bar || !drawer) return;
+
+    var toggleBtn = bar.querySelector("[data-mobilenav-toggle]");
+    var closeBtn = drawer.querySelector("[data-mobilenav-close]");
+    var links = drawer.querySelectorAll("[data-mobilenav-link]");
+
+    var open = function () {
+      drawer.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+      if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "true");
+      document.body.classList.add("mn-locked");
+    };
+    var close = function () {
+      drawer.classList.remove("is-open");
+      drawer.setAttribute("aria-hidden", "true");
+      if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("mn-locked");
+    };
+
+    if (toggleBtn) {
+      if (toggleBtn.__mnHandler) toggleBtn.removeEventListener("click", toggleBtn.__mnHandler);
+      var openHandler = function () { open(); };
+      toggleBtn.__mnHandler = openHandler;
+      toggleBtn.addEventListener("click", openHandler);
+    }
+    if (closeBtn) {
+      if (closeBtn.__mnHandler) closeBtn.removeEventListener("click", closeBtn.__mnHandler);
+      var closeHandler = function () { close(); };
+      closeBtn.__mnHandler = closeHandler;
+      closeBtn.addEventListener("click", closeHandler);
+    }
+    // Drawer-Hintergrundklick schliesst auch. Klick auf .mn-drawer-inner
+    // selbst (also auf Text-Inhalt) ignoriert das, weil dort der Drawer
+    // selbst als event.target faellt - nicht der innere Container.
+    if (drawer.__mnHandler) drawer.removeEventListener("click", drawer.__mnHandler);
+    var bgHandler = function (e) {
+      if (e.target === drawer) close();
+    };
+    drawer.__mnHandler = bgHandler;
+    drawer.addEventListener("click", bgHandler);
+
+    // Jeder Link schliesst den Drawer beim Tap (auch bei Same-URL,
+    // damit der Drawer nicht stehen bleibt). Astro-ClientRouter
+    // uebernimmt danach den Routenwechsel - und nach dem Swap wird
+    // diese Init-Funktion erneut aufgerufen, also alles sauber neu.
+    links.forEach(function (link) {
+      if (link.__mnHandler) link.removeEventListener("click", link.__mnHandler);
+      var linkHandler = function () { close(); };
+      link.__mnHandler = linkHandler;
+      link.addEventListener("click", linkHandler);
+    });
+
+    // Esc schliesst, falls offen. Document-Listener wird nur einmal
+    // global registriert (Flag am window), damit er beim Re-Init nicht
+    // dupliziert wird.
+    if (!window.__scriptzMobileNavEscBound) {
+      window.__scriptzMobileNavEscBound = true;
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          var d = document.querySelector("[data-mobilenav-drawer]");
+          if (d && d.classList.contains("is-open")) {
+            d.classList.remove("is-open");
+            d.setAttribute("aria-hidden", "true");
+            var t = document.querySelector("[data-mobilenav-toggle]");
+            if (t) t.setAttribute("aria-expanded", "false");
+            document.body.classList.remove("mn-locked");
+          }
+        }
+      });
+    }
+  };
+
+  window.__scriptzMobileNavInit();
+</script>

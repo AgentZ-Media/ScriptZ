@@ -352,6 +352,16 @@ export const en: Record<keyof typeof de, string> = {
   "lang.toggle.de": "DE",
   "lang.toggle.en": "EN",
 
+  // ===================== Mobile navigation =====================
+  "mobilenav.brand": "ScriptZ",
+  "mobilenav.open.aria": "Open menu",
+  "mobilenav.close.aria": "Close menu",
+  "mobilenav.close.label": "Close",
+  "mobilenav.section.pages": "Pages",
+  "mobilenav.section.legal": "Legal",
+  "mobilenav.section.language": "Language",
+  "mobilenav.section.project": "Project",
+
   // ===================== Page meta =====================
   // Home (`/en`) - the dominant brand entry.
   "meta.title": "ScriptZ - the script editor for content creators",

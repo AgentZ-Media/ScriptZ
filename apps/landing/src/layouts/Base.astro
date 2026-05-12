@@ -3,6 +3,7 @@ import "../styles/global.css";
 import { ClientRouter } from "astro:transitions";
 import { getLatestRelease, site } from "../data/site";
 import { routeKeyFromPath, switchLangPath, t, type Lang } from "../i18n";
+import MobileNav from "../components/MobileNav.astro";
 
 interface Props {
   title?: string;
@@ -100,7 +101,17 @@ if (isHome) {
 // (warum/quickmodus/no-ai/vergleich/download/ideen). Nein fuer Legal -
 // dort gibt es keine "Tab-Wechsel"-UX, ein Klick auf Impressum aus dem
 // Footer ist eine echte Page-Navigation, der Wiederaufbau ist OK.
-const isTabRoute = routeKeyFromPath(currentPath) !== null;
+const tabRouteKey = routeKeyFromPath(currentPath);
+const isTabRoute = tabRouteKey !== null;
+
+// Aktive Route fuer die MobileNav. Tab-Routen liefern ihren Key, Legal-
+// Seiten haben eigene Marker, alle anderen Pfade bleiben unmarkiert
+// (z.B. 404, kuenftige Sub-Pages).
+const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
+  tabRouteKey ??
+  (currentPath === "/impressum" ? "impressum"
+    : currentPath === "/datenschutz" ? "datenschutz"
+    : null);
 ---
 
 <!DOCTYPE html>
@@ -215,6 +226,11 @@ const isTabRoute = routeKeyFromPath(currentPath) !== null;
     </script>
   </head>
   <body data-lang={lang} data-is-tab-route={isTabRoute ? "true" : "false"}>
+    <!-- Mobile-Navigation. Nur auf <= 768 px sichtbar (CSS-Toggle in
+         der Komponente). Sitzt VOR dem Slot, damit sie auf jeder Seite
+         ganz oben klebt - vor PageHero, vor App-Shell, vor Legal-Hero. -->
+    <MobileNav lang={lang} activeRoute={mobileNavActive} currentPath={currentPath} />
+
     <slot />
 
     <!-- ClientRouter-After-Swap-Handler:
@@ -255,6 +271,9 @@ const isTabRoute = routeKeyFromPath(currentPath) !== null;
         document.addEventListener("astro:after-swap", function () {
           if (typeof window.__scriptzShellInit === "function") {
             window.__scriptzShellInit();
+          }
+          if (typeof window.__scriptzMobileNavInit === "function") {
+            window.__scriptzMobileNavInit();
           }
           scrollToPageTop();
           initReveal();
