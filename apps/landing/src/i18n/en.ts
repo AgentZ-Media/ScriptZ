@@ -14,25 +14,43 @@ export const en: Record<keyof typeof de, string> = {
   "hero.h1.line2": "don't format.",
   "hero.lead":
     "The script editor for content creators. From idea to finished script in minutes. No screenplay corset, no AI, no subscription. Just you, your idea and a cursor that gets out of the way.",
-  "hero.cta.download": "Free for macOS",
+  "hero.cta.download.mac": "Free for macOS",
+  "hero.cta.download.win": "Free for Windows",
   "hero.cta.github": "On GitHub",
-  "hero.meta.os": "macOS 13+",
+  "hero.cta.allplatforms": "Other platform? All downloads on GitHub →",
+  "hero.meta.os.mac": "macOS 13+",
+  "hero.meta.os.win": "Windows 10+",
   "hero.meta.zero": "0 trackers · 0 accounts · 0 AI",
   "hero.web.intro": "Want to try it first?",
   "hero.web.link": "Test it right in your browser →",
   "hero.web.hint": "Test editor, local in your browser. Data stays there.",
 
-  "install.summary": "macOS blocks the app the first time you open it?",
-  "install.body":
+  // macOS install hint
+  "install.mac.summary": "macOS blocks the app the first time you open it?",
+  "install.mac.body":
     "That's normal - ScriptZ is open source and not registered with Apple. Run this command in Terminal once, then everything works as expected:",
+  "install.mac.why":
+    "Apple charges for a signature that would skip this step. Until that pays off, the short command is the price for ScriptZ staying free and account-less.",
+  "install.mac.whyShort.label": "Why?",
+  "install.mac.whyShort.body":
+    "Apple charges for a signature that would skip this step. Until that pays off, the short command is the price for ScriptZ staying free and account-less.",
+
+  // Windows install hint
+  "install.win.summary": "Windows SmartScreen kicks in on first launch?",
+  "install.win.body":
+    "That's normal - ScriptZ is open source and doesn't (yet) have an EV code-signing certificate. Two clicks and you're through:",
+  "install.win.step1": "1. In the SmartScreen dialog, click „More info\".",
+  "install.win.step2": "2. Then click the button that appears: „Run anyway\".",
+  "install.win.why":
+    "Microsoft requires a paid EV code-signing certificate for instant acceptance. Until that pays off, the two extra clicks are the price for ScriptZ staying free and account-less.",
+  "install.win.whyShort.label": "Why?",
+  "install.win.whyShort.body":
+    "Microsoft requires an EV code-signing certificate. Until that pays off, two clicks are the price for ScriptZ staying free and account-less.",
+
+  // Copy button (macOS only, but strings are shared)
   "install.copy": "Copy",
   "install.copied": "Copied ✓",
   "install.copyManual": "Please copy manually",
-  "install.why":
-    "Apple charges for a signature that would skip this step. Until that pays off, the short command is the price for ScriptZ staying free and account-less.",
-  "install.whyShort.label": "Why?",
-  "install.whyShort.body":
-    "Apple charges for a signature that would skip this step. Until that pays off, the short command is the price for ScriptZ staying free and account-less.",
 
   // ===================== App-Chrome / Tabs =====================
   "tab.home.title": "Overview",
@@ -48,7 +66,8 @@ export const en: Record<keyof typeof de, string> = {
   "tab.compare.short": "Compare",
   "tab.compare.long": "Compared to everything else",
   "tab.download.short": "Download",
-  "tab.download.long": "Download - macOS, free",
+  "tab.download.long.mac": "Download - macOS, free",
+  "tab.download.long.win": "Download - Windows, free",
 
   "status.opensource": "Open Source",
   "status.saved": "Saved",
@@ -167,26 +186,36 @@ export const en: Record<keyof typeof de, string> = {
 
   // ===================== Tab: DOWNLOAD =====================
   "dl.caption": "INT. DOWNLOAD — ONE CLICK",
-  "dl.action1":
+  "dl.action1.mac":
     "macOS 13 or newer. Free. Open source. First launch: right-click the app icon → „Open\". Apple requires that for unsigned apps. Updates come automatically after that.",
-  "dl.eyebrow.os": "macOS 13+",
+  "dl.action1.win":
+    "Windows 10 or newer. Free. Open source. On first launch, SmartScreen will pop up - click „More info\" → „Run anyway\" once, then everything works automatically. Updates come without any extra hurdle.",
+  "dl.eyebrow.os.mac": "macOS 13+",
+  "dl.eyebrow.os.win": "Windows 10+",
   "dl.h": "Free. Local. No account.",
-  "dl.sub":
+  "dl.sub.mac":
     "One .dmg, no trackers, no sign-in, no „updates by email\". You download the app, drag it to your Applications folder, and that's it.",
+  "dl.sub.win":
+    "An .exe installer, no trackers, no sign-in, no „updates by email\". Double-click, done.",
   "dl.cta.dmg": "Download .dmg",
+  "dl.cta.exe": "Download .exe",
   "dl.cta.code": "Source on GitHub",
+  "dl.fallback.label": "Other platform? All downloads on GitHub →",
   "dl.stat.version": "current version",
   "dl.stat.tracker": "trackers",
   "dl.stat.accounts": "accounts",
   "dl.stat.ai": "AI",
   "dl.stat.dmg": ".dmg",
-  "dl.web.intro": "No Mac handy?",
+  "dl.stat.exe": ".exe",
+  "dl.web.intro": "Want to try it first?",
   "dl.web.link": "Test it right in your browser →",
   "dl.web.sub": "Test editor, no account, all local in your browser.",
   "dl.sfxLabel": "SFX:",
   "dl.sfxText": "First launch",
-  "dl.action2":
+  "dl.action2.mac":
     "On first launch, macOS reports the app cannot be verified. That's normal - ScriptZ is open source and not registered with Apple. Run the command below in Terminal once, then everything works as expected.",
+  "dl.action2.win":
+    "On first launch, Windows SmartScreen reports the app cannot be verified. That's normal - ScriptZ is open source and doesn't (yet) have an EV code-signing certificate. Two clicks and you're through.",
   "dl.fadeOut": "FADE OUT.",
   "dl.end": "END",
 
@@ -243,8 +272,9 @@ export const en: Record<keyof typeof de, string> = {
   "footer.link.email": "Email",
   "footer.about.eyebrow": "ABOUT SCRIPTZ",
   "footer.about.body":
-    "A script editor for content creators that gets out of your way. Format happens as you type, characters are auto-detected, quick mode saves two keystrokes per speaker switch. All local, all in a SQLite file on your Mac. No cloud, no account, no AI.",
-  "footer.about.os": "macOS 13+ · Open Source",
+    "A script editor for content creators that gets out of your way. Format happens as you type, characters are auto-detected, quick mode saves two keystrokes per speaker switch. All local, all in a SQLite file on your computer. No cloud, no account, no AI.",
+  "footer.about.os.mac": "macOS 13+ · Open Source",
+  "footer.about.os.win": "Windows 10+ · Open Source",
 
   // ===================== Sprint pill =====================
   "sprint.label": "Reading sprint",

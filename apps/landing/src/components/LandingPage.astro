@@ -1,6 +1,6 @@
 ---
 /**
- * ScriptZ Landing - mehrsprachig.
+ * ScriptZ Landing - mehrsprachig + plattform-aware.
  *
  * Konzept: ein Hero oben (klassisches Landingpage-Pattern), darunter
  * eine eingebettete ScriptZ-App-Simulation. Tabs sind echte Tabs:
@@ -15,6 +15,13 @@
  * Sprache: kommt als `lang`-Prop rein. DE-Default wird unter `/`
  * gerendert, EN unter `/en`. Strings via `t(lang, key)` aus dem
  * i18n-Katalog. Toggle in der Titlebar wechselt zwischen den Routen.
+ *
+ * Plattform: wird clientside via Inline-Script in Base.astro detected
+ * und auf `<html data-platform="...">` gesetzt. CSS-Klassen `.mac-only`
+ * / `.win-only` blenden die jeweils nicht-passende Variante aus,
+ * Buttons swappen `href` und Label aus `data-href-{mac,win}` /
+ * `data-label-{mac,win}` Attributen. Default-Render ist macOS, damit
+ * SEO + JS-aus-User die primaere Plattform sehen.
  */
 import { getLatestRelease, site } from "../data/site";
 import { t, switchLangPath, type Lang } from "../i18n";
@@ -87,6 +94,16 @@ const jsStrings = {
   copyManual: t(lang, "install.copyManual"),
   sprintLabel: t(lang, "sprint.label"),
   sprintFormat: lang === "de" ? "{r} / {t} W" : "{r} / {t} W",
+  // Tab-Title-Strings fuer den Toolbar-Title. Plattform-gegated, damit
+  // der Title beim Tab-Wechsel zur aktiven Plattform passt.
+  tabTitles: {
+    "warum": t(lang, "tab.warum.long"),
+    "quickmodus": t(lang, "tab.quickmodus.long"),
+    "no-ai": t(lang, "tab.noai.long"),
+    "vergleich": t(lang, "tab.compare.long"),
+    "download.mac": t(lang, "tab.download.long.mac"),
+    "download.win": t(lang, "tab.download.long.win"),
+  },
 };
 ---
 
@@ -100,11 +117,24 @@ const jsStrings = {
     </h1>
     <p class="v2-lead">{t(lang, "hero.lead")}</p>
     <div class="v2-hero-cta">
-      <a class="v2-btn v2-btn-primary v2-btn-lg" href={release.dmgUrl}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      {/* Primaerer Download-Button: href + Label per JS aus data-attrs
+          gesetzt, sobald die Plattform feststeht. Default ist macOS
+          (dmg + Mac-Label) damit non-JS-User die Hauptplattform sehen. */}
+      <a
+        class="v2-btn v2-btn-primary v2-btn-lg js-platform-cta"
+        href={release.dmgUrl}
+        data-href-mac={release.dmgUrl}
+        data-href-win={release.exeUrl}
+        data-label-mac={t(lang, "hero.cta.download.mac")}
+        data-label-win={t(lang, "hero.cta.download.win")}
+      >
+        <svg class="js-platform-icon-mac" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
         </svg>
-        {t(lang, "hero.cta.download")}
+        <svg class="js-platform-icon-win" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M3 5.49 10.5 4.5v7.49H3zm0 13.02L10.5 19.5v-7.49H3zm8.5-13.65L21 3.5v8.49h-9.5zm0 14.28L21 20.5v-8.49h-9.5z"/>
+        </svg>
+        <span class="js-platform-label">{t(lang, "hero.cta.download.mac")}</span>
       </a>
       <a class="v2-btn v2-btn-ghost v2-btn-lg" href={site.github} target="_blank" rel="noopener">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -113,8 +143,13 @@ const jsStrings = {
         {t(lang, "hero.cta.github")}
       </a>
     </div>
+    {/* Fallback-Link unter den CTA-Buttons fuer User auf "anderer"
+        Plattform (Linux, oder Detection daneben). Immer sichtbar. */}
+    <a class="v2-hero-fallback" href={release.releasePageUrl} target="_blank" rel="noopener">
+      {t(lang, "hero.cta.allplatforms")}
+    </a>
     <div class="v2-hero-meta">
-      <span><b>v{release.version}</b> · {t(lang, "hero.meta.os")}</span>
+      <span><b>v{release.version}</b> · <span class="mac-only">{t(lang, "hero.meta.os.mac")}</span><span class="win-only">{t(lang, "hero.meta.os.win")}</span></span>
       <span class="v2-meta-sep">·</span>
       <span>{t(lang, "hero.meta.zero")}</span>
     </div>
@@ -127,20 +162,39 @@ const jsStrings = {
       <span class="v2-hero-web-hint">{t(lang, "hero.web.hint")}</span>
     </p>
 
-    <details class="v2-install v2-install-hero">
+    {/* macOS-Install-Hinweis: standardmaessig sichtbar, auf Windows
+        per CSS ausgeblendet. */}
+    <details class="v2-install v2-install-hero mac-only">
       <summary>
-        <span class="v2-install-summary-text">{t(lang, "install.summary")}</span>
+        <span class="v2-install-summary-text">{t(lang, "install.mac.summary")}</span>
         <span class="v2-install-chevron" aria-hidden="true">▾</span>
       </summary>
       <div class="v2-install-body">
-        <p class="v2-install-text">{t(lang, "install.body")}</p>
+        <p class="v2-install-text">{t(lang, "install.mac.body")}</p>
         <div class="v2-install-code">
           <code>xattr -cr /Applications/ScriptZ.app</code>
           <button class="v2-install-copy" type="button" data-copy="xattr -cr /Applications/ScriptZ.app">
             {t(lang, "install.copy")}
           </button>
         </div>
-        <p class="v2-install-why">{t(lang, "install.why")}</p>
+        <p class="v2-install-why">{t(lang, "install.mac.why")}</p>
+      </div>
+    </details>
+
+    {/* Windows-Install-Hinweis: standardmaessig versteckt, auf Windows
+        per CSS sichtbar. Statt Terminal-Befehl zwei Klick-Schritte. */}
+    <details class="v2-install v2-install-hero win-only">
+      <summary>
+        <span class="v2-install-summary-text">{t(lang, "install.win.summary")}</span>
+        <span class="v2-install-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <div class="v2-install-body">
+        <p class="v2-install-text">{t(lang, "install.win.body")}</p>
+        <ol class="v2-install-steps">
+          <li>{t(lang, "install.win.step1")}</li>
+          <li>{t(lang, "install.win.step2")}</li>
+        </ol>
+        <p class="v2-install-why">{t(lang, "install.win.why")}</p>
       </div>
     </details>
   </div>
@@ -199,7 +253,9 @@ const jsStrings = {
           </span>
           <span class="v2-tab-title">{t(lang, "tab.compare.short")}</span>
         </button>
-        <button class="v2-tab v2-tab-script" type="button" data-tab="download" data-title={t(lang, "tab.download.long")}>
+        {/* Download-Tab: data-title gehoert zu Mac-Default, JS-Script
+            tauscht ihn beim Plattform-Detect aus. */}
+        <button class="v2-tab v2-tab-script js-tab-download" type="button" data-tab="download" data-title={t(lang, "tab.download.long.mac")} data-title-mac={t(lang, "tab.download.long.mac")} data-title-win={t(lang, "tab.download.long.win")}>
           <span class="v2-tab-ic">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
           </span>
@@ -248,9 +304,17 @@ const jsStrings = {
         <span class="v2-pill v2-pill-more">…</span>
       </div>
       <div class="v2-toolbar-actions">
-        <a class="v2-toolbar-btn" href={release.dmgUrl}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <a
+          class="v2-toolbar-btn js-platform-cta"
+          href={release.dmgUrl}
+          data-href-mac={release.dmgUrl}
+          data-href-win={release.exeUrl}
+        >
+          <svg class="js-platform-icon-mac" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
+          </svg>
+          <svg class="js-platform-icon-win" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M3 5.49 10.5 4.5v7.49H3zm0 13.02L10.5 19.5v-7.49H3zm8.5-13.65L21 3.5v8.49h-9.5zm0 14.28L21 20.5v-8.49h-9.5z"/>
           </svg>
           {t(lang, "toolbar.download")}
         </a>
@@ -516,23 +580,38 @@ const jsStrings = {
     </section>
 
     <!-- ===== TAB: DOWNLOAD ===== -->
-    <section class="v2-tab-content" data-content="download" data-section-title={t(lang, "tab.download.long")}>
+    <section class="v2-tab-content" data-content="download" data-section-title={t(lang, "tab.download.long.mac")}>
       <div class="v2-block v2-caption">{t(lang, "dl.caption")}</div>
 
-      <div class="v2-block v2-action">{t(lang, "dl.action1")}</div>
+      {/* Plattform-spezifischer Action-Text. Beide gerendert, CSS schaltet. */}
+      <div class="v2-block v2-action mac-only">{t(lang, "dl.action1.mac")}</div>
+      <div class="v2-block v2-action win-only">{t(lang, "dl.action1.win")}</div>
 
       <div class="v2-download">
         <div class="v2-download-meta">
-          <span class="v2-download-eyebrow">v{release.version} · {t(lang, "dl.eyebrow.os")}</span>
+          <span class="v2-download-eyebrow">
+            v{release.version} · <span class="mac-only">{t(lang, "dl.eyebrow.os.mac")}</span><span class="win-only">{t(lang, "dl.eyebrow.os.win")}</span>
+          </span>
           <h2 class="v2-download-h">{t(lang, "dl.h")}</h2>
-          <p class="v2-download-sub">{t(lang, "dl.sub")}</p>
+          <p class="v2-download-sub mac-only">{t(lang, "dl.sub.mac")}</p>
+          <p class="v2-download-sub win-only">{t(lang, "dl.sub.win")}</p>
         </div>
         <div class="v2-download-cta">
-          <a class="v2-btn v2-btn-primary v2-btn-lg" href={release.dmgUrl}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <a
+            class="v2-btn v2-btn-primary v2-btn-lg js-platform-cta"
+            href={release.dmgUrl}
+            data-href-mac={release.dmgUrl}
+            data-href-win={release.exeUrl}
+            data-label-mac={t(lang, "dl.cta.dmg")}
+            data-label-win={t(lang, "dl.cta.exe")}
+          >
+            <svg class="js-platform-icon-mac" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M17.05 13.31c-.02-2.53 2.06-3.74 2.16-3.8-1.18-1.72-3.02-1.96-3.67-1.99-1.56-.16-3.05.92-3.84.92-.81 0-2.02-.9-3.32-.87-1.71.03-3.29 1-4.17 2.52-1.78 3.09-.45 7.65 1.28 10.16.85 1.23 1.85 2.61 3.16 2.56 1.27-.05 1.75-.82 3.28-.82 1.52 0 1.96.82 3.3.79 1.36-.02 2.22-1.25 3.05-2.49.97-1.43 1.36-2.83 1.38-2.9-.03-.01-2.64-1.01-2.61-4.08zM14.71 5.49c.7-.85 1.18-2.03 1.04-3.21-1.01.04-2.24.67-2.97 1.51-.65.74-1.22 1.94-1.07 3.1 1.13.09 2.29-.57 3-1.4z"/>
             </svg>
-            {t(lang, "dl.cta.dmg")}
+            <svg class="js-platform-icon-win" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M3 5.49 10.5 4.5v7.49H3zm0 13.02L10.5 19.5v-7.49H3zm8.5-13.65L21 3.5v8.49h-9.5zm0 14.28L21 20.5v-8.49h-9.5z"/>
+            </svg>
+            <span class="js-platform-label">{t(lang, "dl.cta.dmg")}</span>
           </a>
           <a class="v2-btn v2-btn-ghost-dark v2-btn-lg" href={site.github} target="_blank" rel="noopener">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -541,6 +620,11 @@ const jsStrings = {
             {t(lang, "dl.cta.code")}
           </a>
         </div>
+        {/* Fallback-Link unter dem Download-CTA, fuer User auf "anderer"
+            Plattform. Auf der Releases-Seite stehen .dmg + .exe + Sources. */}
+        <a class="v2-download-fallback" href={release.releasePageUrl} target="_blank" rel="noopener">
+          {t(lang, "dl.fallback.label")}
+        </a>
         <div class="v2-download-stats">
           <span><b>{release.version}</b> {t(lang, "dl.stat.version")}</span>
           <span class="v2-stat-sep">|</span>
@@ -550,7 +634,7 @@ const jsStrings = {
           <span class="v2-stat-sep">|</span>
           <span><b>0</b> {t(lang, "dl.stat.ai")}</span>
           <span class="v2-stat-sep">|</span>
-          <span><b>1</b> {t(lang, "dl.stat.dmg")}</span>
+          <span><b>1</b> <span class="mac-only">{t(lang, "dl.stat.dmg")}</span><span class="win-only">{t(lang, "dl.stat.exe")}</span></span>
         </div>
         <div class="v2-download-webhint">
           {t(lang, "dl.web.intro")}{" "}
@@ -563,9 +647,11 @@ const jsStrings = {
 
       <div class="v2-block v2-sfx">{t(lang, "dl.sfxLabel")} <span class="v2-t-plain">{t(lang, "dl.sfxText")}</span></div>
 
-      <div class="v2-block v2-action">{t(lang, "dl.action2")}</div>
+      <div class="v2-block v2-action mac-only">{t(lang, "dl.action2.mac")}</div>
+      <div class="v2-block v2-action win-only">{t(lang, "dl.action2.win")}</div>
 
-      <div class="v2-install v2-install-paper">
+      {/* macOS-Install-Variante mit xattr-Befehl */}
+      <div class="v2-install v2-install-paper mac-only">
         <div class="v2-install-body">
           <div class="v2-install-code">
             <code>xattr -cr /Applications/ScriptZ.app</code>
@@ -574,7 +660,20 @@ const jsStrings = {
             </button>
           </div>
           <p class="v2-install-why">
-            <strong>{t(lang, "install.whyShort.label")}</strong> {t(lang, "install.whyShort.body")}
+            <strong>{t(lang, "install.mac.whyShort.label")}</strong> {t(lang, "install.mac.whyShort.body")}
+          </p>
+        </div>
+      </div>
+
+      {/* Windows-Install-Variante mit 2-Klick-Schritten */}
+      <div class="v2-install v2-install-paper win-only">
+        <div class="v2-install-body">
+          <ol class="v2-install-steps">
+            <li>{t(lang, "install.win.step1")}</li>
+            <li>{t(lang, "install.win.step2")}</li>
+          </ol>
+          <p class="v2-install-why">
+            <strong>{t(lang, "install.win.whyShort.label")}</strong> {t(lang, "install.win.whyShort.body")}
           </p>
         </div>
       </div>
@@ -667,7 +766,7 @@ const jsStrings = {
         <div class="v2-footer-meta">
           <span class="v2-footer-eyebrow">{t(lang, "footer.about.eyebrow")}</span>
           <p>{t(lang, "footer.about.body")}</p>
-          <p class="v2-footer-version">v{release.version} · {t(lang, "footer.about.os")}</p>
+          <p class="v2-footer-version">v{release.version} · <span class="mac-only">{t(lang, "footer.about.os.mac")}</span><span class="win-only">{t(lang, "footer.about.os.win")}</span></p>
         </div>
       </div>
     </footer>
@@ -707,15 +806,45 @@ const jsStrings = {
 
 <script is:inline define:vars={{ jsStrings }}>
   (function () {
+    // ===== Plattform-CTA-Update =====================================
+    // Base.astro setzt data-platform="windows|macos|linux" auf <html>
+    // synchron im <head>, bevor dieser Body-Script laeuft. Wir lesen
+    // den Wert hier ab und tauschen href + Label aller .js-platform-cta
+    // Buttons aus. Default-Render war Mac-Variante (data-href-mac /
+    // data-label-mac); auf Windows zieht .data-href-win / .data-label-win.
+    var platform = document.documentElement.getAttribute('data-platform') || 'macos';
+    var isWin = platform === 'windows';
+
+    document.querySelectorAll('.js-platform-cta').forEach(function (el) {
+      var hrefMac = el.getAttribute('data-href-mac');
+      var hrefWin = el.getAttribute('data-href-win');
+      var labelMac = el.getAttribute('data-label-mac');
+      var labelWin = el.getAttribute('data-label-win');
+      if (isWin && hrefWin) el.setAttribute('href', hrefWin);
+      else if (hrefMac) el.setAttribute('href', hrefMac);
+      var labelEl = el.querySelector('.js-platform-label');
+      if (labelEl) labelEl.textContent = (isWin ? labelWin : labelMac) || labelEl.textContent;
+    });
+
+    // Download-Tab data-title plattform-spezifisch nachziehen, damit
+    // der Toolbar-Title beim Klick die richtige Plattform-Variante
+    // anzeigt.
+    var dlTab = document.querySelector('.js-tab-download');
+    if (dlTab) {
+      var tMac = dlTab.getAttribute('data-title-mac');
+      var tWin = dlTab.getAttribute('data-title-win');
+      dlTab.setAttribute('data-title', (isWin ? tWin : tMac) || dlTab.getAttribute('data-title'));
+    }
+
     // ===== Reaktive Tabs ==========================================
     // Jeder Knopf mit data-tab schaltet die Sichtbarkeit der
     // .v2-tab-content-Sektion mit passendem data-content.
     // data-tab="home" ist Sonderfall: scrollt zurueck zum Hero.
-    const tabs = document.querySelectorAll('[data-tab]');
-    const contents = document.querySelectorAll('.v2-tab-content');
-    const toolbarTitle = document.getElementById('toolbar-title');
+    var tabs = document.querySelectorAll('[data-tab]');
+    var contents = document.querySelectorAll('.v2-tab-content');
+    var toolbarTitle = document.getElementById('toolbar-title');
 
-    const activate = (id, opts) => {
+    var activate = function (id, opts) {
       opts = opts || {};
       if (id === 'home') {
         // Home scrollt zum Hero, aber laesst den aktiven Tab in Ruhe.
@@ -724,101 +853,101 @@ const jsStrings = {
         return;
       }
 
-      let activeTab = null;
-      document.querySelectorAll('.v2-titlebar [data-tab]').forEach((b) => {
-        const on = b.getAttribute('data-tab') === id;
+      var activeTab = null;
+      document.querySelectorAll('.v2-titlebar [data-tab]').forEach(function (b) {
+        var on = b.getAttribute('data-tab') === id;
         b.classList.toggle('is-active', on);
         if (on) activeTab = b;
       });
 
-      contents.forEach((c) => {
+      contents.forEach(function (c) {
         c.classList.toggle('is-active', c.getAttribute('data-content') === id);
       });
 
       if (activeTab && toolbarTitle) {
-        const title = activeTab.getAttribute('data-title');
+        var title = activeTab.getAttribute('data-title');
         if (title) toolbarTitle.textContent = title;
       }
 
       if (opts.scroll !== false) {
         // Scroll-Position so anpassen, dass die App-Chrome oben sichtbar
         // bleibt. Wir scrollen zum oberen Rand der Chrome.
-        const chrome = document.querySelector('.v2-chrome');
+        var chrome = document.querySelector('.v2-chrome');
         if (chrome) {
-          const rect = chrome.getBoundingClientRect();
-          const top = window.scrollY + rect.top;
-          window.scrollTo({ top, behavior: 'smooth' });
+          var rect = chrome.getBoundingClientRect();
+          var top = window.scrollY + rect.top;
+          window.scrollTo({ top: top, behavior: 'smooth' });
         }
       }
     };
 
-    tabs.forEach((t) => {
-      t.addEventListener('click', () => {
-        const id = t.getAttribute('data-tab');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        var id = t.getAttribute('data-tab');
         if (id) activate(id);
       });
     });
 
     // ===== Screenshot-Galerie =====================================
-    const shotTabs = document.querySelectorAll('.v2-shot-tab');
-    const shots = document.querySelectorAll('.v2-shot');
-    shotTabs.forEach((t) => {
-      t.addEventListener('click', () => {
-        const id = t.getAttribute('data-shot');
-        shotTabs.forEach((x) => {
-          const on = x === t;
+    var shotTabs = document.querySelectorAll('.v2-shot-tab');
+    var shots = document.querySelectorAll('.v2-shot');
+    shotTabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        var id = t.getAttribute('data-shot');
+        shotTabs.forEach(function (x) {
+          var on = x === t;
           x.classList.toggle('is-active', on);
           x.setAttribute('aria-selected', String(on));
         });
-        shots.forEach((s) => {
+        shots.forEach(function (s) {
           s.classList.toggle('is-active', s.getAttribute('data-shot') === id);
         });
       });
     });
 
     // ===== Copy-Button im Install-Hinweis =========================
-    document.querySelectorAll('.v2-install-copy').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const cmd = btn.getAttribute('data-copy') || '';
+    document.querySelectorAll('.v2-install-copy').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var cmd = btn.getAttribute('data-copy') || '';
         try {
           await navigator.clipboard.writeText(cmd);
           btn.textContent = jsStrings.copied;
           btn.classList.add('is-done');
-          setTimeout(() => {
+          setTimeout(function () {
             btn.textContent = jsStrings.copy;
             btn.classList.remove('is-done');
           }, 1600);
         } catch (e) {
           btn.textContent = jsStrings.copyManual;
-          setTimeout(() => { btn.textContent = jsStrings.copy; }, 2000);
+          setTimeout(function () { btn.textContent = jsStrings.copy; }, 2000);
         }
       });
     });
 
     // ===== Sprint-Pille: Lese-Fortschritt =========================
-    const sprintEl = document.getElementById('sprint');
-    const sprintTxt = document.querySelector('.v2-sprint-txt');
-    const sprintRing = document.querySelector('.v2-sprint-progress');
-    const RING_CIRC = 56.5487; // 2 * PI * r mit r=9
-    const paper = document.getElementById('paper');
-    const sprintLabel = sprintEl ? sprintEl.getAttribute('data-label') || 'Sprint' : 'Sprint';
-    const sprintFormat = sprintEl ? sprintEl.getAttribute('data-format') || '{r} / {t} W' : '{r} / {t} W';
+    var sprintEl = document.getElementById('sprint');
+    var sprintTxt = document.querySelector('.v2-sprint-txt');
+    var sprintRing = document.querySelector('.v2-sprint-progress');
+    var RING_CIRC = 56.5487; // 2 * PI * r mit r=9
+    var paper = document.getElementById('paper');
+    var sprintLabel = sprintEl ? sprintEl.getAttribute('data-label') || 'Sprint' : 'Sprint';
+    var sprintFormat = sprintEl ? sprintEl.getAttribute('data-format') || '{r} / {t} W' : '{r} / {t} W';
     if (sprintTxt && paper) {
-      const recount = () => {
-        const active = document.querySelector('.v2-tab-content.is-active');
-        const text = active ? active.textContent.trim() : '';
-        const words = text ? text.split(/\s+/).length : 0;
+      var recount = function () {
+        var active = document.querySelector('.v2-tab-content.is-active');
+        var text = active ? active.textContent.trim() : '';
+        var words = text ? text.split(/\s+/).length : 0;
         sprintTxt.dataset.total = String(words);
       };
       recount();
       // Recount bei Tab-Wechsel
-      tabs.forEach((t) => t.addEventListener('click', () => setTimeout(recount, 50)));
+      tabs.forEach(function (t) { t.addEventListener('click', function () { setTimeout(recount, 50); }); });
 
-      const updateProgress = () => {
-        const total = parseInt(sprintTxt.dataset.total || '0', 10);
-        const top = window.scrollY;
-        const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-        const ratio = Math.min(Math.max(top / max, 0), 1);
+      var updateProgress = function () {
+        var total = parseInt(sprintTxt.dataset.total || '0', 10);
+        var top = window.scrollY;
+        var max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+        var ratio = Math.min(Math.max(top / max, 0), 1);
         if (sprintRing) {
           sprintRing.setAttribute('stroke-dashoffset', String(RING_CIRC * (1 - ratio)));
         }
@@ -826,7 +955,7 @@ const jsStrings = {
           sprintTxt.textContent = sprintLabel;
           return;
         }
-        const read = Math.round(ratio * total);
+        var read = Math.round(ratio * total);
         sprintTxt.textContent = sprintFormat.replace('{r}', String(read)).replace('{t}', String(total));
       };
       updateProgress();
@@ -836,9 +965,9 @@ const jsStrings = {
     // ===== Sprach-Toggle: Auswahl persistieren ====================
     // Damit der Auto-Detect-Redirect (in Base.astro) nach einem
     // bewussten Wechsel den Nutzer in Ruhe laesst.
-    document.querySelectorAll('[data-lang-set]').forEach((el) => {
-      el.addEventListener('click', () => {
-        const target = el.getAttribute('data-lang-set');
+    document.querySelectorAll('[data-lang-set]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var target = el.getAttribute('data-lang-set');
         if (target) {
           try {
             localStorage.setItem('scriptz-lang', target);

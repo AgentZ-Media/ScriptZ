@@ -6,13 +6,12 @@
 
 <p align="center">
   <strong>Der schnellste Skript-Editor für TikTok-, Reels- und Shorts-Creator.</strong><br/>
-  <em>Lokal. Offline. Mac-first.</em>
+  <em>Lokal. Offline. Für macOS und Windows.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.7.7-1c1814?style=flat-square" alt="version" />
-  <img src="https://img.shields.io/badge/platform-macOS-1c1814?style=flat-square" alt="macOS" />
-  <img src="https://img.shields.io/badge/Apple_Silicon-native-1c1814?style=flat-square" alt="Apple Silicon" />
+  <img src="https://img.shields.io/badge/version-0.7.8-1c1814?style=flat-square" alt="version" />
+  <img src="https://img.shields.io/badge/platform-macOS_|_Windows-1c1814?style=flat-square" alt="macOS and Windows" />
   <img src="https://img.shields.io/badge/storage-local_only-1c1814?style=flat-square" alt="local-only" />
   <img src="https://img.shields.io/badge/telemetry-none-1c1814?style=flat-square" alt="no telemetry" />
   <img src="https://img.shields.io/badge/license-MIT-1c1814?style=flat-square" alt="license" />
@@ -24,7 +23,7 @@
 
 > **Final Draft** ist zu schwer. **Google Docs** zu generisch. **Arc Studio** will dein Abo. **ScriptZ ist die Mitte, die niemand sonst baut.**
 
-App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine Telemetrie. Alles bleibt als eine SQLite-Datei auf deinem Mac.
+App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine Telemetrie. Alles bleibt als eine SQLite-Datei auf deinem Computer.
 
 ---
 
@@ -153,7 +152,7 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 
 | Layer | Tool |
 |---|---|
-| Shell | [Tauri 2](https://tauri.app) (Rust, ~10 MB Binary, native macOS) |
+| Shell | [Tauri 2](https://tauri.app) (Rust, ~10 MB Binary, native macOS + Windows) |
 | UI | [Solid.js](https://solidjs.com) + TypeScript (kein React, kein Virtual DOM) |
 | Editor | [Lexical](https://lexical.dev) (vanilla, ohne `@lexical/react`) |
 | Storage | SQLite mit FTS5 für Volltext-Suche |
@@ -164,7 +163,9 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
 
 ## Installation
 
-> **macOS Apple Silicon** — getestet auf macOS 26 Tahoe.
+### macOS Apple Silicon
+
+> Getestet auf macOS 26 Tahoe (mindestens macOS 13).
 
 1. Aktuelles `.dmg` von [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest) laden.
 2. Installieren, in `/Applications` ziehen.
@@ -173,6 +174,19 @@ App auf → schreiben → exportieren → fertig. Kein Login, keine Cloud, keine
    xattr -cr /Applications/ScriptZ.app
    ```
    (Apple-Quarantäne entfernen — die App ist nicht über das Apple Developer Program signiert.)
+
+In-App-Updates funktionieren danach automatisch und ohne weitere Hürden.
+
+### Windows x64
+
+> Getestet auf Windows 11 (mindestens Windows 10).
+
+1. Aktuelles `.exe` (NSIS-Installer) von [Releases](https://github.com/AgentZ-Media/ScriptZ/releases/latest) laden.
+2. Doppelklick → installiert in den User-Ordner (kein Admin nötig).
+3. Beim ersten Start meldet sich **Windows SmartScreen**: einmal auf
+   **"Weitere Informationen"** klicken, dann auf den Button
+   **"Trotzdem ausführen"**. Die App ist nicht über ein EV-Code-Signing-
+   Zertifikat signiert.
 
 In-App-Updates funktionieren danach automatisch und ohne weitere Hürden.
 
@@ -218,5 +232,5 @@ und [`apps/desktop/CLAUDE.md`](apps/desktop/CLAUDE.md) (App-Details).
 - Entwickelt von [AgentZ](https://linktr.ee/deragentz).
 
 <p align="center">
-  <sub>Kein Login. Kein Tracking. Keine Cloud. Nur du, dein Skript und dein Mac.</sub>
+  <sub>Kein Login. Kein Tracking. Keine Cloud. Nur du, dein Skript und dein Rechner.</sub>
 </p>

@@ -51,8 +51,13 @@
     color: #5b554c;
   }
   .v2-hero-cta {
+    /* Block-level flex statt inline-flex, damit `justify-content: center`
+       die Buttons unabhaengig vom Geschwister-Layout (Fallback-Link
+       darunter) zuverlaessig in der Mitte haelt. Vorher inline-flex,
+       was mit dem zusaetzlichen Sibling-Anchor unter dem Container
+       die Zentrierung ueber `text-align: center` ungenau machte. */
     margin-top: 32px;
-    display: inline-flex;
+    display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 10px;
@@ -1369,4 +1374,88 @@
       margin-top: 32px;
       padding-top: 32px;
     }
+  }
+
+  /* =================================================================
+   * Plattform-Switch (macOS / Windows)
+   * =================================================================
+   * Base.astro setzt `<html data-platform="windows|macos|linux">`
+   * synchron im Head. Default-Markup ist macOS, deshalb sind .mac-only
+   * Bloecke ohne Attribut sichtbar und .win-only versteckt. Auf
+   * Windows kehrt sich das um. Linux faellt auf den Mac-Default
+   * zurueck (keine eigene Variante), weil wir keine Linux-Bundles
+   * shippen - der Fallback-Link unter dem CTA fuehrt zur Releases-
+   * Seite, wenn jemand trotzdem Linux nutzt. */
+  .win-only { display: none; }
+  [data-platform="windows"] .mac-only { display: none; }
+  [data-platform="windows"] .win-only { display: revert; }
+
+  /* Plattform-spezifische Icons im primaeren CTA-Button. Mac-Apfel
+     ist der Default, Windows-Logo wird per Plattform-Detection
+     eingeblendet. Beide Icons sind im Markup, eines davon wird per
+     CSS geblendet - so flackert beim JS-Mount nichts. */
+  .js-platform-icon-win { display: none; }
+  [data-platform="windows"] .js-platform-icon-mac { display: none; }
+  [data-platform="windows"] .js-platform-icon-win { display: inline-block; }
+
+  /* =================================================================
+   * Fallback-Link zur GitHub-Releases-Seite
+   * =================================================================
+   * Sitzt unter dem primaeren Download-Button - sowohl im Hero
+   * (.v2-hero-fallback) als auch im Download-Tab (.v2-download-fallback).
+   * Bewusst dezent: kein Button-Look, kein Akzent. Greift, wenn die
+   * Plattform-Detection daneben liegt (z.B. Linux, ungewoehnlicher
+   * User-Agent) oder jemand explizit auf der anderen Plattform
+   * downloaden will. */
+  .v2-hero-fallback {
+    /* Eigener block, damit Zentrierung ueber `margin: 0 auto` zuverlaessig
+       ist und nicht in die Line-Box der Buttons darueber rutscht.
+       `width: fit-content` haelt den Border-Bottom nur unter dem Text. */
+    display: block;
+    width: fit-content;
+    margin: 14px auto 0;
+    font-size: 13px;
+    color: #8a8276;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(28, 24, 20, 0.25);
+    padding-bottom: 1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .v2-hero-fallback:hover {
+    color: #1c1814;
+    border-bottom-color: rgba(28, 24, 20, 0.6);
+  }
+  .v2-download-fallback {
+    display: inline-block;
+    margin: 12px 0 4px;
+    font-size: 13px;
+    color: var(--v2-fg-muted, #6b6b6b);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--v2-border, #d5d2cc);
+    padding-bottom: 1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .v2-download-fallback:hover {
+    color: var(--v2-fg, #1c1814);
+    border-bottom-color: var(--v2-fg, #1c1814);
+  }
+
+  /* =================================================================
+   * Windows-Install-Steps (numerierte Liste in .v2-install)
+   * =================================================================
+   * macOS hat den Terminal-Befehl in einer Code-Box. Windows hat
+   * stattdessen zwei Schritte als <ol>. Visuell ruhig, passt zum
+   * Editor-Look. Textfarbe deckt sich mit `.v2-install-text` (#5b554c),
+   * damit Schritte und umgebender Body-Text harmonieren - das Install-
+   * Panel hat hellen Hintergrund (auch im Hero), kein Dark-Mode. */
+  .v2-install-steps {
+    list-style: none;
+    margin: 6px 0 12px;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #5b554c;
+  }
+  .v2-install-steps li {
+    padding: 4px 0;
   }

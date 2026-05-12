@@ -6,7 +6,8 @@ shell + Solid + TypeScript + Lexical editor (vanilla, no React). All
 persistence, search, export and CRUD lives in TypeScript via
 `@tauri-apps/plugin-sql`; the Rust crate is reduced to plugin wiring +
 schema migrations after the Phase 0–11 Rust → TS migration finished
-in 2026-05. Mac-first; Windows/Linux possible later.
+in 2026-05. macOS Apple Silicon + Windows x64 are first-class; Linux
+not (yet) shipped.
 
 This codebase was deliberately stripped down to a minimal feature set in
 2026-05. The original spec (`ScriptZ-Projektplan.md`) describes a much
@@ -248,10 +249,32 @@ pnpm tauri:dev              # full app with hot-reload + Rust rebuild
 pnpm dev                    # Vite-only frontend (no Tauri shell)
 pnpm typecheck              # tsc --noEmit
 pnpm build                  # Vite prod bundle → dist/
-pnpm tauri:build            # native .app at
-                            #   src-tauri/target/release/bundle/macos/ScriptZ.app
+pnpm tauri:build            # native bundle at
+                            #   macOS:   src-tauri/target/release/bundle/macos/ScriptZ.app
+                            #           + .dmg in bundle/dmg/
+                            #   Windows: src-tauri/target/release/bundle/nsis/
+                            #           ScriptZ_<version>_x64-setup.exe
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
+
+### Windows-Toolchain
+
+Erstmaliger Setup auf Windows (alles im echten User-Terminal, **nicht**
+in der Claude-Code-Subprocess-Sandbox, sonst landen npm-Globals im
+UWP-Container statt im echten `%APPDATA%\npm`):
+
+```cmd
+:: Node 24+ vorausgesetzt
+npm install -g pnpm@9.0.0
+winget install Rustlang.Rustup
+winget install Microsoft.VisualStudio.2022.BuildTools ^
+  --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --includeRecommended"
+```
+
+Rustup zieht automatisch `stable-x86_64-pc-windows-msvc` als Default-
+Toolchain. Webview2 ist auf Windows 10 21H2+ und Windows 11 vorinstalliert
+- der NSIS-Installer hat trotzdem `webviewInstallMode:
+"downloadBootstrapper"` als Fallback.
 
 ## Releasing & in-app auto-update
 
@@ -268,13 +291,34 @@ ability to ship updates** — back it up.
 
 The release pipeline lives in
 [`.github/workflows/release.yml`](.github/workflows/release.yml). It
-fires on tags matching `v*.*.*` (but not `v*.*.*.*`), runs on
-`macos-26` for SDK parity with Tahoe users, builds for
-`aarch64-apple-darwin` only, and publishes a Release containing the
-DMG, the signed `.app.tar.gz` + `.sig`, and the `latest.json` manifest
-the in-app updater polls. The current-version check inside the app
-uses `@tauri-apps/api/app`'s `getVersion()`, which reads from Cargo
-metadata at runtime — no `VITE_APP_VERSION` constant to keep in sync.
+fires on tags matching `v*.*.*` (but not `v*.*.*.*`) and runs vier
+Jobs sequenziell:
+
+1. `prepare-notes` (ubuntu) - liest `docs/release-notes/<tag>.md` + den
+   Install-Footer und gibt den Body als Output weiter.
+2. `build-macos` (macos-26, SDK parity mit Tahoe) - baut
+   `aarch64-apple-darwin`, legt das GitHub-Release an, lädt das erste
+   `latest.json` mit `darwin-aarch64`-Eintrag hoch.
+3. `build-windows` (windows-latest) - baut `x86_64-pc-windows-msvc`,
+   findet den existierenden Release am Tag-Namen, appended NSIS-Bundle
+   + Updater-Zip + Sig, mergt `windows-x86_64` in das vorhandene
+   `latest.json`. Läuft NACH macOS, sonst race condition auf
+   `latest.json`.
+4. `trigger-landing` (ubuntu) - `curl` auf den Vercel-Deploy-Hook,
+   wartet auf beide Build-Jobs.
+
+Asset-Namen im Release:
+
+- macOS: `ScriptZ_<version>_aarch64.dmg`, `ScriptZ.app.tar.gz`,
+  `ScriptZ.app.tar.gz.sig`
+- Windows: `ScriptZ_<version>_x64-setup.exe` (NSIS-Installer),
+  `ScriptZ_<version>_x64-setup.nsis.zip` (Updater-Bundle),
+  `ScriptZ_<version>_x64-setup.nsis.zip.sig`
+- Plattform-übergreifend: `latest.json` (Auto-Updater-Manifest)
+
+Die current-version check inside the app uses `@tauri-apps/api/app`'s
+`getVersion()`, which reads from Cargo metadata at runtime — no
+`VITE_APP_VERSION` constant to keep in sync.
 
 To cut a release:
 
@@ -296,10 +340,18 @@ To cut a release:
    any running v(X.Y.Z-1) instance picks the new version up on its next
    hourly poll (or immediately on app restart).
 
-The first manual install still needs `xattr -cr /Applications/ScriptZ.app`
-because the app is unsigned (no Apple Developer account). In-place
-updates **don't** need that — the new bundle inherits the running
-process's quarantine state.
+The first manual install on **macOS** still needs
+`xattr -cr /Applications/ScriptZ.app` because the app is unsigned (no
+Apple Developer account). In-place updates **don't** need that — the
+new bundle inherits the running process's quarantine state.
+
+The first manual install on **Windows** triggers a SmartScreen dialog
+because the `.exe` is unsigned (no EV code-signing certificate). User
+clicks **"Weitere Informationen" / "More info"** → **"Trotzdem
+ausführen" / "Run anyway"** once. Auto-updates after the first launch
+don't trigger SmartScreen again, because the installer is replaced
+by the running process (Tauri-updater calls the NSIS installer in
+silent mode).
 
 ## Landing mitziehen, wenn sich etwas User-sichtbar ändert
 

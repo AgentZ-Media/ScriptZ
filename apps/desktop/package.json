@@ -1,7 +1,7 @@
 {
   "name": "scriptz",
   "private": true,
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "ScriptZ - fast, local, beautiful script editor for short-form video creators (TikTok, Reels, YouTube Shorts).",
   "type": "module",
   "scripts": {
@@ -40,6 +40,7 @@
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "@tauri-apps/cli": "^2",
+    "@types/node": "^22.10.5",
     "jsdom": "^25.0.1",
     "typescript": "~5.6.2",
     "vite": "^6.0.3",

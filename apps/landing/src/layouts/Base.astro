@@ -83,6 +83,40 @@ const canonical = lang === "en" ? enHref ?? deHref : deHref;
 
     <meta name="robots" content="index, follow" />
 
+    <!-- Plattform-Auto-Detect: laeuft synchron vor dem ersten Paint
+         und setzt `<html data-platform="windows|macos|linux">`. CSS-
+         Regeln im landing.css (`.mac-only` / `.win-only`) blenden die
+         passende Plattform-Variante ein. Default im Markup ist macOS,
+         deshalb muessen wir nur bei Windows/Linux umschalten - der
+         Mac-Pfad braucht kein Attribut.
+         Bevorzugt wird `navigator.userAgentData.platform` (Client Hints,
+         modern, expliziter String), fallback `navigator.userAgent`-Regex
+         (deckt aelteres Firefox + Safari ab). Bei Unsicherheit bleiben
+         wir bei macOS. -->
+    <script is:inline>
+      (function () {
+        try {
+          var p = "";
+          var uad = navigator.userAgentData;
+          if (uad && uad.platform) {
+            p = String(uad.platform).toLowerCase();
+          } else {
+            var ua = (navigator.userAgent || "").toLowerCase();
+            if (ua.indexOf("win") !== -1) p = "windows";
+            else if (ua.indexOf("mac") !== -1 || ua.indexOf("iphone") !== -1 || ua.indexOf("ipad") !== -1) p = "macos";
+            else if (ua.indexOf("linux") !== -1 || ua.indexOf("android") !== -1) p = "linux";
+          }
+          var resolved = "macos";
+          if (p.indexOf("win") === 0 || p === "windows") resolved = "windows";
+          else if (p.indexOf("mac") === 0 || p === "macos" || p === "ios") resolved = "macos";
+          else if (p.indexOf("linux") === 0 || p === "android") resolved = "linux";
+          document.documentElement.setAttribute("data-platform", resolved);
+        } catch (_) {
+          document.documentElement.setAttribute("data-platform", "macos");
+        }
+      })();
+    </script>
+
     <!-- Sprach-Auto-Detect: laeuft bevor das Reveal-Script greift,
          damit der Redirect noch vor dem ersten Paint passieren kann.
          Regeln:

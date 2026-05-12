@@ -1,10 +1,16 @@
 /**
  * Zentrale Quelle für Site-Metadaten und dynamische Build-Zeit-Daten
- * (z.B. die aktuelle ScriptZ-Version).
+ * (z.B. die aktuelle ScriptZ-Version, Plattform-spezifische Download-URLs).
  *
- * Die Version wird zur Build-Zeit von der GitHub-Releases-API geholt,
- * damit jede Veroeffentlichung der Desktop-App automatisch in der
- * Landing landet, ohne hier irgendetwas anpassen zu müssen.
+ * Die Version + Asset-URLs werden zur Build-Zeit von der GitHub-Releases-
+ * API geholt, damit jede Veroeffentlichung der Desktop-App automatisch
+ * in der Landing landet, ohne hier irgendetwas anpassen zu müssen.
+ *
+ * Asset-Erkennung:
+ *  - `.dmg`     -> macOS Apple Silicon
+ *  - `-setup.exe` oder `_x64-setup.exe` -> Windows NSIS Installer
+ *    (Match ausschliesslich `.exe` am Ende, damit das parallele
+ *    `.nsis.zip`-Updater-Asset nicht versehentlich gewinnt.)
  */
 
 export const site = {
@@ -18,7 +24,7 @@ export const site = {
   // Browser-Test-Editor (Phase 2 H). Subdomain hosted Vercel-side.
   webAppUrl: "https://app.write-scriptz.com",
   // Fallback, wenn die GitHub-API beim Build nicht erreichbar ist.
-  fallbackVersion: "0.7.7",
+  fallbackVersion: "0.7.8",
   contactEmail: "kontakt@agent-z.de",
 } as const;
 
@@ -26,7 +32,13 @@ export interface ReleaseInfo {
   version: string;       // ohne fuehrendes "v"
   tag: string;           // wie auf GitHub, z.B. "v0.3.2"
   publishedAt: string;   // ISO-String, "" wenn unbekannt
+  /** macOS Apple Silicon .dmg - direkter Download-Link. */
   dmgUrl: string;
+  /** Windows x64 NSIS Installer .exe - direkter Download-Link.
+   *  Wenn kein Windows-Asset im Release liegt (z.B. Mac-only-Release
+   *  vor Windows-Support), zeigt es auf die Releases-Seite, damit der
+   *  User dort manuell waehlen kann. */
+  exeUrl: string;
   releasePageUrl: string;
   isFallback: boolean;
 }
@@ -59,12 +71,18 @@ export async function getLatestRelease(): Promise<ReleaseInfo> {
     const data = (await res.json()) as GhRelease;
     const tag = data.tag_name || `v${site.fallbackVersion}`;
     const version = tag.replace(/^v/, "");
-    const dmg = data.assets?.find((a) => a.name.endsWith(".dmg"));
+    const assets = data.assets ?? [];
+    const dmg = assets.find((a) => a.name.endsWith(".dmg"));
+    // Windows NSIS-Installer endet auf `.exe`. Das parallele
+    // Updater-Asset endet auf `.nsis.zip` und wird durch das
+    // `.exe`-Suffix-Match automatisch ausgeschlossen.
+    const exe = assets.find((a) => a.name.toLowerCase().endsWith(".exe"));
     return {
       version,
       tag,
       publishedAt: data.published_at ?? "",
       dmgUrl: dmg?.browser_download_url ?? site.releasesPage,
+      exeUrl: exe?.browser_download_url ?? site.releasesPage,
       releasePageUrl: data.html_url ?? site.releasesPage,
       isFallback: false,
     };
@@ -74,6 +92,7 @@ export async function getLatestRelease(): Promise<ReleaseInfo> {
       tag: `v${site.fallbackVersion}`,
       publishedAt: "",
       dmgUrl: site.releasesPage,
+      exeUrl: site.releasesPage,
       releasePageUrl: site.releasesPage,
       isFallback: true,
     };

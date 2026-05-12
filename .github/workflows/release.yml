@@ -10,51 +10,24 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build macOS (Apple Silicon)
-    # Pin to macos-26 (Tahoe) so the SDK matches what users see locally
-    # on Tahoe — the Sequoia SDK shifts the traffic-light cluster a few
-    # pixels and the chrome stops looking pixel-identical to `pnpm
-    # tauri dev`. macos-26 has been GA on GitHub-hosted runners since
-    # 2026-02-26.
-    runs-on: macos-26
-
+  # ============================================================
+  # 1) Release-Notes vorbereiten
+  # ============================================================
+  # Liest die per-Version-Changelog-Datei + den statischen Install-
+  # Footer und gibt sie als ein Output weiter, damit beide Build-Jobs
+  # denselben Body sehen. Bricht ab, wenn die Changelog-Datei fehlt -
+  # so kann kein Release versehentlich mit der vorherigen Beschreibung
+  # rausgehen.
+  prepare-notes:
+    name: Prepare release notes
+    runs-on: ubuntu-latest
+    outputs:
+      body: ${{ steps.notes.outputs.body }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: apps/desktop/src-tauri
-
-      - name: Setup pnpm
-        # Version kommt aus packageManager in der Repo-Root-package.json,
-        # damit lokal und CI dieselbe pnpm-Version benutzen. Keine Angabe
-        # hier - sonst kollidieren beide Quellen (ERR_PNPM_BAD_PM_VERSION).
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Build release body
-        # Setzt zusammen: per-Version-Changelog + statische Install-Footer.
-        # Beide kommen aus checked-in Files (docs/release-notes/), damit
-        # die Release-Beschreibung versionierbar bleibt und nicht im
-        # Workflow-YAML verstaut. Fehlt die Tag-spezifische Datei,
-        # bricht der Workflow mit klarem Error ab - so kann ein Release
-        # nicht versehentlich mit der vorherigen Beschreibung rausgehen.
         id: notes
         run: |
           NOTES_FILE="docs/release-notes/${GITHUB_REF_NAME}.md"
@@ -75,7 +48,48 @@ jobs:
             echo "EOF_RELEASE_BODY"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build and release
+  # ============================================================
+  # 2) macOS-Build (Apple Silicon)
+  # ============================================================
+  # Laeuft zuerst und legt das GitHub-Release-Objekt an, inklusive
+  # erstem `latest.json` mit dem darwin-aarch64-Eintrag fuer den
+  # Auto-Updater. Pinned auf macos-26 (Tahoe) damit der SDK zu dem
+  # passt, was User mit Tahoe lokal sehen.
+  build-macos:
+    name: Build macOS (Apple Silicon)
+    needs: prepare-notes
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: macos
+
+      - name: Setup pnpm
+        # Version kommt aus packageManager in der Repo-Root-package.json,
+        # damit lokal und CI dieselbe pnpm-Version benutzen. Keine Angabe
+        # hier - sonst kollidieren beide Quellen (ERR_PNPM_BAD_PM_VERSION).
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and release (macOS)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -90,19 +104,87 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'ScriptZ ${{ github.ref_name }}'
-          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseBody: ${{ needs.prepare-notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           projectPath: apps/desktop
           args: --target aarch64-apple-darwin
 
-      - name: Trigger Vercel rebuild for landing
-        # Vercel only rebuilds on git push, not on GitHub release events.
-        # Without this, the landing keeps serving the previous version
-        # until the next push to main, because its build-time fetch from
-        # the GitHub Releases API ran before this release was published.
-        # The deploy hook URL is created in Vercel under Project Settings
-        # -> Git -> Deploy Hooks (branch: main).
+  # ============================================================
+  # 3) Windows-Build (x64 NSIS)
+  # ============================================================
+  # Laeuft NACH dem macOS-Build, weil tauri-action das vorhandene
+  # `latest.json` im Release findet und den windows-x86_64-Eintrag
+  # in das bestehende Manifest mergt. Bei parallelem Lauf wuerden
+  # sich die beiden latest.json-Uploads gegenseitig ueberschreiben.
+  # Visual-Studio-Build-Tools + WebView2 sind auf windows-latest
+  # bereits vorinstalliert - kein extra Setup noetig.
+  build-windows:
+    name: Build Windows (x64)
+    needs: [prepare-notes, build-macos]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: windows
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and release (Windows)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          # tagName referenziert den Release, den build-macos angelegt
+          # hat. tauri-action erkennt den existierenden Release am
+          # Tag-Name und appended Assets statt einen neuen anzulegen.
+          # `latest.json` wird dabei gemerged: der bestehende
+          # darwin-aarch64-Eintrag bleibt, windows-x86_64 wird ergaenzt.
+          tagName: ${{ github.ref_name }}
+          releaseName: 'ScriptZ ${{ github.ref_name }}'
+          releaseBody: ${{ needs.prepare-notes.outputs.body }}
+          releaseDraft: false
+          prerelease: false
+          projectPath: apps/desktop
+          args: --target x86_64-pc-windows-msvc
+
+  # ============================================================
+  # 4) Vercel-Rebuild fuer die Landing
+  # ============================================================
+  # Vercel reagiert nur auf Git-Push, nicht auf GitHub-Release-Events.
+  # Ohne diesen Schritt wuerde die Landing-Build die vorherige
+  # Version aus der Releases-API einbacken, weil der Push *vor* dem
+  # Release-Publish passiert. Laeuft erst, wenn beide Builds durch
+  # sind, damit die Landing die neuen Bundle-URLs (.dmg + .exe)
+  # sicher in der API findet.
+  trigger-landing:
+    name: Trigger Vercel rebuild
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Vercel deploy hook
         if: ${{ env.VERCEL_DEPLOY_HOOK_URL != '' }}
         env:
           VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}

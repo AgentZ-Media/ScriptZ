@@ -4,6 +4,11 @@
  * Keys-Konvention: bereich.kontext.was (flach, dot-separated, lowercase).
  * Wer hier ändert, muss in `en.ts` denselben Key updaten - TypeScript
  * erzwingt das via `Record<keyof typeof de, string>` in en.ts.
+ *
+ * Plattform-spezifische Strings tragen einen `.mac` / `.win`-Suffix.
+ * Die Landing rendert beide Varianten und blendet die nicht-passende
+ * via CSS aus (siehe `[data-platform="windows"] .mac-only { display: none }`
+ * in landing.css). Default-Render ist macOS-Look fuer SEO und JS-aus.
  */
 export const de = {
   // ===================== Hero =====================
@@ -12,25 +17,43 @@ export const de = {
   "hero.h1.line2": "statt formatieren.",
   "hero.lead":
     "Der Skripteditor für Content Creator. Eine Idee → ein fertiges Skript in wenigen Minuten. Kein Drehbuch-Korsett, keine KI, kein Abo. Nur du, deine Idee und ein Cursor, der dir aus dem Weg geht.",
-  "hero.cta.download": "Kostenlos für macOS",
+  "hero.cta.download.mac": "Kostenlos für macOS",
+  "hero.cta.download.win": "Kostenlos für Windows",
   "hero.cta.github": "Auf GitHub",
-  "hero.meta.os": "macOS 13+",
+  "hero.cta.allplatforms": "Andere Plattform? Alle Downloads auf GitHub →",
+  "hero.meta.os.mac": "macOS 13+",
+  "hero.meta.os.win": "Windows 10+",
   "hero.meta.zero": "0 Tracker · 0 Konten · 0 KI",
   "hero.web.intro": "Lieber erst ausprobieren?",
   "hero.web.link": "Direkt im Browser testen →",
   "hero.web.hint": "Test-Editor, lokal in deinem Browser. Daten bleiben dort.",
 
-  "install.summary": "Beim ersten Öffnen blockiert macOS die App?",
-  "install.body":
+  // macOS-Install-Hinweis
+  "install.mac.summary": "Beim ersten Öffnen blockiert macOS die App?",
+  "install.mac.body":
     "Das ist normal - ScriptZ ist Open Source und nicht bei Apple registriert. Einmal diesen Befehl im Terminal ausführen, danach läuft alles wie gewohnt:",
+  "install.mac.why":
+    "Apple verlangt eine kostenpflichtige Signatur, die diesen Schritt überflüssig machen würde. Bis sich das lohnt, ist der kurze Befehl der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
+  "install.mac.whyShort.label": "Warum?",
+  "install.mac.whyShort.body":
+    "Apple verlangt eine kostenpflichtige Signatur, die diesen Schritt überflüssig machen würde. Bis sich das lohnt, ist der kurze Befehl der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
+
+  // Windows-Install-Hinweis
+  "install.win.summary": "Beim ersten Start meldet sich SmartScreen?",
+  "install.win.body":
+    "Das ist normal - ScriptZ ist Open Source und hat (noch) kein EV-Code-Signing-Zertifikat. Mit zwei Klicks ist es gelöst:",
+  "install.win.step1": "1. Im SmartScreen-Dialog auf „Weitere Informationen\" klicken.",
+  "install.win.step2": "2. Den dann erscheinenden Button „Trotzdem ausführen\" anklicken.",
+  "install.win.why":
+    "Microsoft verlangt für sofortige Akzeptanz ein kostenpflichtiges EV-Code-Signing-Zertifikat. Bis sich das lohnt, sind die zwei zusätzlichen Klicks der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
+  "install.win.whyShort.label": "Warum?",
+  "install.win.whyShort.body":
+    "Microsoft verlangt ein EV-Code-Signing-Zertifikat. Bis sich das lohnt, sind zwei Klicks der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
+
+  // Copy-Button (nur macOS, aber Strings teilen wir)
   "install.copy": "Kopieren",
   "install.copied": "Kopiert ✓",
   "install.copyManual": "Bitte manuell kopieren",
-  "install.why":
-    "Apple verlangt eine kostenpflichtige Signatur, die diesen Schritt überflüssig machen würde. Bis sich das lohnt, ist der kurze Befehl der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
-  "install.whyShort.label": "Warum?",
-  "install.whyShort.body":
-    "Apple verlangt eine kostenpflichtige Signatur, die diesen Schritt überflüssig machen würde. Bis sich das lohnt, ist der kurze Befehl der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
 
   // ===================== App-Chrome / Tabs =====================
   "tab.home.title": "Übersicht",
@@ -46,7 +69,8 @@ export const de = {
   "tab.compare.short": "Vergleich",
   "tab.compare.long": "Im Vergleich zu allem anderen",
   "tab.download.short": "Download",
-  "tab.download.long": "Download - macOS, kostenlos",
+  "tab.download.long.mac": "Download - macOS, kostenlos",
+  "tab.download.long.win": "Download - Windows, kostenlos",
 
   "status.opensource": "Open Source",
   "status.saved": "Gespeichert",
@@ -165,26 +189,36 @@ export const de = {
 
   // ===================== Tab: DOWNLOAD =====================
   "dl.caption": "INT. DOWNLOAD — EIN KLICK",
-  "dl.action1":
+  "dl.action1.mac":
     "macOS 13 oder neuer. Kostenlos. Open Source. Beim ersten Start: Rechtsklick aufs App-Icon → „Öffnen\". Apple verlangt das für unsignierte Apps. Updates kommen danach automatisch.",
-  "dl.eyebrow.os": "macOS 13+",
+  "dl.action1.win":
+    "Windows 10 oder neuer. Kostenlos. Open Source. Beim ersten Start meldet sich SmartScreen - einmal „Weitere Informationen\" → „Trotzdem ausführen\", danach läuft alles automatisch. Updates kommen ohne Hürde.",
+  "dl.eyebrow.os.mac": "macOS 13+",
+  "dl.eyebrow.os.win": "Windows 10+",
   "dl.h": "Kostenlos. Lokal. Ohne Konto.",
-  "dl.sub":
+  "dl.sub.mac":
     "Ein .dmg, keine Tracker, kein Sign-in, kein „Updates per E-Mail\". Du lädst die App runter, ziehst sie in den Programme-Ordner, und das wars.",
+  "dl.sub.win":
+    "Ein .exe-Installer, keine Tracker, kein Sign-in, kein „Updates per E-Mail\". Doppelklick, fertig.",
   "dl.cta.dmg": ".dmg herunterladen",
+  "dl.cta.exe": ".exe herunterladen",
   "dl.cta.code": "Quellcode auf GitHub",
+  "dl.fallback.label": "Andere Plattform? Alle Downloads auf GitHub →",
   "dl.stat.version": "aktuelle Version",
   "dl.stat.tracker": "Tracker",
   "dl.stat.accounts": "Konten",
   "dl.stat.ai": "KI",
   "dl.stat.dmg": ".dmg",
-  "dl.web.intro": "Kein Mac zur Hand?",
+  "dl.stat.exe": ".exe",
+  "dl.web.intro": "Lieber erst ausprobieren?",
   "dl.web.link": "Direkt im Browser testen →",
   "dl.web.sub": "Test-Editor, kein Konto, alles lokal in deinem Browser.",
   "dl.sfxLabel": "SFX:",
   "dl.sfxText": "Erster Start",
-  "dl.action2":
+  "dl.action2.mac":
     "Beim ersten Öffnen meldet macOS, dass die App nicht überprüft werden kann. Das ist normal - ScriptZ ist Open Source und nicht bei Apple registriert. Einmal den Befehl unten im Terminal ausführen, danach läuft alles wie gewohnt.",
+  "dl.action2.win":
+    "Beim ersten Start meldet sich der Windows SmartScreen, dass die App nicht überprüft werden kann. Das ist normal - ScriptZ ist Open Source und hat (noch) kein EV-Code-Signing-Zertifikat. Mit zwei Klicks ist es gelöst.",
   "dl.fadeOut": "FADE OUT.",
   "dl.end": "ENDE",
 
@@ -241,8 +275,9 @@ export const de = {
   "footer.link.email": "E-Mail",
   "footer.about.eyebrow": "ÜBER SCRIPTZ",
   "footer.about.body":
-    "Ein Skripteditor für Content Creator, der dir aus dem Weg geht. Format passiert beim Tippen, Charaktere werden automatisch erkannt, der Quickmodus spart pro Sprecherwechsel zwei Tastendrücke. Alles lokal, alles in einer SQLite-Datei auf deinem Mac. Keine Cloud, kein Konto, keine KI.",
-  "footer.about.os": "macOS 13+ · Open Source",
+    "Ein Skripteditor für Content Creator, der dir aus dem Weg geht. Format passiert beim Tippen, Charaktere werden automatisch erkannt, der Quickmodus spart pro Sprecherwechsel zwei Tastendrücke. Alles lokal, alles in einer SQLite-Datei auf deinem Computer. Keine Cloud, kein Konto, keine KI.",
+  "footer.about.os.mac": "macOS 13+ · Open Source",
+  "footer.about.os.win": "Windows 10+ · Open Source",
 
   // ===================== Sprint-Pille =====================
   "sprint.label": "Lese-Sprint",
