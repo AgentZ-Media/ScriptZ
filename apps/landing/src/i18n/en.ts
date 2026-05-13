@@ -415,8 +415,6 @@ export const en: Record<keyof typeof de, string> = {
 
   "blog.back": "← Back to the blog",
   "blog.share.h": "Share",
-  "blog.notTranslated":
-    "This post is only available in German. Have a look at the index in your language.",
 
   "blog.rss.title": "ScriptZ Blog",
   "blog.rss.description":

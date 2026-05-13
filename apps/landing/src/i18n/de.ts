@@ -428,8 +428,6 @@ export const de = {
   // Post-Footer / Navigation.
   "blog.back": "← Zurück zur Blog-Übersicht",
   "blog.share.h": "Teilen",
-  "blog.notTranslated":
-    "Dieser Beitrag liegt nur auf Deutsch vor. Schau dir gerne die Übersicht in deiner Sprache an.",
 
   // RSS-Feed-Meta.
   "blog.rss.title": "ScriptZ Blog",

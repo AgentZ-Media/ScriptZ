@@ -48,6 +48,6 @@ const switchHref = hasOther ? postPath(slug, "en") : blogIndexPath("en");
     toolbarTitleOverride={entry.data.title}
     switchLangHrefOverride={switchHref}
   >
-    <BlogPost entry={entry} lang={lang} hasOther={hasOther} />
+    <BlogPost entry={entry} lang={lang} />
   </AppShell>
 </Base>

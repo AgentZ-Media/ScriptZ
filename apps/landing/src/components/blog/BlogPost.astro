@@ -23,13 +23,9 @@ import "../../styles/blog.css";
 interface Props {
   entry: BlogEntry;
   lang: Lang;
-  /** Existiert eine Uebersetzung in der jeweils anderen Sprache?
-   *  Steuert nur den Hinweis-Banner, der Sprach-Toggle in der Shell
-   *  wird vom Page-Wrapper ueberschrieben. */
-  hasOther: boolean;
 }
 
-const { entry, lang, hasOther } = Astro.props;
+const { entry, lang } = Astro.props;
 const { Content } = await render(entry);
 
 const minutes = readingTimeMinutes(entry.body);
@@ -104,10 +100,6 @@ if (entry.data.cover) {
       sizes="(max-width: 720px) 100vw, 720px"
       loading="eager"
     />
-  )}
-
-  {!hasOther && (
-    <p class="blog-post-banner">{t(lang, "blog.notTranslated")}</p>
   )}
 
   <div class="blog-body">
