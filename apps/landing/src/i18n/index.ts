@@ -31,6 +31,38 @@ export function t(lang: Lang, key: StringKey): string {
 }
 
 /**
+ * Wie `t`, ersetzt zusaetzlich `{placeholder}`-Slots im uebersetzten
+ * String. Beispiel: `tFormat("de", "blog.publishedOn", { date: "13. Mai 2026" })`.
+ */
+export function tFormat(
+  lang: Lang,
+  key: StringKey,
+  vars: Record<string, string | number>,
+): string {
+  const raw = t(lang, key);
+  return raw.replace(/\{(\w+)\}/g, (_match, name: string) => {
+    const v = vars[name];
+    return v === undefined ? `{${name}}` : String(v);
+  });
+}
+
+/**
+ * Pluralregel-Helfer: waehlt zwischen `<key>_one` und `<key>_other` und
+ * ersetzt `{n}` mit dem Count. Englisch und Deutsch teilen die
+ * Plural-Heuristik (n === 1 → one), deshalb reicht das einfache Schema.
+ */
+export function tPlural(
+  lang: Lang,
+  baseKey: string,
+  n: number,
+  vars: Record<string, string | number> = {},
+): string {
+  const suffix = n === 1 ? "_one" : "_other";
+  const key = `${baseKey}${suffix}` as StringKey;
+  return tFormat(lang, key, { n, ...vars });
+}
+
+/**
  * Inhaltliche Tab-Routen. Jede Sprache hat eigene Slugs, damit die URL
  * selbst keyword-relevant ist (DE "/keine-ki" statt "/no-ai", EN
  * "/en/compare" statt "/en/vergleich"). Die Tab-ID (`warum`,
@@ -45,6 +77,11 @@ export const ROUTES = {
   vergleich: { de: "/vergleich", en: "/en/compare" },
   download: { de: "/download", en: "/en/download" },
   ideen: { de: "/ideen", en: "/en/ideas" },
+  // Blog: Index unter `/blog` bzw. `/en/blog`. Einzelne Beitraege
+  // (`/blog/<slug>`) sind dynamische Sub-Routen, die hier nicht als
+  // separater Key existieren - der Sprach-Toggle auf Post-Pages kommt
+  // ueber ein Override im BlogShell, nicht ueber `switchLangPath`.
+  blog: { de: "/blog", en: "/en/blog" },
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

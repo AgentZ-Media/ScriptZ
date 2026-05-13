@@ -1,0 +1,53 @@
+---
+/**
+ * `/blog/<slug>` - Detailseite eines Blogposts (Deutsch).
+ *
+ * `getStaticPaths` listet alle DE-Posts. EN-Posts laufen ueber das
+ * Pendant unter `/en/blog/<slug>`. Beide Slugs sind identisch, damit
+ * der Sprach-Toggle einen sauberen Schwester-Link bilden kann.
+ */
+import Base from "../../layouts/Base.astro";
+import AppShell from "../../components/AppShell.astro";
+import BlogPost from "../../components/blog/BlogPost.astro";
+import {
+  getPosts,
+  hasTranslation,
+  parseEntryId,
+  postPath,
+  blogIndexPath,
+} from "../../lib/blog";
+import { type Lang } from "../../i18n";
+
+export async function getStaticPaths() {
+  const posts = await getPosts("de");
+  return posts.map((entry) => {
+    const parsed = parseEntryId(entry.id)!;
+    return {
+      params: { slug: parsed.slug },
+      props: { entry },
+    };
+  });
+}
+
+const lang: Lang = "de";
+const { entry } = Astro.props;
+const slug = parseEntryId(entry.id)!.slug;
+
+const hasOther = await hasTranslation(slug, "en");
+const switchHref = hasOther ? postPath(slug, "en") : blogIndexPath("en");
+---
+
+<Base
+  title={`${entry.data.title} - ScriptZ Blog`}
+  description={entry.data.description}
+  lang={lang}
+>
+  <AppShell
+    lang={lang}
+    activeTab="blog"
+    toolbarTitleOverride={entry.data.title}
+    switchLangHrefOverride={switchHref}
+  >
+    <BlogPost entry={entry} lang={lang} hasOther={hasOther} />
+  </AppShell>
+</Base>

@@ -18,24 +18,37 @@
  */
 import { getLatestRelease, site } from "../data/site";
 import { routePath, switchLangPath, t, type Lang, type RouteKey } from "../i18n";
+import SiteFooter from "./SiteFooter.astro";
 import "../styles/landing.css";
 
 interface Props {
   lang: Lang;
   /** Welcher inhaltliche Tab gehoert zu dieser Page? Bestimmt
-   *  `is-active`-Klasse am Tab-Knopf und den Toolbar-Title. */
+   *  `is-active`-Klasse am Tab-Knopf und den Toolbar-Title. Bei
+   *  Blog-Beitraegen ist `activeTab` weiterhin `"blog"`, aber kein Tab
+   *  in der Tab-Bar - die Bar zeigt keine "is-active"-Klasse, weil
+   *  Blog dort nicht als Tab gerendert wird. */
   activeTab: RouteKey;
+  /** Optional: ueberschreibt den Toolbar-Title. Blog-Post-Pages
+   *  geben hier den Post-Titel statt eines generischen Tab-Labels. */
+  toolbarTitleOverride?: string;
+  /** Optional: ueberschreibt die Ziel-URL des Sprach-Toggles. Wird
+   *  fuer Blog-Posts genutzt, wo der Slug existieren kann oder nicht,
+   *  und die Page selbst diese Entscheidung treffen muss. */
+  switchLangHrefOverride?: string;
 }
 
-const { lang, activeTab } = Astro.props;
+const { lang, activeTab, toolbarTitleOverride, switchLangHrefOverride } = Astro.props;
 const release = await getLatestRelease();
 
 const otherLang: Lang = lang === "de" ? "en" : "de";
 const currentRoutePath = routePath(lang, activeTab);
-const switchHref = switchLangPath(lang, otherLang, currentRoutePath);
+const switchHref = switchLangHrefOverride ?? switchLangPath(lang, otherLang, currentRoutePath);
 
 // Toolbar-Title pro aktivem Tab. Download-Tab haengt zusaetzlich an
 // der Plattform, das passt das Inline-Script per data-Attribut an.
+// Blog laeuft hier ebenfalls durch, hat aber keinen eigenen Tab in der
+// Tab-Bar - der Title ist trotzdem sinnvoll, falls keine Override greift.
 const titleKeyMap: Record<RouteKey, Parameters<typeof t>[1]> = {
   home: "tab.home.long",
   warum: "tab.warum.long",
@@ -44,8 +57,9 @@ const titleKeyMap: Record<RouteKey, Parameters<typeof t>[1]> = {
   vergleich: "tab.compare.long",
   download: "tab.download.long.mac",
   ideen: "tab.ideas.title",
+  blog: "blog.toolbar.title.index",
 };
-const toolbarTitle = t(lang, titleKeyMap[activeTab]);
+const toolbarTitle = toolbarTitleOverride ?? t(lang, titleKeyMap[activeTab]);
 
 // Pfade pro Tab in der aktuellen Sprache, einmalig fertig gerechnet,
 // damit das Markup unten lesbar bleibt.
@@ -57,6 +71,7 @@ const links = {
   "no-ai": routePath(lang, "no-ai"),
   vergleich: routePath(lang, "vergleich"),
   download: routePath(lang, "download"),
+  blog: routePath(lang, "blog"),
 };
 
 // Ideen-Liste fuer das Tab-Badge (Anzahl offener Ideen). Im Footer und
@@ -201,36 +216,8 @@ const jsStrings = {
   <main class="v2-paper" id="paper">
     <slot />
 
-    <!-- Footer (immer sichtbar, gleicher Inhalt pro Route) -->
-    <footer class="v2-footer">
-      <div class="v2-footer-cols">
-        <div>
-          <span class="v2-footer-h">{t(lang, "footer.col.project")}</span>
-          <ul>
-            <li><a href={site.github} target="_blank" rel="noopener">{t(lang, "footer.link.github")}</a></li>
-            <li><a href={release.releasePageUrl} target="_blank" rel="noopener">{t(lang, "footer.link.releases")}</a></li>
-          </ul>
-        </div>
-        <div>
-          <span class="v2-footer-h">{t(lang, "footer.col.legal")}</span>
-          <ul>
-            <li><a href="/impressum">{t(lang, "footer.link.imprint")}</a></li>
-            <li><a href="/datenschutz">{t(lang, "footer.link.privacy")}</a></li>
-          </ul>
-        </div>
-        <div>
-          <span class="v2-footer-h">{t(lang, "footer.col.contact")}</span>
-          <ul>
-            <li><a href={`mailto:${site.contactEmail}`}>{t(lang, "footer.link.email")}</a></li>
-          </ul>
-        </div>
-        <div class="v2-footer-meta">
-          <span class="v2-footer-eyebrow">{t(lang, "footer.about.eyebrow")}</span>
-          <p>{t(lang, "footer.about.body")}</p>
-          <p class="v2-footer-version">v{release.version} · <span class="mac-only">{t(lang, "footer.about.os.mac")}</span><span class="win-only">{t(lang, "footer.about.os.win")}</span></p>
-        </div>
-      </div>
-    </footer>
+    <!-- Footer - eine Komponente fuer alle Shells (siehe SiteFooter.astro) -->
+    <SiteFooter lang={lang} />
   </main>
 
   <!-- SPRINT-PILLE - rendert pro Route neu (Wortzahl ist eh

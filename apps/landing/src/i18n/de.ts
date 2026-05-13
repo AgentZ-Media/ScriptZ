@@ -400,4 +400,44 @@ export const de = {
   "meta.ideas.description":
     "Sammle Skript-Ideen für TikTok, Reels und YouTube Shorts, wandle sie per Klick in ein fertiges Skript. Offline, ohne Konto, in der ScriptZ-App und im Browser.",
   "meta.ogLocale": "de_DE",
+
+  // ===================== Blog =====================
+  // Footer-Eintrag (nur Footer, kein Top-Nav-Tab).
+  "footer.link.blog": "Blog",
+  "footer.link.rss": "RSS-Feed",
+
+  // Blog-Toolbar im AppShell.
+  "blog.toolbar.title.index": "Blog - Notizen aus dem Skript-Editor",
+  "blog.toolbar.title.post": "Blog",
+
+  // Blog-Index.
+  "blog.index.eyebrow": "BLOG // SCRIPTZ",
+  "blog.index.h1": "Notizen aus dem Skript-Editor.",
+  "blog.index.lead":
+    "Gedanken, Release-Geschichten und der eine oder andere Trick aus dem Alltag mit ScriptZ. Im Format eines Skripts gesetzt - so wie der Editor selbst.",
+  "blog.index.empty": "Noch keine Beiträge. Bald wird hier geschrieben.",
+  "blog.index.rss.label": "RSS-Feed abonnieren",
+
+  // Reading-Time und Datum.
+  "blog.readingTime_one": "{n} Min Lesezeit",
+  "blog.readingTime_other": "{n} Min Lesezeit",
+  "blog.publishedOn": "Veröffentlicht am {date}",
+  "blog.updatedOn": "Aktualisiert am {date}",
+  "blog.author.by": "von {name}",
+
+  // Post-Footer / Navigation.
+  "blog.back": "← Zurück zur Blog-Übersicht",
+  "blog.share.h": "Teilen",
+  "blog.notTranslated":
+    "Dieser Beitrag liegt nur auf Deutsch vor. Schau dir gerne die Übersicht in deiner Sprache an.",
+
+  // RSS-Feed-Meta.
+  "blog.rss.title": "ScriptZ Blog",
+  "blog.rss.description":
+    "Notizen aus dem Skript-Editor für Content Creator. Releases, Workflow-Tricks und kleine Geschichten.",
+
+  // Blog-Meta (Page-Titel + Description fuer den Blog-Index).
+  "meta.blog.title": "Blog - Notizen aus dem Skript-Editor | ScriptZ",
+  "meta.blog.description":
+    "Der ScriptZ-Blog: Release-Geschichten, Workflow-Tipps für Reels und Shorts, und Notizen aus dem Alltag eines Skript-Editors für Content Creator.",
 } as const;

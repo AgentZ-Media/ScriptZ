@@ -14,7 +14,8 @@
  * und Astro-Scoping haelt die Klassen sauber getrennt von den
  * Index-Klassen, ohne dass globale CSS-Imports noetig waeren.
  */
-import { getLatestRelease, site } from "../data/site";
+import { site } from "../data/site";
+import SiteFooter from "./SiteFooter.astro";
 
 interface Props {
   /** Welcher Tab in der Bar als aktiv markiert wird. */
@@ -26,7 +27,6 @@ interface Props {
 }
 
 const { activeTab, title, subtitle } = Astro.props;
-const release = await getLatestRelease();
 ---
 
 <div class="v2-hero v2-hero-legal">
@@ -108,35 +108,8 @@ const release = await getLatestRelease();
   <main class="v2-paper">
     <slot />
 
-    <footer class="v2-footer">
-      <div class="v2-footer-cols">
-        <div>
-          <span class="v2-footer-h">Projekt</span>
-          <ul>
-            <li><a href={site.github} target="_blank" rel="noopener">GitHub</a></li>
-            <li><a href={release.releasePageUrl} target="_blank" rel="noopener">Releases</a></li>
-          </ul>
-        </div>
-        <div>
-          <span class="v2-footer-h">Recht</span>
-          <ul>
-            <li><a href="/impressum">Impressum</a></li>
-            <li><a href="/datenschutz">Datenschutz</a></li>
-          </ul>
-        </div>
-        <div>
-          <span class="v2-footer-h">Kontakt</span>
-          <ul>
-            <li><a href={`mailto:${site.contactEmail}`}>E-Mail</a></li>
-          </ul>
-        </div>
-        <div class="v2-footer-meta">
-          <span class="v2-footer-eyebrow">ÜBER SCRIPTZ</span>
-          <p>Ein Skripteditor für Content Creator, der dir aus dem Weg geht. Format passiert beim Tippen, Charaktere werden automatisch erkannt, der Quickmodus spart pro Sprecherwechsel zwei Tastendrücke. Alles lokal, alles in einer SQLite-Datei auf deinem Mac. Keine Cloud, kein Konto, keine KI.</p>
-          <p class="v2-footer-version">v{release.version} · macOS 13+ · Open Source</p>
-        </div>
-      </div>
-    </footer>
+    <!-- Footer - geteilt mit AppShell. Legal bleibt rechts-bedingt DE. -->
+    <SiteFooter lang="de" />
   </main>
 </div>
 
@@ -506,43 +479,7 @@ const release = await getLatestRelease();
   }
   :global(.v2-paper em) { font-style: italic; }
 
-  /* === Footer (gleich wie Startseite) ===================== */
-  .v2-footer {
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px dashed var(--v2-border);
-    color: var(--v2-ink-muted);
-    font-size: 12px;
-  }
-  .v2-footer-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 2fr;
-    gap: 24px;
-  }
-  .v2-footer-h {
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--v2-ink);
-    margin-bottom: 10px;
-  }
-  .v2-footer ul { list-style: none; padding: 0; margin: 0; }
-  .v2-footer ul li { padding: 3px 0; }
-  .v2-footer a { color: inherit; text-decoration: none; }
-  .v2-footer a:hover { color: var(--v2-ink); }
-  .v2-footer-eyebrow {
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--v2-ink);
-    margin-bottom: 8px;
-  }
-  .v2-footer-meta p { margin: 0 0 6px; line-height: 1.55; }
-  .v2-footer-version { color: var(--v2-ink-faint); }
+  /* === Footer-Styling lebt in SiteFooter.astro (scoped) ===== */
 
   /* === Responsive ========================================== */
   @media (max-width: 880px) {
@@ -550,8 +487,6 @@ const release = await getLatestRelease();
     .v2-paper { padding: 28px 24px 32px; margin: 16px auto 0; }
     .v2-toolbar-title { display: none; }
     .v2-toolbar-pills { display: none; }
-    .v2-footer-cols { grid-template-columns: 1fr 1fr; }
-    .v2-footer-meta { grid-column: 1 / -1; }
   }
   /* Auf Mobil komplett ohne App-Chrome - Navigation kommt von
      MobileNav.astro (Sticky-Bar oben + Drawer). */

@@ -392,4 +392,37 @@ export const en: Record<keyof typeof de, string> = {
   "meta.ideas.description":
     "Collect script ideas for TikTok, Reels and YouTube Shorts, turn them into a finished script with one click. Offline, no account, in the ScriptZ app and in the browser.",
   "meta.ogLocale": "en_US",
+
+  // ===================== Blog =====================
+  "footer.link.blog": "Blog",
+  "footer.link.rss": "RSS feed",
+
+  "blog.toolbar.title.index": "Blog - notes from the script editor",
+  "blog.toolbar.title.post": "Blog",
+
+  "blog.index.eyebrow": "BLOG // SCRIPTZ",
+  "blog.index.h1": "Notes from the script editor.",
+  "blog.index.lead":
+    "Thoughts, release stories and the occasional trick from working with ScriptZ. Set in script format - just like the editor itself.",
+  "blog.index.empty": "No posts yet. Writing starts soon.",
+  "blog.index.rss.label": "Subscribe to RSS feed",
+
+  "blog.readingTime_one": "{n} min read",
+  "blog.readingTime_other": "{n} min read",
+  "blog.publishedOn": "Published {date}",
+  "blog.updatedOn": "Updated {date}",
+  "blog.author.by": "by {name}",
+
+  "blog.back": "← Back to the blog",
+  "blog.share.h": "Share",
+  "blog.notTranslated":
+    "This post is only available in German. Have a look at the index in your language.",
+
+  "blog.rss.title": "ScriptZ Blog",
+  "blog.rss.description":
+    "Notes from the script editor for content creators. Releases, workflow tricks and small stories.",
+
+  "meta.blog.title": "Blog - notes from the script editor | ScriptZ",
+  "meta.blog.description":
+    "The ScriptZ blog: release stories, workflow tips for Reels and Shorts, and notes from the day-to-day of a script editor for content creators.",
 };

@@ -139,6 +139,11 @@ const navItems: NavItem[] = [
       <span class="mn-section">{t(lang, "mobilenav.section.project")}</span>
       <ul class="mn-list mn-list-external">
         <li>
+          <a class="mn-link" href={routePath(lang, "blog")} data-mobilenav-link>
+            {t(lang, "footer.link.blog")}
+          </a>
+        </li>
+        <li>
           <a class="mn-link" href={site.github} target="_blank" rel="noopener" data-mobilenav-link>
             {t(lang, "footer.link.github")}
             <span class="mn-link-ext" aria-hidden="true">↗</span>

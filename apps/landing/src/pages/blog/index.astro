@@ -1,0 +1,29 @@
+---
+/**
+ * `/blog` - Blog-Uebersicht (Deutsch).
+ *
+ * Duenner Wrapper: lehnt sich an die AppShell, gibt ihr "blog" als
+ * activeTab + den passenden Toolbar-Title. Inhalt rendert
+ * BlogIndex.astro.
+ */
+import Base from "../../layouts/Base.astro";
+import AppShell from "../../components/AppShell.astro";
+import BlogIndex from "../../components/blog/BlogIndex.astro";
+import { t } from "../../i18n";
+
+const lang = "de" as const;
+---
+
+<Base
+  title={t(lang, "meta.blog.title")}
+  description={t(lang, "meta.blog.description")}
+  lang={lang}
+>
+  <AppShell
+    lang={lang}
+    activeTab="blog"
+    toolbarTitleOverride={t(lang, "blog.toolbar.title.index")}
+  >
+    <BlogIndex lang={lang} />
+  </AppShell>
+</Base>
