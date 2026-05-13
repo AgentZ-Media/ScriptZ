@@ -26,4 +26,7 @@ pnpm-debug.log*
 .tauri-build-stamp
 
 # Claude Code (lokales Tooling, kein Projekt-Artefakt)
-.claude/
+.claude/*
+# Ausnahme: project-rules sind geteilt und gehören ins Repo
+!.claude/rules/
+!.claude/rules/**

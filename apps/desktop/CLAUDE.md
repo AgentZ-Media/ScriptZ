@@ -1,26 +1,32 @@
-# ScriptZ — Claude context
+# ScriptZ Desktop - Claude context
 
 Fast, local script editor for short-form video creators (TikTok, Reels,
-YouTube Shorts). Tauri 2
-shell + Solid + TypeScript + Lexical editor (vanilla, no React). All
-persistence, search, export and CRUD lives in TypeScript via
-`@tauri-apps/plugin-sql`; the Rust crate is reduced to plugin wiring +
-schema migrations after the Phase 0–11 Rust → TS migration finished
-in 2026-05. macOS Apple Silicon + Windows x64 are first-class; Linux
-not (yet) shipped.
+YouTube Shorts). Tauri 2 shell + Solid + TypeScript + Lexical editor
+(vanilla, no React). All persistence, search, export and CRUD lives in
+TypeScript via `@tauri-apps/plugin-sql`; the Rust crate is plugin
+wiring + schema migrations only. macOS Apple Silicon + Windows x64 are
+first-class; Linux not (yet) shipped.
 
-This codebase was deliberately stripped down to a minimal feature set in
-2026-05. The original spec (`ScriptZ-Projektplan.md`) describes a much
-larger system; treat the actual code as the source of truth, not the
-spec, when they disagree.
+This codebase was deliberately stripped down in 2026-05. The original
+spec (`ScriptZ-Projektplan.md`) describes a larger system; **treat the
+actual code as the source of truth, not the spec**, when they disagree.
 
-## Repo layout
+## Path-scoped Rules
 
-This app lives at `apps/desktop/` inside a pnpm monorepo. The root
-`CLAUDE.md` documents the workspace shape; treat this file as the
-authoritative reference for the desktop app itself.
+Details lazy-load aus [`/.claude/rules/`](../../.claude/rules/):
 
-Inside `apps/desktop/`:
+- [`desktop-architecture.md`](../../.claude/rules/desktop-architecture.md)
+  - Vollständiges `src/lib/` und `src-tauri/`-Layout, das per-script
+  Character-Modell, Editor → DB Data-Flow. Lädt bei `apps/desktop/src/**`
+  und `apps/desktop/src-tauri/**`.
+- [`desktop-release.md`](../../.claude/rules/desktop-release.md) -
+  In-App-Updater (`tauri-plugin-updater` + minisign), Six-Spot Version
+  Bump, macOS-`xattr`/SmartScreen-Erstinstall, Windows-Toolchain-Setup.
+  Lädt bei Versionsdateien und `src-tauri/**`.
+- [`/.claude/rules/release.md`](../../.claude/rules/release.md) -
+  zentrale Release-Pipeline (4 Jobs, Asset-Naming, Recovery).
+
+## Top-Level Layout
 
 ```
 src/                    Solid frontend (TypeScript)
@@ -32,214 +38,32 @@ tsconfig.json
 vite.config.ts
 ```
 
-## Architecture
+Detail-Layout der Subverzeichnisse: siehe `desktop-architecture.md`.
 
-```
-src-tauri/
-  src/
-    main.rs                entry → scriptz_lib::run()
-    lib.rs                 ~45 lines: Tauri Builder + plugin wiring +
-                           plugin-sql migration list. No commands, no
-                           business logic, no setup-closure.
-  migrations/
-    001_baseline.sql       Idempotent post-Phase-7 schema (CREATE TABLE
-                           IF NOT EXISTS …). Includes the AI summary
-                           cols on purpose so 002 can DROP them
-                           uniformly on fresh + existing DBs.
-    002_ai_cleanup.sql     ALTER TABLE DROP COLUMN x5 + DELETE
-                           ai.* settings.
-    003_redesign.sql       v0.6 redesign: daily_word_log table for
-                           streak/heatmap aggregation, ideas table for
-                           the inbox, scripts.last_word_count sentinel.
-    004_word_count_sentinel.sql  Backfill sentinel for existing scripts
-                           so the first save after upgrade doesn't
-                           double-count words into daily_word_log.
-  capabilities/default.json  Tauri permission scope (sql, fs, dialog, …)
-  tauri.conf.json          Window geometry, bundle ID, updater endpoint
-  Cargo.toml               11 deps: tauri + 9 plugins + serde_json (only
-                           because tauri::generate_context!() expands to
-                           code that references it).
-
-src/                Solid frontend (TypeScript) — owns all persistence
-  lib/
-    db.ts              Lazy plugin-sql connection (Database.load("sqlite:scriptz.db")).
-    scripts.ts         CRUD + duplicate + archive/restore/purge. Reconciles
-                       characters_meta from content_json on every update.
-                       Sticky color via DEFAULT_PALETTE in characterColors.ts.
-    snapshots.ts       Auto + manual snapshots, 50-per-script cap.
-    search.ts          FTS5 BM25 over scripts_fts (title + content_text).
-    folders.ts         Flat one-level folders.
-    characterColors.ts App-wide name → colour overrides + palette logic.
-    fts.ts             FTS5 helpers (sanitize, refresh-on-save).
-    lex.ts             Lexical state → text extraction (extract_blocks,
-                       extract_teleprompter_text, extract_character_names).
-                       Powers FTS, plain-text export, and character-meta
-                       reconciliation on every save.
-    exportPdf.ts       PDF export via pdf-lib + @pdf-lib/fontkit. A4,
-                       widow/orphan control, char tinting via name lookup
-                       against the script's characters_meta.
-    exportPlaintext.ts Teleprompter plain-text export (Char/Dialog/Paren).
-    api.ts             Single `api.*` facade exposing the modules above
-                       as a typed object. Used by every component.
-    types.ts           TS-side data types (Script, ScriptSummary, Folder,
-                       Snapshot, ScriptCharacter, SearchHit …).
-    tauri.ts           thin invoke wrapper, isTauri flag (rare — most
-                       code now goes through plugin-sql, not commands).
-    colors.ts          tint() helper (rgba blend)
-    format.ts          relativeTime, formatAbsolute, debounce
-    saveFlush.ts       central registry for "drain pending writes"
-                       hooks (editor auto-save, tab-state persist) so
-                       the window-close handler in App.tsx can wait for
-                       all buffered work before destroying the window
-    welcome.ts         first-run welcome script seeder (generic tutorial)
-    dailyWords.ts      day-bucketing + word-delta accounting; writes
-                       to daily_word_log on every save (positive
-                       deltas only, sentinel-protected).
-    dailyStats.ts      reads daily_word_log → streak, today's words,
-                       365-day heatmap series.
-    dailyStatsBus.ts   pub/sub for stats changes (wakes Heatmap +
-                       MomentumStrip + EditorToolbar's "X W heute"
-                       counter without polling).
-    ideas.ts           CRUD for the ideas inbox (open / used) +
-                       convert-to-script.
-    ideasBus.ts        pub/sub for ideas list changes.
-  index.tsx              entry, mounts <App>, imports global CSS
-  App.tsx                tabs + overlays (CmdK, Settings, NewScript,
-                         IdeaQuickCapture)
-  components/
-    TabBar.tsx           rounded tabs with App-icon + +-button +
-                         daily-goal pill ("X W heute") + streak pill
-    Editor/
-      ScriptView.tsx     paper canvas, hosts EditorRail + SprintPill
-      Editor.tsx         Lexical mount: createEditor, registerRichText,
-                         registerHistory, all custom plugins
-      EditorToolbar.tsx  inline title editor + 7 block-type pills +
-                         quick-mode + highlight + focus + export
-      EditorRail.tsx     right sidebar: Cast tab (per-char dialog %)
-                         + Versions tab (snapshot history inline)
-      SprintPill.tsx     bottom-right Pomodoro pill (5/15/25 min)
-                         with progress bar + word-tracker
-      ExportDialog.tsx   PDF + Plain Text export modal
-      SnapshotsDialog.tsx history browser with restore (still used
-                          from CmdK; the rail's Versions tab is the
-                          new primary surface)
-      nodes/             7 ElementNode subclasses
-        BaseScriptzNode  shared base, getBlockType()
-        Scriptz{Action,Character,Dialog,Parenthetical,Camera,Caption,Sfx}Node
-      plugins/
-        smartEnter.ts          Enter/Backspace state machine
-        blockHotkeys.ts        Cmd+1..7 → block-type swap
-        blockDropdown.tsx      Tab opens block-type picker
-        characterDropdown.tsx  cursor-anchored autocomplete; entries are
-                               sorted by predict.ts ranking so the visual
-                               order mirrors the prediction
-        parentheticalLive.ts   live ( … ) detection in Dialog
-        inlineFormat.ts        Cmd+B/I/U
-        allcaps.ts             characterName attribute sync (visual UPPER
-                               is CSS-only — text-transform on the block)
-        highlight.ts           per-block --char-tint CSS variable; Editor
-                               highlighting now matches PDF output
-                               (per-character colour, not a single tint)
-    Browser/
-      Browser.tsx           file browser: scripts grid, search, sort,
-                            paginated by 200 with "load more" button
-      MomentumStrip.tsx     dashboard top row: streak + today's progress
-                            + "weiterschreiben" CTA to last open script.
-      Heatmap.tsx           365-day GitHub-style writing heatmap.
-      ActivityModal.tsx     full activity panel: today meter, streak,
-                            year totals, big heatmap.
-      FolderChips.tsx       flat folder filter row above the grid
-      TrashView.tsx
-      NewScriptDialog.tsx + ScriptContextMenu.tsx
-    Ideas/
-      IdeaQuickCapture.tsx  ⌘I overlay: tippen, Enter speichert.
-                            Auto-closes; no script-context required.
-      IdeasDrawer.tsx       side drawer with Open/Alle/Verwendet tabs;
-                            click → convert idea to new script (⌘↵).
-      IdeasToggle.tsx       browser-side toggle button for the drawer.
-    CommandBar/CommandBar.tsx     Cmd+K Spotlight modal (scripts only)
-    Settings/SettingsDialog.tsx   incl. daily-goal field for tab-bar pill
-    Common/
-      Modal, ConfirmDialog, ToastHost, UpdateIndicator
-  stores/
-    settings.ts        theme, highlightingDefault, updateCheck flags,
-                       dailyWordGoal
-    tabs.ts            open tabs, persistence in app_state.open_tabs
-    toasts.ts          push-toast helper
-    dailyStats.ts      cached today/streak/heatmap, invalidated by
-                       dailyStatsBus on every save
-    ideas.ts           cached ideas list, invalidated by ideasBus
-  styles/
-    tokens.css         design tokens (brand orange #e0791f, A4 mm geometry)
-    fonts.css          iA Writer Quattro @font-face
-    global.css         resets, .btn / .modal / .toast etc.
-public/fonts/          iA Writer Quattro TTFs (loaded at runtime by
-                       exportPdf.ts via fetch + pdf-lib embedFont)
-```
-
-## Conventions
+## Conventions (wichtig)
 
 - **TypeScript owns persistence.** All SQL goes through plugin-sql via
-  the modules in `src/lib/` (db, scripts, snapshots, folders, …).
-  There are no Tauri commands for data access — the Rust side opens
-  no DB connections.
+  the modules in `src/lib/`. There are no Tauri commands for data
+  access - the Rust side opens no DB connections.
 - **All entities use UUIDv4 string IDs.** Never auto-increment integers.
 - **Timestamps** are JS Unix-millis (`Date.now()`).
 - **No `any` in TypeScript.** Data types in `src/lib/types.ts`.
-- **Lexical: vanilla only.** No `@lexical/react`. We `editor.setRootElement(ref)`
-  and **must** call `registerRichText(editor)` — without it,
+- **Lexical: vanilla only.** No `@lexical/react`. We
+  `editor.setRootElement(ref)` and **must** call
+  `registerRichText(editor)` - without it,
   `CONTROLLED_TEXT_INSERTION_COMMAND` has no default handler and typing
   silently breaks for any selection that lands on an element-type anchor.
 - **Visual ALLCAPS in Charakter blocks is CSS-only** (`text-transform`).
   Mutating text nodes inside a node-transform on every keystroke fights
   Lexical's selection model and freezes input after one or two
   characters. Only the parent `characterName` attribute is synced via a
-  transform — that's safe because it doesn't touch text-node children.
+  transform - that's safe because it doesn't touch text-node children.
 - **Empty blocks must be CHILDLESS** when handed to Lexical. Don't
-  pre-append `$createTextNode("")` — Lexical's reconciler then renders
+  pre-append `$createTextNode("")` - Lexical's reconciler then renders
   nothing useful and WebKit can't place a caret. With no children,
   the reconciler injects a managed `<br>` placeholder automatically.
 - **Solid stores:** small modules under `src/stores/`. Components subscribe
   via getters; mutations go through store actions.
-
-## Characters — the per-script model
-
-Characters live **only** inside the script that uses them. There is no
-global character table.
-
-- The Lexical state contains `scriptz-character` blocks with a
-  `characterName` attribute (uppercased, kept in sync by `allcaps.ts`).
-- On every save, `src/lib/scripts.ts` walks the JSON via
-  `extractCharacterNames` (in `src/lib/lex.ts`), reconciles the result
-  against `scripts.characters_meta` (a JSON array of `{name, color}`),
-  and writes the merged list back. Names are matched case-insensitively;
-  **colors are sticky** — a name that already has a color keeps it.
-  New names get the next free color from `DEFAULT_PALETTE` in
-  `src/lib/characterColors.ts`.
-- The frontend reads `script.characters` (the parsed array) for the
-  pillbar and the in-editor autocomplete dropdown. There is no
-  "create character" UI — it happens implicitly when you type a new
-  name into a Charakter block.
-
-## Data flow
-
-- Editor mounts on script load → registers all plugins → `onUpdate`
-  debounced 250 ms → serialises Lexical state to JSON →
-  `api.updateScript` → `src/lib/scripts.ts` writes `scripts.content_json`
-  via plugin-sql, refreshes FTS5 (`refreshFtsForScript`), reconciles
-  `characters_meta` against `character_colors`.
-- `onSaved` callback fires after each successful save → `ScriptView`
-  refetches the script → pillbar re-renders with the latest character
-  list.
-- Auto-snapshot fires every 5 min while dirty (`api.createSnapshot(id, "auto")`).
-  Manual via `Cmd+Shift+S`. Cap is 50 per script (oldest is dropped),
-  enforced in both `createSnapshot` and `restoreSnapshot`.
-- Search: frontend → `api.globalSearch(query)` → FTS5 BM25 over
-  `scripts_fts` → `SearchHit[]` with `<mark>` snippets.
-- PDF export: frontend `api.exportPdf({ scriptId, path, … })` →
-  `src/lib/exportPdf.ts` reads the script via plugin-sql, walks blocks,
-  lays out on A4 with widow/orphan control via pdf-lib, writes the
-  bytes via `@tauri-apps/plugin-fs::writeFile`. No Rust code involved.
 
 ## Commands
 
@@ -256,125 +80,6 @@ pnpm tauri:build            # native bundle at
                             #           ScriptZ_<version>_x64-setup.exe
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
-
-### Windows-Toolchain
-
-Erstmaliger Setup auf Windows (alles im echten User-Terminal, **nicht**
-in der Claude-Code-Subprocess-Sandbox, sonst landen npm-Globals im
-UWP-Container statt im echten `%APPDATA%\npm`):
-
-```cmd
-:: Node 24+ vorausgesetzt
-npm install -g pnpm@9.0.0
-winget install Rustlang.Rustup
-winget install Microsoft.VisualStudio.2022.BuildTools ^
-  --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --includeRecommended"
-```
-
-Rustup zieht automatisch `stable-x86_64-pc-windows-msvc` als Default-
-Toolchain. Webview2 ist auf Windows 10 21H2+ und Windows 11 vorinstalliert
-- der NSIS-Installer hat trotzdem `webviewInstallMode:
-"downloadBootstrapper"` als Fallback.
-
-## Releasing & in-app auto-update
-
-Auto-update is the official `tauri-plugin-updater` flow, same shape as
-NoteZ. The frontend does `check() → downloadAndInstall() → relaunch()`
-in [`src/components/Common/UpdateIndicator.tsx`](src/components/Common/UpdateIndicator.tsx);
-the manual "Jetzt prüfen" button in Settings goes through the same
-plugin. Updates are signed with a minisign keypair — the public key is
-embedded in [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json),
-the private key lives at `~/.tauri/scriptz_updater.key` (no password)
-and is mirrored to the GitHub repo secret
-`TAURI_SIGNING_PRIVATE_KEY`. **Lose the private key and you lose the
-ability to ship updates** — back it up.
-
-The release pipeline lives in
-[`.github/workflows/release.yml`](.github/workflows/release.yml). It
-fires on tags matching `v*.*.*` (but not `v*.*.*.*`) and runs vier
-Jobs sequenziell:
-
-1. `prepare-notes` (ubuntu) - liest `docs/release-notes/<tag>.md` + den
-   Install-Footer und gibt den Body als Output weiter.
-2. `build-macos` (macos-26, SDK parity mit Tahoe) - baut
-   `aarch64-apple-darwin`, legt das GitHub-Release an, lädt das erste
-   `latest.json` mit `darwin-aarch64`-Eintrag hoch.
-3. `build-windows` (windows-latest) - baut `x86_64-pc-windows-msvc`,
-   findet den existierenden Release am Tag-Namen, appended NSIS-Bundle
-   + Updater-Zip + Sig, mergt `windows-x86_64` in das vorhandene
-   `latest.json`. Läuft NACH macOS, sonst race condition auf
-   `latest.json`.
-4. `trigger-landing` (ubuntu) - `curl` auf den Vercel-Deploy-Hook,
-   wartet auf beide Build-Jobs.
-
-Asset-Namen im Release:
-
-- macOS: `ScriptZ_<version>_aarch64.dmg`, `ScriptZ.app.tar.gz`,
-  `ScriptZ.app.tar.gz.sig`
-- Windows: `ScriptZ_<version>_x64-setup.exe` (NSIS-Installer),
-  `ScriptZ_<version>_x64-setup.nsis.zip` (Updater-Bundle),
-  `ScriptZ_<version>_x64-setup.nsis.zip.sig`
-- Plattform-übergreifend: `latest.json` (Auto-Updater-Manifest)
-
-Die current-version check inside the app uses `@tauri-apps/api/app`'s
-`getVersion()`, which reads from Cargo metadata at runtime — no
-`VITE_APP_VERSION` constant to keep in sync.
-
-To cut a release:
-
-1. Bump the version in **all six** places (they must agree, or
-   `tauri build` warns, the CI build breaks on `--frozen-lockfile`,
-   or the landing shows the previous version after a GitHub-API blip):
-   - `apps/desktop/package.json` → `version`
-   - `apps/desktop/src-tauri/Cargo.toml` → `[package] version`
-   - `apps/desktop/src-tauri/Cargo.lock` → the `name = "scriptz"` entry
-     (cargo auto-rewrites this when you edit Cargo.toml, but commit it)
-   - `apps/desktop/src-tauri/tauri.conf.json` → `version`
-   - `apps/landing/src/data/site.ts` → `fallbackVersion`
-   - `/README.md` (Repo-Root) → the `version-X.Y.Z` shields.io badge
-     near the top (the only displayed version humans see before
-     installing)
-2. Commit, push `main`.
-3. `git tag -a vX.Y.Z -m "ScriptZ vX.Y.Z — …" && git push origin vX.Y.Z`
-4. The workflow runs ~6 min and produces the release. After it finishes,
-   any running v(X.Y.Z-1) instance picks the new version up on its next
-   hourly poll (or immediately on app restart).
-
-The first manual install on **macOS** still needs
-`xattr -cr /Applications/ScriptZ.app` because the app is unsigned (no
-Apple Developer account). In-place updates **don't** need that — the
-new bundle inherits the running process's quarantine state.
-
-The first manual install on **Windows** triggers a SmartScreen dialog
-because the `.exe` is unsigned (no EV code-signing certificate). User
-clicks **"Weitere Informationen" / "More info"** → **"Trotzdem
-ausführen" / "Run anyway"** once. Auto-updates after the first launch
-don't trigger SmartScreen again, because the installer is replaced
-by the running process (Tauri-updater calls the NSIS installer in
-silent mode).
-
-## Landing mitziehen, wenn sich etwas User-sichtbar ändert
-
-Die Marketing-Site lebt in [`apps/landing/`](../landing/) und ist das
-Schaufenster dieser App. Bei jeder Änderung, die ein User merkt
-(neues / entferntes Feature, geänderter Editor-Look, neue Schrift,
-neue Plattform, geändertes Lizenz- oder Konto-Verhalten), gehört
-in den gleichen Arbeitsschritt ein Blick in die Landing - sonst
-zeigt sie ein Produkt, das es so nicht mehr gibt.
-
-Konkrete Touchpoints:
-
-- [`apps/landing/src/components/Features.astro`](../landing/src/components/Features.astro) - Top-3-Features
-- [`apps/landing/src/components/Compare.astro`](../landing/src/components/Compare.astro) - Vergleichstabelle
-- [`apps/landing/src/components/AutoTypingDemo.astro`](../landing/src/components/AutoTypingDemo.astro) - Editor-Demo, muss 1:1 wie der echte Editor aussehen (Block-Typen, Einrückung, ALLCAPS, Spacing-Cluster)
-- [`apps/landing/src/components/Hero.astro`](../landing/src/components/Hero.astro) - Headline, Plattform-Meta
-- [`apps/landing/src/components/OpenSource.astro`](../landing/src/components/OpenSource.astro) - Versprechen (kein Konto, keine Tracker etc.) - muss zur tatsächlichen App passen
-- [`apps/landing/src/styles/tokens.css`](../landing/src/styles/tokens.css) - Designsystem, falls Schrift/Farben/Spacing geändert werden
-- [`apps/landing/src/pages/datenschutz.astro`](../landing/src/pages/datenschutz.astro) - der Abschnitt "Die Desktop-App ScriptZ selbst" muss bei jeder Änderung am Daten- und Netzwerk-Verhalten der App gegengecheckt werden
-
-Versionsnummer **nicht** manuell in der Landing pflegen - sie wird zur
-Build-Zeit von der GitHub-Releases-API geholt ([`apps/landing/src/data/site.ts`](../landing/src/data/site.ts)).
-Repo-Root-`CLAUDE.md` hat eine vollständige Liste der Auslöser.
 
 ## Don'ts
 
@@ -398,7 +103,7 @@ Repo-Root-`CLAUDE.md` hat eine vollständige Liste der Auslöser.
   the app closer to an iA Writer-style minimal editor. If you think you
   need them, talk to the user first.
 - **Don't mutate text-node content from a node transform on every
-  keystroke.** It will break typing after 1–2 characters. Use CSS or
+  keystroke.** It will break typing after 1-2 characters. Use CSS or
   intercept `CONTROLLED_TEXT_INSERTION_COMMAND` to transform the payload
   before insertion.
 
@@ -408,7 +113,7 @@ Drehtage / Drehplanung, Locations als Entität, Notizen-Block, Person-am-
 Charakter, Bilder, ElevenLabs, Drag&Drop, Cloud-Sync, Accounts, Telemetry,
 Kollaboration, Hook als eigener Block, **alle AI-Features**
 (OpenRouter-Anbindung, automatische Skript-Zusammenfassungen, KI im
-Editor — bewusst rausgenommen 2026-05-09, Gimmick mit zu wenig
+Editor - bewusst rausgenommen 2026-05-09, Gimmick mit zu wenig
 Mehrwert), Plugin-System, mehrere Skript-Layouts, Industry-Standard-
 Drehbuch-Layout (Courier 12pt). Plus removed in 2026-05: Projects, Tags,
 Series, global Characters with bible/aliases/description, per-script
@@ -416,15 +121,21 @@ display-name/color overrides, vibrancy chrome.
 
 ## Troubleshooting
 
-- **`sqlite locked`** — should not happen with WAL + r2d2 pool; if it
+- **`sqlite locked`** - should not happen with WAL + r2d2 pool; if it
   does, check no migration fired mid-write.
-- **Typing dies after a few keystrokes** — this is the
+- **Typing dies after a few keystrokes** - this is the
   `registerRichText` regression. The editor MUST call
   `registerRichText(editor)` after `setRootElement`.
-- **Empty Charakter block won't accept input** — pre-appending an empty
+- **Empty Charakter block won't accept input** - pre-appending an empty
   `$createTextNode("")` is the cause; leave the new ElementNode childless
   and call `next.select(0, 0)` instead.
-- **A character keeps re-appearing in the pillbar after delete** — the
+- **A character keeps re-appearing in the pillbar after delete** - the
   pillbar reflects what's in `content_json`. If the name still appears
   in any Charakter block, it'll be re-added on the next save. Empty the
   block (or change the name) instead of trying to delete the character.
+
+## Landing mitziehen
+
+Bei jeder User-sichtbaren App-Änderung Landing-Konsistenz prüfen -
+vollständige Auslöserliste in
+[`/.claude/rules/landing-consistency.md`](../../.claude/rules/landing-consistency.md).
