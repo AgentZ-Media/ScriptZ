@@ -41,6 +41,7 @@ export function FolderChips(props: FolderChipsProps) {
               label={f.name}
               count={f.script_count}
               active={props.activeFolderId === f.id}
+              isFolder
               onClick={() => props.onSelect(f.id)}
               onContextMenu={(e) => props.onChipContextMenu(f, e)}
               onDropScript={(id) => props.onDropScript(f.id, id)}
@@ -67,6 +68,7 @@ interface ChipProps {
   label: string;
   count: number;
   active: boolean;
+  isFolder?: boolean;
   onClick: () => void;
   onContextMenu?: (e: MouseEvent) => void;
   onDropScript: (scriptId: string) => void;
@@ -80,6 +82,7 @@ function Chip(props: ChipProps) {
       classList={{
         "is-active": props.active,
         "is-drop-target": over(),
+        "is-folder": !!props.isFolder,
       }}
       role="tab"
       aria-selected={props.active}
@@ -100,9 +103,22 @@ function Chip(props: ChipProps) {
         if (e.dataTransfer?.types.includes(SCRIPT_DRAG_MIME)) {
           e.preventDefault();
           if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          // Belt-and-suspenders: dragover feuert kontinuierlich, solange
+          // der Cursor über dem Chip (oder einem Kind) ist. Falls dragleave
+          // beim Hinüberwandern auf ein Kind-Element den Highlight gekippt
+          // hat, holen wir ihn hier zuverlässig zurück.
+          if (!over()) setOver(true);
         }
       }}
-      onDragLeave={() => setOver(false)}
+      onDragLeave={(e) => {
+        // dragleave feuert auch, wenn der Cursor nur auf ein Kind-Element
+        // wechselt. Echtes Verlassen erkennen wir daran, dass relatedTarget
+        // außerhalb des Chips liegt (oder null ist, z.B. beim Verlassen
+        // des Fensters).
+        const next = e.relatedTarget as Node | null;
+        if (next && (e.currentTarget as Node).contains(next)) return;
+        setOver(false);
+      }}
       onDrop={(e) => {
         const id = e.dataTransfer?.getData(SCRIPT_DRAG_MIME);
         setOver(false);
@@ -115,6 +131,18 @@ function Chip(props: ChipProps) {
         props.onDropScript(id);
       }}
     >
+      <Show when={props.isFolder}>
+        <span class="folder-chip-icon" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M1.75 4.25c0-.69.56-1.25 1.25-1.25h3.13c.33 0 .65.13.88.37l1.12 1.13H13c.69 0 1.25.56 1.25 1.25v6.5c0 .69-.56 1.25-1.25 1.25H3c-.69 0-1.25-.56-1.25-1.25v-8Z"
+              stroke="currentColor"
+              stroke-width="1.25"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </Show>
       <span class="folder-chip-label">{props.label}</span>
       <span class="folder-chip-count">{props.count}</span>
     </button>

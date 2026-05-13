@@ -205,23 +205,39 @@
 .folder-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 30px;
+  gap: 7px;
+  height: 32px;
   padding: 0 14px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--r-pill);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-subtle);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all var(--t-fast);
 }
+/* DnD-Robustheit: Kinder schlucken keine Drag-Events, dragleave/enter
+   feuern damit nur am Chip-Button selbst (sonst kippt der Highlight,
+   sobald der Cursor über Label oder Count wandert). */
+.folder-chip > * { pointer-events: none; }
 .folder-chip:hover {
   background: var(--hover);
   color: var(--text);
+}
+/* Echte Ordner setzen sich dezent vom "Alle"-Filter-Chip ab, damit
+   man sie als Sortier-Ziel (statt nur als Filter) erkennt. */
+.folder-chip.is-folder {
+  background: var(--paper);
+  border-color: var(--border);
+  color: var(--ink-700);
+  padding: 0 12px;
+}
+.folder-chip.is-folder:hover {
+  border-color: var(--border-strong);
+  background: var(--paper);
 }
 .folder-chip.is-active {
   background: var(--paper);
@@ -236,9 +252,12 @@
 }
 .folder-chip-icon {
   display: inline-flex;
+  align-items: center;
   color: var(--text-faint);
 }
-.folder-chip.is-active .folder-chip-icon { color: var(--text-subtle); }
+.folder-chip.is-folder .folder-chip-icon { color: var(--ink-500); }
+.folder-chip.is-active .folder-chip-icon,
+.folder-chip.is-folder.is-active .folder-chip-icon { color: var(--ink-700); }
 .folder-chip-label { line-height: 1.1; }
 .folder-chip-count {
   font-size: 11px;
