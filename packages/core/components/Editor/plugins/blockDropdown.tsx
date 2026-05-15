@@ -64,18 +64,29 @@ function BlockDropdown(props: DropdownProps) {
   );
 
   const onKey = (e: KeyboardEvent) => {
+    // stopImmediatePropagation NEBEN preventDefault: Lexical haengt seinen
+    // eigenen keydown-Listener an den Editor-Root und dispatched daraus
+    // KEY_ENTER_COMMAND / Pfeiltasten-Caret-Bewegung. preventDefault alleine
+    // unterdrueckt nur die Browser-Default-Action — Lexical bekommt das Event
+    // trotzdem und wuerde bei Enter zusaetzlich smartEnter feuern (= neue
+    // Zeile beim Bestaetigen aus dem Dropdown). Wir killen die Propagation
+    // hier komplett.
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      e.stopImmediatePropagation();
       setIndex((i) => (i + 1) % BLOCK_TYPES.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      e.stopImmediatePropagation();
       setIndex((i) => (i - 1 + BLOCK_TYPES.length) % BLOCK_TYPES.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
+      e.stopImmediatePropagation();
       const t = BLOCK_TYPES[index()];
       if (t) props.onSelect(t);
     } else if (e.key === "Escape") {
       e.preventDefault();
+      e.stopImmediatePropagation();
       props.onClose();
     }
   };
