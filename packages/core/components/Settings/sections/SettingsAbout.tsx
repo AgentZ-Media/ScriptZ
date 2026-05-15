@@ -44,7 +44,7 @@ export function SettingsAbout(props: SettingsAboutProps) {
           class="link-like"
           onClick={() => void openUrl("https://linktr.ee/deragentz").catch(() => {})}
         >
-          AgentZ
+          {t("settings.about.developer.linkText")}
         </button>
       </div>
       <div class="settings-row">
@@ -52,7 +52,7 @@ export function SettingsAbout(props: SettingsAboutProps) {
           <div class="row-label">{t("settings.about.repository")}</div>
         </div>
         <button class="link-like settings-mono" onClick={openRepo}>
-          github.com/AgentZ-Media/ScriptZ
+          {t("settings.about.repository.linkText")}
         </button>
       </div>
       <Show when={props.onStartOnboarding}>

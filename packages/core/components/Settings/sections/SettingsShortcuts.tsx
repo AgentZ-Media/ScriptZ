@@ -29,7 +29,7 @@ function shortcutGroups(): ShortcutGroup[] {
     {
       title: t("shortcuts.group.editor"),
       items: [
-        { keys: "Tab", desc: t("shortcut.blockPicker") },
+        { keys: t("shortcut.key.tab"), desc: t("shortcut.blockPicker") },
         { keys: K("Mod+1"), desc: t("shortcut.blockAction") },
         { keys: K("Mod+2"), desc: t("shortcut.blockCharacter") },
         { keys: K("Mod+3"), desc: t("shortcut.blockDialog") },

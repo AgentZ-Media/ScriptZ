@@ -138,6 +138,9 @@ export const de = {
   "browser.sort.label": "Sortieren · {value}",
   "browser.rowMore": "Mehr Aktionen",
   "browser.notes": "Notiz",
+  "browser.count.folderSegment": " · {folder}",
+  "browser.count.searchSegment": " · „{query}\"",
+  "browser.runtime.unavailable": "—",
 
   // ---------- folder operations ----------
   "folder.aria.tablist": "Ordner",
@@ -400,7 +403,9 @@ export const de = {
   "settings.about.version": "ScriptZ · v{version}",
   "settings.about.license": "Lizenz: MIT",
   "settings.about.developer": "Entwickelt von",
+  "settings.about.developer.linkText": "AgentZ",
   "settings.about.repository": "Repository",
+  "settings.about.repository.linkText": "github.com/AgentZ-Media/ScriptZ",
   "settings.about.onboarding.label": "Onboarding",
   "settings.about.onboarding.help": "Die Kurz-Tour zur App nochmal anzeigen.",
   "settings.about.onboarding.button": "Nochmal anzeigen",
@@ -420,6 +425,7 @@ export const de = {
   "shortcut.tabByIndex": "Tab per Index aktivieren (0 = Übersicht)",
   "shortcut.cycleTabs": "Zwischen Tabs wechseln",
   "shortcut.blockPicker": "Block-Typ-Picker öffnen",
+  "shortcut.key.tab": "Tab",
   "shortcut.blockAction": "Block-Typ → Action",
   "shortcut.blockCharacter": "Block-Typ → Charakter",
   "shortcut.blockDialog": "Block-Typ → Dialog",

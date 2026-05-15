@@ -171,7 +171,7 @@
   color: #d04141;
   text-align: left;
   max-width: 100%;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .boot-error-actions {
   display: inline-flex;

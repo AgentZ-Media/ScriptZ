@@ -361,7 +361,7 @@ export function Editor(props: EditorProps) {
           if (last < raw.length) out.push(raw.slice(last));
           return out.map((p) => {
             if (typeof p === "string") return p;
-            if (p.slot === "tab") return <span class="kbd kbd-inline">Tab</span>;
+            if (p.slot === "tab") return <span class="kbd kbd-inline">{t("shortcut.key.tab")}</span>;
             if (p.slot === "first") return <span class="kbd kbd-inline">{K("Mod+1")}</span>;
             return <span class="kbd kbd-inline">{K("Mod+7")}</span>;
           });

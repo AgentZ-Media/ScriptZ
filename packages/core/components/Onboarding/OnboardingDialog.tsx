@@ -29,12 +29,18 @@ const TOTAL_STEPS = 3;
 export function OnboardingDialog(props: OnboardingDialogProps) {
   const [step, setStep] = createSignal(0);
   const [dir, setDir] = createSignal<StepDir>("none");
+  // Guard against double submission. While `setAppState` is in flight
+  // the dialog is still rendered, so a fast Enter press / double click
+  // could call `onFinish` twice — and the new contract opens the
+  // welcome script, so we'd open it twice in two tabs.
+  const [isFinishing, setIsFinishing] = createSignal(false);
 
   let lastOpen = false;
   createEffect(() => {
     if (props.open && !lastOpen) {
       setStep(0);
       setDir("none");
+      setIsFinishing(false);
     }
     lastOpen = props.open;
   });
@@ -55,6 +61,8 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
   };
 
   const completeAndClose = async () => {
+    if (isFinishing()) return;
+    setIsFinishing(true);
     try {
       await api.setAppState(ONBOARDING_KEY, "1");
     } catch {
@@ -64,6 +72,8 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
   };
 
   const completeAndFinish = async () => {
+    if (isFinishing()) return;
+    setIsFinishing(true);
     try {
       await api.setAppState(ONBOARDING_KEY, "1");
     } catch {
@@ -166,7 +176,12 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
                 <Show
                   when={!isFinalStep()}
                   fallback={
-                    <button type="button" class="btn btn-primary ob-cta" onClick={() => void completeAndFinish()}>
+                    <button
+                      type="button"
+                      class="btn btn-primary ob-cta"
+                      disabled={isFinishing()}
+                      onClick={() => void completeAndFinish()}
+                    >
                       {t("onboarding.finish")}
                     </button>
                   }

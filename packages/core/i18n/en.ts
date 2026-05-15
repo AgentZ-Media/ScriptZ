@@ -132,6 +132,9 @@ export const en: Record<keyof typeof de, string> = {
   "browser.sort.label": "Sort · {value}",
   "browser.rowMore": "More actions",
   "browser.notes": "Note",
+  "browser.count.folderSegment": " · {folder}",
+  "browser.count.searchSegment": " · „{query}\"",
+  "browser.runtime.unavailable": "—",
 
   // ---------- folders ----------
   "folder.aria.tablist": "Folders",
@@ -394,7 +397,9 @@ export const en: Record<keyof typeof de, string> = {
   "settings.about.version": "ScriptZ · v{version}",
   "settings.about.license": "License: MIT",
   "settings.about.developer": "Built by",
+  "settings.about.developer.linkText": "AgentZ",
   "settings.about.repository": "Repository",
+  "settings.about.repository.linkText": "github.com/AgentZ-Media/ScriptZ",
   "settings.about.onboarding.label": "Onboarding",
   "settings.about.onboarding.help": "Show the short app tour again.",
   "settings.about.onboarding.button": "Show again",
@@ -414,6 +419,7 @@ export const en: Record<keyof typeof de, string> = {
   "shortcut.tabByIndex": "Activate tab by index (0 = overview)",
   "shortcut.cycleTabs": "Cycle between tabs",
   "shortcut.blockPicker": "Open block-type picker",
+  "shortcut.key.tab": "Tab",
   "shortcut.blockAction": "Block type → Action",
   "shortcut.blockCharacter": "Block type → Character",
   "shortcut.blockDialog": "Block type → Dialog",

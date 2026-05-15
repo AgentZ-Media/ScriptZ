@@ -79,7 +79,7 @@ export function ScriptRow(props: ScriptRowProps) {
       <div class="row-v2-pages">
         {(() => {
           const rt = runtimeLabelFor(props.script, settingsStore.dialogWpm());
-          return rt ?? "—";
+          return rt ?? t("browser.runtime.unavailable");
         })()}
       </div>
       <button

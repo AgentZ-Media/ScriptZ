@@ -96,8 +96,12 @@ export function BrowserList(props: BrowserListProps) {
       <div class="home-sortbar">
         <span class="home-count-line">
           {tPlural("units.scripts", props.items.length)}
-          <Show when={props.activeFolderName}> · {props.activeFolderName}</Show>
-          <Show when={props.isSearching}> · „{props.searchQuery}"</Show>
+          <Show when={props.activeFolderName}>
+            {t("browser.count.folderSegment", { folder: props.activeFolderName ?? "" })}
+          </Show>
+          <Show when={props.isSearching}>
+            {t("browser.count.searchSegment", { query: props.searchQuery })}
+          </Show>
         </span>
         <button
           type="button"
