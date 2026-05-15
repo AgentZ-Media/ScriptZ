@@ -1,28 +1,28 @@
 ---
 /**
- * LegalShell - die Editor-Optik fuer Impressum und Datenschutz.
+ * LegalShell - the editor look for Impressum and Datenschutz.
  *
- * Spiegelt das Layout der Landing: kleiner Hero oben, darunter die
- * App-Chrome (Tab-Bar + Toolbar) mit einem aktiven Skript-Tab, dann
- * ein Paper-Sheet mit den Block-Klassen des Editors. Inhalt kommt
- * ueber <slot/> rein und sollte in v2-block-Klassen formatiert sein
- * (CAPTION fuer Abschnittsueberschriften, ACTION fuer normale
- * Absaetze, SFX fuer Inline-Hervorhebungen etc.).
+ * Mirrors the landing layout: small hero on top, below that the
+ * app chrome (tab bar + toolbar) with an active script tab, then
+ * a paper sheet with the editor's block classes. Content comes in
+ * via <slot/> and should be formatted in v2-block classes
+ * (CAPTION for section headings, ACTION for normal paragraphs,
+ * SFX for inline accents, etc.).
  *
- * Styling und Markup sind bewusst dupliziert mit index.astro statt
- * eines geteilten Stylesheets - die Legal-Seiten aendern sich selten,
- * und Astro-Scoping haelt die Klassen sauber getrennt von den
- * Index-Klassen, ohne dass globale CSS-Imports noetig waeren.
+ * Styling and markup are deliberately duplicated with index.astro
+ * instead of a shared stylesheet - the legal pages rarely change,
+ * and Astro scoping keeps the classes cleanly separated from the
+ * index classes without requiring global CSS imports.
  */
 import { site } from "../data/site";
 import SiteFooter from "./SiteFooter.astro";
 
 interface Props {
-  /** Welcher Tab in der Bar als aktiv markiert wird. */
+  /** Which tab in the bar is marked active. */
   activeTab: "impressum" | "datenschutz";
-  /** Toolbar-Titel und Inhalt der Hero-H1. */
+  /** Toolbar title and content of the hero H1. */
   title: string;
-  /** Kurzer Untertitel unter dem Titel im Hero. */
+  /** Short subtitle below the title in the hero. */
   subtitle: string;
 }
 
@@ -108,13 +108,13 @@ const { activeTab, title, subtitle } = Astro.props;
   <main class="v2-paper">
     <slot />
 
-    <!-- Footer - geteilt mit AppShell. Legal bleibt rechts-bedingt DE. -->
+    <!-- Footer - shared with AppShell. Legal stays DE for legal reasons. -->
     <SiteFooter lang="de" />
   </main>
 </div>
 
 <style>
-  /* === Hero (kompakter als auf der Startseite) ============= */
+  /* === Hero (more compact than on the home page) ============= */
   .v2-hero {
     padding: 56px 24px 36px;
     text-align: center;
@@ -156,7 +156,7 @@ const { activeTab, title, subtitle } = Astro.props;
     color: #5b554c;
   }
 
-  /* === Shell-Container ===================================== */
+  /* === Shell container ===================================== */
   .v2-shell {
     --v2-bg: #f5f3ee;
     --v2-paper: #ffffff;
@@ -173,7 +173,7 @@ const { activeTab, title, subtitle } = Astro.props;
     font-size: 14px;
     line-height: 1.55;
     padding-bottom: 24px;
-    /* Wie ein App-Fenster - siehe Begruendung in der Startseite. */
+    /* Like an app window - see rationale on the home page. */
     max-width: 1600px;
     margin: 0 auto;
     border-radius: 12px;
@@ -198,9 +198,9 @@ const { activeTab, title, subtitle } = Astro.props;
     padding: 8px 14px;
     background: var(--v2-bg);
     border-bottom: 1px solid var(--v2-border);
-    /* Spiegelt den Shell-Radius - die sticky Titlebar muss die
-       gleichen oberen Ecken haben, sonst ragt sie ueber die
-       abgerundeten Shell-Ecken hinaus. */
+    /* Mirrors the shell radius - the sticky titlebar must have the
+       same upper corners, otherwise it juts past the rounded shell
+       corners. */
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
   }
@@ -397,7 +397,7 @@ const { activeTab, title, subtitle } = Astro.props;
     min-height: 50vh;
   }
 
-  /* === Block-Styling (gleich wie auf der Startseite) ====== */
+  /* === Block styling (same as on the home page) ====== */
   :global(.v2-block) {
     position: relative;
     margin: 0;
@@ -435,7 +435,7 @@ const { activeTab, title, subtitle } = Astro.props;
     margin-top: 14px;
   }
 
-  /* Listen im Paper - eingerueckt wie ACTION-Sub-Items */
+  /* Lists in the paper - indented like ACTION sub-items */
   :global(.v2-paper ul.v2-list) {
     list-style: none;
     padding: 0;
@@ -455,7 +455,7 @@ const { activeTab, title, subtitle } = Astro.props;
     font-weight: 700;
   }
 
-  /* Adressblock - im Stil eines ACTION-Eintrags mit Versalien-Label */
+  /* Address block - styled like an ACTION entry with uppercase label */
   :global(.v2-paper .v2-address) {
     margin: 4px 0 0;
     line-height: 1.55;
@@ -479,7 +479,7 @@ const { activeTab, title, subtitle } = Astro.props;
   }
   :global(.v2-paper em) { font-style: italic; }
 
-  /* === Footer-Styling lebt in SiteFooter.astro (scoped) ===== */
+  /* === Footer styling lives in SiteFooter.astro (scoped) ===== */
 
   /* === Responsive ========================================== */
   @media (max-width: 880px) {
@@ -488,8 +488,8 @@ const { activeTab, title, subtitle } = Astro.props;
     .v2-toolbar-title { display: none; }
     .v2-toolbar-pills { display: none; }
   }
-  /* Auf Mobil komplett ohne App-Chrome - Navigation kommt von
-     MobileNav.astro (Sticky-Bar oben + Drawer). */
+  /* On mobile completely without app chrome - navigation comes from
+     MobileNav.astro (sticky bar on top + drawer). */
   @media (max-width: 768px) {
     .v2-shell {
       max-width: 100%;

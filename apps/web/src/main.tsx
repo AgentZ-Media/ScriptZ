@@ -1,22 +1,22 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
 
-// Reihenfolge ist kritisch:
+// Order is critical:
 //
-// 1. PlatformAdapter setzen (synchron beim Import). core-Module benutzen
-//    den Adapter zwar lazy in Funktionsaufrufen, aber alles, was beim
-//    Modul-Load schon greift (z.B. applyPlatformToDocument), erwartet
-//    einen registrierten Adapter.
-// 2. core/lib/api importieren. api.ts registriert beim Load den SQL-
-//    basierten Default-Adapter und exportiert den `api`-Proxy über den
-//    Slot. Ohne diesen Import wäre der Slot leer, sobald irgendein
-//    Boot-Code (settingsStore.load etc.) `api.getSetting` aufruft.
-// 3. Dexie-StorageAdapter (Phase E) setzen - der überschreibt den SQL-
-//    Default direkt nach dessen Selbstregistrierung. Ab jetzt geht jeder
-//    `api.*`-Call gegen IndexedDB. Im Adapter läuft beim ersten Write
-//    `navigator.storage.persist()` (best-effort, kein Dialog).
-// 4. Erst dann global.css + App importieren - global.css zieht über
-//    @import die Tokens und Fonts mit, der App-Tree mountet anschließend.
+// 1. Set PlatformAdapter (synchronously on import). Core modules use the
+//    adapter lazily inside function calls, but anything that already
+//    runs at module-load time (e.g. applyPlatformToDocument) expects a
+//    registered adapter.
+// 2. Import core/lib/api. On load, api.ts registers the SQL-based
+//    default adapter and exports the `api` proxy through the slot.
+//    Without this import the slot would be empty as soon as any boot
+//    code (settingsStore.load etc.) calls `api.getSetting`.
+// 3. Set the Dexie StorageAdapter (Phase E) - it overrides the SQL
+//    default right after its self-registration. From now on every
+//    `api.*` call goes against IndexedDB. On the first write the
+//    adapter runs `navigator.storage.persist()` (best-effort, no dialog).
+// 4. Only then import global.css + App - global.css pulls in tokens
+//    and fonts via @import, and the app tree mounts afterwards.
 import "./lib/platform";
 import "@scriptz/core/lib/api";
 import "./adapters/indexeddb";
@@ -28,10 +28,10 @@ import { DesktopOnlyGate } from "./components/DesktopOnlyGate";
 const root = document.getElementById("root");
 if (!root) throw new Error("#root not found");
 
-// Gate um den App-Tree: unter 1024 px Viewport-Breite (Phones / iPad-
-// Portrait) rendern wir statt der App eine "Bitte am Desktop öffnen"-
-// Seite. So bleibt die Boot-Last (IndexedDB-Init, Editor-Mount) den
-// Geräten erspart, auf denen wir den Editor sowieso nicht ausliefern.
+// Gate around the app tree: under 1024px viewport width (phones / iPad
+// portrait) we render a "please open on desktop" page instead of the
+// app. This spares the boot cost (IndexedDB init, editor mount) on
+// devices we don't ship the editor for anyway.
 render(
   () => (
     <DesktopOnlyGate>

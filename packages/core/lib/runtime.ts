@@ -1,31 +1,31 @@
-// Spielzeit-Schätzung - eine Quelle für Editor-Rail und Browser-Übersicht.
+// Runtime estimate - one source for the editor rail and the browser overview.
 //
-// Vorher gab es zwei Stellen, die unterschiedlich gerechnet haben:
-// die Rail summierte nur Dialog-Wörter und addierte 2s pro Action/Camera-
-// Block; die Übersicht teilte die GESAMT-Wortzahl (inkl. Charakter-Namen,
-// Parentheticals, Captions, SFX) durch dieselbe WPM und hat die Spielzeit
-// dadurch systematisch überschätzt. Diese Datei definiert die Formel
-// einmal, scripts.ts persistiert die zwei Eingangswerte beim Save, und
-// beide Anzeigen rufen `runtimeSeconds` / `formatRuntime` auf.
+// Previously there were two places that calculated differently:
+// the rail summed only dialog words and added 2s per action/camera
+// block; the overview divided the TOTAL word count (incl. character names,
+// parentheticals, captions, SFX) by the same WPM and therefore
+// systematically overestimated the runtime. This file defines the formula
+// once, scripts.ts persists the two input values on save, and
+// both displays call `runtimeSeconds` / `formatRuntime`.
 //
-// WPM bleibt eine Live-Setting - es wird NICHT mitpersistiert, damit eine
-// Setting-Änderung sofort überall greift, ohne jedes Skript neu zu speichern.
+// WPM stays a live setting - it is NOT persisted, so a setting change takes
+// effect everywhere immediately without re-saving every script.
 
 import { extractBlocks, type ExtractedBlock } from "./lex";
 import { t } from "../i18n";
 
-/** Eingangswerte der Spielzeit-Formel. Werden beim Save in den
- *  Spalten `dialog_word_count` und `direction_block_count` festgehalten. */
+/** Input values of the runtime formula. Stored on save in the
+ *  `dialog_word_count` and `direction_block_count` columns. */
 export interface RuntimeStats {
-  /** Wörter in Dialog-Blöcken. Nur diese werden mit Dialog-WPM verrechnet. */
+  /** Words in dialog blocks. Only these are computed against dialog WPM. */
   dialogWords: number;
-  /** Action- + Camera-Blöcke. Jeder Block trägt einen kurzen Beat bei. */
+  /** Action + camera blocks. Each block contributes a short beat. */
   directionBlocks: number;
 }
 
-/** Sentinel "noch nie gemessen" - identisches Muster wie `last_word_count`.
- *  Migration 005 setzt Bestandsskripte auf diesen Wert, der Backfill
- *  beim App-Start (oder spätestens der nächste Save) normalisiert sie. */
+/** Sentinel "never measured" - identical pattern to `last_word_count`.
+ *  Migration 005 sets existing scripts to this value; the backfill
+ *  on app start (or at latest the next save) normalizes them. */
 export const RUNTIME_STATS_SENTINEL = -1;
 
 const SECONDS_PER_DIRECTION_BLOCK = 2;
@@ -59,9 +59,9 @@ export function runtimeStatsFromContent(contentJson: string): RuntimeStats {
   return runtimeStatsFromBlocks(extractBlocks(contentJson));
 }
 
-/** Default 210 WPM ist auf TikTok-/Sketch-Tempo kalibriert (klassische
- *  Drehbücher rechnen mit 150 WPM). Der Action-Beat steht auf 2s, weil
- *  TikTok-Regieanweisungen kürzer sind als klassische. */
+/** Default 210 WPM is calibrated for TikTok / sketch pace (classic
+ *  screenplays use 150 WPM). The action beat is 2s because
+ *  TikTok stage directions are shorter than classic ones. */
 export function runtimeSeconds(stats: RuntimeStats, wpm: number): number {
   const dialog = Math.max(0, stats.dialogWords);
   const dir = Math.max(0, stats.directionBlocks);
@@ -70,8 +70,8 @@ export function runtimeSeconds(stats: RuntimeStats, wpm: number): number {
   return Math.max(MIN_RUNTIME_SEC, Math.round(sec));
 }
 
-/** "5 s" / "1:23 Min" / "3 Min" - identisches Format wie seit v0.6 in
- *  der Rail. */
+/** "5 s" / "1:23 Min" / "3 Min" - identical format to the rail
+ *  since v0.6. */
 export function formatRuntime(sec: number): string {
   if (sec < 60) return t("runtime.seconds", { n: sec });
   const m = Math.floor(sec / 60);
@@ -81,8 +81,8 @@ export function formatRuntime(sec: number): string {
     : t("runtime.minutesSeconds", { m, s: String(r).padStart(2, "0") });
 }
 
-/** Fertig gerendertes Label aus persistierten Stats. `null` bei Sentinel
- *  oder echt leerem Skript - der Aufrufer lässt das Feld dann aus. */
+/** Ready-rendered label from persisted stats. `null` on sentinel
+ *  or truly empty script - the caller then omits the field. */
 export function runtimeLabelFromStats(stats: RuntimeStats, wpm: number): string | null {
   if (stats.dialogWords < 0 || stats.directionBlocks < 0) return null;
   if (stats.dialogWords === 0 && stats.directionBlocks === 0) return null;

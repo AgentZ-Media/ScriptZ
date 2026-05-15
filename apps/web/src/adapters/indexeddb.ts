@@ -1,18 +1,17 @@
-// Dexie-basierter StorageAdapter (Phase E).
+// Dexie-based StorageAdapter (Phase E).
 //
-// Erfüllt das StorageAdapter-Interface aus @scriptz/core und ersetzt
-// damit den In-Memory-Stub aus Phase D. Persistenz via IndexedDB über
-// Dexie - dieselben Tabellen wie der SQLite-Stamm der Desktop-App,
-// nur ohne FTS5 (kommt in Phase F via MiniSearch) und ohne SQL-
-// Transactions-Semantik (Dexie's `transaction("rw", ...)` ist die
-// IndexedDB-Variante davon).
+// Fulfills the StorageAdapter interface from @scriptz/core and thereby
+// replaces the in-memory stub from Phase D. Persistence via IndexedDB
+// through Dexie - the same tables as the SQLite backbone of the desktop
+// app, just without FTS5 (comes in Phase F via MiniSearch) and without
+// SQL transaction semantics (Dexie's `transaction("rw", ...)` is the
+// IndexedDB variant of that).
 //
-// Schema bewusst flach indiziert. IndexedDB kann nullable Felder
-// schlecht indizieren, und unsere Filter (archiviert ja/nein, folder
-// = X / kein Folder) würden mit Indizes kaum schneller sein. Bei
-// Datenmengen im persönlichen Drehbuch-Volumen (< 1000 Skripte) ist
-// ein Voll-Scan pro Listing irrelevant. Wenn jemand mal 5000 Skripte
-// pflegt, machen wir das gezielt schneller.
+// Schema intentionally flat-indexed. IndexedDB can't index nullable
+// fields well, and our filters (archived yes/no, folder = X / no
+// folder) would hardly be faster with indexes. At personal screenplay
+// data volumes (< 1000 scripts) a full scan per listing is irrelevant.
+// If someone ever maintains 5000 scripts, we'll speed it up specifically.
 
 import Dexie, { type Table } from "dexie";
 import MiniSearch from "minisearch";
@@ -61,7 +60,7 @@ import type {
 
 const MAX_SNAPSHOTS_PER_SCRIPT = 50;
 
-// ===== Row-Typen (1:1 zur SQLite-Schema, siehe migrations/001 + 003) =====
+// ===== Row types (1:1 with the SQLite schema, see migrations/001 + 003) =====
 
 interface ScriptRow {
   id: string;
@@ -104,8 +103,8 @@ interface IdeaRow {
 }
 
 interface CharacterColorRow {
-  // Per-Konvention immer UPPERCASE - die Desktop-Schema-Spalte verwendet
-  // COLLATE NOCASE, im IndexedDB normieren wir explizit.
+  // Always UPPERCASE by convention - the desktop schema column uses
+  // COLLATE NOCASE; in IndexedDB we normalize explicitly.
   name: string;
   default_color: string | null;
   override_color: string | null;
@@ -113,7 +112,7 @@ interface CharacterColorRow {
 }
 
 interface DailyWordRow {
-  date: string; // YYYY-MM-DD, lokale Zeitzone
+  date: string; // YYYY-MM-DD, local timezone
   words_added: number;
 }
 
@@ -134,10 +133,10 @@ class ScriptzDb extends Dexie {
 
   constructor() {
     super("scriptz");
-    // Schema-Version 1. Sekundär-Indizes minimal halten - was wir oft
-    // sortieren (updated_at, created_at) bekommt einen Index, der Rest
-    // läuft über den Voll-Scan, der bei den üblichen Datenmengen
-    // schneller ist als Index-Maintenance.
+    // Schema version 1. Keep secondary indexes minimal - what we sort
+    // by often (updated_at, created_at) gets an index, the rest runs
+    // via full scan, which at the usual data volumes is faster than
+    // index maintenance.
     this.version(1).stores({
       scripts: "id, updated_at, created_at",
       folders: "id",
@@ -153,14 +152,14 @@ class ScriptzDb extends Dexie {
 
 const db = new ScriptzDb();
 
-// ===== Persistenz-Schutz =====
+// ===== Persistence protection =====
 //
-// IndexedDB darf vom Browser bei Speicherdruck geräumt werden. Mit
-// `navigator.storage.persist()` bitten wir um den "persistent"-Status,
-// damit nichts ungefragt gekippt wird. Best-effort: kein User-Dialog,
-// kein Throw, kein Retry - wenn der Browser ablehnt (z.B. Safari ITP
-// bei nicht installierter Site), lebt die Web-App weiter und der
-// Disclaimer in Phase H ist transparent dazu.
+// The browser is allowed to evict IndexedDB under storage pressure.
+// With `navigator.storage.persist()` we request "persistent" status so
+// nothing gets tossed without warning. Best-effort: no user dialog,
+// no throw, no retry - if the browser refuses (e.g. Safari ITP on a
+// non-installed site), the web app keeps running and the disclaimer
+// in Phase H is transparent about it.
 let persistRequested = false;
 function ensurePersisted(): void {
   if (persistRequested) return;
@@ -180,7 +179,7 @@ function ensurePersisted(): void {
           }
         })
         .catch(() => {
-          /* Best-effort, kein Drama */
+          /* Best-effort, no drama */
         });
     }
   } catch {
@@ -188,7 +187,7 @@ function ensurePersisted(): void {
   }
 }
 
-// ===== Helper: Lexical-State-Leeres, Wortzählung, Reconcile =====
+// ===== Helpers: empty Lexical state, word counting, reconcile =====
 
 function emptyLexicalState(): string {
   return JSON.stringify({
@@ -249,9 +248,9 @@ function serializeChars(list: ScriptCharacter[]): string {
   );
 }
 
-// 1:1 Port von @scriptz/core/lib/scripts.ts::reconcileCharsFromContent,
-// nur statt SQL-records-Map nutzen wir die Dexie-Tabelle (wird vorher
-// geladen und als Map reingereicht).
+// 1:1 port of @scriptz/core/lib/scripts.ts::reconcileCharsFromContent,
+// except instead of the SQL records map we use the Dexie table (loaded
+// beforehand and passed in as a map).
 function reconcileChars(
   existing: ScriptCharacter[],
   contentJson: string,
@@ -325,7 +324,7 @@ function rowToScript(r: ScriptRow): Script {
   return { ...rowToSummary(r), content_json: r.content_json };
 }
 
-// Idee-zu-Skript-Seed, Spiegel von @scriptz/core/lib/ideas.ts.
+// Idea-to-script seed, mirror of @scriptz/core/lib/ideas.ts.
 function buildScriptSeed(opts: { notes: string }): string {
   const trimmed = opts.notes.trim();
   if (!trimmed) {
@@ -424,9 +423,9 @@ class IndexedDbStorage implements StorageAdapter {
         return rowToSummary(row);
       },
     );
-    // Index ausserhalb der Transaktion aktualisieren - Dexie-Transactions
-    // sind exklusiv, ein nested await wuerde verhungern. Best-effort: ein
-    // Indexier-Fehler darf den Skript-Save nicht killen.
+    // Update the index outside the transaction - Dexie transactions
+    // are exclusive, a nested await would starve. Best-effort: an
+    // indexing error must not kill the script save.
     void this.upsertSearchDoc(id).catch(() => {});
     return summary;
   }
@@ -446,8 +445,8 @@ class IndexedDbStorage implements StorageAdapter {
   }): Promise<ScriptSummary> {
     ensurePersisted();
     const now = Date.now();
-    // Wir buchen Wort-Deltas innerhalb derselben Transaktion wie das
-    // Skript-Update - daher daily_word_log + character_colors mit drin.
+    // We record word deltas inside the same transaction as the script
+    // update - hence daily_word_log + character_colors are also in it.
     let delta = 0;
     const result = await db.transaction(
       "rw",
@@ -484,8 +483,8 @@ class IndexedDbStorage implements StorageAdapter {
               updated_at: now,
             });
           }
-          // Sentinel -1 aus Migration 003: erstes Save normalisiert nur
-          // den Count, ohne den Bestand als "heute geschrieben" zu buchen.
+          // Sentinel -1 from migration 003: the first save only normalizes
+          // the count, without booking the existing total as "written today".
           const isFirstMeasurement = row.last_word_count < 0;
           const candidateDelta = isFirstMeasurement
             ? 0
@@ -520,8 +519,8 @@ class IndexedDbStorage implements StorageAdapter {
     if (delta > 0) {
       dailyStatsBus.bump();
     }
-    // Index nach erfolgreichem Save aktualisieren - ausserhalb der
-    // Transaktion (siehe createScript).
+    // Update the index after a successful save - outside the
+    // transaction (see createScript).
     void this.upsertSearchDoc(input.id).catch(() => {});
     return result;
   }
@@ -535,8 +534,8 @@ class IndexedDbStorage implements StorageAdapter {
     offset?: number;
     folderId?: string | null;
   } = {}): Promise<ScriptSummary[]> {
-    // Voll-Scan plus In-Memory-Filter. Bei < 1000 Skripten irrelevant -
-    // die Sortierung darunter läuft sowieso auf dem JS-Array.
+    // Full scan plus in-memory filter. At < 1000 scripts irrelevant -
+    // the sort below runs on the JS array anyway.
     let list = await db.scripts.toArray();
     const onlyArchived = query.onlyArchived ?? false;
     const includeArchived = query.includeArchived ?? false;
@@ -568,7 +567,7 @@ class IndexedDbStorage implements StorageAdapter {
 
   async archiveScript(id: string): Promise<void> {
     await db.scripts.update(id, { archived_at: Date.now() });
-    // Archivierte Skripte tauchen in der Suche nicht auf.
+    // Archived scripts don't show up in search.
     this.removeSearchDoc(id);
   }
 
@@ -683,7 +682,7 @@ class IndexedDbStorage implements StorageAdapter {
       const f = await db.folders.get(id);
       if (!f) throw new Error(`not found: folder ${id}`);
       await db.folders.delete(id);
-      // ON DELETE SET NULL: Skripte behalten, folder_id leeren.
+      // ON DELETE SET NULL: keep the scripts, clear the folder_id.
       const affected = await db.scripts
         .filter((s) => s.folder_id === id)
         .toArray();
@@ -766,7 +765,7 @@ class IndexedDbStorage implements StorageAdapter {
       const script = await db.scripts.get(snap.script_id);
       if (!script) throw new Error(`not found: script ${snap.script_id}`);
       const now = Date.now();
-      // Backup des aktuellen Stands, identisch zum Desktop.
+      // Backup of the current state, identical to desktop.
       const backupId = crypto.randomUUID();
       await db.snapshots.put({
         id: backupId, script_id: script.id,
@@ -797,16 +796,17 @@ class IndexedDbStorage implements StorageAdapter {
   }
 
   // ---------- Search ----------
-  // MiniSearch-Index, lazy gebaut beim ersten globalSearch-Call und danach
-  // inkrementell aktualisiert (createScript/updateScript/purgeScript). BM25-
-  // Ranking + Tokenisierung + Diacritic-Folding mit deutscher Norm - deutlich
-  // näher an SQLite-FTS5 als die simple Substring-Suche aus Phase E.
+  // MiniSearch index, built lazily on the first globalSearch call and then
+  // updated incrementally (createScript/updateScript/purgeScript). BM25
+  // ranking + tokenization + diacritic folding with German normalization -
+  // noticeably closer to SQLite FTS5 than the simple substring search from
+  // Phase E.
   //
-  // Ein Re-Build bei Boot wäre ehrlicher (Index synchron zur DB), kostet aber
-  // bei 500+ Skripten messbar Boot-Zeit. Inkrementelles Tracking + lazy
-  // initial build ist der bessere Trade-off, solange wir innerhalb eines Tabs
-  // bleiben (Multi-Tab-Sync braucht eh BroadcastChannel, kommt erst bei
-  // tatsächlichem Bedarf).
+  // A rebuild on boot would be more honest (index synchronous with the DB)
+  // but at 500+ scripts costs measurable boot time. Incremental tracking
+  // + lazy initial build is the better trade-off as long as we stay within
+  // a single tab (multi-tab sync would need BroadcastChannel anyway -
+  // we'll add it when actually needed).
   private searchIndex: MiniSearch | null = null;
   private searchIndexBuilt = false;
   private buildingIndex: Promise<MiniSearch> | null = null;
@@ -824,9 +824,9 @@ class IndexedDbStorage implements StorageAdapter {
           fuzzy: 0.15,
           combineWith: "AND",
         },
-        // Locale-aware tokenizer: deutsche Umlaute durch ASCII-Aequivalente
-        // ersetzen (so dass "schoen" auch "schön" findet) und an Whitespace +
-        // Satzzeichen splitten.
+        // Locale-aware tokenizer: replace German umlauts with their ASCII
+        // equivalents (so "schoen" also finds "schön") and split on
+        // whitespace + punctuation.
         tokenize: (s) =>
           s
             .normalize("NFKD")
@@ -854,7 +854,7 @@ class IndexedDbStorage implements StorageAdapter {
   }
 
   private async upsertSearchDoc(scriptId: string): Promise<void> {
-    if (!this.searchIndexBuilt) return; // Index wird beim ersten Search aufgebaut
+    if (!this.searchIndexBuilt) return; // index is built on the first search
     const s = await db.scripts.get(scriptId);
     if (!s) return;
     const doc = {
@@ -897,8 +897,8 @@ class IndexedDbStorage implements StorageAdapter {
   }
 
   private makeSnippet(text: string, needle: string): string {
-    // Snippet: erstes Vorkommen eines Tokens aus der Query mit ~40/80 Char
-    // Kontext links/rechts. Hebt alle Token-Vorkommen mit <mark> hervor.
+    // Snippet: first occurrence of a token from the query with ~40/80 char
+    // context left/right. Highlights all token occurrences with <mark>.
     const firstToken = needle.toLowerCase().split(/\s+/).filter(Boolean)[0] ?? needle;
     const lower = text.toLowerCase();
     const idx = lower.indexOf(firstToken.toLowerCase());
@@ -933,7 +933,7 @@ class IndexedDbStorage implements StorageAdapter {
     await db.app_state.put({ key, value });
   }
 
-  // ---------- Character-Colors ----------
+  // ---------- Character colors ----------
   async listCharacterColors(): Promise<CharacterColorRecord[]> {
     const rows = await db.character_colors.toArray();
     rows.sort((a, b) => a.name.localeCompare(b.name));
@@ -1013,17 +1013,17 @@ class IndexedDbStorage implements StorageAdapter {
   }
 
   // ---------- Export ----------
-  // Identische Logik wie in @scriptz/core/lib/api.ts, nur dass wir hier
-  // lokal aus IndexedDB lesen statt aus SQL. Bytes-Erzeugung kommt aus
+  // Same logic as in @scriptz/core/lib/api.ts, except here we read
+  // locally from IndexedDB instead of SQL. Byte generation comes from
   // core (buildPdfBytes / extractTeleprompterText / serializeScriptToBytes);
-  // saveAs ist der gleiche Platform-Aufruf wie auf Desktop.
+  // saveAs is the same platform call as on desktop.
   async exportPdf(input: {
     scriptId: string;
     includeHighlighting: boolean;
     includeTitlePage: boolean;
   }): Promise<ExportResult> {
     const s = await this.getScript(input.scriptId);
-    // pdf-lib lazy laden - siehe api.ts fuer Begruendung (Bundle-Cost).
+    // Lazy-load pdf-lib - see api.ts for rationale (bundle cost).
     const { buildPdfBytes } = await import("@scriptz/core/lib/exportPdf");
     const bytes = await buildPdfBytes(
       { title: s.title, contentJson: s.content_json, characters: s.characters ?? [] },
@@ -1142,9 +1142,9 @@ class IndexedDbStorage implements StorageAdapter {
     folderId?: string | null;
     notesAsAction?: boolean;
   }): Promise<{ idea: Idea; script: ScriptSummary }> {
-    // Idee reservieren -> Skript anlegen -> script_id zurückschreiben.
-    // Schritt 1 + 3 atomar; Schritt 2 (createScript) hat seine eigene
-    // Transaktion, weil Dexie keine verschachtelten unterstützt.
+    // Reserve idea -> create script -> write back script_id.
+    // Steps 1 + 3 are atomic; step 2 (createScript) has its own
+    // transaction because Dexie doesn't support nested ones.
     const claimedAt = Date.now();
     const idea = await db.transaction("rw", db.ideas, async () => {
       const i = await db.ideas.get(input.ideaId);
@@ -1164,7 +1164,7 @@ class IndexedDbStorage implements StorageAdapter {
         folderId: input.folderId ?? null,
       });
     } catch (err) {
-      // Rollback: Idee wieder freigeben.
+      // Rollback: release the idea again.
       await db.ideas.update(input.ideaId, { used_at: null, script_id: null });
       throw err;
     }
@@ -1179,7 +1179,7 @@ class IndexedDbStorage implements StorageAdapter {
     return { idea: updatedIdea, script };
   }
 
-  // ---------- Schreibstatistik ----------
+  // ---------- Writing statistics ----------
   async loadDailyWords(days = 365): Promise<DailyWordEntry[]> {
     const today = new Date();
     const start = new Date(today);
@@ -1216,7 +1216,7 @@ class IndexedDbStorage implements StorageAdapter {
 }
 
 function streakFromSeries(words: number[]): number {
-  // Spiegel von core/lib/dailyWords::streakFromSeries.
+  // Mirror of core/lib/dailyWords::streakFromSeries.
   if (words.length === 0) return 0;
   const last = words.length - 1;
   let streak = 0;
@@ -1233,7 +1233,7 @@ function daysSinceMondayInclusive(d: Date = new Date()): number {
   return iso;
 }
 
-// Slot-Registrierung beim Modul-Load. main.tsx ordnet die Imports so,
-// dass der SQL-Default-Adapter aus core/lib/api zuerst greift und hier
-// direkt danach überschrieben wird.
+// Slot registration on module load. main.tsx orders the imports so the
+// SQL default adapter from core/lib/api takes effect first and is
+// overridden here right after.
 setStorageAdapter(new IndexedDbStorage());

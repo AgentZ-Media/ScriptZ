@@ -1,8 +1,8 @@
 /**
- * `/rss.xml` - deutscher RSS-Feed des Blogs.
+ * `/rss.xml` - German RSS feed of the blog.
  *
- * Liefert die letzten Posts in DE als Atom-/RSS-konformes XML, das
- * Reader wie NetNewsWire, Reeder, Feedly o.ae. abonnieren koennen.
+ * Delivers the latest DE posts as Atom-/RSS-compliant XML that
+ * readers like NetNewsWire, Reeder, Feedly etc. can subscribe to.
  */
 import rss from "@astrojs/rss";
 import type { APIContext } from "astro";

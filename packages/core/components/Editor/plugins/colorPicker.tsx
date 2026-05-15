@@ -199,19 +199,19 @@ export function installColorPicker(
     repositionSwatch();
   };
 
-  // Hover: kontinuierlich per `mousemove` tracken statt nur bei
-  // Element-Wechseln (mouseover feuert eben NICHT, wenn die Maus
-  // innerhalb desselben Containers - hier `editor-host` - bleibt).
-  // Mit raf-Throttling, damit's nicht jeden Mausbewegungs-Pixel kostet.
+  // Hover: track continuously via `mousemove` instead of only on
+  // element changes (mouseover does NOT fire when the mouse stays
+  // inside the same container - here `editor-host`).
+  // With raf throttling so it doesn't cost every mouse-movement pixel.
   //
-  // Hit-Zone für die Anker-Wahl ist absichtlich größer als die reine
-  // Block-Box: Der Swatch sitzt im linken Gutter (~22 px außerhalb der
-  // editor-root-Kante). Damit der User vom Charakter-Namen geradeaus
-  // zum Swatch wandern kann, ohne dass die Pille auf dem Weg
-  // verschwindet, akzeptieren wir bis zu 80 px links vom Block-Left
-  // als "noch in der Charakter-Zeile". Vertikal wird die Block-Box
-  // hart eingehalten, damit benachbarte Action-/Dialog-Zeilen nicht
-  // den Swatch geistern lassen.
+  // Hit zone for anchor selection is deliberately larger than the bare
+  // block box: the swatch sits in the left gutter (~22 px outside the
+  // editor-root edge). So the user can travel from the character name
+  // straight to the swatch without the pill disappearing on the way,
+  // we accept up to 80 px left of the block-left as
+  // "still on the character row". Vertically the block box is
+  // strictly enforced so neighboring action / dialog rows don't
+  // ghost the swatch.
   const HIT_LEFT_PAD = 80;
   let mouseTracker: { x: number; y: number } | null = null;
   let mouseRafId: number | null = null;
@@ -249,15 +249,15 @@ export function installColorPicker(
     });
   };
 
-  // hoverContainer ist der `paper-canvas` (= scrollbarer Volltbereich
-   // des Skripts), nicht der editor-host. Grund: editor-host ist nur
-   // so breit wie die Schreib-Spalte (`--paper-content-w`); links
-   // und rechts davon liegen die Paper-Margins der `paper-sheet` -
-   // dort verläuft die Maus auf dem Weg zum Swatch. Listener am host
-   // würden mouseleave feuern, sobald die Maus die Schreib-Spalte
-   // verlässt, und der Swatch verschwände genau dann, wenn der User
-   // ihn anklicken will. Fallback host für den seltenen Fall, dass
-   // paper-canvas im DOM nicht (mehr) existiert.
+  // hoverContainer is the `paper-canvas` (= scrollable full area
+   // of the script), not the editor-host. Reason: editor-host is only
+   // as wide as the writing column (`--paper-content-w`); to the
+   // left and right are the paper margins of the `paper-sheet` -
+   // that's where the mouse travels on its way to the swatch. Listeners on
+   // the host would fire mouseleave as soon as the mouse leaves
+   // the writing column, and the swatch would disappear exactly when the user
+   // wants to click it. Fallback to host for the rare case
+   // paper-canvas no longer exists in the DOM.
    const canvas = host.closest(".paper-canvas") as HTMLElement | null;
    const hoverContainer: HTMLElement = canvas ?? host;
 
@@ -286,16 +286,16 @@ export function installColorPicker(
     openFor(name, { x: ev.clientX, y: ev.clientY });
   };
 
-  // Hover-Tracker am paper-canvas (siehe Erklärung beim Definieren
-  // von hoverContainer oben). contextmenu-Handler bleibt am host, weil
-  // ein Rechtsklick nur auf einem Charakter-Block Sinn macht und
-  // sowieso direkt dort feuert.
+  // Hover tracker on paper-canvas (see explanation above when defining
+  // hoverContainer). The contextmenu handler stays on the host because
+  // a right-click only makes sense on a character block and
+  // fires directly there anyway.
   hoverContainer.addEventListener("mousemove", onMouseMove);
   hoverContainer.addEventListener("mouseleave", onMouseLeave);
   host.addEventListener("contextmenu", onContextMenu);
 
-  // Scroll-/Resize-Reposition: paper-canvas (vertikales Scrolling) +
-  // Fenster (Resize verändert Block-Layout).
+  // Scroll / resize reposition: paper-canvas (vertical scrolling) +
+  // window (resize changes block layout).
   const onScroll = () => repositionSwatch();
   canvas?.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);

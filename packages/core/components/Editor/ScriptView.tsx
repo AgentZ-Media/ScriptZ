@@ -31,12 +31,12 @@ import "./EditorRail.css";
 
 export interface ScriptViewProps {
   scriptId: string;
-  /** Wird vom App-Root gesetzt — globaler Fokus-Modus, ⇧⌘F. */
+  /** Set by the app root — global focus mode, ⇧⌘F. */
   focusMode: boolean;
   onToggleFocus(): void;
-  /** Zurück zur Übersicht (Home-Tab). */
+  /** Back to the overview (home tab). */
   onBackToHome(): void;
-  /** Export-Dialog öffnen — App-Root besitzt den State. */
+  /** Open the export dialog — the app root owns the state. */
   onOpenExport(): void;
 }
 
@@ -51,7 +51,7 @@ export function ScriptView(props: ScriptViewProps) {
   const [parseError, setParseError] = createSignal<string | null>(null);
   const [recovering, setRecovering] = createSignal(false);
 
-  // Editor-Instanz nach Mount (für Block-Toolbar in EditorToolbar).
+  // Editor instance after mount (for block toolbar in EditorToolbar).
   const [editorInstance, setEditorInstance] = createSignal<LexicalEditor | null>(null);
   const [activeBlock, setActiveBlock] = createSignal<string | null>(null);
 
@@ -67,14 +67,14 @@ export function ScriptView(props: ScriptViewProps) {
 
   let canvasRef: HTMLDivElement | undefined;
 
-  // ---- View-State pro Skript persistieren (Scroll + Cursor) ------------
-  // ScriptView selbst wird beim Tab-Wechsel A->B NICHT neu gemountet -
-  // Solid liefert nur neue Props, weil <Match> aktiv bleibt. Deshalb
-  // koennen wir den scriptId-Wechsel hier ueber einen Effect mit
-  // onCleanup abfangen: das innere onCleanup feuert genau dann, wenn
-  // sich props.scriptId aendert (also: bevor der neue Wert greift),
-  // und gibt uns den letzten bekannten Stand fuer die VORIGE Skript-ID
-  // zum Wegspeichern.
+  // ---- Persist view state per script (scroll + cursor) ------------
+  // ScriptView itself is NOT remounted on a tab switch A->B -
+  // Solid just delivers new props because <Match> stays active. We can
+  // therefore catch the scriptId switch via an effect with
+  // onCleanup: the inner onCleanup fires exactly when
+  // props.scriptId changes (i.e. before the new value takes effect)
+  // and gives us the last known state for the PREVIOUS script id
+  // to stash away.
   let lastScrollTop = 0;
   const onCanvasScroll = () => {
     if (canvasRef) lastScrollTop = canvasRef.scrollTop;
@@ -87,7 +87,7 @@ export function ScriptView(props: ScriptViewProps) {
     });
   });
 
-  // Beim Skript-Wechsel den Stand der ALTEN ID wegspeichern.
+  // On script switch, stash the state of the OLD id.
   createEffect(() => {
     const id = props.scriptId;
     onCleanup(() => {
@@ -103,10 +103,10 @@ export function ScriptView(props: ScriptViewProps) {
     });
   });
 
-  // Beim Erscheinen einer neuen Skript-ID dessen gecachten Scroll wieder
-  // anlegen. Mehrfach-rAF, damit der Editor-Remount + Pagecount-Measure
-  // erst ihre Hoehe einnehmen koennen, bevor wir scrollTop setzen - sonst
-  // clamped der Browser auf den (noch zu kleinen) scrollHeight.
+  // When a new script id appears, restore its cached scroll
+  // position. Multiple rAFs so the editor remount + pagecount measure
+  // can take up their height before we set scrollTop - otherwise
+  // the browser clamps to the (still-too-small) scrollHeight.
   let appliedScrollForId: string | null = null;
   let scrollRestoreRun = 0;
   createEffect(() => {
@@ -140,9 +140,9 @@ export function ScriptView(props: ScriptViewProps) {
     });
   });
 
-  /** Initial-Cursor fuer den naechsten Editor-Mount. Wird beim
-   *  Skript-Wechsel reaktiv neu berechnet, damit der frisch montierte
-   *  Editor (siehe <Show keyed> unten) den passenden Cursor erhaelt. */
+  /** Initial cursor for the next editor mount. Recomputed reactively
+   *  on script switch so the freshly mounted
+   *  editor (see <Show keyed> below) receives the matching cursor. */
   const initialCursorFor = (id: string): CursorAddress | null =>
     scriptViewCache.get(id)?.cursor ?? null;
 
@@ -261,8 +261,8 @@ export function ScriptView(props: ScriptViewProps) {
     }
   };
 
-  // Lokale Hotkeys: Snapshot + Snapshots-Dialog. (⇧⌘F lebt im App-Root,
-  // damit es auch außerhalb des Editors funktioniert.)
+  // Local hotkeys: snapshot + snapshots dialog. (⇧⌘F lives in the app root
+  // so it also works outside the editor.)
   onMount(() => {
     const handler = async (ev: KeyboardEvent) => {
       const cmd = ev.metaKey || ev.ctrlKey;
@@ -429,11 +429,11 @@ function RecoveryPanel(props: {
   );
 }
 
-/* Auge gefüllt — Floating-Button im aktiven Fokus-Modus.
-   Gefüllte Variante des Toolbar-Auges: gleiche Form, klarer Aktiv-Zustand
-   (analog zu Stern/Filled-Star-Pattern). Der Pupillen-Kreis wird per
-   evenodd-Fill aus der Almond-Form ausgespart, damit er ohne festen
-   Hintergrund-Wert (Paper / Dark) sauber durchscheint. */
+/* Filled eye — floating button in active focus mode.
+   Filled variant of the toolbar eye: same shape, clear active state
+   (analogous to the star / filled-star pattern). The pupil circle is
+   cut out from the almond shape via evenodd fill so it cleanly shows
+   through without a fixed background value (paper / dark). */
 function EyeIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">

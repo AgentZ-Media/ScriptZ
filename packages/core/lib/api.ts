@@ -80,15 +80,15 @@ import type {
   SnapshotMeta,
 } from "./types";
 
-// SQL-basierte Default-Implementierung des StorageAdapter. Geht ueber
-// die lib/*-Module, die via DbConnection (siehe ./platform.ts) Tauris
-// plugin-sql bzw. eine sql.js-Instanz im Web ansprechen.
+// SQL-based default implementation of the StorageAdapter. Goes via
+// the lib/* modules which speak to Tauri's plugin-sql or a sql.js
+// instance in the web build via DbConnection (see ./platform.ts).
 //
-// Bei Modul-Load wird sie via `setStorageAdapter()` als aktiver Adapter
-// registriert. Der `api`-Export unten ist ein Proxy auf
-// `getStorageAdapter()`, damit ein spaeterer `setStorageAdapter(dexieImpl)`
-// auf der Web-Seite sofort durchgreift, ohne die 19 Call-Sites von `api`
-// einzeln umstellen zu muessen.
+// On module load it is registered as the active adapter via
+// `setStorageAdapter()`. The `api` export below is a proxy onto
+// `getStorageAdapter()`, so a later `setStorageAdapter(dexieImpl)`
+// on the web side takes effect immediately without having to switch
+// the 19 call sites of `api` one by one.
 const sqlBackedAdapter: StorageAdapter = {
   // Scripts - fully TS-side since Migration Phase 7d.
   async createScript(input: {
@@ -235,19 +235,19 @@ const sqlBackedAdapter: StorageAdapter = {
     return ccClear(name, activeScriptId ?? null);
   },
 
-  // Export - seit Phase 2F vollstaendig in core: PDF-Bytes-Build via
-  // pdf-lib (browser-tauglich, siehe ./exportPdf.ts), Plaintext via
-  // extractTeleprompterText. Der PlatformAdapter schreibt die Bytes
-  // raus - Desktop via Save-Dialog + plugin-fs, Web via Blob-Download.
+  // Export - fully in core since phase 2F: PDF bytes built via
+  // pdf-lib (browser-compatible, see ./exportPdf.ts), plaintext via
+  // extractTeleprompterText. The PlatformAdapter writes the bytes
+  // out - desktop via save dialog + plugin-fs, web via blob download.
   async exportPdf(input: {
     scriptId: string;
     includeHighlighting: boolean;
     includeTitlePage: boolean;
   }): Promise<ExportResult> {
     const s = await scriptsGet(input.scriptId);
-    // pdf-lib + fontkit sind ~1 MB Bundle - lazy laden, damit der
-    // App-Start nicht damit belastet wird. Nur wer wirklich PDF
-    // exportiert, zahlt den Roundtrip einmal.
+    // pdf-lib + fontkit are a ~1 MB bundle - lazy-load so the
+    // app start isn't burdened with it. Only users who actually
+    // export PDF pay the roundtrip, once.
     const { buildPdfBytes } = await import("./exportPdf");
     const bytes = await buildPdfBytes(
       {
@@ -283,9 +283,9 @@ const sqlBackedAdapter: StorageAdapter = {
     );
   },
 
-  // .scriptz-Container (Phase 2G). Reine Pure-Function fuers Serialisieren
-  // sitzt in ./scriptzFile.ts; hier nur die "Skript laden -> Bytes -> saveAs"-
-  // Komposition. Importer-Pendant siehe importScriptz unten.
+  // .scriptz container (phase 2G). Pure function for serialization
+  // sits in ./scriptzFile.ts; here only the "load script -> bytes -> saveAs"
+  // composition. Importer counterpart see importScriptz below.
   async exportScriptz(scriptId: string): Promise<ExportResult> {
     const s = await scriptsGet(scriptId);
     const bytes = serializeScriptToBytes({
@@ -312,9 +312,9 @@ const sqlBackedAdapter: StorageAdapter = {
     );
     if (!file) return null;
     const parsed = parseScriptzBytes(file.bytes);
-    // contentJson kommt als Objekt zurueck (kein doppeltes Stringify im
-    // Format), wir packen sie fuer createScript wieder in einen String -
-    // die Skript-Tabelle haelt sie als TEXT.
+    // contentJson comes back as an object (no double-stringify in the
+    // format); we pack it back into a string for createScript -
+    // the scripts table holds it as TEXT.
     const created = await scriptsCreate(
       parsed.script.title,
       JSON.stringify(parsed.script.contentJson),
@@ -323,7 +323,7 @@ const sqlBackedAdapter: StorageAdapter = {
     return { scriptId: created.id, title: created.title };
   },
 
-  // Ideen-Inbox - eigenständige Tabelle, keine Berührung der Skript-CRUD.
+  // Ideas inbox - standalone table, no contact with the script CRUD.
   async listIdeas(): Promise<Idea[]> {
     return ideasList();
   },
@@ -344,7 +344,7 @@ const sqlBackedAdapter: StorageAdapter = {
     return ideasConvert(input);
   },
 
-  // Tägliche Schreibstatistik (Streak / Heatmap / Tagesziel-Fortschritt).
+  // Daily writing statistics (streak / heatmap / daily goal progress).
   async loadDailyWords(days?: number): Promise<DailyWordEntry[]> {
     return dwLoadEntries(days);
   },
@@ -353,18 +353,18 @@ const sqlBackedAdapter: StorageAdapter = {
   },
 };
 
-// Default-Registrierung beim Modul-Load. Web-Builds koennen nach diesem
-// Punkt `setStorageAdapter(webImpl)` aufrufen, um die SQL-Impl zu
-// ersetzen - `api` (siehe unten) liest immer ueber `getStorageAdapter()`,
-// also greift der Tausch sofort.
+// Default registration on module load. Web builds can call
+// `setStorageAdapter(webImpl)` after this point to replace the SQL impl -
+// `api` (see below) always reads via `getStorageAdapter()`,
+// so the swap takes effect immediately.
 setStorageAdapter(sqlBackedAdapter);
 
-// Proxy-Facade fuer Drop-in-Kompatibilitaet. Aelterer Code, der `import
-// { api } from "@scriptz/core/lib/api"` macht und `api.getScript(id)`
-// aufruft, geht hier durch zu `getStorageAdapter()` - also immer auf
-// den aktuell registrierten Adapter. Funktionen werden an den Adapter
-// gebunden, damit eventuelle `this`-Referenzen in einer custom-Impl
-// funktionieren.
+// Proxy facade for drop-in compatibility. Older code that does
+// `import { api } from "@scriptz/core/lib/api"` and calls `api.getScript(id)`
+// passes through here to `getStorageAdapter()` - i.e. always to
+// the currently registered adapter. Functions are bound to the adapter
+// so any `this` references in a custom impl
+// keep working.
 export const api: StorageAdapter = new Proxy({} as StorageAdapter, {
   get(_target, prop: string | symbol) {
     const a = getStorageAdapter() as unknown as Record<string | symbol, unknown>;

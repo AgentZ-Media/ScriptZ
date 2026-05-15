@@ -1,15 +1,15 @@
 /* =========================================================
-   Blog - Skript-Optik-Lesemodus.
+   Blog - script-look reading mode.
 
-   Standard-Markdown rendert als Skript-Auszug: H2 wird zur
-   Slugline, Blockquotes mit `> **NAME:** ...` rendern als
-   Charakter+Dialog-Block (per Remark-Plugin in HTML transformiert,
-   siehe src/lib/remarkDialogue.mjs), klassische Quotes bleiben
+   Standard markdown renders as a script excerpt: H2 becomes
+   the slugline, blockquotes with `> **NAME:** ...` render as
+   character+dialog blocks (transformed to HTML by the remark
+   plugin, see src/lib/remarkDialogue.mjs); classic quotes stay
    editorial.
 
-   Im Geist von landing.css "Brutalist Script-as-App", aber bewusst
-   auf Lesefluss optimiert: weniger Karten, mehr Papier-Flow, dezent
-   gestrichelte Trenner.
+   In the spirit of landing.css "brutalist script-as-app", but
+   deliberately optimized for reading flow: fewer cards, more
+   paper flow, subtle dashed dividers.
    ========================================================= */
 
 /* ===== Index ===========================================  */
@@ -217,7 +217,7 @@
   border: 1px solid rgba(28, 24, 20, 0.14);
 }
 
-/* ===== Body-Typografie (Skript-Optik) =================  */
+/* ===== Body typography (script look) =================  */
 
 .blog-body {
   font-family: "iA Writer Quattro", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -226,13 +226,12 @@
   color: #1c1814;
 }
 
-/* Absatz = Action-Block, locker fliessend. */
+/* Paragraph = action block, loosely flowing. */
 .blog-body p {
   margin: 0 0 1.1em;
 }
 
-/* H2 = Slugline. Brutalistisch, klein, mit gestricheltem
-   Prefix-Marker. */
+/* H2 = slugline. Brutalist, small, with a dashed prefix marker. */
 .blog-body h2 {
   font-size: 13px;
   font-weight: 700;
@@ -253,7 +252,7 @@
   flex-shrink: 0;
 }
 
-/* H3 = Sub-Slug. */
+/* H3 = sub-slug. */
 .blog-body h3 {
   font-size: 12px;
   font-weight: 700;
@@ -263,7 +262,7 @@
   margin: 2em 0 0.8em;
 }
 
-/* H4-H6 = leiser, fuer Detail-Strukturen. */
+/* H4-H6 = quieter, for detail structures. */
 .blog-body h4,
 .blog-body h5,
 .blog-body h6 {
@@ -275,7 +274,7 @@
   margin: 1.6em 0 0.6em;
 }
 
-/* Editorial Zitat (kein Charakter-Praefix) = klassisches Pull-Quote. */
+/* Editorial citation (no character prefix) = classic pull quote. */
 .blog-body blockquote {
   margin: 1.6em 0;
   padding: 4px 0 4px 20px;
@@ -290,7 +289,7 @@
   margin-bottom: 0;
 }
 
-/* Inline-Format. */
+/* Inline formats. */
 .blog-body strong { font-weight: 700; }
 .blog-body em { font-style: italic; }
 .blog-body a {
@@ -304,7 +303,7 @@
   text-decoration-color: currentColor;
 }
 
-/* Listen - bullets in Skript-Stil. */
+/* Lists - bullets in script style. */
 .blog-body ul,
 .blog-body ol {
   margin: 0 0 1.1em;
@@ -318,7 +317,7 @@
   color: #8a8276;
 }
 
-/* Horizontale Trenner = Akt-Bruch. */
+/* Horizontal dividers = act break. */
 .blog-body hr {
   border: 0;
   border-top: 1px dashed rgba(28, 24, 20, 0.32);
@@ -326,7 +325,7 @@
   width: 80%;
 }
 
-/* Code-Block = Terminal/Hotkey-Style. */
+/* Code block = terminal/hotkey style. */
 .blog-body pre {
   background: rgba(28, 24, 20, 0.04);
   border: 1px solid rgba(28, 24, 20, 0.14);
@@ -348,7 +347,7 @@
   border-radius: 2px;
 }
 
-/* Bilder. Caption optional aus Markdown-`alt`. */
+/* Images. Caption optional from markdown `alt`. */
 .blog-body img {
   display: block;
   width: 100%;
@@ -357,23 +356,24 @@
   border: 1px solid rgba(28, 24, 20, 0.14);
 }
 
-/* ===== Skript-Blocks (Charakter / Dialog / Parenthetical) =======
+/* ===== Script blocks (character / dialog / parenthetical) =======
 
-   Markup kommt vom remark-Plugin und nutzt 1:1 die Klassen der
-   Landing-Sections (`v2-block`, `v2-character`, `v2-dialog`,
-   `v2-parenthetical`). Layout + Einrueckung + Highlighting kommen
-   komplett aus landing.css.
+   Markup comes from the remark plugin and uses the landing
+   sections' classes 1:1 (`v2-block`, `v2-character`, `v2-dialog`,
+   `v2-parenthetical`). Layout + indent + highlighting come
+   entirely from landing.css.
 
-   Hier nur:
-   - Schrift-Reset auf Landing-Defaults (14px / 1.55). Ohne diesen
-     Reset wuerde der laengere Blog-Body-Default von 17px durchsickern
-     und den Dialog visuell aufblaehen.
-   - Per-Charakter-Tint pro Sprecher (Hash → hsl), als
-     `--bp-char-tint` ans Block-Element. Spans uebernehmen den Wert,
-     so dass jeder Sprecher seine eigene Farbe bekommt - bekannte
-     Brand-Namen (TIMO/AXEL) bleiben dabei auf den Original-Tints.
-   - Klarer Vertikal-Abstand zwischen den Blocks und davor liegenden
-     Action-Paragraphen, sonst klebt der Dialog am Lesefluss.
+   Here only:
+   - Font reset to landing defaults (14px / 1.55). Without this
+     reset, the longer 17px blog-body default would leak through
+     and visually bloat the dialog.
+   - Per-character tint per speaker (hash → hsl), set as
+     `--bp-char-tint` on the block element. Spans pick it up so
+     each speaker gets their own color - known brand names
+     (TIMO/AXEL) stay on the original tints.
+   - Clear vertical spacing between the blocks and preceding
+     action paragraphs, otherwise the dialog sticks to the
+     reading flow.
 */
 
 .blog-body .v2-block {
@@ -382,11 +382,11 @@
   font-family: inherit;
 }
 
-/* `.blog-body p { margin: 0 0 1.1em }` weiter oben wuerde die
-   `margin-left: 16%` der landing.css-Regel `.v2-dialog` ueberschreiben,
-   weil .blog-body p die hoehere Spezifitaet hat. Deshalb hier die
-   Einrueckungen 1:1 aus landing.css nachreichen, mit hoeherer
-   Spezifitaet. Werte spiegeln die Landing exakt. */
+/* `.blog-body p { margin: 0 0 1.1em }` above would override the
+   `margin-left: 16%` of the landing.css rule `.v2-dialog`, because
+   `.blog-body p` has higher specificity. So we re-apply the
+   indents 1:1 from landing.css here with higher specificity.
+   Values mirror the landing exactly. */
 .blog-body .v2-block.v2-dialog {
   margin-left: 16%;
   margin-right: 16%;
@@ -406,12 +406,12 @@
   letter-spacing: 0.06em;
 }
 
-/* Vertikal-Spacing exakt wie auf der Landing:
-   - Block zu Block: 4px
-   - Action(=<p>) zu CHARACTER: 14px
-   - DIALOG zu Action: 14px
-   - DIALOG zu naechstem CHARACTER: 14px (in landing.css schon definiert,
-     hier nur Sicherheitskopie)
+/* Vertical spacing exactly like on the landing:
+   - block to block: 4px
+   - Action(=<p>) to CHARACTER: 14px
+   - DIALOG to Action: 14px
+   - DIALOG to next CHARACTER: 14px (already defined in
+     landing.css, this is just a safety copy)
 */
 .blog-body p + .v2-block.v2-character {
   margin-top: 14px;
@@ -421,14 +421,14 @@
   margin-top: 14px;
 }
 
-/* Per-Charakter-Tint: setzt das Plugin pro Block via
-   `--bp-char-tint`. Ueberschreibt die hardcoded TIMO/AXEL-Tints
-   aus landing.css fuer Namen, die das Plugin nicht kennt. */
+/* Per-character tint: set by the plugin per block via
+   `--bp-char-tint`. Overrides the hardcoded TIMO/AXEL tints from
+   landing.css for names the plugin doesn't know. */
 .blog-body .v2-block[data-speaker] .v2-t {
   background: var(--bp-char-tint);
 }
 
-/* ===== Tags + Post-Footer =============================  */
+/* ===== Tags + post footer =============================  */
 
 .blog-post-tags {
   margin: 48px 0 0;

@@ -27,20 +27,20 @@ export function installInlineFormat(editor: LexicalEditor): () => void {
   return editor.registerCommand<KeyboardEvent>(
     KEY_DOWN_COMMAND,
     (event) => {
-      // App.tsx hat den globalen ⌘I-Listener, der die Quick-Capture
-      // öffnet und preventDefault() ruft. Wenn das Event hier ankommt
-      // und schon prevented ist, lassen wir Lexical-RichText's
-      // Italic-Default ebenfalls in Ruhe.
+      // App.tsx has the global ⌘I listener that opens the quick-capture
+      // and calls preventDefault(). If the event arrives here
+      // already prevented, leave Lexical RichText's
+      // italic default alone as well.
       if (event.defaultPrevented) return false;
       const mod = event.metaKey || event.ctrlKey;
       if (!mod) return false;
       const k = event.key.toLowerCase();
-      // ⌘I ist global mit der Idee-Schnellerfassung belegt (siehe App.tsx).
-      // Italic via Hotkey wird hier bewusst nicht abgegriffen — wer Italic
-      // wirklich braucht, kann es weiterhin via Browser-Default
-      // (FORMAT_TEXT_COMMAND von Lexical's RichText) auslösen, falls jemals
-      // eine Toolbar-Pille dafür gebaut wird. Aktuell: kein Italic per
-      // Tastatur. ⌘B (Bold) und ⌘U (Underline) bleiben.
+      // ⌘I is globally claimed by idea quick-capture (see App.tsx).
+      // Italic via hotkey is deliberately not intercepted here — anyone who
+      // really wants italic can still trigger it via the browser default
+      // (FORMAT_TEXT_COMMAND from Lexical's RichText), should a toolbar
+      // pill ever be built for it. Currently: no italic via
+      // keyboard. ⌘B (bold) and ⌘U (underline) remain.
       if (k !== "b" && k !== "u") return false;
 
       let allow = false;

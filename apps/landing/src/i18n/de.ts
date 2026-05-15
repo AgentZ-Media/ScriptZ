@@ -1,14 +1,14 @@
 /**
- * Deutsche Strings für die Landing.
+ * German strings for the landing.
  *
- * Keys-Konvention: bereich.kontext.was (flach, dot-separated, lowercase).
- * Wer hier ändert, muss in `en.ts` denselben Key updaten - TypeScript
- * erzwingt das via `Record<keyof typeof de, string>` in en.ts.
+ * Key convention: area.context.what (flat, dot-separated, lowercase).
+ * Whoever changes a key here must update the same key in `en.ts` -
+ * TypeScript enforces that via `Record<keyof typeof de, string>` in en.ts.
  *
- * Plattform-spezifische Strings tragen einen `.mac` / `.win`-Suffix.
- * Die Landing rendert beide Varianten und blendet die nicht-passende
- * via CSS aus (siehe `[data-platform="windows"] .mac-only { display: none }`
- * in landing.css). Default-Render ist macOS-Look fuer SEO und JS-aus.
+ * Platform-specific strings carry a `.mac` / `.win` suffix. The
+ * landing renders both variants and hides the non-matching one via
+ * CSS (see `[data-platform="windows"] .mac-only { display: none }`
+ * in landing.css). The default render is macOS look for SEO and JS-off.
  */
 export const de = {
   // ===================== Hero =====================
@@ -29,12 +29,12 @@ export const de = {
   "hero.web.link": "Direkt im Browser testen →",
   "hero.web.hint": "Test-Editor, lokal in deinem Browser. Daten bleiben dort.",
 
-  // ===================== Page-Hero pro Route =====================
-  // Auf jeder Route sitzt oben ein einheitlicher Page-Hero (Keyword-
-  // Eyebrow + H1 + Subline + Download-CTA). Nur die Home-Variante
-  // (`/`) nutzt die historischen `hero.h1.*` / `hero.lead`-Keys, weil
-  // dort das Brand-Statement groesser bleibt. Sub-Routen ziehen aus
-  // den `hero.{route}.*`-Keys hier drunter.
+  // ===================== Page hero per route =====================
+  // Each route has a unified page-hero on top (keyword eyebrow + H1
+  // + subline + download CTA). Only the home variant (`/`) uses the
+  // historical `hero.h1.*` / `hero.lead` keys because the brand
+  // statement stays bigger there. Sub-routes pull from the
+  // `hero.{route}.*` keys below.
   "hero.warum.keyword": "WARUM SCRIPTZ",
   "hero.warum.title": "Skripte schreiben, ohne dass die App im Weg steht.",
   "hero.warum.subline":
@@ -65,10 +65,10 @@ export const de = {
   "hero.ideen.subline":
     "Skript-Ideen für TikTok, Reels und Shorts an einem Ort. Per Klick wird daraus ein fertiges Skript - offline, ohne Konto.",
 
-  // ===================== Home-Section (`/`) =====================
-  // Eigener Inhalt unterhalb des Page-Hero, statt den Warum-Tab zu
-  // wiederholen: Screenshot-Galerie, drei Feature-Teaser, Vergleichs-
-  // Hinweis, Closing-Download-Block.
+  // ===================== Home section (`/`) =====================
+  // Dedicated content below the page hero instead of repeating the
+  // Warum tab: screenshot gallery, three feature teasers, comparison
+  // hint, closing download block.
   "home.gallery.h2": "Drei Ansichten, eine App.",
   "home.gallery.sub":
     "Übersicht, Ideen, Editor. Mehr braucht ein Skript-Tool nicht. Die Tabs oben sind die App.",
@@ -97,7 +97,7 @@ export const de = {
   "home.closing.body":
     "macOS 13+ oder Windows 10+. Ein Klick, ein Installer, fertig. Kein Sign-in, keine Mail-Liste, keine Abos.",
 
-  // macOS-Install-Hinweis
+  // macOS install hint
   "install.mac.summary": "Beim ersten Öffnen blockiert macOS die App?",
   "install.mac.body":
     "Das ist normal - ScriptZ ist Open Source und nicht bei Apple registriert. Einmal diesen Befehl im Terminal ausführen, danach läuft alles wie gewohnt:",
@@ -107,7 +107,7 @@ export const de = {
   "install.mac.whyShort.body":
     "Apple verlangt eine kostenpflichtige Signatur, die diesen Schritt überflüssig machen würde. Bis sich das lohnt, ist der kurze Befehl der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
 
-  // Windows-Install-Hinweis
+  // Windows install hint
   "install.win.summary": "Beim ersten Start meldet sich SmartScreen?",
   "install.win.body":
     "Das ist normal - ScriptZ ist Open Source und hat (noch) kein EV-Code-Signing-Zertifikat. Mit zwei Klicks ist es gelöst:",
@@ -119,7 +119,7 @@ export const de = {
   "install.win.whyShort.body":
     "Microsoft verlangt ein EV-Code-Signing-Zertifikat. Bis sich das lohnt, sind zwei Klicks der Preis dafür, dass ScriptZ kostenlos und ohne Konto bleibt.",
 
-  // Copy-Button (nur macOS, aber Strings teilen wir)
+  // Copy button (macOS only, but strings are shared)
   "install.copy": "Kopieren",
   "install.copied": "Kopiert ✓",
   "install.copyManual": "Bitte manuell kopieren",
@@ -306,7 +306,7 @@ export const de = {
   "ideas.btn.delete.aria": "Idee löschen",
   "ideas.hint.before": "in der App öffnet diese Inbox als Overlay — egal, wo du gerade bist. Eingeben, Enter, weiter.",
 
-  // Ideen-Beispiele
+  // Idea samples
   "ideas.sample.tutorial.title": "Tutorial: Vom leeren Cursor zum fertigen Skript in 5 Minuten",
   "ideas.sample.tutorial.body":
     "Screen-Recording mit Stoppuhr. Quickmodus aktivieren, einfach drauflos tippen, exportieren - fertig. Beweis statt Behauptung.",
@@ -349,18 +349,18 @@ export const de = {
   "footer.about.os.mac": "macOS 13+ · Open Source",
   "footer.about.os.win": "Windows 10+ · Open Source",
 
-  // ===================== Sprint-Pille =====================
+  // ===================== Sprint pill =====================
   "sprint.label": "Lese-Sprint",
 
-  // ===================== Sprach-Toggle =====================
+  // ===================== Language toggle =====================
   "lang.toggle.aria": "Sprache wechseln",
   "lang.toggle.de": "DE",
   "lang.toggle.en": "EN",
 
-  // ===================== Mobile-Navigation =====================
-  // Eigene Top-Bar + Full-Screen-Drawer, die nur unter 768 px sichtbar
-  // ist. Ersetzt die App-Chrome-Tabs auf Mobilgeraeten, weil dort der
-  // gefakte App-Rahmen ausgeblendet wird.
+  // ===================== Mobile navigation =====================
+  // Dedicated top bar + full-screen drawer, visible only below 768 px.
+  // Replaces the app-chrome tabs on mobile because the fake app frame
+  // is hidden there.
   "mobilenav.brand": "ScriptZ",
   "mobilenav.open.aria": "Menü öffnen",
   "mobilenav.close.aria": "Menü schließen",
@@ -370,47 +370,47 @@ export const de = {
   "mobilenav.section.language": "Sprache",
   "mobilenav.section.project": "Projekt",
 
-  // ===================== Page-Meta =====================
-  // Home (`/`) - bleibt der dominante Brand-Eintrag.
+  // ===================== Page meta =====================
+  // Home (`/`) - stays the dominant brand entry.
   "meta.title": "ScriptZ - der Skripteditor für Content Creator",
   "meta.description":
     "Schreiben statt formatieren. Eine Idee → ein fertiges Skript in wenigen Minuten. Lokal, kostenlos, Open Source. Für TikTok, Reels und YouTube Shorts.",
-  // Warum-Route (`/warum-scriptz`)
+  // Why route (`/warum-scriptz`)
   "meta.warum.title": "Warum ScriptZ - Skripteditor ohne Drehbuch-Korsett | für Reels und Shorts",
   "meta.warum.description":
     "ScriptZ ist für Content Creator gebaut, nicht für Drehbuchautoren. Format passiert beim Tippen, Charaktere werden automatisch erkannt. Für TikTok, Reels und YouTube Shorts.",
-  // Quickmodus-Route (`/quickmodus`)
+  // Quick-mode route (`/quickmodus`)
   "meta.quickmodus.title": "Quickmodus - Two-Hander-Workflow für Reels und Shorts | ScriptZ",
   "meta.quickmodus.description":
     "Der Quickmodus von ScriptZ schreibt Two-Hander-Dialoge automatisch: Enter springt zum nächsten Sprecher. Spart pro Skript eine Minute, ohne Tab und ohne Sprechernamen tippen.",
-  // Keine-KI-Route (`/keine-ki`)
+  // No-AI route (`/keine-ki`)
   "meta.noai.title": "Skripteditor ohne KI - das No-AI-Manifest | ScriptZ",
   "meta.noai.description":
     "ScriptZ hat bewusst keine KI eingebaut. Keine Vorschläge, kein „Verbessern\"-Button, kein Cloud-Upload. Deine Stimme bleibt deine, dein Skript bleibt lokal.",
-  // Vergleichs-Route (`/vergleich`)
+  // Compare route (`/vergleich`)
   "meta.compare.title": "ScriptZ vs. Final Draft, Notion, ChatGPT - der ehrliche Vergleich",
   "meta.compare.description":
     "ScriptZ als kostenlose Final-Draft-Alternative für TikTok, Reels und Shorts. Was wir können, was Word, Notion, Final Draft, ChatGPT und Apple Notes nicht können - und umgekehrt.",
-  // Download-Route (`/download`)
+  // Download route (`/download`)
   "meta.download.title": "ScriptZ kostenlos herunterladen - macOS und Windows | Open Source",
   "meta.download.description":
     "Skripteditor für Content Creator. Kostenlos, lokal, Open Source. macOS 13+ (.dmg) oder Windows 10+ (.exe). Kein Konto, keine Tracker, keine KI.",
-  // Ideen-Route (`/ideen`)
+  // Ideas route (`/ideen`)
   "meta.ideas.title": "Ideen-Inbox - was du als Nächstes schreibst | ScriptZ",
   "meta.ideas.description":
     "Sammle Skript-Ideen für TikTok, Reels und YouTube Shorts, wandle sie per Klick in ein fertiges Skript. Offline, ohne Konto, in der ScriptZ-App und im Browser.",
   "meta.ogLocale": "de_DE",
 
   // ===================== Blog =====================
-  // Footer-Eintrag (nur Footer, kein Top-Nav-Tab).
+  // Footer entry (footer only, no top-nav tab).
   "footer.link.blog": "Blog",
   "footer.link.rss": "RSS-Feed",
 
-  // Blog-Toolbar im AppShell.
+  // Blog toolbar in AppShell.
   "blog.toolbar.title.index": "Blog - Notizen aus dem Skript-Editor",
   "blog.toolbar.title.post": "Blog",
 
-  // Blog-Index.
+  // Blog index.
   "blog.index.eyebrow": "BLOG // SCRIPTZ",
   "blog.index.h1": "Notizen aus dem Skript-Editor.",
   "blog.index.lead":
@@ -418,23 +418,23 @@ export const de = {
   "blog.index.empty": "Noch keine Beiträge. Bald wird hier geschrieben.",
   "blog.index.rss.label": "RSS-Feed abonnieren",
 
-  // Reading-Time und Datum.
+  // Reading time and date.
   "blog.readingTime_one": "{n} Min Lesezeit",
   "blog.readingTime_other": "{n} Min Lesezeit",
   "blog.publishedOn": "Veröffentlicht am {date}",
   "blog.updatedOn": "Aktualisiert am {date}",
   "blog.author.by": "von {name}",
 
-  // Post-Footer / Navigation.
+  // Post footer / navigation.
   "blog.back": "← Zurück zur Blog-Übersicht",
   "blog.share.h": "Teilen",
 
-  // RSS-Feed-Meta.
+  // RSS feed meta.
   "blog.rss.title": "ScriptZ Blog",
   "blog.rss.description":
     "Notizen aus dem Skript-Editor für Content Creator. Releases, Workflow-Tricks und kleine Geschichten.",
 
-  // Blog-Meta (Page-Titel + Description fuer den Blog-Index).
+  // Blog meta (page title + description for the blog index).
   "meta.blog.title": "Blog - Notizen aus dem Skript-Editor | ScriptZ",
   "meta.blog.description":
     "Der ScriptZ-Blog: Release-Geschichten, Workflow-Tipps für Reels und Shorts, und Notizen aus dem Alltag eines Skript-Editors für Content Creator.",

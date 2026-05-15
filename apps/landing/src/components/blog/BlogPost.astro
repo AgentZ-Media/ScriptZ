@@ -1,11 +1,11 @@
 ---
 /**
- * BlogPost - die Detailseite eines einzelnen Beitrags.
+ * BlogPost - the detail page of a single post.
  *
- * Erwartet ein bereits aufgeloestes `BlogEntry` und rendert Header,
- * Cover, Body (durch das Remark-Dialog-Plugin gegangen) sowie Tags und
- * Post-Footer. JSON-LD-Artikel-Schema wird hier injectet, damit die
- * Page-Route schlank bleibt.
+ * Expects a pre-resolved `BlogEntry` and renders the header, cover,
+ * body (run through the remark dialog plugin), tags and the post
+ * footer. The JSON-LD article schema is injected here so the page
+ * route stays slim.
  */
 import { Image } from "astro:assets";
 import { render } from "astro:content";
@@ -34,7 +34,7 @@ const updatedStr = entry.data.updated ? formatDate(entry.data.updated, lang) : n
 
 const canonicalUrl = new URL(Astro.url.pathname, site.url).toString();
 
-// JSON-LD BlogPosting-Schema. Image: bevorzugt Cover, fallback OG-Default.
+// JSON-LD BlogPosting schema. Image: prefers cover, falls back to OG default.
 const articleLd: Record<string, unknown> = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",

@@ -1,16 +1,16 @@
 /**
- * Zentrale Quelle für Site-Metadaten und dynamische Build-Zeit-Daten
- * (z.B. die aktuelle ScriptZ-Version, Plattform-spezifische Download-URLs).
+ * Central source for site metadata and dynamic build-time data
+ * (e.g. the current ScriptZ version, platform-specific download URLs).
  *
- * Die Version + Asset-URLs werden zur Build-Zeit von der GitHub-Releases-
- * API geholt, damit jede Veroeffentlichung der Desktop-App automatisch
- * in der Landing landet, ohne hier irgendetwas anpassen zu müssen.
+ * Version + asset URLs are fetched at build time from the GitHub
+ * Releases API so that every Desktop-app release lands on the landing
+ * automatically, without any change here.
  *
- * Asset-Erkennung:
+ * Asset detection:
  *  - `.dmg`     -> macOS Apple Silicon
- *  - `-setup.exe` oder `_x64-setup.exe` -> Windows NSIS Installer
- *    (Match ausschliesslich `.exe` am Ende, damit das parallele
- *    `.nsis.zip`-Updater-Asset nicht versehentlich gewinnt.)
+ *  - `-setup.exe` or `_x64-setup.exe` -> Windows NSIS installer
+ *    (Match strictly `.exe` at the end so the parallel
+ *    `.nsis.zip` updater asset doesn't accidentally win.)
  */
 
 export const site = {
@@ -21,23 +21,23 @@ export const site = {
     "Skripte schreiben, ohne dass die App im Weg steht. Lokal, kostenlos, Open Source. Für Creators, die viele Skripte am Tag schreiben.",
   github: "https://github.com/AgentZ-Media/ScriptZ",
   releasesPage: "https://github.com/AgentZ-Media/ScriptZ/releases/latest",
-  // Browser-Test-Editor (Phase 2 H). Subdomain hosted Vercel-side.
+  // Browser test editor (phase 2 H). Subdomain hosted Vercel-side.
   webAppUrl: "https://app.write-scriptz.com",
-  // Fallback, wenn die GitHub-API beim Build nicht erreichbar ist.
-  fallbackVersion: "0.7.11",
+  // Fallback when the GitHub API is unreachable at build time.
+  fallbackVersion: "0.7.12",
   contactEmail: "kontakt@agent-z.de",
 } as const;
 
 export interface ReleaseInfo {
-  version: string;       // ohne fuehrendes "v"
-  tag: string;           // wie auf GitHub, z.B. "v0.3.2"
-  publishedAt: string;   // ISO-String, "" wenn unbekannt
-  /** macOS Apple Silicon .dmg - direkter Download-Link. */
+  version: string;       // without leading "v"
+  tag: string;           // as on GitHub, e.g. "v0.3.2"
+  publishedAt: string;   // ISO string, "" if unknown
+  /** macOS Apple Silicon .dmg - direct download link. */
   dmgUrl: string;
-  /** Windows x64 NSIS Installer .exe - direkter Download-Link.
-   *  Wenn kein Windows-Asset im Release liegt (z.B. Mac-only-Release
-   *  vor Windows-Support), zeigt es auf die Releases-Seite, damit der
-   *  User dort manuell waehlen kann. */
+  /** Windows x64 NSIS installer .exe - direct download link.
+   *  If no Windows asset is in the release (e.g. Mac-only release
+   *  before Windows support), this points to the releases page so
+   *  the user can pick manually there. */
   exeUrl: string;
   releasePageUrl: string;
   isFallback: boolean;
@@ -55,7 +55,7 @@ interface GhRelease {
   assets: GhAsset[];
 }
 
-/** Build-Zeit: holt die aktuelle Release-Info von GitHub. Fail-soft. */
+/** Build time: fetches the current release info from GitHub. Fail-soft. */
 export async function getLatestRelease(): Promise<ReleaseInfo> {
   try {
     const res = await fetch(
@@ -73,9 +73,9 @@ export async function getLatestRelease(): Promise<ReleaseInfo> {
     const version = tag.replace(/^v/, "");
     const assets = data.assets ?? [];
     const dmg = assets.find((a) => a.name.endsWith(".dmg"));
-    // Windows NSIS-Installer endet auf `.exe`. Das parallele
-    // Updater-Asset endet auf `.nsis.zip` und wird durch das
-    // `.exe`-Suffix-Match automatisch ausgeschlossen.
+    // Windows NSIS installer ends in `.exe`. The parallel updater
+    // asset ends in `.nsis.zip` and is automatically excluded by the
+    // `.exe` suffix match.
     const exe = assets.find((a) => a.name.toLowerCase().endsWith(".exe"));
     return {
       version,

@@ -1,27 +1,27 @@
 /* ================================================================
-   write-scriptz.com - Design-Tokens
-   Helles Parchment-Theme, abgeleitet von der Desktop-App.
-   Eine einzige Quelle der Wahrheit fuer Farben, Spacing, Type.
+   write-scriptz.com - design tokens
+   Light parchment theme, derived from the desktop app.
+   A single source of truth for colors, spacing, type.
    ================================================================ */
 
 :root {
-  /* ---- Tinte (vorher: Brand Orange) ----
-     Die Landing arbeitet bewusst monochrom: Akzent ist schwarz, nicht
-     orange. Die Brand-Tokens existieren weiter, um bestehende
-     Selektoren nicht aufzubrechen, sind aber jetzt Graustufen. Wer
-     einen Akzent braucht, nimmt --brand-500 = Tinten-Schwarz. */
-  --brand-50:  #f6f6f5;       /* sehr helles Grau */
+  /* ---- Ink (previously: brand orange) ----
+     The landing is deliberately monochrome: the accent is black,
+     not orange. The brand tokens still exist so existing selectors
+     don't break, but they are now grayscale. Whoever needs an
+     accent uses --brand-500 = ink black. */
+  --brand-50:  #f6f6f5;       /* very light gray */
   --brand-100: #efefee;
   --brand-200: #d4cdb9;
   --brand-300: #a8a293;
   --brand-400: #5b554c;
-  --brand-500: #1c1814;       /* Tinte (Akzent) */
-  --brand-600: #0f0d0a;       /* Tinte hover */
+  --brand-500: #1c1814;       /* ink (accent) */
+  --brand-600: #0f0d0a;       /* ink hover */
   --brand-700: #1c1814;
   --brand-800: #0f0d0a;
   --brand-soft: #e8e2d3;
 
-  /* ---- Charakter-Palette (Reserve, nicht aktiv genutzt) ---- */
+  /* ---- Character palette (reserve, not actively used) ---- */
   --char-1: #1c1814;
   --char-2: #1c1814;
   --char-3: #1c1814;
@@ -79,19 +79,18 @@
   --t-med:  220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-slow: 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* ---- Surfaces (kariertes Papier) ----
-     Alles weiß. Der "kariert"-Look kommt aus einem Repeating-Gradient
-     auf body in global.css. Karten setzen ein opakes Weiß drüber,
-     damit das Karo nur dort sichtbar ist, wo wirklich Hintergrund
-     gemeint ist. */
+  /* ---- Surfaces (grid paper) ----
+     All white. The "grid" look comes from a repeating gradient on
+     body in global.css. Cards put opaque white on top so the grid
+     is visible only where background is really meant. */
   --bg:        #ffffff;
-  --bg-elev-1: #ffffff;       /* Karten - opak, verdeckt Karo */
-  --bg-elev-2: #f6f6f5;       /* sehr dezenter Grau-Heber, z.B. Status-Bar */
-  --bg-elev-3: #efefee;       /* Code-Pille, Hover-Tint */
-  --paper:     #ffffff;       /* Demo-Sheet */
+  --bg-elev-1: #ffffff;       /* cards - opaque, hides grid */
+  --bg-elev-2: #f6f6f5;       /* very subtle gray lift, e.g. status bar */
+  --bg-elev-3: #efefee;       /* code pill, hover tint */
+  --paper:     #ffffff;       /* demo sheet */
 
-  /* Karo-Muster - Linienfarbe, Zellenmaß. Werte zentral, damit Tweaks
-     einfach sind. */
+  /* Grid pattern - line color, cell size. Values centralized so
+     tweaks are easy. */
   --grid-line: rgba(28, 24, 20, 0.055);
   --grid-cell: 24px;
 
@@ -126,7 +125,7 @@
   --header-h: 64px;
 }
 
-/* Dunkles Theme bewusst ausgelassen - die Landing ist hell-only. */
+/* Dark theme deliberately omitted - the landing is light-only. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

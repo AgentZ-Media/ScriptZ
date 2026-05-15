@@ -22,10 +22,10 @@ import {
 } from "../../lib/format";
 import { t, tPlural } from "../../i18n";
 
-/** Spielzeit-Label aus den persistierten Eingangswerten - dieselbe Formel
- *  wie in der Editor-Rail, gerendert über `runtimeLabelFromStats`.
- *  Sentinel/leere Skripte ergeben null, damit der Aufrufer das Feld
- *  ausblenden kann. */
+/** Runtime label from the persisted input values - same formula
+ *  as in the editor rail, rendered via `runtimeLabelFromStats`.
+ *  Sentinel/empty scripts produce null so the caller can
+ *  hide the field. */
 function runtimeLabelFor(script: ScriptSummary, wpm: number): string | null {
   return runtimeLabelFromStats(
     {
@@ -45,8 +45,8 @@ import { FolderChips, SCRIPT_DRAG_MIME } from "./FolderChips";
 import { MomentumStrip } from "./MomentumStrip";
 import "./Browser.css";
 
-/** Tageszeitabhängige Begrüßung. Greift bewusst NICHT auf einen
- *  Vornamen zu (kein Onboarding mit Namensabfrage). */
+/** Time-of-day-dependent greeting. Deliberately does NOT use a
+ *  first name (no onboarding with name prompt). */
 function greeting(): string {
   const h = new Date().getHours();
   if (h < 5)  return t("greeting.lateNight");
@@ -65,7 +65,7 @@ const VIEW_STATE_KEY = "browser.view_mode";
 const ACTIVE_FOLDER_STATE_KEY = "browser.active_folder";
 const PAGE_SIZE = 200;
 
-/** Zeit-Buckets für die Gruppierung der Liste — übersetzt aus dem Design
+/** Time buckets for grouping the list — ported from the design
  *  (`bucket()` in `data.jsx`). */
 type BucketKey = "heute" | "gestern" | "diese-woche" | "diesen-monat" | "aelter";
 const BUCKET_ORDER: BucketKey[] = [
@@ -86,10 +86,10 @@ function bucketLabel(k: BucketKey): string {
 }
 
 function bucketOf(updatedAt: number): BucketKey {
-  // Kalendertag-basiertes Bucketing: vergleicht zwei Daten an
-  // lokaler Mitternacht, damit ein gestern Abend bearbeitetes Skript
-  // heute Vormittag tatsächlich unter "Gestern" steht und nicht erst
-  // nach 24 Stunden umspringt.
+  // Calendar-day-based bucketing: compares two dates at
+  // local midnight so a script edited yesterday evening is
+  // actually shown under "Yesterday" this morning and doesn't
+  // only flip over after 24 hours.
   const startOfDay = (ms: number) => {
     const d = new Date(ms);
     d.setHours(0, 0, 0, 0);
@@ -122,20 +122,20 @@ export interface BrowserProps {
 }
 
 /**
- * Home / Browser — komplett überarbeitet nach Re-Design `home.jsx`:
+ * Home / browser — fully reworked after re-design `home.jsx`:
  *
- *   1. Greeting (tageszeitabhängig + "Was schreibst du heute?")
- *   2. MomentumStrip (Weiterschreiben + Streak + Heute + Aktivität ↗)
- *   3. Header-Zeile: runde Suche · Liste/Raster-Toggle · Trash-Icon ·
- *      Settings-Icon · "+ Neu" Primary-Button
- *   4. Folder-Chips (Alle | divider | User-Folders | + Ordner)
- *   5. Sortbar (Count links, Sortierung rechts)
- *   6. Body: EINE Liste/Grid, gruppiert nach Heute/Gestern/Diese Woche/
- *      Diesen Monat/Älter (kein "Recent + Older"-Split mehr)
- *   7. Liste ist Default — Grid via Toggle
+ *   1. Greeting (time-of-day dependent + "What are you writing today?")
+ *   2. MomentumStrip (continue writing + streak + today + activity ↗)
+ *   3. Header row: round search · list/grid toggle · trash icon ·
+ *      settings icon · "+ New" primary button
+ *   4. Folder chips (All | divider | user folders | + folder)
+ *   5. Sort bar (count on the left, sort on the right)
+ *   6. Body: ONE list/grid, grouped by today/yesterday/this week/
+ *      this month/older (no more "recent + older" split)
+ *   7. List is the default — grid via toggle
  *
- * Die alte `browser-topbar` (ScriptZ-Brand + Search + Actions) ist raus —
- * Brand und Status liegen jetzt in der TabBar oben.
+ * The old `browser-topbar` (ScriptZ brand + search + actions) is gone —
+ * brand and status now live in the tab bar at the top.
  */
 export function Browser(props: BrowserProps = {}) {
   const [activeRegion, setActiveRegion] = createSignal<Region>("scripts");
@@ -243,7 +243,7 @@ export function Browser(props: BrowserProps = {}) {
     initialValue: 0,
   });
 
-  // Falls aktiver Ordner gelöscht wurde → "Alle".
+  // If the active folder was deleted → "All".
   createEffect(() => {
     const id = activeFolderId();
     const list = folders() ?? [];
@@ -254,12 +254,12 @@ export function Browser(props: BrowserProps = {}) {
     }
   });
 
-  // Skripte, deren Archive-Call gerade läuft. Werden aus `list()`
-  // optimistisch ausgeblendet, damit MomentumStrip + Liste nicht mehr
-  // den gerade getrashten Titel als „Weiterschreiben"-Geist zeigen,
-  // bevor der Refetch durch ist. Muss VOR `list` deklariert sein, weil
-  // die createMemo-Callback liest pendingArchive(), und das Signal sonst
-  // beim ersten Tracking-Run noch im TDZ-Status wäre.
+  // Scripts whose archive call is currently in flight. Optimistically
+  // hidden from `list()` so MomentumStrip + the list no longer show
+  // the just-trashed title as a "continue writing" ghost
+  // before the refetch is done. Must be declared BEFORE `list` because
+  // the createMemo callback reads pendingArchive(), and the signal
+  // would otherwise still be in TDZ on the first tracking run.
   const [pendingArchive, setPendingArchive] = createSignal<Set<string>>(new Set());
   const list = createMemo(() => {
     const all = scripts() ?? [];
@@ -275,8 +275,8 @@ export function Browser(props: BrowserProps = {}) {
     return folders()?.find((f) => f.id === id)?.name ?? null;
   });
 
-  /** Gruppiert die Liste in Zeit-Buckets. Nur wenn nach `updated`
-   *  sortiert wird; bei anderen Sortierungen eine Gruppe. */
+  /** Groups the list into time buckets. Only when sorted by `updated`;
+   *  one group for other sort orders. */
   const groups = createMemo(() => {
     const items = list();
     if (sort() !== "updated" || isSearching()) {
@@ -337,8 +337,8 @@ export function Browser(props: BrowserProps = {}) {
     const target = renameTarget();
     if (!target) return;
     const v = renameValue().trim();
-    // Leere Titel werden weder gespeichert noch schließen sie still den
-    // Dialog - sonst wirkt es, als hätte der User den Titel gelöscht.
+    // Empty titles are neither saved nor silently close the
+    // dialog - otherwise it would feel like the user deleted the title.
     if (!v) return;
     if (v === target.title) {
       setRenameTarget(null);

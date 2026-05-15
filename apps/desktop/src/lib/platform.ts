@@ -1,18 +1,18 @@
 // Tauri-backed implementation of @scriptz/core's PlatformAdapter.
 //
-// Wird einmal beim App-Start aus index.tsx importiert und registriert
-// einen konkreten Adapter, sodass der Core-Code - der nur das abstrakte
-// DbConnection / SaveDialogOptions / saveAs etc. kennt - eine echte
-// Implementierung zum Aufrufen hat.
+// Imported once at app startup from index.tsx, this registers a
+// concrete adapter so the core code - which only knows the abstract
+// DbConnection / SaveDialogOptions / saveAs etc. - has a real
+// implementation to call.
 //
-// Alle @tauri-apps/*-Importe leben in dieser Datei (plus die wenigen
-// anderen verbleibenden Desktop-only-Files: updates.ts,
-// UpdateIndicator.tsx, tauri.ts, App.tsx's close-handler).
+// All @tauri-apps/* imports live in this file (plus the few other
+// remaining desktop-only files: updates.ts, UpdateIndicator.tsx,
+// tauri.ts, App.tsx's close handler).
 //
-// Seit Phase 2F: keine eigenen exportPdf.ts / exportPlaintext.ts mehr.
-// Die PDF-Bytes baut packages/core/lib/exportPdf.ts, der Plaintext
-// kommt aus packages/core/lib/lex::extractTeleprompterText. Hier nur
-// noch der "Bytes auf Disk"-Teil via saveAs.
+// Since phase 2F: no own exportPdf.ts / exportPlaintext.ts anymore.
+// The PDF bytes are built by packages/core/lib/exportPdf.ts, the
+// plaintext comes from packages/core/lib/lex::extractTeleprompterText.
+// Here we only handle the "bytes to disk" part via saveAs.
 
 import Database from "@tauri-apps/plugin-sql";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
@@ -87,10 +87,10 @@ async function desktopSaveAs(
     try {
       await mkdir(parent, { recursive: true });
     } catch (err) {
-      // `recursive: true` sollte das idempotent machen, aber plugin-fs
-      // surfacet "already exists" auf manchen OS-Varianten. Alles andere
-      // (Permission denied etc.) wollen wir sehen - der writeFile unten
-      // wuerde sonst mit einer weniger hilfreichen Meldung scheitern.
+      // `recursive: true` should make this idempotent, but plugin-fs
+      // surfaces "already exists" on some OS variants. Anything else
+      // (permission denied etc.) we want to see - otherwise the
+      // writeFile below would fail with a less helpful message.
       if (!isAlreadyExistsError(err)) throw err;
     }
   }
@@ -99,9 +99,9 @@ async function desktopSaveAs(
 }
 
 async function desktopOpenFile(accept: string): Promise<OpenFileResult | null> {
-  // `accept` ist Web-syntax (z.B. ".scriptz,application/x-scriptz+json").
-  // Wir extrahieren die Extension-Liste als Filter, MIME-Eintraege ignorieren
-  // wir - Tauris Dialog kennt nur Extension-Filter.
+  // `accept` is web syntax (e.g. ".scriptz,application/x-scriptz+json").
+  // We extract the extension list as a filter and ignore MIME entries -
+  // Tauri's dialog only understands extension filters.
   const exts = accept
     .split(",")
     .map((s) => s.trim())

@@ -1,10 +1,10 @@
 ---
 /**
- * BlogIndex - die Uebersichts-Seite (`/blog`, `/en/blog`).
+ * BlogIndex - the index page (`/blog`, `/en/blog`).
  *
- * Liste der Posts in der aktuellen Sprache, neueste zuerst. Drafts
- * werden ausserhalb von `dev` weggefiltert. Underscore-Slugs wie
- * `_example/` erscheinen nie - das ist die Template-Konvention.
+ * List of posts in the current language, newest first. Drafts are
+ * filtered out outside of `dev`. Underscore slugs like `_example/`
+ * never appear - that's the template convention.
  */
 import { Image } from "astro:assets";
 import { getPosts, postPath, formatDate, isoDate, readingTimeMinutes } from "../../lib/blog";

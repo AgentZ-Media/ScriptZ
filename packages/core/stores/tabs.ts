@@ -6,13 +6,13 @@ import { t } from "../i18n";
 /**
  * Tabs store — Chrome-style tab list.
  *
- * Wichtig: der **Home-Tab** ist KEIN Element der `tabs()`-Liste mehr —
- * er ist ein impliziter Anchor links der Tab-Reihe. `route()` ist
- * entweder `"home"` (Home-Tab aktiv) oder `"script"` mit einer der
- * geöffneten Skript-Tabs als aktivem Tab. Alle Skript-Tabs liegen in
- * `tabs()`. Damit ist die Liste schmaler, der "kann ich Home schließen?"-
- * Edge-Case verschwindet, und Cmd+W auf Home tut nichts (statt einen
- * neuen Browser-Tab zu erzeugen).
+ * Important: the **home tab** is NOT an element of the `tabs()` list
+ * anymore — it is an implicit anchor to the left of the tab row.
+ * `route()` is either `"home"` (home tab active) or `"script"` with one
+ * of the opened script tabs as the active tab. All script tabs live in
+ * `tabs()`. This keeps the list slimmer, the "can I close home?"
+ * edge case disappears, and Cmd+W on home does nothing (instead of
+ * creating a new browser tab).
  */
 
 export interface ScriptTab {
@@ -42,13 +42,13 @@ function activeScriptTab(): ScriptTab | null {
   return tabs().find((t) => t.id === r.tabId) ?? null;
 }
 
-/** Vor jedem Route-Wechsel alle pending Saves drainen (Editor-Auto-Save,
- *  Tab-State-Persist), DANN navigieren. Verhindert das "Editor wird torn
- *  down während async persist() noch läuft"-Race, bei dem leerer State
- *  über echten Content geschrieben werden könnte (siehe das Sicherheitsnetz
- *  in Editor.tsx::persist()). Effekt-Nebeneffekt: die Navigation läuft im
- *  nächsten Microtask, was die Solid-Reactive-Updates aus dem
- *  Click-Event-Frame heraushält — saubere Trennung. */
+/** Before every route change, drain all pending saves (editor auto-save,
+ *  tab state persist), THEN navigate. Prevents the "editor is torn
+ *  down while async persist() is still running" race, where empty state
+ *  could be written over real content (see the safety net
+ *  in Editor.tsx::persist()). Side effect: navigation runs in
+ *  the next microtask, which keeps the Solid reactive updates out of
+ *  the click event frame — clean separation. */
 function deferRouteChange(apply: () => void): void {
   void flushAll(2000).finally(() => apply());
 }
@@ -56,15 +56,15 @@ function deferRouteChange(apply: () => void): void {
 export const tabsStore = {
   tabs,
   route,
-  /** True wenn der Home-Tab gerade aktiv ist. */
+  /** True when the home tab is currently active. */
   isHome: () => route().kind === "home",
-  /** True wenn der Ideen-Tab gerade aktiv ist. */
+  /** True when the ideas tab is currently active. */
   isIdeas: () => route().kind === "ideas",
-  /** Aktiver Skript-Tab oder null wenn Home aktiv ist. */
+  /** Active script tab, or null when home is active. */
   activeScript: activeScriptTab,
-  /** Legacy-API — Komponenten lesen `tabsStore.active()` weiter und kriegen
-   *  ein vereinheitlichtes Tab-Objekt mit `kind`. Erlaubt schrittweise
-   *  Migration. */
+  /** Legacy API — components still read `tabsStore.active()` and get
+   *  a unified tab object with `kind`. Allows gradual
+   *  migration. */
   active(): { kind: "browser" } | { kind: "ideas" } | { kind: "script"; scriptId: string; scriptTitle: string } | null {
     const r = route();
     if (r.kind === "home") return { kind: "browser" };
@@ -78,32 +78,32 @@ export const tabsStore = {
     return r.kind === "script" ? r.tabId : null;
   },
 
-  /** Home aktivieren. Ist immer möglich, kein Tab wird angelegt. */
+  /** Activate home. Always possible, no tab is created. */
   openBrowser() {
     deferRouteChange(() => {
       setRoute({ kind: "home" });
       persist();
     });
   },
-  /** Ideen-Tab aktivieren. Ist immer möglich, kein Tab wird angelegt. */
+  /** Activate the ideas tab. Always possible, no tab is created. */
   openIdeas() {
     deferRouteChange(() => {
       setRoute({ kind: "ideas" });
       persist();
     });
   },
-  /** Skript öffnen. Existiert es schon als Tab → aktivieren. Sonst neuen
-   *  Tab anlegen. Existing-Tab-Pfad wird ebenfalls deferred (gleiche
-   *  Recursion-Falle wie openBrowser, falls man von Skript A → Skript B
-   *  wechselt). Neue-Tab-Pfad legt den Tab synchron an, damit der
-   *  Caller die ScriptTab-ID sofort hat; die Route-Aktivierung läuft
-   *  im Microtask. */
+  /** Open script. If it already exists as a tab → activate. Otherwise create
+   *  a new tab. The existing-tab path is also deferred (same
+   *  recursion trap as openBrowser, in case you switch from script A → script B).
+   *  The new-tab path creates the tab synchronously so the
+   *  caller has the ScriptTab id immediately; route activation runs
+   *  in the microtask. */
   openScript(scriptId: string, scriptTitle: string, opts: { newTab?: boolean } = {}): ScriptTab {
-    const _ = opts; // newTab ist immer effektiv-newTab für Skript-Tabs (Home wird nicht ersetzt)
+    const _ = opts; // newTab is always effectively-newTab for script tabs (home is not replaced)
     const existing = tabs().find((t) => t.scriptId === scriptId);
     if (existing) {
-      // Titel kann sich seit dem Öffnen geändert haben (Rename in einem
-      // anderen Tab). Synchronisieren statt verwerfen.
+      // The title may have changed since opening (rename in another
+      // tab). Sync instead of discarding.
       if (existing.scriptTitle !== scriptTitle) {
         setTabs(tabs().map((t) => (t.id === existing.id ? { ...t, scriptTitle } : t)));
       }
@@ -143,13 +143,13 @@ export const tabsStore = {
     const r = route();
     const isActive = r.kind === "script" && r.tabId === id;
     if (isActive) {
-      // Aktiver Tab geschlossen → bevorzugt den rechten Nachbarn,
-      // sonst den linken, sonst Home. Sowohl `setTabs` als auch
-      // `setRoute` müssen deferred laufen: ein synchrones `setTabs`
-      // würde die ScriptView trotzdem disposen lassen, weil
-      // `activeScript()` auch `tabs()` mitliest und null zurückgibt
-      // sobald der Tab fehlt — also genau die gleiche Recursion-Falle
-      // wie ein direktes `setRoute`.
+      // Active tab closed → prefer the right neighbor,
+      // otherwise the left one, otherwise home. Both `setTabs` and
+      // `setRoute` need to run deferred: a synchronous `setTabs`
+      // would still cause the ScriptView to dispose, because
+      // `activeScript()` also reads `tabs()` and returns null
+      // as soon as the tab is missing — exactly the same recursion trap
+      // as a direct `setRoute`.
       const fallback = next[idx] ?? next[idx - 1] ?? null;
       deferRouteChange(() => {
         setTabs(next);
@@ -169,11 +169,11 @@ export const tabsStore = {
       persist();
     });
   },
-  /** ⌘⌥← / ⌘⌥→ — Reihenfolge: Home (0), Ideen (1), Skript-Tabs (2..N+1).
-   *  Spiegelt die visuelle Anordnung in der Tab-Bar. */
+  /** ⌘⌥← / ⌘⌥→ — order: home (0), ideas (1), script tabs (2..N+1).
+   *  Mirrors the visual layout in the tab bar. */
   cycle(dir: 1 | -1) {
     const list = tabs();
-    const all = list.length + 2; // +2 für Home und Ideen
+    const all = list.length + 2; // +2 for home and ideas
     const r = route();
     const cur =
       r.kind === "home"
@@ -190,7 +190,7 @@ export const tabsStore = {
       persist();
     });
   },
-  /** ⌘1..⌘9 — index 0 = Home, 1..N = Skript-Tabs. */
+  /** ⌘1..⌘9 — index 0 = home, 1..N = script tabs. */
   activateByIndex(idx: number) {
     if (idx === 0) {
       deferRouteChange(() => {
@@ -215,8 +215,8 @@ export const tabsStore = {
       return;
     }
     try {
-      // Backwards-compat: alte Persistenz speicherte `tabs: Tab[]` mit
-      // `kind: "browser" | "script"`. Filter auf Skript-Einträge.
+      // Backwards-compat: old persistence stored `tabs: Tab[]` with
+      // `kind: "browser" | "script"`. Filter to script entries.
       const parsed = JSON.parse(raw) as {
         tabs: Array<{ id?: string; kind?: string; scriptId?: string; scriptTitle?: string }>;
         activeId?: string | null;
@@ -245,8 +245,8 @@ export const tabsStore = {
         }));
       setTabs(filtered);
 
-      // Route restaurieren — neue Form (route) bevorzugt, sonst aus
-      // legacy `activeId` ableiten.
+      // Restore route — new form (route) preferred, otherwise derived
+      // from legacy `activeId`.
       const r = parsed.route;
       if (r && r.kind === "script" && filtered.find((t) => t.id === r.tabId)) {
         setRoute(r);
@@ -272,9 +272,9 @@ export const tabsStore = {
     setTabs(survivors);
     const r = route();
     if (r.kind === "script" && !survivors.find((t) => t.id === r.tabId)) {
-      // Aktiver Tab wurde wegreconciled → home, aber deferred, damit
-      // der Reactive-Cascade von `setTabs(survivors)` oben sich erst
-      // setzen darf, bevor wir die Route flippen.
+      // Active tab got reconciled away → home, but deferred so
+      // the reactive cascade from `setTabs(survivors)` above gets to
+      // settle before we flip the route.
       deferRouteChange(() => {
         setRoute({ kind: "home" });
         persist();

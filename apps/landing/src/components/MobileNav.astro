@@ -1,38 +1,37 @@
 ---
 /**
- * MobileNav - eigenstaendige Mobile-Navigation fuer Viewports <= 768 px.
+ * MobileNav - standalone mobile navigation for viewports <= 768 px.
  *
- * Auf Mobil wird die App-Chrome (Trafficlight, Tabs, Toolbar, Sprint-
- * Pille) komplett ausgeblendet, weil eine simulierte App auf 375 px
- * nur stoert. Stattdessen rendert diese Komponente:
+ * On mobile the app chrome (traffic light, tabs, toolbar, sprint
+ * pill) is hidden entirely, because a simulated app at 375 px only
+ * gets in the way. Instead this component renders:
  *
- *  - Eine schlanke Sticky-Top-Bar mit Wort-Mark + Hamburger-Button.
- *  - Einen Full-Screen-Overlay-Drawer mit Pages, Sprach-Toggle,
- *    Rechts-Links und GitHub.
+ *  - A slim sticky top bar with wordmark + hamburger button.
+ *  - A full-screen overlay drawer with pages, language toggle,
+ *    legal links and GitHub.
  *
- * Auf Desktop (>= 769 px) ist die Komponente komplett unsichtbar -
- * dort uebernimmt die normale Chrome-Tab-Bar.
+ * On desktop (>= 769 px) the component is completely invisible -
+ * the normal chrome tab bar takes over there.
  *
- * Aktive Page wird via `activeRoute`-Prop hervorgehoben. Fuer
- * Legal-Seiten existiert ein eigener Key ("impressum"/"datenschutz"),
- * der zur DE-only-Sub-Liste passt.
+ * The active page is highlighted via the `activeRoute` prop. For
+ * legal pages there is a dedicated key ("impressum"/"datenschutz")
+ * that matches the DE-only sub-list.
  *
- * Re-Mount-Verhalten: Die Komponente traegt KEIN `transition:persist`,
- * weil sich Labels und der Sprach-Toggle bei Sprachwechsel mitziehen
- * muessen (analog zur Begruendung in AppShell.astro). Das ist OK -
- * der Drawer ist beim Routen-Wechsel ohnehin geschlossen.
+ * Re-mount behavior: the component does NOT carry `transition:persist`,
+ * because labels and the language toggle have to follow on language
+ * switch (same rationale as in AppShell.astro). That's fine - the
+ * drawer is closed on route change anyway.
  */
 import { site } from "../data/site";
 import { routePath, switchLangPath, t, type Lang, type RouteKey } from "../i18n";
 
 interface Props {
   lang: Lang;
-  /** Welche Seite ist aktuell - eine Tab-Route oder eine Legal-Seite.
-   *  `null` wenn keine Hervorhebung gewuenscht ist (sollte nicht
-   *  vorkommen, aber sauber abgefangen). */
+  /** Which page is current - a tab route or a legal page. `null` if
+   *  no highlight is desired (shouldn't occur, but handled cleanly). */
   activeRoute: RouteKey | "impressum" | "datenschutz" | null;
-  /** Aktueller Pfad - wird fuer den Sprach-Toggle gebraucht, damit
-   *  DE/EN auf der "Schwester-URL" landet. */
+  /** Current path - used for the language toggle so DE/EN lands on
+   *  the "sister URL". */
   currentPath: string;
 }
 
@@ -41,8 +40,8 @@ const { lang, activeRoute, currentPath } = Astro.props;
 const otherLang: Lang = lang === "de" ? "en" : "de";
 const switchHref = switchLangPath(lang, otherLang, currentPath);
 
-// Pages-Reihenfolge folgt der Tab-Bar in AppShell.astro. Home zuerst,
-// dann inhaltliche Seiten, Download am Ende als CTA-naher Eintrag.
+// Pages order follows the tab bar in AppShell.astro. Home first,
+// then content pages, download at the end as a CTA-adjacent entry.
 type NavItem = { key: RouteKey; labelKey: Parameters<typeof t>[1] };
 const navItems: NavItem[] = [
   { key: "home",       labelKey: "tab.home.title" },
@@ -55,7 +54,7 @@ const navItems: NavItem[] = [
 ];
 ---
 
-<!-- Sticky-Top-Bar. Sichtbar nur <= 768 px (CSS unten). -->
+<!-- Sticky top bar. Visible only <= 768 px (CSS below). -->
 <header class="mn-bar" data-mobilenav-bar>
   <a class="mn-brand" href={routePath(lang, "home")} aria-label={t(lang, "mobilenav.brand")}>
     <img class="mn-brand-mark" src="/img/icon.png" alt="" width="28" height="28" />
@@ -75,10 +74,10 @@ const navItems: NavItem[] = [
   </button>
 </header>
 
-<!-- Full-Screen-Overlay-Drawer. `aria-hidden="true"` im Default-Zustand,
-     JS toggelt das beim Oeffnen/Schliessen. Kein `<dialog>`, weil der
-     Drawer non-modal sein soll (Backdrop-Klick reicht) und wir das
-     Open-Animations-CSS einfacher halten. -->
+<!-- Full-screen overlay drawer. `aria-hidden="true"` in the default
+     state; JS toggles that on open/close. No `<dialog>` because the
+     drawer should be non-modal (backdrop click is enough) and we
+     keep the open-animation CSS simpler. -->
 <div
   class="mn-drawer"
   id="mobilenav-drawer"
@@ -179,10 +178,10 @@ const navItems: NavItem[] = [
 </div>
 
 <style>
-  /* ===== Sichtbarkeit ==================================== */
-  /* MobileNav nur unter 768 px aktiv. Darueber komplett aus dem Flow
-     (display:none), damit kein Sticky-Spacing am Desktop verbraucht
-     wird. */
+  /* ===== Visibility ===================================== */
+  /* MobileNav only active below 768 px. Above that, completely out
+     of the flow (display:none) so no sticky spacing is consumed on
+     desktop. */
   .mn-bar,
   .mn-drawer { display: none; }
 
@@ -191,7 +190,7 @@ const navItems: NavItem[] = [
     .mn-drawer { display: block; }
   }
 
-  /* ===== Top-Bar ========================================= */
+  /* ===== Top bar ========================================= */
   .mn-bar {
     position: sticky;
     top: 0;
@@ -266,8 +265,9 @@ const navItems: NavItem[] = [
     opacity: 0;
     pointer-events: none;
     transition: opacity 180ms ease;
-    /* Karo-Echo des Site-BG, damit der Drawer optisch zur Landing
-       passt, statt wie ein Modal-Overlay einer fremden App zu wirken. */
+    /* Grid echo of the site BG so the drawer matches the landing
+       visually, instead of looking like a modal overlay of a foreign
+       app. */
     background-image:
       linear-gradient(rgba(28, 24, 20, 0.06) 1px, transparent 1px),
       linear-gradient(90deg, rgba(28, 24, 20, 0.06) 1px, transparent 1px);
@@ -334,7 +334,7 @@ const navItems: NavItem[] = [
     outline: none;
   }
 
-  /* ===== Nav-Inhalt ====================================== */
+  /* ===== Nav content ====================================== */
   .mn-section {
     display: block;
     font-size: 10px;
@@ -384,7 +384,7 @@ const navItems: NavItem[] = [
     color: rgba(28, 24, 20, 0.45);
   }
 
-  /* ===== Sprach-Toggle innerhalb des Drawers ============= */
+  /* ===== Language toggle inside the drawer ============= */
   .mn-lang {
     display: inline-flex;
     align-items: center;
@@ -415,21 +415,20 @@ const navItems: NavItem[] = [
     color: #1c1814;
   }
 
-  /* ===== Body-Lock beim offenen Drawer ===================
-     Globaler Selektor, weil der Body-Tag ausserhalb der Komponente
-     liegt. Astro-`<style>` ist per Default scoped - mit `:global(...)`
-     bekommen wir Zugriff auf den globalen Selektor. */
+  /* ===== Body lock while the drawer is open ===================
+     Global selector because the body tag lives outside the
+     component. Astro `<style>` is scoped by default - with
+     `:global(...)` we access the global selector. */
   :global(body.mn-locked) {
     overflow: hidden;
   }
 </style>
 
 <script is:inline>
-  // Mobile-Nav-Init: Toggle-Buttons, Esc-Listener, Body-Lock.
-  // Wird beim ersten Page-Load und nach jedem astro:after-swap
-  // erneut aufgerufen (siehe Base.astro), weil die Komponente bei
-  // Sprachwechseln re-rendert wird und neue Knoten frische Listener
-  // brauchen.
+  // Mobile-nav init: toggle buttons, Esc listener, body lock.
+  // Called on first page load and after every astro:after-swap
+  // (see Base.astro), because the component re-renders on language
+  // switches and new nodes need fresh listeners.
   window.__scriptzMobileNavInit = function () {
     var bar = document.querySelector("[data-mobilenav-bar]");
     var drawer = document.querySelector("[data-mobilenav-drawer]");
@@ -464,9 +463,9 @@ const navItems: NavItem[] = [
       closeBtn.__mnHandler = closeHandler;
       closeBtn.addEventListener("click", closeHandler);
     }
-    // Drawer-Hintergrundklick schliesst auch. Klick auf .mn-drawer-inner
-    // selbst (also auf Text-Inhalt) ignoriert das, weil dort der Drawer
-    // selbst als event.target faellt - nicht der innere Container.
+    // Drawer background click also closes. Clicks on .mn-drawer-inner
+    // itself (i.e. on text content) ignore this, because there the
+    // drawer itself becomes event.target - not the inner container.
     if (drawer.__mnHandler) drawer.removeEventListener("click", drawer.__mnHandler);
     var bgHandler = function (e) {
       if (e.target === drawer) close();
@@ -474,10 +473,10 @@ const navItems: NavItem[] = [
     drawer.__mnHandler = bgHandler;
     drawer.addEventListener("click", bgHandler);
 
-    // Jeder Link schliesst den Drawer beim Tap (auch bei Same-URL,
-    // damit der Drawer nicht stehen bleibt). Astro-ClientRouter
-    // uebernimmt danach den Routenwechsel - und nach dem Swap wird
-    // diese Init-Funktion erneut aufgerufen, also alles sauber neu.
+    // Every link closes the drawer on tap (even on same-URL, so the
+    // drawer doesn't stay open). Astro ClientRouter then takes over
+    // the route change - and after the swap this init function is
+    // called again, so everything is cleanly fresh.
     links.forEach(function (link) {
       if (link.__mnHandler) link.removeEventListener("click", link.__mnHandler);
       var linkHandler = function () { close(); };
@@ -485,9 +484,9 @@ const navItems: NavItem[] = [
       link.addEventListener("click", linkHandler);
     });
 
-    // Esc schliesst, falls offen. Document-Listener wird nur einmal
-    // global registriert (Flag am window), damit er beim Re-Init nicht
-    // dupliziert wird.
+    // Esc closes if open. The document listener is registered only
+    // once globally (flag on window) so it isn't duplicated on
+    // re-init.
     if (!window.__scriptzMobileNavEscBound) {
       window.__scriptzMobileNavEscBound = true;
       document.addEventListener("keydown", function (e) {

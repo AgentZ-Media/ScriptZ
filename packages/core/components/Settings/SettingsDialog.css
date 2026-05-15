@@ -1,26 +1,26 @@
 /* =========================================================================
-   Settings Modal — 2-Spalten-Layout (links Nav, rechts Pane).
-   Visualisiert nach Re-Design `modals.jsx::SettingsModal`.
+   Settings modal — 2-column layout (nav on the left, pane on the right).
+   Visualized after re-design `modals.jsx::SettingsModal`.
    ========================================================================= */
 
-/* Nimmt die Modal-Body-Padding wieder weg, wir wollen das Grid randlos.
-   Außerdem das Body-Scrolling abschalten - sonst scrollt die Sidebar
-   bei langem Pane-Inhalt (Tastatur-Reiter!) mit weg, statt fix zu
-   bleiben. Das Pane bekommt sein eigenes overflow:auto. */
+/* Removes the modal-body padding again; we want the grid flush.
+   Also disable body scrolling - otherwise the sidebar scrolls along
+   on long pane content (keyboard tab!) instead of staying
+   fixed. The pane gets its own overflow:auto. */
 .modal-body:has(.settings-grid) {
   padding: 0;
   overflow: hidden;
   display: flex;
 }
 
-/* Feste Modal-Höhe für die Settings, damit das Fenster beim Tab-Wechsel
-   nicht in der Höhe springt. Wächst proportional zum Bildschirm
-   (78vh) bis zu einem oberen Limit von 720px - sonst wird der Dialog
-   auf großen Monitoren unnötig riesig. min: 480px verhindert, dass
-   ein kurzer Tab das Modal zu eng macht. max-height: 95vh ist ein
-   harter Schutz für sehr kleine Fenster, in denen 480px > Fenster wäre.
-   Greift nur, wenn das Modal die Settings-Sektionen enthält - andere
-   Dialogs (Confirm, Rename) bleiben kompakt. */
+/* Fixed modal height for settings so the window doesn't jump in height
+   on tab switch. Grows proportionally with the screen
+   (78vh) up to a top limit of 720px - otherwise the dialog gets
+   unnecessarily huge on large monitors. min: 480px prevents
+   a short tab from making the modal too tight. max-height: 95vh is a
+   hard guard for very small windows where 480px > window would be.
+   Only applies when the modal contains the settings sections - other
+   dialogs (confirm, rename) stay compact. */
 .modal:has(.settings-grid) {
   height: clamp(480px, 78vh, 720px);
   max-height: 95vh;
@@ -41,9 +41,9 @@
   flex-direction: column;
   gap: 2px;
   background: var(--paper-2);
-  /* Eigene Scrollbar nur falls die Nav-Liste mal länger als das
-     Modal wird - bei aktuell 6 Reitern passiert das nie, ist aber
-     billig zukunftssicher. */
+  /* Own scrollbar only in case the nav list ever gets longer than the
+     modal - with the current 6 tabs that never happens, but it's
+     cheap future-proofing. */
   overflow-y: auto;
   min-height: 0;
 }
@@ -83,8 +83,8 @@
 
 .settings-pane {
   padding: 22px 24px;
-  /* Pane scrollt unabhängig von der Nav, sonst rollt die Sidebar
-     bei langem Inhalt (Tastatur-Reiter) mit weg. */
+  /* Pane scrolls independently from the nav, otherwise the sidebar
+     scrolls away with long content (keyboard tab). */
   overflow-y: auto;
   min-height: 0;
 }
@@ -125,7 +125,7 @@
   margin-top: 2px;
 }
 
-/* ---- Custom Toggle (Pill mit Knubbel) ---- */
+/* ---- Custom toggle (pill with knob) ---- */
 .s-toggle {
   position: relative;
   width: 36px;

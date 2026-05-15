@@ -2,20 +2,19 @@ import { Show, createSignal, onCleanup, onMount } from "solid-js";
 import { t } from "@scriptz/core/i18n";
 import "./StoragePersistedBadge.css";
 
-/** Status der `navigator.storage.persisted()`-Abfrage:
- *  - "unknown": noch nicht geprüft (oder API nicht verfügbar)
- *  - "persisted": Browser garantiert, dass IndexedDB nicht still geräumt wird
- *  - "ephemeral": Browser darf bei Speicherdruck räumen → User-sichtbarer Hinweis
+/** State of the `navigator.storage.persisted()` query:
+ *  - "unknown": not yet checked (or API unavailable)
+ *  - "persisted": browser guarantees IndexedDB won't be silently evicted
+ *  - "ephemeral": browser may evict under storage pressure → user-visible hint
  *
- *  Wir zeigen das Badge NUR im Status "ephemeral" - also wenn der Browser
- *  Persistenz aktiv abgelehnt hat (Safari ITP, Firefox-Default, oder ein
- *  noch nicht installierter Chrome-Tab). Im Erfolgsfall bleibt die UI
- *  ruhig.
+ *  We show the badge ONLY in the "ephemeral" state - i.e. when the browser
+ *  has actively refused persistence (Safari ITP, Firefox default, or a
+ *  not-yet-installed Chrome tab). On success the UI stays quiet.
  *
- *  Anders als der WebDisclaimerBanner ist dieses Badge nicht
- *  dismissable - wenn der Browser die Daten potenziell wegräumen darf,
- *  soll der User das während der gesamten Session sehen, sonst denkt
- *  er "ist schon ok" und merkt zu spät, dass das nicht stimmt. */
+ *  Unlike the WebDisclaimerBanner, this badge is NOT dismissable - if
+ *  the browser may potentially wipe the data, the user should see this
+ *  for the entire session; otherwise they think "it's fine" and notice
+ *  too late that it isn't. */
 type PersistState = "unknown" | "persisted" | "ephemeral";
 
 export function StoragePersistedBadge() {
@@ -31,15 +30,15 @@ export function StoragePersistedBadge() {
         setState(ok ? "persisted" : "ephemeral");
       }
     } catch {
-      // API kaputt → wir behaupten lieber nichts
+      // API broken → better not claim anything
     }
   }
 
   onMount(() => {
     void probe();
-    // Wenn der User die Site später bookmarkt / als App installiert,
-    // kann sich der Status nachträglich auf "persistent" verbessern.
-    // Re-probe auf focus, kostet quasi nichts.
+    // If the user later bookmarks the site / installs it as an app, the
+    // state can improve to "persistent" after the fact. Re-probe on
+    // focus - costs basically nothing.
     const onFocus = () => void probe();
     window.addEventListener("focus", onFocus);
     onCleanup(() => window.removeEventListener("focus", onFocus));

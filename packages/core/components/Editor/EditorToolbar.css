@@ -1,14 +1,14 @@
 /* =========================================================================
-   Editor-Toolbar — sticky-Leiste oberhalb des Papers.
-   Im Fokus-Modus blendet sie sich weg.
+   Editor toolbar — sticky bar above the paper.
+   Hides itself in focus mode.
    ========================================================================= */
 
 .editor-toolbar {
   position: sticky;
   top: 0;
-  /* Über In-Content-Popovers (Dropdowns z=50, Color-Popover z=55), damit
-     ein Charakter-Dropdown beim Hochscrollen nicht in die Pillen rein-
-     ragt. Gleiche Ebene wie die Titelleiste (TabBar.css). */
+  /* Above in-content popovers (dropdowns z=50, color popover z=55) so
+     a character dropdown doesn't poke into the pills when scrolling
+     up. Same level as the title bar (TabBar.css). */
   z-index: 60;
   display: flex;
   align-items: center;
@@ -20,10 +20,10 @@
   transition: opacity var(--t-med), transform var(--t-med);
 }
 
-/* Im Fokus-Modus verschwindet die Leiste komplett aus dem Layout-Flow,
-   damit das Paper bündig an die Tab-Bar anschließt und kein leerer Streifen
-   übrigbleibt. Smooth-Transition ist hier bewusst aufgegeben - der Fokus-
-   Modus ist ein Modus-Switch, kein laufendes Detail. */
+/* In focus mode the bar disappears completely from the layout flow,
+   so the paper sits flush against the tab bar and no empty strip
+   remains. Smooth transition is deliberately given up here - focus
+   mode is a mode switch, not an ongoing detail. */
 .app-root.is-focus .editor-toolbar {
   display: none;
 }
@@ -130,9 +130,9 @@
   text-transform: none;
   color: var(--text-faint, var(--text-subtle));
   opacity: 0.65;
-  /* Optisch ein Hauch nach unten - der kleinere Text wirkt sonst
-     leicht nach oben verschoben gegenüber dem 11px-Label, weil die
-     Mitte der Glyphen bei kleineren Schriftgraden anders liegt. */
+  /* Visually a touch downward - the smaller text otherwise looks
+     slightly shifted upward relative to the 11px label, because the
+     glyph midline sits differently at smaller font sizes. */
   position: relative;
   top: 0.5px;
 }

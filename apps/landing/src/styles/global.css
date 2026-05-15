@@ -23,9 +23,9 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--fg);
-  /* Karo-Muster wie auf dem App-Icon. Zwei Repeating-Gradients
-     erzeugen ein zartes Grid mit der Zellengröße aus tokens.css.
-     Hintergrundfarbe ist reines Weiß, das Grid liegt darüber. */
+  /* Grid pattern like on the app icon. Two repeating gradients
+     create a subtle grid with the cell size from tokens.css.
+     Background color is pure white, the grid sits on top. */
   background-color: var(--bg);
   background-image:
     repeating-linear-gradient(
@@ -88,7 +88,7 @@ ul, ol {
   list-style: none;
 }
 
-/* Typographische Bausteine */
+/* Typographic building blocks */
 .h-display {
   font-size: clamp(40px, 6vw, 64px);
   font-weight: 700;
@@ -216,7 +216,7 @@ ul, ol {
   color: var(--fg-muted);
 }
 
-/* Karten */
+/* Cards */
 .card {
   background: var(--bg-elev-1);
   border: 1px solid var(--border);
@@ -230,7 +230,7 @@ ul, ol {
   border-color: var(--border-strong);
 }
 
-/* Trennlinie */
+/* Divider */
 .divider {
   height: 1px;
   background: var(--border);
@@ -238,7 +238,7 @@ ul, ol {
   border: 0;
 }
 
-/* Mikroanimation: weiches Reveal beim Scrollen */
+/* Micro-animation: soft reveal on scroll */
 .reveal {
   opacity: 0;
   transform: translateY(12px);
@@ -249,7 +249,7 @@ ul, ol {
   transform: translateY(0);
 }
 
-/* Fokus-Ring */
+/* Focus ring */
 :focus-visible {
   outline: 2px solid var(--brand-500);
   outline-offset: 3px;

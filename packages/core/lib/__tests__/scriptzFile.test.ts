@@ -1,16 +1,16 @@
-// Roundtrip + Validierungs-Tests für das `.scriptz`-Dateiformat.
+// Roundtrip + validation tests for the `.scriptz` file format.
 //
-// Soll fangen, wenn jemand das Format-Schema kaputt macht (z.B. ein
-// Script-Feld vergisst zu serialisieren, oder Validierungs-Reject
-// zu lax wird).
+// Catches if someone breaks the format schema (e.g. forgets to
+// serialize a script field, or the validation reject becomes
+// too lax).
 
 import { beforeAll, describe, it, expect } from "vitest";
 import { applyResolvedLanguage } from "../../i18n";
 
-// Tests sind gegen die deutschen Wordings gepinnt (sie waren da, bevor
-// i18n eingezogen ist). In der vitest-Umgebung läuft navigator.language
-// je nach Host auf "en-US" - wir pinnen die Sprache explizit, damit die
-// Assertions deterministisch bleiben.
+// Tests are pinned against the German wordings (they were there before
+// i18n moved in). In the vitest environment navigator.language runs as
+// "en-US" depending on the host - we pin the language explicitly so the
+// assertions stay deterministic.
 beforeAll(() => {
   applyResolvedLanguage("de");
 });
@@ -82,7 +82,7 @@ describe("scriptzFile - serializeScript", () => {
   it("parst content_json zu Objekt, nicht doppeltes JSON-String", () => {
     const out = serializeScript(baseScript);
     expect(out.script.contentJson).toBeTypeOf("object");
-    // root-Property muss durchgereicht sein
+    // root property must be passed through
     expect((out.script.contentJson as { root: unknown }).root).toBeDefined();
   });
 
@@ -119,9 +119,9 @@ describe("scriptzFile - roundtrip", () => {
     expect(parsed.script.characters).toEqual([
       { name: "MAX", color: "#7aa2f7", share: 1.0 },
     ]);
-    // contentJson laeuft als Objekt zurueck - Roundtrip via JSON.stringify
-    // muss bit-identisch zum Original sein, weil JSON.parse den canonical
-    // Tree erzeugt.
+    // contentJson comes back as an object - roundtrip via JSON.stringify
+    // must be bit-identical to the original because JSON.parse produces
+    // a canonical tree.
     expect(JSON.stringify(parsed.script.contentJson)).toBe(
       JSON.stringify(JSON.parse(baseScript.content_json)),
     );
@@ -196,9 +196,9 @@ describe("scriptzFile - parseScriptzBytes Validierung", () => {
 
 describe("scriptzFile - defaultScriptzFilename", () => {
   it("ersetzt FS-unfreundliche Zeichen", () => {
-    // Aufeinanderfolgende verbotene Zeichen werden zu einem Underscore
-    // zusammengefasst (regex + flag), das ist Absicht - sonst entstehen
-    // Dateinamen wie "Foo_____bar.scriptz".
+    // Consecutive forbidden characters collapse to a single underscore
+    // (regex + flag), that is intentional - otherwise we'd get
+    // filenames like "Foo_____bar.scriptz".
     expect(defaultScriptzFilename('Hallo / Welt: "Test"?')).toBe(
       `Hallo _ Welt_ _Test_.${SCRIPTZ_EXTENSION}`,
     );

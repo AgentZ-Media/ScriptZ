@@ -297,8 +297,8 @@ a:hover { text-decoration: underline; }
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-/* Toasts kommen von unten reingeschoben — wirkt natuerlicher als ein
-   Scale-in fuer Inhalte, die unten am Rand auftauchen. */
+/* Toasts slide in from the bottom — feels more natural than a
+   scale-in for content that appears at the bottom edge. */
 @keyframes toast-slide-up {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -317,9 +317,9 @@ a:hover { text-decoration: underline; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-/* Validation/Hilfstext direkt unter einem Field-Input. `field-hint-warn`
-   ist die "User muss noch was tun"-Variante - rotbraun statt rot, damit
-   sie nicht als Fehler nach abgeschlossener Aktion wirkt. */
+/* Validation / helper text directly under a field input. `field-hint-warn`
+   is the "user still has to do something" variant - reddish brown
+   instead of red, so it doesn't feel like an error after a completed action. */
 .field-hint {
   font-size: var(--fs-12);
   color: var(--fg-muted);
@@ -338,6 +338,73 @@ a:hover { text-decoration: underline; }
   user-select: none;
 }
 .checkbox input { accent-color: var(--brand-500); }
+
+/* ============================================================
+   Custom select — used when the native <select> popup feels out
+   of place inside a styled modal. Mirrors the .field input look.
+   ============================================================ */
+.cselect {
+  position: relative;
+  font-family: inherit;
+  font-size: inherit;
+}
+.cselect-trigger {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  padding: 8px 12px;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast),
+    background var(--t-fast);
+}
+.cselect-trigger:hover { border-color: var(--border-strong); }
+.cselect.is-open .cselect-trigger,
+.cselect-trigger:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--ring-brand);
+}
+.cselect-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cselect-value.is-placeholder { color: var(--fg-muted); }
+.cselect-caret {
+  display: inline-flex;
+  color: var(--fg-muted);
+  transition: transform var(--t-fast);
+}
+.cselect.is-open .cselect-caret { transform: rotate(180deg); }
+
+.cselect-popover {
+  position: fixed;
+  z-index: 1100;
+  background: var(--modal-bg, var(--bg-elev-2));
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-toast, 0 6px 24px rgba(0, 0, 0, 0.12));
+  padding: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.cselect-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--r-2);
+  font-size: inherit;
+  color: var(--fg);
+  cursor: pointer;
+  background: transparent;
+  text-align: left;
+}
+.cselect-option.is-active { background: var(--hover); }
+.cselect-option.is-selected { color: var(--fg); font-weight: 500; }
 
 /* Form radios + toggles — shared between Settings and Export dialogs.
    Must live in global so consumers don't depend on Settings being loaded. */

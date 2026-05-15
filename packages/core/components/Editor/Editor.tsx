@@ -37,10 +37,9 @@ import "./Editor.css";
 export interface EditorProps {
   scriptId: string;
   initialContentJson: string | null | undefined;
-  /** Optionaler Cursor, der nach dem Mount statt `rootEnd` gesetzt wird.
-   *  ScriptView reicht hier den letzten bekannten Cursor des Skripts
-   *  durch, damit der User beim Tab-Wechsel zurueck genau dort landet,
-   *  wo er war. */
+  /** Optional cursor set after mount instead of `rootEnd`.
+   *  ScriptView passes the last known cursor of the script through here
+   *  so the user lands back exactly where they were on tab switch. */
   initialCursor?: CursorAddress | null;
   characters: ScriptCharacter[];
   highlighting?: boolean;
@@ -57,13 +56,13 @@ export interface EditorProps {
    * editor will NOT mount (and will NOT auto-overwrite the broken state)
    * — the parent is expected to render a recovery UI instead. */
   onParseError?: (rawJson: string) => void;
-  /** Liefert die `LexicalEditor`-Instanz nach Mount nach oben — die
-   *  Editor-Toolbar braucht sie, um per Klick auf eine Block-Pille
-   *  `setBlockType(editor, "scriptz-character")` aufrufen zu können. */
+  /** Returns the `LexicalEditor` instance to the parent after mount — the
+   *  editor toolbar needs it to call
+   *  `setBlockType(editor, "scriptz-character")` on a pill click. */
   onEditorReady?: (editor: LexicalEditor) => void;
   /** Fires whenever the cursor moves into a different block type (or out
-   *  of any Scriptz-Block, in which case the value is `null`). Treibt das
-   *  `is-active`-Highlighting der Block-Pillen in der Toolbar. */
+   *  of any Scriptz block, in which case the value is `null`). Drives the
+   *  `is-active` highlighting of the block pills in the toolbar. */
   onActiveBlockChange?: (blockType: string | null) => void;
 }
 
@@ -119,7 +118,7 @@ export function Editor(props: EditorProps) {
 
     editor.setRootElement(rootRef);
 
-    // Expose editor instance to parent (Editor-Toolbar braucht sie).
+    // Expose editor instance to parent (the editor toolbar needs it).
     props.onEditorReady?.(editor);
 
     // Lexical's default text-insertion handlers live in @lexical/rich-text.
@@ -173,12 +172,12 @@ export function Editor(props: EditorProps) {
     // Lexical has finished its initial reconcile and the DOM target
     // exists.
     //
-    // Wenn ein `initialCursor` mitgegeben wurde (Tab-Wechsel zurueck auf
-    // ein zuvor offenes Skript), platzieren wir den Cursor an der
-    // gespeicherten Stelle und fokussieren OHNE `defaultSelection` -
-    // sonst wuerde Lexical die soeben gesetzte Selection wieder nach
-    // rootEnd ueberschreiben. Ohne gespeicherten Cursor bleibt das
-    // urspruengliche Verhalten: ans Ende des Dokuments.
+    // If an `initialCursor` was provided (tab switch back to a
+    // previously open script), we place the cursor at the
+    // saved spot and focus WITHOUT `defaultSelection` -
+    // otherwise Lexical would overwrite the just-set selection back to
+    // rootEnd. Without a saved cursor the
+    // original behavior stands: to the end of the document.
     const initialCursor = props.initialCursor ?? null;
     requestAnimationFrame(() => {
       try {
@@ -256,11 +255,11 @@ export function Editor(props: EditorProps) {
       openColorPicker: colorPicker.openFor,
     }));
 
-    // Charakter-Tints neu berechnen, wenn der User die dark-paper-Option
-    // umlegt oder das aufgelöste Theme wechselt (Auto + System-Wechsel).
-    // Die Tint-Formel hängt vom Paper-Modus ab (toward white vs toward
-    // dark), daher müssen alle Blöcke neu eingefärbt werden. Erstes Run
-    // wird ausgelassen, der Initial-Pass im Plugin macht den ohnehin.
+    // Recompute character tints when the user toggles the dark-paper option
+    // or the resolved theme changes (auto + system switch).
+    // The tint formula depends on the paper mode (toward white vs toward
+    // dark), so all blocks have to be re-tinted. The first run
+    // is skipped, the plugin's initial pass already covers it.
     let firstPaperSync = true;
     createEffect(() => {
       settingsStore.darkPaper();
@@ -272,12 +271,12 @@ export function Editor(props: EditorProps) {
       highlight.refresh();
     });
 
-    // Cache der app-weiten Charakter-Farbeintraege (override ?? default
-    // aus character_colors). Wird einmal beim Mount geladen und nach
-    // jedem Save mit der Server-Antwort aktualisiert. Der Sync-Reconcile-
-    // Pfad nutzt das, damit ein wiederkehrender Charakter (gleicher
-    // Name in einem anderen Skript schon eingefaerbt) sofort die richtige
-    // Farbe bekommt, statt erst nach dem debounced DB-Roundtrip.
+    // Cache of the app-wide character color records (override ?? default
+    // from character_colors). Loaded once on mount and updated after
+    // every save with the server response. The sync reconcile
+    // path uses this so a recurring character (same
+    // name already tinted in another script) gets the right
+    // color immediately instead of only after the debounced DB roundtrip.
     const knownColors = new Map<string, string>();
     api
       .listCharacterColors()
@@ -286,19 +285,19 @@ export function Editor(props: EditorProps) {
           const color = r.override_color ?? r.default_color;
           if (color) knownColors.set(r.name.toUpperCase(), color);
         }
-        // Falls der Editor bereits Charaktere enthielt (geseedet aus props),
-        // jetzt nochmal reconcilen, damit der Cache greift.
+        // If the editor already contained characters (seeded from props),
+        // reconcile again now so the cache takes effect.
         reconcileLiveCharactersSync();
       })
       .catch(() => {
-        /* ohne Cache greift weiter unten der Palette-Fallback */
+        /* without the cache, the palette fallback further down takes over */
       });
 
-    /** Palette-Farbe waehlen, die in der bereits-zusammengestellten
-     *  Liste noch nicht belegt ist. Spiegelt `pickPaletteInScript` aus
-     *  characterColors.ts, damit der spaetere Server-Save (der genau
-     *  diese Heuristik kennt) auf dieselbe Farbe landet und kein
-     *  sichtbares Umfaerben passiert. */
+    /** Pick a palette color that isn't already claimed in the
+     *  already-assembled list. Mirrors `pickPaletteInScript` from
+     *  characterColors.ts so the later server save (which knows the same
+     *  heuristic) lands on the same color and no
+     *  visible re-coloring happens. */
     function pickFallbackColor(existing: ScriptCharacter[]): string {
       const used = new Set<string>();
       for (const c of existing) used.add(c.color);
@@ -308,13 +307,13 @@ export function Editor(props: EditorProps) {
       return DEFAULT_PALETTE[0];
     }
 
-    /** Synchroner Walk durch den Editor-State, der `liveCharacters` an
-     *  die aktuell sichtbaren Character-Bloecke anpasst. Laeuft auf
-     *  jedem Lexical-Update (nicht debounced) — sonst muesste der User
-     *  auf den 250 ms Debounce des DB-Saves warten, bevor die Tint-
-     *  Farbe an Character/Dialog haengen bleibt. Neue Namen bekommen
-     *  sofort eine Farbe (knownColors aus DB-Cache, sonst Palette);
-     *  der spaetere Save kanonisiert das ggf. via Server-Antwort. */
+    /** Synchronous walk through the editor state that adjusts `liveCharacters`
+     *  to the currently visible character blocks. Runs on
+     *  every Lexical update (not debounced) — otherwise the user would
+     *  have to wait for the 250 ms DB-save debounce before the tint
+     *  color stays on character / dialog. New names get
+     *  a color immediately (knownColors from DB cache, otherwise palette);
+     *  the later save canonicalizes that via the server response. */
     function reconcileLiveCharactersSync(): boolean {
       const seenNames: string[] = [];
       const seenSet = new Set<string>();
@@ -376,13 +375,13 @@ export function Editor(props: EditorProps) {
       return changed;
     }
 
-    // Externe Farb-Updates (z.B. aus dem Einstellungen-Charaktere-Tab) live
-    // in den laufenden Editor ziehen. ScriptView refetcht beim
-    // `scriptsBus.bump()` und reicht die frischen `characters` als Prop
-    // weiter — wir mergen NUR Farben in `liveCharacters` (kein Replace),
-    // damit gerade getippte, noch nicht gespeicherte Namen nicht
-    // überschrieben werden. Erstes Run wird übersprungen, weil
-    // `liveCharacters` bereits aus Props seeded ist.
+    // Pull external color updates (e.g. from the settings characters tab)
+    // live into the running editor. ScriptView refetches on
+    // `scriptsBus.bump()` and passes the fresh `characters` as a prop
+    // — we merge ONLY colors into `liveCharacters` (no replace),
+    // so currently-typed, not-yet-saved names aren't
+    // overwritten. The first run is skipped because
+    // `liveCharacters` is already seeded from props.
     let firstCharacterSync = true;
     createEffect(() => {
       const incoming = props.characters ?? [];
@@ -411,10 +410,10 @@ export function Editor(props: EditorProps) {
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let dirtySinceSnapshot = false;
 
-    /** Heuristik: ist `contentJson` ein "leerer" Lexical-Doc?
-     *  Verwendet, um zu erkennen ob `persist()` versucht, durch einen
-     *  Race (Editor wird torn down während eine debounced/onCleanup
-     *  persist() läuft) leeren State über echte Inhalte zu schreiben. */
+    /** Heuristic: is `contentJson` an "empty" Lexical doc?
+     *  Used to detect when `persist()` tries to write empty state
+     *  over real content because of a race (editor torn down while a
+     *  debounced / onCleanup persist() is running). */
     function isContentEffectivelyEmpty(json: string): boolean {
       try {
         const root = (JSON.parse(json) as { root?: { children?: unknown[] } })?.root;
@@ -447,17 +446,17 @@ export function Editor(props: EditorProps) {
         contentJson = JSON.stringify(state.toJSON());
       });
 
-      // Hinweis: Die live-Charakterliste wird NICHT mehr hier aktualisiert
-      // — das laeuft synchron im registerUpdateListener via
-      // `reconcileLiveCharactersSync()`. Sonst muesste der Tint auf den
-      // 250 ms Save-Debounce warten und blieb beim flotten Tippen grau.
+      // Note: the live character list is NO LONGER updated here
+      // — that runs synchronously in registerUpdateListener via
+      // `reconcileLiveCharactersSync()`. Otherwise the tint would have
+      // to wait for the 250 ms save debounce and stay grey while typing fast.
 
-      // Sicherheitsnetz gegen Datenverlust: wenn der Editor-State JETZT
-      // leer aussieht und der letzte erfolgreich gespeicherte Stand Inhalt
-      // hatte, ist das beim Teardown ein klares Race-Symptom (Editor wurde
-      // torn down während ein onCleanup persist() lief). Wir blockieren
-      // das nur im Teardown - sonst würde ein legitimes "Skript ganz
-      // leeren" durch den User für immer scheitern.
+      // Safety net against data loss: if the editor state looks empty NOW
+      // and the last successfully saved state had content, on a teardown
+      // that's a clear race symptom (editor was
+      // torn down while an onCleanup persist() was running). We block
+      // this only on teardown - otherwise a legitimate "fully clear
+      // the script" by the user would fail forever.
       if (
         fromTeardown &&
         isContentEffectivelyEmpty(contentJson) &&
@@ -483,17 +482,17 @@ export function Editor(props: EditorProps) {
 
         // Re-walk the editor state (the user may have typed during the
         // round-trip) and map each current name to the server-assigned
-        // palette color from the summary. Wenn der Server fuer einen
-        // mid-flight getippten Namen noch keine Farbe kennt, behalten
-        // wir die lokal gewaehlte Farbe aus `liveCharacters` — der
-        // naechste Save kanonisiert das. Frueher landete der Name auf
-        // `PENDING_CHAR_COLOR` (grau), was den Sync-Fix wieder
-        // zurueckgedreht haette.
+        // palette color from the summary. If the server doesn't yet know
+        // a color for a name typed mid-flight, we keep
+        // the locally-chosen color from `liveCharacters` — the
+        // next save canonicalizes it. Previously the name landed on
+        // `PENDING_CHAR_COLOR` (grey), which would have reverted the
+        // sync fix.
         const colorMap = new Map(
           summary.characters.map((c) => [c.name.toUpperCase(), c.color]),
         );
-        // Cache mitziehen, damit ein bei einem spaeteren Skript erneut
-        // getippter Name die kanonische Farbe sofort bekommt.
+        // Update the cache so a name retyped in a later script
+        // immediately gets the canonical color.
         for (const c of summary.characters) {
           knownColors.set(c.name.toUpperCase(), c.color);
         }
@@ -554,9 +553,9 @@ export function Editor(props: EditorProps) {
       }
     };
 
-    // Aktiven Block-Typ tracken — sowohl bei Selection-Wechseln (Cursor
-    // wandert per Tastatur/Klick) als auch bei Inhaltsänderungen (z.B.
-    // ⌘1..⌘7 ersetzt den Block-Typ unter dem Cursor).
+    // Track the active block type — both on selection changes (cursor
+    // moves via keyboard / click) and on content changes (e.g.
+    // ⌘1..⌘7 replaces the block type under the cursor).
     let lastActiveBlock: string | null = null;
     const reportActiveBlock = () => {
       if (!props.onActiveBlockChange) return;
@@ -578,12 +577,12 @@ export function Editor(props: EditorProps) {
         props.onActiveBlockChange?.(kind);
       }
     };
-    // Initial-Wert nach Mount.
+    // Initial value after mount.
     requestAnimationFrame(reportActiveBlock);
 
-    /** Kennzeichnet den Editor-Root mit `data-empty="1"`, wenn das ganze
-     *  Skript leer ist (genau ein Block, ohne Text). CSS rendert daraus
-     *  den ⌘-Hint im hostRef-Sibling. */
+    /** Marks the editor root with `data-empty="1"` when the entire
+     *  script is empty (exactly one block, without text). CSS uses this
+     *  to render the ⌘ hint in the hostRef sibling. */
     const updateEmptyMarker = () => {
       if (!rootRef) return;
       let isEmpty = true;
@@ -604,16 +603,16 @@ export function Editor(props: EditorProps) {
     requestAnimationFrame(updateEmptyMarker);
 
     const teardownUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
-      // Selection-Tracking unabhängig von dirty-State — der Cursor kann
-      // sich bewegen ohne dass etwas getippt wurde.
+      // Selection tracking independent of the dirty state — the cursor can
+      // move without anything being typed.
       reportActiveBlock();
 
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
       dirtySinceSnapshot = true;
       updateEmptyMarker();
-      // Charakterliste SOFORT abgleichen (nicht erst nach Save-Debounce),
-      // damit der Tint an Character/Dialog haengt, sobald der User Enter
-      // hinter dem Namen drueckt — auch wenn er ohne Pause weitertippt.
+      // Reconcile the character list IMMEDIATELY (not only after save
+      // debounce) so the tint stays on character / dialog as soon as the
+      // user presses Enter after the name — even when typing without a pause.
       reconcileLiveCharactersSync();
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
@@ -688,9 +687,10 @@ export function Editor(props: EditorProps) {
         spellcheck
         data-highlighting={props.highlighting ? "on" : "off"}
       />
-      {/* Hotkey-Hint: nur sichtbar, wenn der Editor-Root data-empty="1"
-          trägt. Liegt außerhalb des contenteditable, damit Lexical-
-          Selection nicht an einem ::before-Pseudo-Caret-Target hängt. */}
+      {/* Hotkey hint: only visible when the editor root carries
+          data-empty="1". Lives outside the contenteditable so the
+          Lexical selection doesn't get stuck on a ::before
+          pseudo-caret target. */}
       <div class="editor-empty-hint" aria-hidden="true">
         Tippe los · <span class="kbd kbd-inline">Tab</span> wechselt den Block-Typ ·{" "}
         <span class="kbd kbd-inline">⌘1</span>–<span class="kbd kbd-inline">⌘7</span>{" "}

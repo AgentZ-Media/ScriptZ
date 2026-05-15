@@ -1,29 +1,28 @@
-// `.scriptz`-Dateiformat: ein simpler JSON-Container, der ein einzelnes
-// Skript zwischen Geräten (Web <-> Desktop, Desktop <-> Desktop)
-// austauschbar macht.
+// `.scriptz` file format: a simple JSON container that makes a single
+// script exchangeable between devices (web <-> desktop, desktop <-> desktop).
 //
-// Bewusst NICHT im Format:
-//   - `folder_id` (existiert auf dem Zielgerät nicht; Import landet in
-//      der Wurzel, User filed selbst ein).
-//   - Snapshots (nur aktueller Stand). Lässt sich später als
-//      `script.snapshots: [...]` ergänzen, ohne Format-Bruch (version: 2).
-//   - Globale Character-Color-Overrides (`character_colors`-Tabelle).
-//      Die im File mitgelieferten `characters[].color` reichen fürs
-//      Wiedergeben - App-weite Overrides bleiben App-weit.
-//   - App-State, Settings, Ideas, Daily-Word-Log - das ist Geräte-State,
-//      nicht Script-Inhalt.
+// Deliberately NOT in the format:
+//   - `folder_id` (doesn't exist on the target device; import lands in
+//      the root, user files it themselves).
+//   - Snapshots (current state only). Can be added later as
+//      `script.snapshots: [...]` without breaking the format (version: 2).
+//   - Global character color overrides (`character_colors` table).
+//      The `characters[].color` shipped with the file is enough for
+//      rendering - app-wide overrides stay app-wide.
+//   - App state, settings, ideas, daily word log - that's device state,
+//      not script content.
 
 import type { ScriptCharacter } from "./types";
 import { t } from "../i18n";
 
-/** Dateiendung ohne Punkt. */
+/** File extension without the dot. */
 export const SCRIPTZ_EXTENSION = "scriptz";
-/** MIME-Type für Blob-Download und <input accept>. */
+/** MIME type for blob download and <input accept>. */
 export const SCRIPTZ_MIME = "application/x-scriptz+json";
 
-/** Aktuelle Format-Version. Versions-Bumps müssen nur passieren, wenn
- *  ein neuer Reader das alte Format NICHT mehr lesen kann. Additive
- *  Felder bekommen Default-Werte beim Parsen und keinen Bump. */
+/** Current format version. Version bumps only have to happen when
+ *  a new reader can NO LONGER read the old format. Additive
+ *  fields get default values during parsing and no bump. */
 export const SCRIPTZ_VERSION_CURRENT = 1;
 
 export interface ScriptzFileV1 {
@@ -32,7 +31,7 @@ export interface ScriptzFileV1 {
   exportedAt: string; // ISO 8601
   script: {
     title: string;
-    contentJson: object; // parsed Lexical state - kein doppeltes Stringify
+    contentJson: object; // parsed Lexical state - no double stringify
     characters: ScriptCharacter[];
     highlightingEnabled: number | null;
     createdAt: string; // ISO 8601
@@ -40,8 +39,8 @@ export interface ScriptzFileV1 {
   };
 }
 
-/** Format-Validierungs-Fehler. Caller fängt mit `instanceof` und zeigt
- *  einen Toast statt zu crashen. */
+/** Format validation error. Caller catches with `instanceof` and shows
+ *  a toast instead of crashing. */
 export class ScriptzParseError extends Error {
   constructor(message: string) {
     super(message);
@@ -58,7 +57,7 @@ export interface ScriptForSerialization {
   updated_at: number; // Unix-millis
 }
 
-/** Pure: serialisiert ein Skript ins V1-Container-Objekt. */
+/** Pure: serializes a script into the V1 container object. */
 export function serializeScript(script: ScriptForSerialization): ScriptzFileV1 {
   let parsedContent: object;
   try {
@@ -87,15 +86,15 @@ export function serializeScript(script: ScriptForSerialization): ScriptzFileV1 {
   };
 }
 
-/** Serialisiert in einen UTF-8-Byte-String fürs Download. */
+/** Serializes to a UTF-8 byte string for download. */
 export function serializeScriptToBytes(script: ScriptForSerialization): Uint8Array {
   const obj = serializeScript(script);
   const json = JSON.stringify(obj, null, 2);
   return new TextEncoder().encode(json);
 }
 
-/** Pure: parst und validiert. Wirft `ScriptzParseError` bei kaputten
- *  Dateien mit beschreibender Meldung. */
+/** Pure: parses and validates. Throws `ScriptzParseError` on broken
+ *  files with a descriptive message. */
 export function parseScriptzBytes(bytes: Uint8Array): ScriptzFileV1 {
   let text: string;
   try {
@@ -145,7 +144,7 @@ function validateScriptzObject(raw: unknown): ScriptzFileV1 {
   if (!Array.isArray(s.characters)) {
     throw new ScriptzParseError(t("error.scriptz.missingCharacters"));
   }
-  // Charaktere flach validieren - name + color müssen Strings sein.
+  // Validate characters flat - name + color must be strings.
   const characters: ScriptCharacter[] = [];
   for (let i = 0; i < s.characters.length; i++) {
     const c = s.characters[i] as Record<string, unknown>;
@@ -158,9 +157,9 @@ function validateScriptzObject(raw: unknown): ScriptzFileV1 {
     if (typeof c.share === "number") entry.share = c.share;
     characters.push(entry);
   }
-  // Datumsfelder sind nice-to-have; bei Fehlern lieber tolerant sein -
-  // unsere App nutzt sie nicht beim Import (siehe applyScriptzFile),
-  // sondern setzt eigene Zeitstempel.
+  // Date fields are nice-to-have; on errors be tolerant -
+  // our app doesn't use them on import (see applyScriptzFile),
+  // it sets its own timestamps.
   const exportedAt = typeof r.exportedAt === "string" ? r.exportedAt : new Date().toISOString();
   const createdAt = typeof s.createdAt === "string" ? s.createdAt : exportedAt;
   const updatedAt = typeof s.updatedAt === "string" ? s.updatedAt : exportedAt;
@@ -185,8 +184,8 @@ function validateScriptzObject(raw: unknown): ScriptzFileV1 {
   };
 }
 
-/** Slug-freier Dateiname-Vorschlag mit `.scriptz`-Endung. Ersetzt Slashes
- *  und Zeichen, die Dateisysteme nicht mögen, durch Underscore. */
+/** Slug-free filename suggestion with `.scriptz` extension. Replaces slashes
+ *  and characters that file systems don't like with underscores. */
 export function defaultScriptzFilename(title: string): string {
   const fallback = t("common.untitled");
   const cleaned = (title || fallback).replace(/[\\/:*?"<>|]+/g, "_").trim();

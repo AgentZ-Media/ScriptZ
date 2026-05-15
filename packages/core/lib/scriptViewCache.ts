@@ -1,22 +1,21 @@
 /**
- * Pro-Skript-View-State, der den Tab-Wechsel ueberlebt.
+ * Per-script view state that survives the tab switch.
  *
- * Wenn man von Skript A auf B wechselt und zurueck, soll man dort
- * landen, wo man war: Scroll-Position des Paper-Canvas + Cursor im
- * Editor. ScriptView haelt sich beim Wechsel kurz auf, sichert den
- * Stand fuer A in dieser Map und liest beim Mount-Schritt fuer B
- * (bzw. beim spaeteren Zurueckwechseln auf A) den passenden Eintrag
- * wieder aus.
+ * When you switch from script A to B and back, you should land
+ * where you were: scroll position of the paper canvas + cursor in
+ * the editor. ScriptView pauses briefly on switch, saves the
+ * state for A into this map and reads the matching entry back out
+ * on the mount step for B (or when switching back to A later).
  *
- * Die Map lebt nur im Speicher der laufenden App-Sitzung. Ueber
- * App-Neustarts hinweg wird *nicht* persistiert - das wuerde
- * bedeuten, dass der Cursor nach Tagen an einer Stelle landet, die
- * der User laengst vergessen hat. Sitzung reicht.
+ * The map only lives in memory for the running app session. It is
+ * *not* persisted across app restarts - that would
+ * mean the cursor lands days later at a spot the user has
+ * long forgotten. The session is enough.
  *
- * Cursor wird strukturell adressiert (Block-Index in root.children +
- * Offset), nicht ueber Lexical-Keys: die werden bei jedem
- * `parseEditorState` neu vergeben, ein gespeicherter Key zeigt nach
- * dem Editor-Remount ins Leere.
+ * The cursor is addressed structurally (block index in root.children +
+ * offset), not via Lexical keys: those are reassigned on every
+ * `parseEditorState`, so a stored key points into the void after
+ * the editor remount.
  */
 
 import {
@@ -31,18 +30,18 @@ import {
 } from "lexical";
 
 export type CursorAddress = {
-  /** Index des Top-Level-Blocks in root.getChildren(). */
+  /** Index of the top-level block in root.getChildren(). */
   blockIndex: number;
-  /** Pfad vom Block hinunter zum Anchor-Node, jede Zahl ist ein
-   *  child-Index auf der jeweiligen Ebene. Leer bedeutet: der Anchor
-   *  liegt am Block selbst (type "element"). Wichtig fuer Bloecke mit
-   *  mehreren Text-Descendants (z.B. nach Inline-Bold), wo der bloss
-   *  Block-relative Offset auf den FALSCHEN Text-Node zeigen wuerde. */
+  /** Path from the block down to the anchor node; each number is a
+   *  child index at the respective level. Empty means: the anchor
+   *  is at the block itself (type "element"). Important for blocks with
+   *  multiple text descendants (e.g. after inline bold), where the
+   *  block-relative offset alone would point at the WRONG text node. */
   path: number[];
-  /** Offset innerhalb des Ziel-Nodes (Text-Offset bei type "text",
-   *  Child-Index bei type "element"). */
+  /** Offset within the target node (text offset for type "text",
+   *  child index for type "element"). */
   offset: number;
-  /** Selection-Type wie in Lexical. */
+  /** Selection type as in Lexical. */
   type: "text" | "element";
 };
 
@@ -65,9 +64,9 @@ export const scriptViewCache = {
   },
 };
 
-/** Liest die aktuelle Cursor-Position aus dem Editor und gibt sie als
- *  strukturelle Adresse zurueck. Nur Range-Selections - Node-Selections
- *  (z.B. ein selektiertes Image) sind in diesem Editor nicht moeglich. */
+/** Reads the current cursor position from the editor and returns it as
+ *  a structural address. Range selections only - node selections
+ *  (e.g. a selected image) are not possible in this editor. */
 export function captureCursor(editor: LexicalEditor): CursorAddress | null {
   let result: CursorAddress | null = null;
   editor.getEditorState().read(() => {
@@ -97,12 +96,12 @@ export function captureCursor(editor: LexicalEditor): CursorAddress | null {
   return result;
 }
 
-/** Setzt die Selection im Editor an die gegebene Adresse. Toleriert
- *  Drift: wenn die Block-Anzahl seit dem Capture geschrumpft ist, wird
- *  auf den letzten Block geclamped; wenn der Pfad nicht mehr aufloest
- *  (z.B. weil Inline-Format weggefallen ist), faellt es auf den ersten
- *  Text-Descendant zurueck und clamped den Offset; bleibt auch das
- *  fruchtlos, landet die Selection element-relativ am Block. */
+/** Sets the selection in the editor at the given address. Tolerates
+ *  drift: if the block count has shrunk since capture, it
+ *  clamps to the last block; if the path no longer resolves
+ *  (e.g. because inline format was removed), it falls back to the first
+ *  text descendant and clamps the offset; if that's also
+ *  fruitless, the selection lands element-relative at the block. */
 export function applyCursor(editor: LexicalEditor, addr: CursorAddress): void {
   editor.update(() => {
     const root = $getRoot();

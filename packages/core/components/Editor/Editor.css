@@ -18,10 +18,10 @@
   position: relative;
 }
 
-/* Hotkey-Hint im leeren Skript. Liegt absolut über der ersten Zeile,
-   damit er den Layout-Flow des contenteditable nicht beeinflusst. CSS
-   `:has` ist Safari 15.4+ und damit auf jedem unterstützten macOS-
-   Tahoe-Build verfügbar - die App-Mindest-OS sortiert das aus. */
+/* Hotkey hint in an empty script. Sits absolute above the first line
+   so it doesn't influence the layout flow of the contenteditable. CSS
+   `:has` is Safari 15.4+ and therefore available on every supported macOS
+   Tahoe build - the app minimum OS sorts that out. */
 .editor-empty-hint {
   position: absolute;
   top: 60px;

@@ -1,23 +1,23 @@
 ---
 /**
- * SiteFooter - der eine Footer, den alle Seiten teilen.
+ * SiteFooter - the one footer all pages share.
  *
- * Wird sowohl von AppShell (Landing-Routen inkl. Blog) als auch von
- * LegalShell (Impressum, Datenschutz) eingebunden. Dadurch tauchen
- * Blog- und RSS-Link automatisch auf jeder Page auf, ohne dass man
- * jede Shell separat pflegen muss.
+ * Included by both AppShell (landing routes including blog) and
+ * LegalShell (Impressum, Datenschutz). Blog and RSS links thus
+ * appear automatically on every page without having to maintain
+ * each shell separately.
  *
- * Sprache:
- *  - AppShell reicht ihr `lang`-Prop durch (DE oder EN).
- *  - LegalShell ist rechtsbedingt DE-only und ruft den Footer mit
- *    `lang="de"` auf - der Toggle existiert auf Legal-Seiten nicht.
+ * Language:
+ *  - AppShell passes its `lang` prop through (DE or EN).
+ *  - LegalShell is DE-only for legal reasons and calls the footer
+ *    with `lang="de"` - the toggle doesn't exist on legal pages.
  *
- * Plattform-spezifische Versions-Zeile ("macOS 13+" vs "Windows 10+")
- * laeuft ueber die globalen `data-platform`-Attribute, die Base.astro
- * vor dem ersten Paint setzt. Die `.mac-only` / `.win-only`-Regeln
- * kommen aus landing.css fuer Landing-Pages und werden hier zusaetzlich
- * scoped definiert, damit der Footer auch auf Seiten ohne globalen
- * landing.css-Import (z.B. Legal) korrekt umschaltet.
+ * The platform-specific version line ("macOS 13+" vs "Windows 10+")
+ * runs through the global `data-platform` attributes that Base.astro
+ * sets before the first paint. The `.mac-only` / `.win-only` rules
+ * come from landing.css for landing pages and are additionally
+ * defined scoped here, so the footer also switches correctly on
+ * pages without the global landing.css import (e.g. legal).
  */
 import { getLatestRelease, site } from "../data/site";
 import { routePath, t, type Lang } from "../i18n";
@@ -68,9 +68,9 @@ const rssHref = lang === "de" ? "/rss.xml" : "/en/rss.xml";
 </footer>
 
 <style>
-  /* Footer-Styling - identisch zu den Definitionen in landing.css, hier
-     aber scoped, damit der Footer auch auf Pages ohne globalen
-     landing.css-Import (LegalShell) korrekt aussieht. */
+  /* Footer styling - identical to the definitions in landing.css,
+     but scoped here so the footer also looks correct on pages
+     without the global landing.css import (LegalShell). */
   .v2-footer {
     margin-top: 48px;
     padding-top: 24px;
@@ -120,8 +120,8 @@ const rssHref = lang === "de" ? "/rss.xml" : "/en/rss.xml";
     color: rgba(28, 24, 20, 0.45);
   }
 
-  /* Plattform-Split - aktiver Default ist macOS, Windows blendet ein,
-     wenn data-platform="windows" auf <html> sitzt (siehe Base.astro). */
+  /* Platform split - active default is macOS, Windows shows when
+     data-platform="windows" is on <html> (see Base.astro). */
   .win-only { display: none; }
   :global([data-platform="windows"]) .mac-only { display: none; }
   :global([data-platform="windows"]) .win-only { display: revert; }

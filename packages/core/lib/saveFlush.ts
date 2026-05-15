@@ -24,10 +24,10 @@ export function registerFlusher(fn: Flusher): () => void {
 let inFlight: Promise<void> | null = null;
 
 export async function flushAll(timeoutMs = 2000): Promise<void> {
-  // Singleton-In-Flight: schnell aufeinanderfolgende deferRouteChange-Calls
-  // (rapider Tab-Wechsel) sollen nicht denselben Flusher mehrfach parallel
-  // anstoßen. Der zweite Caller hängt sich hinter den ersten Run, bekommt
-  // also die Garantie "nach mir ist alles geflusht".
+  // Singleton in-flight: quickly successive deferRouteChange calls
+  // (rapid tab switching) must not kick off the same flusher multiple times
+  // in parallel. The second caller hooks in behind the first run and gets
+  // the guarantee "after me, everything is flushed".
   if (inFlight) return inFlight;
   const fns = Array.from(flushers);
   if (fns.length === 0) return;

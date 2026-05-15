@@ -1,11 +1,11 @@
   /* =========================================================
-     Landing - Brutalist Script-as-App
-     Block-Styling spiegelt apps/desktop/src/components/Editor/Editor.css
-     Charakter-Highlighting spiegelt highlight.ts (per-Zeile via
-     box-decoration-break: clone, NICHT block-weite Hintergrundflaeche).
+     Landing - brutalist script-as-app
+     Block styling mirrors apps/desktop/src/components/Editor/Editor.css
+     Character highlighting mirrors highlight.ts (per-line via
+     box-decoration-break: clone, NOT a block-wide background area).
      ========================================================= */
 
-  /* === Hero (bricht das Script-Frame) ====================== */
+  /* === Hero (breaks the script frame) ====================== */
   .v2-hero {
     padding: 88px 24px 64px;
     text-align: center;
@@ -51,11 +51,11 @@
     color: #5b554c;
   }
   .v2-hero-cta {
-    /* Block-level flex statt inline-flex, damit `justify-content: center`
-       die Buttons unabhaengig vom Geschwister-Layout (Fallback-Link
-       darunter) zuverlaessig in der Mitte haelt. Vorher inline-flex,
-       was mit dem zusaetzlichen Sibling-Anchor unter dem Container
-       die Zentrierung ueber `text-align: center` ungenau machte. */
+    /* Block-level flex instead of inline-flex so `justify-content:
+       center` keeps buttons reliably centered, regardless of the
+       sibling layout (fallback link below). Previously inline-flex,
+       which - together with the extra sibling anchor under the
+       container - made the `text-align: center` centering imprecise. */
     margin-top: 32px;
     display: flex;
     flex-wrap: wrap;
@@ -74,9 +74,9 @@
   .v2-hero-meta b { color: #1c1814; font-weight: 700; }
   .v2-meta-sep { opacity: 0.4; }
 
-  /* Web-App-Hinweis unter den primaeren Hero-CTAs. Dezent, aber
-     auffindbar. Ueberbrueckt die "Erst ausprobieren?"-Frage, ohne
-     vom Download-Pfad abzulenken. */
+  /* Web-app hint below the primary hero CTAs. Subtle but
+     findable. Bridges the "try it first?" question without
+     distracting from the download path. */
   .v2-hero-web {
     margin: 14px auto 0;
     max-width: 60ch;
@@ -99,7 +99,7 @@
     color: #8a8276;
   }
 
-  /* === Shell-Container ====================================== */
+  /* === Shell container ====================================== */
   .v2-shell {
     --v2-bg: #f5f3ee;
     --v2-paper: #ffffff;
@@ -121,19 +121,19 @@
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.55;
-    /* Schmaler Atemschritt unter dem Paper, statt eines breiten
-       leeren Streifens. */
+    /* Narrow breathing room below the paper, instead of a wide
+       empty strip. */
     padding-bottom: 24px;
-    /* Wie ein App-Fenster: ueber 1600 px Viewport begrenzt, zentriert
-       und mit dezentem Schatten/Border. Das Karo bleibt der Website
-       (body) und scheint links/rechts der Box durch - genau wie ein
-       echtes App-Fenster auf dem Desktop. Innerhalb der Box gibt es
-       KEIN Karo, weil die App selbst auch keins hat: nur das warme
-       Cremeweiss als Bg und das weisse Paper darauf.
+    /* Like an app window: capped at 1600 px viewport, centered and
+       with a subtle shadow/border. The grid stays with the website
+       (body) and shows on the left/right of the box - exactly like
+       a real app window on the desktop. Inside the box there is NO
+       grid, because the app itself has none either: just the warm
+       cream background and the white paper on top.
 
-       border-radius bekommt zusaetzlich der .v2-titlebar (oben), damit
-       die Sticky-Chrome auch beim Scrollen die abgerundeten Ecken haelt
-       und nicht ueber die Shell-Ecken hinausragt (siehe Regel unten). */
+       border-radius is also applied to .v2-titlebar (above) so the
+       sticky chrome keeps the rounded corners while scrolling and
+       doesn't poke past the shell corners (see rule below). */
     max-width: 1600px;
     margin: 0 auto;
     border-radius: 12px;
@@ -143,14 +143,14 @@
       0 0 0 1px rgba(28, 24, 20, 0.06);
   }
 
-  /* === Chrome-Wrapper: titlebar + toolbar als 1 sticky Block === */
+  /* === Chrome wrapper: titlebar + toolbar as 1 sticky block === */
   .v2-chrome {
     position: sticky;
     top: 0;
     z-index: 30;
     background: var(--v2-bg);
-    /* Kein margin/padding zwischen titlebar+toolbar - sie liegen direkt
-       aneinander. So gibt es keinen Karo-Streifen dazwischen. */
+    /* No margin/padding between titlebar+toolbar - they sit directly
+       next to each other. So there is no grid stripe in between. */
   }
 
   /* === Titlebar ============================================ */
@@ -161,10 +161,10 @@
     padding: 8px 14px;
     background: var(--v2-bg);
     border-bottom: 1px solid var(--v2-border);
-    /* Spiegelt den Shell-Radius. Wichtig: ohne diese Regel wuerde die
-       Titlebar als Sticky ueber die abgerundeten Ecken der Shell
-       ragen, weil .v2-shell kein overflow:hidden hat (das wuerde
-       position:sticky kaputt machen). */
+    /* Mirrors the shell radius. Important: without this rule the
+       titlebar - being sticky - would poke past the shell's
+       rounded corners, because .v2-shell has no overflow:hidden
+       (which would break position:sticky). */
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
   }
@@ -226,8 +226,8 @@
     position: relative;
   }
   .v2-tab-badge {
-    /* Innerhalb der Tab-Bounds positioniert, weil .v2-tabs durch
-       overflow-x: auto auch vertikal clippt. */
+    /* Positioned within the tab bounds because .v2-tabs also clips
+       vertically due to overflow-x: auto. */
     position: absolute;
     top: 2px;
     right: 2px;
@@ -279,9 +279,10 @@
   }
   .v2-status-pill:hover { border-color: var(--v2-border-strong); color: var(--v2-ink); }
 
-  /* DE/EN-Sprach-Toggle. Bewusst monochrom, ohne Flaggen - die Site
-     traegt das gleiche schwarz/weiss-Konzept wie die App. Aktiver Wert
-     ist eine eingedunkelte Pille, der inaktive ein klickbarer Link. */
+  /* DE/EN language toggle. Deliberately monochrome, no flags - the
+     site carries the same black/white concept as the app. The
+     active value is a darkened pill, the inactive one is a
+     clickable link. */
   .v2-lang {
     display: inline-flex;
     align-items: center;
@@ -321,7 +322,7 @@
     display: inline-block;
   }
 
-  /* === Toolbar (Block-Pillen) ============================= */
+  /* === Toolbar (block pills) ============================= */
   .v2-toolbar {
     display: flex;
     align-items: center;
@@ -402,11 +403,11 @@
   }
   .v2-toolbar-btn:hover { background: #0f0d0a; }
 
-  /* === Paper (Skript-Sheet) ================================
-     Bottom-margin und -padding bewusst klein gehalten, damit unter
-     dem Footer kein toter Weiß-/Karo-Streifen verbleibt. Das Paper
-     endet an seinem unteren Rand, gefolgt von einem schmalen
-     Atemschritt im Shell-Padding-Bottom. */
+  /* === Paper (script sheet) ================================
+     Bottom margin and padding deliberately small so no dead
+     white/grid strip remains below the footer. The paper ends at
+     its lower edge, followed by a slim breathing step in the
+     shell-padding-bottom. */
   .v2-paper {
     width: var(--v2-paper-w);
     max-width: calc(100vw - 48px);
@@ -422,7 +423,7 @@
     min-height: 60vh;
   }
 
-  /* === Tab-Content Switching ============================== */
+  /* === Tab content switching ============================== */
   .v2-tab-content {
     display: none;
     animation: v2-fade 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -433,7 +434,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* === Blocks (1:1 aus Editor.css) ======================== */
+  /* === Blocks (1:1 from Editor.css) ======================== */
   .v2-block {
     position: relative;
     margin: 0;
@@ -495,10 +496,10 @@
     margin-top: 14px;
   }
 
-  /* === Charakter-Highlighting: per-Zeile via box-decoration-break.
-     Genau wie in Editor.css für span[data-lexical-text]. Der
-     <span class="v2-t"> wrapt den gesamten Text - der Hintergrund
-     huegelt sich um jede Zeile, nicht um den ganzen Block. =========== */
+  /* === Character highlighting: per-line via box-decoration-break.
+     Exactly like in Editor.css for span[data-lexical-text]. The
+     <span class="v2-t"> wraps the entire text - the background
+     hugs each line, not the whole block. =========== */
   .v2-block[data-speaker] .v2-t {
     padding: 1px 4px;
     border-radius: 3px;
@@ -508,10 +509,10 @@
   .v2-block[data-speaker="TIMO"] .v2-t { background: var(--v2-tint-timo); }
   .v2-block[data-speaker="AXEL"] .v2-t { background: var(--v2-tint-axel); }
 
-  /* SFX kann ein "plain"-Span enthalten ohne Highlight */
+  /* SFX may contain a "plain" span without highlight */
   .v2-t-plain { font-style: italic; text-transform: none; color: var(--v2-ink-muted); }
 
-  /* === Jump-Buttons unter jedem Tab ======================= */
+  /* === Jump buttons under each tab ======================= */
   .v2-jump {
     margin-top: 36px;
     padding-top: 20px;
@@ -546,7 +547,7 @@
     color: #fff;
   }
 
-  /* === Callout (Quickmodus) ============================== */
+  /* === Callout (quick mode) ============================== */
   .v2-callout {
     margin: 32px -32px;
     padding: 24px 28px;
@@ -570,9 +571,9 @@
     color: rgba(255,255,255,0.92);
   }
 
-  /* === Install-Hinweis (xattr-Befehl) ====================
-     Zwei Varianten: im Hero collabsierbar (<details>), im Paper
-     immer offen. Code-Zeile mit Kopier-Button. */
+  /* === Install hint (xattr command) ====================
+     Two variants: collapsible in the hero (<details>), always
+     open in the paper. Code line with copy button. */
   .v2-install {
     margin: 28px auto 0;
     max-width: 640px;
@@ -658,9 +659,9 @@
   }
   .v2-install-why strong { color: #1c1814; font-weight: 700; }
 
-  /* Im Paper voll sichtbar (kein <details>), volle Breite des
-     Paper-Bereichs. Body bekommt Padding rundherum, damit der Text
-     nicht an der gestrichelten Linie klemmt. */
+  /* Fully visible in the paper (no <details>), full width of the
+     paper area. Body gets padding all around so the text doesn't
+     hug the dashed line. */
   .v2-install-paper {
     max-width: none;
     margin: 16px 0 0;
@@ -671,7 +672,7 @@
     border-top: 0;
   }
 
-  /* === No-AI Grid ========================================== */
+  /* === No-AI grid ========================================== */
   .v2-noai-grid {
     margin: 24px 0;
     display: grid;
@@ -768,8 +769,8 @@
     border-color: var(--v2-ink);
   }
   .v2-shot-frame {
-    /* Nur Positionierungs-Kontext, kein eigener Hintergrund/Padding.
-       Das Bild fuellt direkt den .v2-shot-wrap. */
+    /* Only a positioning context, no own background/padding.
+       The image fills .v2-shot-wrap directly. */
     position: relative;
   }
   .v2-shot {
@@ -779,7 +780,7 @@
   }
   .v2-shot.is-active { display: block; }
 
-  /* === Compare Table ====================================== */
+  /* === Compare table ====================================== */
   .v2-table-wrap {
     margin: 16px -32px;
     overflow-x: auto;
@@ -834,7 +835,7 @@
   .v2-mark.no  { background: rgba(208, 65, 65, 0.10); color: #8a3c3c; }
   .v2-mark.meh { background: rgba(200, 123, 0, 0.12); color: #7a5800; }
 
-  /* === Buttons (Hero + Download) ========================== */
+  /* === Buttons (hero + download) ========================== */
   .v2-btn {
     display: inline-flex;
     align-items: center;
@@ -873,7 +874,7 @@
     border-color: rgba(255,255,255,0.4);
   }
 
-  /* === Download-CTA ====================================== */
+  /* === Download CTA ====================================== */
   .v2-download {
     margin: 36px -32px;
     padding: 32px;
@@ -908,8 +909,8 @@
     flex-wrap: wrap;
     gap: 10px;
   }
-  /* Primary-Button im dunklen Download-Block: invertiert (weiss auf dunkel),
-     sonst verschwindet er auf dem schwarzen Hintergrund. */
+  /* Primary button in the dark download block: inverted (white on
+     dark), otherwise it disappears on the black background. */
   .v2-download .v2-btn-primary {
     background: #fff;
     color: #1c1814;
@@ -931,8 +932,8 @@
   .v2-download-stats b { color: #fff; font-weight: 700; margin-right: 4px; }
   .v2-stat-sep { color: rgba(255,255,255,0.25); }
 
-  /* Web-Test-Link unter den Download-Stats. Auf der dunklen
-     Download-Karte, deshalb invertierte Tonalitaet. */
+  /* Web-test link below the download stats. Sits on the dark
+     download card, hence inverted tonality. */
   .v2-download-webhint {
     margin-top: 14px;
     padding-top: 14px;
@@ -956,7 +957,7 @@
     color: rgba(255,255,255,0.5);
   }
 
-  /* === ENDE-Marker ======================================= */
+  /* === END marker ======================================= */
   .v2-end {
     display: flex;
     align-items: center;
@@ -972,7 +973,7 @@
     color: var(--v2-ink-muted);
   }
 
-  /* === Ideen-View (1:1-Nachbau) ========================== */
+  /* === Ideas view (1:1 replica) ========================== */
   .v2-ideas-head { margin-bottom: 24px; }
   .v2-ideas-h {
     font-size: 32px;
@@ -1180,9 +1181,9 @@
     margin-right: 4px;
   }
 
-  /* === Footer-Styling lebt in components/SiteFooter.astro === */
+  /* === Footer styling lives in components/SiteFooter.astro === */
 
-  /* === Sprint-Pille ====================================== */
+  /* === Sprint pill ====================================== */
   .v2-sprint {
     position: fixed;
     bottom: 18px;
@@ -1201,9 +1202,10 @@
   }
   .v2-sprint-ring { display: inline-flex; }
   .v2-sprint-progress {
-    /* Sanfter Lauf, wenn der User in groesseren Spruengen scrollt
-       (Mausrad-Klick, anchor jump). Bei normalem scroll-pacing
-       fast nicht wahrnehmbar, weil scroll-Events oft genug feuern. */
+    /* Smooth run when the user scrolls in bigger jumps
+       (mouse-wheel click, anchor jump). With normal scroll
+       pacing barely perceptible because scroll events fire
+       often enough. */
     transition: stroke-dashoffset 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .v2-sprint-txt { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -1237,19 +1239,19 @@
     .v2-download-h { font-size: 18px; }
   }
 
-  /* === Mobile-Stack-Modus ==================================
-     Auf schmalen Viewports kippt die Landing aus dem App-Nachbau
-     in eine klassische, von oben nach unten gelesene Seite:
-     - Chrome (Trafficlight, Tabs, Toolbar, Sprint-Pille) wird
-       komplett aus dem Flow entfernt, weil eine simulierte App auf
-       375 px nichts erklärt - sie behindert nur. Navigation
-       übernimmt stattdessen die `MobileNav`-Komponente (Sticky-Bar
-       oben + Full-Screen-Drawer).
-     - Inline-Jump-Buttons innerhalb der Sektionen verschwinden -
-       auf einer linearen Stack-Page sind sie reiner Lärm. */
+  /* === Mobile stack mode ==================================
+     On narrow viewports the landing flips from the app replica
+     into a classic top-to-bottom page:
+     - Chrome (traffic light, tabs, toolbar, sprint pill) is
+       removed from the flow entirely because a simulated app at
+       375 px explains nothing - it only gets in the way.
+       Navigation is handled by the `MobileNav` component instead
+       (sticky bar on top + full-screen drawer).
+     - Inline jump buttons inside the sections disappear - on a
+       linear stack page they are pure noise. */
   @media (max-width: 768px) {
-    /* Shell verliert Box-Optik (Border, Schatten, Radius). Die Seite
-       fließt edge-to-edge wie eine normale Marketing-Page. */
+    /* Shell loses the box look (border, shadow, radius). The page
+       flows edge-to-edge like a normal marketing page. */
     .v2-shell {
       max-width: 100%;
       border-radius: 0;
@@ -1257,14 +1259,14 @@
       padding-bottom: 0;
     }
 
-    /* App-Chrome komplett aus dem Flow nehmen: Titlebar (Trafficlight,
-       Tabs, Status-Pills), Toolbar (Back, Pills, Download-Knopf) und
-       die schwebende Sprint-Pille. Mobile-Nav übernimmt die
-       Navigation, der PageHero pro Route liefert Titel + CTA. */
+    /* Remove app chrome entirely from the flow: titlebar (traffic
+       light, tabs, status pills), toolbar (back, pills, download
+       button) and the floating sprint pill. Mobile-nav handles
+       navigation, the PageHero per route provides title + CTA. */
     .v2-chrome { display: none; }
     .v2-sprint { display: none; }
 
-    /* Paper edge-to-edge, kein Box-Look. */
+    /* Paper edge-to-edge, no box look. */
     .v2-paper {
       width: 100%;
       max-width: 100%;
@@ -1279,46 +1281,47 @@
       animation: none;
     }
 
-    /* Inline-Jump-Buttons sind auf einer Stack-Page redundant - die
-       nächste Sektion kommt ohnehin direkt darunter. */
+    /* Inline jump buttons are redundant on a stack page - the
+       next section comes directly below anyway. */
     .v2-jump { display: none; }
   }
 
   /* =================================================================
-   * Plattform-Switch (macOS / Windows)
+   * Platform switch (macOS / Windows)
    * =================================================================
-   * Base.astro setzt `<html data-platform="windows|macos|linux">`
-   * synchron im Head. Default-Markup ist macOS, deshalb sind .mac-only
-   * Bloecke ohne Attribut sichtbar und .win-only versteckt. Auf
-   * Windows kehrt sich das um. Linux faellt auf den Mac-Default
-   * zurueck (keine eigene Variante), weil wir keine Linux-Bundles
-   * shippen - der Fallback-Link unter dem CTA fuehrt zur Releases-
-   * Seite, wenn jemand trotzdem Linux nutzt. */
+   * Base.astro sets `<html data-platform="windows|macos|linux">`
+   * synchronously in the head. The default markup is macOS, so
+   * .mac-only blocks without the attribute are visible and
+   * .win-only is hidden. On Windows it flips. Linux falls back to
+   * the Mac default (no own variant) because we don't ship Linux
+   * bundles - the fallback link under the CTA points to the
+   * Releases page if someone uses Linux anyway. */
   .win-only { display: none; }
   [data-platform="windows"] .mac-only { display: none; }
   [data-platform="windows"] .win-only { display: revert; }
 
-  /* Plattform-spezifische Icons im primaeren CTA-Button. Mac-Apfel
-     ist der Default, Windows-Logo wird per Plattform-Detection
-     eingeblendet. Beide Icons sind im Markup, eines davon wird per
-     CSS geblendet - so flackert beim JS-Mount nichts. */
+  /* Platform-specific icons in the primary CTA button. Mac apple
+     is the default; the Windows logo is shown via platform
+     detection. Both icons are in the markup, one is hidden via
+     CSS - so nothing flickers on JS mount. */
   .js-platform-icon-win { display: none; }
   [data-platform="windows"] .js-platform-icon-mac { display: none; }
   [data-platform="windows"] .js-platform-icon-win { display: inline-block; }
 
   /* =================================================================
-   * Fallback-Link zur GitHub-Releases-Seite
+   * Fallback link to the GitHub releases page
    * =================================================================
-   * Sitzt unter dem primaeren Download-Button - sowohl im Hero
-   * (.v2-hero-fallback) als auch im Download-Tab (.v2-download-fallback).
-   * Bewusst dezent: kein Button-Look, kein Akzent. Greift, wenn die
-   * Plattform-Detection daneben liegt (z.B. Linux, ungewoehnlicher
-   * User-Agent) oder jemand explizit auf der anderen Plattform
-   * downloaden will. */
+   * Sits below the primary download button - both in the hero
+   * (.v2-hero-fallback) and in the download tab
+   * (.v2-download-fallback). Deliberately subtle: no button look,
+   * no accent. Kicks in when platform detection is wrong (e.g.
+   * Linux, unusual user agent) or someone explicitly wants to
+   * download on the other platform. */
   .v2-hero-fallback {
-    /* Eigener block, damit Zentrierung ueber `margin: 0 auto` zuverlaessig
-       ist und nicht in die Line-Box der Buttons darueber rutscht.
-       `width: fit-content` haelt den Border-Bottom nur unter dem Text. */
+    /* Own block so centering via `margin: 0 auto` is reliable and
+       doesn't slip into the line box of the buttons above.
+       `width: fit-content` keeps the border-bottom only under the
+       text. */
     display: block;
     width: fit-content;
     margin: 14px auto 0;
@@ -1349,13 +1352,14 @@
   }
 
   /* =================================================================
-   * Windows-Install-Steps (numerierte Liste in .v2-install)
+   * Windows install steps (numbered list in .v2-install)
    * =================================================================
-   * macOS hat den Terminal-Befehl in einer Code-Box. Windows hat
-   * stattdessen zwei Schritte als <ol>. Visuell ruhig, passt zum
-   * Editor-Look. Textfarbe deckt sich mit `.v2-install-text` (#5b554c),
-   * damit Schritte und umgebender Body-Text harmonieren - das Install-
-   * Panel hat hellen Hintergrund (auch im Hero), kein Dark-Mode. */
+   * macOS has the terminal command in a code box. Windows has
+   * two steps as an <ol> instead. Visually calm, fits the editor
+   * look. Text color matches `.v2-install-text` (#5b554c) so the
+   * steps harmonize with the surrounding body text - the install
+   * panel has a light background (also in the hero), no dark
+   * mode. */
   .v2-install-steps {
     list-style: none;
     margin: 6px 0 12px;
@@ -1368,10 +1372,11 @@
     padding: 4px 0;
   }
 
-  /* === Anker als Pseudo-Button: text-decoration zuruecksetzen ====
-     Die Tab-Bar, der Toolbar-Back und die Jump-Buttons waren frueher
-     `<button>` und sind jetzt echte Navigation-Links (`<a>`). Default-
-     Underline auf links muss raus, sonst sieht's bockig aus.            */
+  /* === Anchor as pseudo-button: reset text-decoration ====
+     The tab bar, the toolbar-back and the jump buttons used to be
+     `<button>` and are now real navigation links (`<a>`). The
+     default underline on links has to go, otherwise it looks
+     clunky.                                                          */
   a.v2-tab,
   a.v2-toolbar-back,
   a.v2-jump-btn {
@@ -1380,12 +1385,12 @@
   }
   a.v2-jump-btn { display: inline-block; }
 
-  /* === Hero-H1: Keyword-Eyebrow + Tagline ========================
-     Auf der Home (`/`) ist das H1 ein zwei-zeiliger Brand-Statement
-     ("Schreiben, statt formatieren.") mit einer kleinen Keyword-
-     Zeile darueber ("Skripteditor fuer Content Creator."). Ueber den
-     `.v2-h1-keyword` / `.v2-h1-tagline` Spans steuern wir Groesse +
-     Gewicht der beiden Bestandteile.                                    */
+  /* === Hero H1: keyword eyebrow + tagline ========================
+     On home (`/`) the H1 is a two-line brand statement
+     ("Schreiben, statt formatieren.") with a small keyword line
+     above it ("Skripteditor fuer Content Creator."). Size and
+     weight of both parts are controlled via the
+     `.v2-h1-keyword` / `.v2-h1-tagline` spans.                          */
   .v2-h1-keyword {
     display: block;
     font-size: clamp(16px, 1.8vw, 22px);
@@ -1400,11 +1405,11 @@
     line-height: 0.98;
   }
 
-  /* === Hero-Variant: compact =====================================
-     Auf allen Sub-Routen (Quickmodus, KeineKI, ...) sitzt PageHero
-     kompakter als auf der Home: kleinerer H1, weniger Top-Padding,
-     keine Install-Accordions (die werden im Markup ausgeblendet, die
-     Spacing-Regeln hier liefern den Rest).                               */
+  /* === Hero variant: compact =====================================
+     On all sub-routes (quick mode, no-AI, ...) PageHero sits more
+     compactly than on home: smaller H1, less top padding, no
+     install accordions (those are hidden in the markup; the
+     spacing rules here provide the rest).                              */
   .v2-hero--compact {
     padding: 56px 24px 40px;
   }
@@ -1420,14 +1425,14 @@
     margin-top: 22px;
   }
 
-  /* === Home-Section: Gallery + Features + Compare + Closing ======
-     Eigener Stil auf `/`, nicht der Skript-Look der Tab-Sections.
-     Bewusst luftiger - jeder Block ist eine in sich geschlossene
-     Einheit mit eigenem H2 und eigener Aufgabe (Galerie, Teaser,
-     Vergleich, Download).                                                */
+  /* === Home section: gallery + features + compare + closing ======
+     Own style on `/`, not the script look of the tab sections.
+     Deliberately airier - each block is a self-contained unit
+     with its own H2 and its own job (gallery, teaser, compare,
+     download).                                                       */
   .v2-home {
-    /* Reset: Home-Section ist Marketing-Content, nicht Script-Format.
-       Padding kommt vom v2-paper-Parent. */
+    /* Reset: the home section is marketing content, not script
+       format. Padding comes from the v2-paper parent. */
   }
   .v2-home-block {
     padding: 36px 0;
@@ -1451,7 +1456,7 @@
     line-height: 1.55;
   }
 
-  /* Drei Feature-Teaser als Grid. */
+  /* Three feature teasers as a grid. */
   .v2-home-grid {
     margin-top: 18px;
     display: grid;
@@ -1497,7 +1502,7 @@
     text-underline-offset: 3px;
   }
 
-  /* Vergleichs-Teaser - schmaler Textblock + ein Inline-CTA. */
+  /* Comparison teaser - narrow text block + an inline CTA. */
   .v2-home-compare-body {
     margin: 0 0 14px;
     font-size: 15px;
@@ -1515,7 +1520,7 @@
   }
   .v2-home-compare-cta:hover { opacity: 0.78; }
 
-  /* Closing-Download-Block - zentrierter Call-to-Action am Page-Ende. */
+  /* Closing download block - centered call-to-action at page end. */
   .v2-home-closing {
     text-align: center;
   }
@@ -1554,7 +1559,7 @@
     margin-top: 6px;
   }
 
-  /* Mobile: Feature-Grid bricht auf eine Spalte. */
+  /* Mobile: feature grid collapses to one column. */
   @media (max-width: 760px) {
     .v2-home-grid { grid-template-columns: 1fr; }
     .v2-home-block { padding: 28px 0; }

@@ -1,26 +1,26 @@
-// High-Level Storage-Adapter fuer @scriptz/core.
+// High-level storage adapter for @scriptz/core.
 //
-// Sitzt eine Etage ueber DbConnection (siehe ./platform.ts): waehrend
-// DbConnection den rohen `select`/`execute`-Zugriff abstrahiert (gut
-// fuer sql.js auf Web, plugin-sql auf Desktop), bietet StorageAdapter
-// typisierte CRUD-Methoden - "createScript", "listFolders" etc.
+// Sits one layer above DbConnection (see ./platform.ts): while
+// DbConnection abstracts raw `select`/`execute` access (good
+// for sql.js on web, plugin-sql on desktop), StorageAdapter offers
+// typed CRUD methods - "createScript", "listFolders" etc.
 //
-// Warum zwei Ebenen?
-//  - Phase A hat DbConnection fuer den Desktop ausreichend gemacht;
-//    Core kann SQL gegen die Tauri-Database absetzen, ohne Tauri zu
-//    kennen.
-//  - Aber sobald die Web-Variante mit IndexedDB / Dexie kommt, kann
-//    der Adapter SQL nicht parsen. Die Wahl: entweder sql.js laden
-//    (DbConnection-kompatibel, ~1 MB WASM) ODER einen eigenen Web-
-//    StorageAdapter registrieren, der direkt gegen Dexie geht.
-//  - Diese Datei haelt den Auswahlpunkt offen, ohne sich heute
-//    festzulegen. Default-Registrierung ist die SQL-basierte
-//    api-Facade aus ./api.ts.
+// Why two levels?
+//  - Phase A made DbConnection sufficient for desktop;
+//    core can issue SQL against the Tauri database without knowing
+//    Tauri.
+//  - But as soon as the web variant with IndexedDB / Dexie comes,
+//    the adapter can't parse SQL. The choice: either load sql.js
+//    (DbConnection-compatible, ~1 MB WASM) OR register a separate
+//    web StorageAdapter that talks directly to Dexie.
+//  - This file keeps the choice point open without committing
+//    today. Default registration is the SQL-based
+//    api facade from ./api.ts.
 //
-// Der `api`-Export aus ./api.ts ist ein Proxy auf
-// `getStorageAdapter()`, sodass Bestandscode (19 Call-Sites) ohne
-// Anpassung weiterlaeuft, aber ein spaeterer
-// `setStorageAdapter(webImpl)` sofort durchgreift.
+// The `api` export from ./api.ts is a proxy onto
+// `getStorageAdapter()`, so existing code (19 call sites) keeps
+// running without change, but a later
+// `setStorageAdapter(webImpl)` immediately takes effect.
 
 import type {
   CharacterColorRecord,
@@ -88,10 +88,10 @@ export interface ExportPlaintextRequest {
 }
 
 export interface ExportResult {
-  /** True wenn der User abgebrochen hat (Desktop: Save-Dialog cancel).
-   *  Caller sollten dann keinen "Export gespeichert"-Toast zeigen. */
+  /** True when the user cancelled (desktop: save dialog cancel).
+   *  Callers should then not show an "export saved" toast. */
   cancelled: boolean;
-  /** Absoluter Pfad bei Desktop, null im Browser. */
+  /** Absolute path on desktop, null in the browser. */
   path: string | null;
 }
 
@@ -144,17 +144,17 @@ export interface StorageAdapter {
    * at. */
   clearCharacterColor(name: string, activeScriptId?: string): Promise<string[]>;
 
-  // ===== Export (delegiert intern an PlatformAdapter) =====
+  // ===== Export (delegates internally to PlatformAdapter) =====
   exportPdf(input: ExportPdfRequest): Promise<ExportResult>;
   exportPlaintext(input: ExportPlaintextRequest): Promise<ExportResult>;
-  /** Schreibt das Skript als .scriptz-Datei raus (Blob-Download im Web,
-   *  Save-Dialog auf Desktop). Phase G. */
+  /** Writes the script as a .scriptz file (blob download on web,
+   *  save dialog on desktop). Phase G. */
   exportScriptz(scriptId: string): Promise<ExportResult>;
-  /** Liest eine .scriptz-Datei vom User (Open-Dialog) und legt ein neues
-   *  Skript daraus an. Returns null wenn der User abbricht. */
+  /** Reads a .scriptz file from the user (open dialog) and creates a new
+   *  script from it. Returns null if the user cancels. */
   importScriptz(): Promise<{ scriptId: string; title: string } | null>;
 
-  // ===== Ideen-Inbox =====
+  // ===== Ideas inbox =====
   listIdeas(): Promise<Idea[]>;
   createIdea(input: CreateIdeaInput): Promise<Idea>;
   updateIdea(input: UpdateIdeaInput): Promise<Idea>;
@@ -163,7 +163,7 @@ export interface StorageAdapter {
     input: ConvertIdeaInput,
   ): Promise<{ idea: Idea; script: ScriptSummary }>;
 
-  // ===== Schreibstatistik =====
+  // ===== Writing statistics =====
   loadDailyWords(days?: number): Promise<DailyWordEntry[]>;
   loadDailyStats(): Promise<DailyStatsSummary>;
 }

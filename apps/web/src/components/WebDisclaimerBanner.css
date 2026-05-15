@@ -1,6 +1,6 @@
-/* Phase-H-Disclaimer fuer den Web-Test-Editor.
-   Sitzt ueber der TabBar, eine schmale Banner-Zeile, dezent gestaltet.
-   Nutzt dieselben Tokens wie der Rest der App (Light/Dark via vars). */
+/* Phase H disclaimer for the web test editor.
+   Sits above the TabBar, a thin banner row, designed subtly.
+   Uses the same tokens as the rest of the app (light/dark via vars). */
 .web-disclaimer {
   display: flex;
   align-items: center;
@@ -57,8 +57,8 @@
   color: var(--fg, #1c1814);
 }
 
-/* Im Dunkelmodus kommt der Banner aus dem Tokens-Set. Wir setzen keine
-   feste Farbe - die App-Tokens machen das fuer uns. */
+/* In dark mode the banner comes from the token set. We don't set a
+   fixed color - the app tokens do that for us. */
 [data-theme="dark"] .web-disclaimer {
   background: rgba(255, 255, 255, 0.04);
   border-bottom-color: rgba(255, 255, 255, 0.08);

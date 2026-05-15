@@ -36,13 +36,13 @@
 }
 
 /* ---- Paper sheet -----------------------------------------------------
-   Endlose Papierseite, die mit dem Inhalt mitwächst. Bewusst KEINE
-   sichtbaren A4-Seitenumbrüche im Editor: ein TikTok-/Reels-Skript
-   denkt in Sekunden, nicht in Seiten - die Seitenlogik gehört in den
-   PDF-Export, nicht in die Schreibumgebung. Mindesthöhe = eine A4-
-   Seite, damit ein leeres Skript nicht wie ein Stub aussieht. Breite
-   bleibt A4-konform, damit das, was du tippst, optisch dem PDF nahe-
-   kommt. */
+   Endless paper sheet that grows with the content. Deliberately NO
+   visible A4 page breaks in the editor: a TikTok / reels script
+   thinks in seconds, not in pages - page logic belongs in the
+   PDF export, not in the writing environment. Min height = one A4
+   page so an empty script doesn't look like a stub. Width
+   stays A4-compliant so what you type visually approximates
+   the PDF. */
 .paper-sheet {
   position: relative;
   width: var(--paper-w);
@@ -52,8 +52,8 @@
   color: var(--paper-fg);
   border-radius: var(--r-4);
   box-shadow: var(--shadow-paper);
-  /* Im Flex-Container des paper-canvas wäre min-content sonst 0 - ohne
-     flex-shrink:0 kollabiert die Seite in kurzen Fenstern. */
+  /* In the flex container of paper-canvas, min-content would otherwise be 0 -
+     without flex-shrink:0 the page collapses in short windows. */
   flex-shrink: 0;
 }
 
@@ -144,17 +144,17 @@
   position: relative;
 }
 
-/* ---- Fokus-Modus Eye-Toggle ----------------------------------------------
-   Wenn der Fokus-Modus aktiv ist (Toolbar + Rail blenden weg), erscheint
-   oben rechts ein dezenter Auge-Button zum Aussteigen. Bewusst kein
-   "✕" — das wirkte im Test kontraproduktiv (Chat 1). */
+/* ---- Focus-mode eye toggle ----------------------------------------------
+   When focus mode is active (toolbar + rail hide away), a discreet
+   eye button appears top-right to exit. Deliberately no
+   "✕" — that felt counterproductive in testing (chat 1). */
 .focus-toggle {
   position: fixed;
-  /* Im Fokus-Modus blenden Editor-Toolbar + Editor-Rail weg, nur die
-     Titlebar (34 px) bleibt — der Eye-Button sitzt direkt unter ihrer
-     Unterkante, oben rechts bündig mit minimalem Atemluft-Rand. Im Web
-     schiebt der Disclaimer-Banner uns über --web-header-offset nach
-     unten; auf Desktop fällt die Variable auf 0px zurück. */
+  /* In focus mode the editor toolbar + editor rail hide; only the
+     titlebar (34 px) stays — the eye button sits directly below its
+     bottom edge, top-right flush with minimal breathing room. On web,
+     the disclaimer banner shifts us down via --web-header-offset;
+     on desktop the variable falls back to 0px. */
   top: calc(40px + var(--web-header-offset, 0px));
   right: 20px;
   z-index: 10;

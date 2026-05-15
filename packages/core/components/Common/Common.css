@@ -50,32 +50,32 @@
   animation-duration: 220ms;
 }
 
-/* Forward: neuer Inhalt rastet leicht von rechts ein (Tab weiter rechts). */
+/* Forward: new content snaps in slightly from the right (tab further right). */
 @keyframes view-enter-fwd {
   from { opacity: 0.65; transform: translate3d(6px, 0, 0); }
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-/* Backward: neuer Inhalt rastet leicht von links ein (Tab weiter links). */
+/* Backward: new content snaps in slightly from the left (tab further left). */
 @keyframes view-enter-bwd {
   from { opacity: 0.65; transform: translate3d(-6px, 0, 0); }
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-/* Into-Script: das Skript "hebt sich an" (leichte Vergroesserung +
-   Y-Anhebung, wie ein Blatt das in den Fokus genommen wird). */
+/* Into-Script: the script "lifts itself up" (slight enlargement +
+   y rise, like a sheet being brought into focus). */
 @keyframes view-enter-into {
   from { opacity: 0.55; transform: scale(0.99) translate3d(0, 6px, 0); }
   to   { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
 }
-/* Back-to-Browser: leichtes Zoom-Out, als zoomten wir wieder raus auf
-   die Uebersicht. */
+/* Back-to-Browser: slight zoom-out, as if zooming back out onto
+   the overview. */
 @keyframes view-enter-back {
   from { opacity: 0.6; transform: scale(1.01); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* Respektiert das System-Setting "Bewegung reduzieren" (macOS:
-   Bedienungshilfen > Anzeige > Bewegung reduzieren). Dann nur ein
-   ganz kurzer Cross-Fade ohne Slide. */
+/* Respects the system setting "reduce motion" (macOS:
+   Accessibility > Display > Reduce Motion). Then only a
+   very short cross-fade without slide. */
 @media (prefers-reduced-motion: reduce) {
   .view-frame.is-animating,
   .app-main[data-view-dir="backward"] .view-frame.is-animating,

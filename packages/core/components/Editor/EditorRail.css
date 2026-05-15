@@ -1,16 +1,16 @@
 /* =========================================================================
-   Editor-Rail — rechte Seitenleiste mit Cast-Stats + Versionen-Tab.
-   220 px breit, fixed-positioned. Im Fokus-Modus blendet sich weg.
+   Editor rail — right side panel with cast stats + versions tab.
+   220 px wide, fixed-positioned. Hides itself in focus mode.
    ========================================================================= */
 
 .editor-rail {
   position: fixed;
   right: 24px;
-  /* 34 px Titlebar + 46 px Editor-Toolbar + 14 px Atemluft. Im Web kann
-     der Disclaimer-Banner zusätzlich Höhe oben drauflegen — die
-     --web-header-offset-Variable (gesetzt von WebDisclaimerBanner) schiebt
-     uns dann nach unten, sodass die Rail nicht hinter den Banner rutscht.
-     Auf Desktop ist die Variable nicht gesetzt → Fallback 0px. */
+  /* 34 px titlebar + 46 px editor toolbar + 14 px breathing room. On web
+     the disclaimer banner can add additional height on top — the
+     --web-header-offset variable (set by WebDisclaimerBanner) then
+     shifts us down so the rail doesn't slide behind the banner.
+     On desktop the variable isn't set → fallback 0px. */
   top: calc(94px + var(--web-header-offset, 0px));
   width: 220px;
   z-index: 4;

@@ -13,15 +13,15 @@ export interface OnboardingDialogProps {
   open: boolean;
   onClose(): void;
   onCreateFirstScript?(): void;
-  /** Wenn true: blendet einen zusaetzlichen Hinweisblock in Schritt 1
-   *  ein, der erklaert, dass es sich um die Web-Test-Version handelt
-   *  und die Desktop-App empfiehlt. Nur die Web-App setzt das. */
+  /** When true: shows an additional note block in step 1
+   *  explaining that this is the web test version and
+   *  recommending the desktop app. Only the web app sets this. */
   webIntro?: boolean;
 }
 
 type StepDir = "forward" | "backward" | "none";
 
-// 3 Karten: Erscheinungsbild (inkl. Sprache + Theme) → Schreiben → Final-CTA.
+// 3 cards: appearance (incl. language + theme) → writing → final CTA.
 const TOTAL_STEPS = 3;
 
 export function OnboardingDialog(props: OnboardingDialogProps) {
@@ -238,9 +238,9 @@ function StepAppearance(props: { webIntro?: boolean }) {
         </div>
       </Show>
 
-      {/* Sprache: kompaktes segmentiertes Control, direkt über den Theme-
-          Karten. Bewusst kein eigener Schritt - User soll Theme + Sprache
-          in einem Atemzug einstellen. */}
+      {/* Language: compact segmented control placed directly above
+          the theme cards. Intentionally not its own step - the user
+          should configure theme + language in one go. */}
       <div class="ob-hl-row" style="margin-bottom: 16px;">
         <div class="ob-hl-row-label">
           <div class="ob-field-label">{t("lang.label")}</div>

@@ -1,7 +1,7 @@
 /* =========================================================================
-   Onboarding — Vollflächiges Overlay mit eigener Stage-Animation.
-   Bewusst kein Modal-Wrapper: das Onboarding ist beim ersten Start "der
-   App-Inhalt" und soll grosszügig wirken, nicht wie ein Hilfsdialog.
+   Onboarding — full-bleed overlay with its own stage animation.
+   Deliberately no modal wrapper: on first launch, onboarding is "the
+   app content" and should feel generous, not like a help dialog.
    ========================================================================= */
 
 .ob-backdrop {
@@ -56,7 +56,7 @@
   transform: rotate(90deg);
 }
 
-/* ---- Stage: hält die Schritte, animiert beim Wechseln ---- */
+/* ---- Stage: holds the steps, animates on switch ---- */
 .ob-stage {
   position: relative;
   flex: 1 1 auto;
@@ -214,7 +214,7 @@
 .ob-theme-preview[data-variant="light"] .ob-theme-tl span:nth-child(2) { background: #febc2e; }
 .ob-theme-preview[data-variant="light"] .ob-theme-tl span:nth-child(3) { background: #28c840; }
 
-/* Dark-Preview: dunkler Rahmen, Papier bleibt hell (matcht App-Verhalten). */
+/* Dark preview: dark frame, paper stays light (matches app behavior). */
 .ob-theme-preview[data-variant="dark"] {
   background: #222222;
 }
@@ -321,12 +321,12 @@
   transform: scale(1);
 }
 
-/* ---- Schritt 3: Highlighting-Demo ----
-   Mini-Editor-Vorschau, geometrisch und Tint-mässig 1:1 wie der echte
-   Editor (siehe Editor.css ab .block-scriptz-character):
-   - Charakter zentriert, ALLCAPS via text-transform, bold + letter-spacing 0.06em
-   - Dialog mit margin 0 16%
-   - Parenthetical mit margin 0 22%, italic, gemuteter Farbe
+/* ---- Step 3: highlighting demo ----
+   Mini editor preview, geometrically and tint-wise 1:1 with the real
+   editor (see Editor.css from .block-scriptz-character):
+   - Character centered, ALLCAPS via text-transform, bold + letter-spacing 0.06em
+   - Dialog with margin 0 16%
+   - Parenthetical with margin 0 22%, italic, muted color
    - Tint nur auf dem inneren Text-Span via box-decoration-break: clone +
      padding 1px 4px + border-radius 3px (also "Pill um den Text" statt
      "ganze Blockbreite"), Mix toward white bei 28% – matcht den Tint,
@@ -391,7 +391,7 @@
   text-align: left;
 }
 
-/* Tint nur auf dem Text-Span. Padding + radius matchen Editor.css. */
+/* Tint only on the text span. Padding + radius match Editor.css. */
 .ob-hl-text {
   background: transparent;
   -webkit-box-decoration-break: clone;
@@ -510,7 +510,7 @@
   color: var(--fg-muted);
 }
 
-/* ---- Toggle (separat von Settings, damit kein Layout-Drift) ---- */
+/* ---- Toggle (separate from Settings so no layout drift) ---- */
 .ob-toggle {
   position: relative;
   width: 44px;
@@ -653,9 +653,9 @@
   gap: 8px;
 }
 
-/* Phase-H-Hinweisblock in Schritt 1, nur in der Web-Version sichtbar.
-   Erklaert, dass es sich um die Test-Variante handelt, und linkt auf
-   die Desktop-App. Wirkt wie eine Notiz, nicht wie eine Warnung. */
+/* Phase-H note block in step 1, only visible in the web version.
+   Explains that this is the test variant and links to
+   the desktop app. Feels like a note, not a warning. */
 .ob-web-note {
   margin: 8px 0 16px;
   padding: 12px 14px;

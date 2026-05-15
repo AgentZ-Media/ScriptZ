@@ -24,9 +24,9 @@ const TINT_BLOCKS = new Set([
 ]);
 
 /** Convert "#rrggbb" plus an alpha factor (0..1) into a "rgb(r,g,b)"
- * blended **toward white** — Default-Look auf hellem Papier. Matched
- * die Formel aus exportPdf.ts, daher sehen Editor und PDF identisch
- * aus, solange das Papier hell ist (PDF ist immer hell). */
+ * blended **toward white** — default look on light paper. Matches
+ * the formula from exportPdf.ts, so the editor and PDF look identical
+ * as long as the paper is light (PDF is always light). */
 function hexToTintLight(hex: string, alpha: number): string {
   const rgb = parseHex(hex);
   if (!rgb) return "";
@@ -34,14 +34,14 @@ function hexToTintLight(hex: string, alpha: number): string {
   return `rgb(${mix(rgb[0])}, ${mix(rgb[1])}, ${mix(rgb[2])})`;
 }
 
-/** Variante für Dark-Paper: blendet die User-Charakterfarbe **richtung
- * Dunkel** (Papier-Bg #1c1c1c). Sonst läge weisser Text auf weisslicher
- * Tinte — kein Kontrast. Resultat ist eine satter-gemutete Variante der
- * gleichen Farbe, weiße Schrift bleibt darauf gut lesbar. */
+/** Variant for dark paper: mixes the user character color **toward
+ * dark** (paper bg #1c1c1c). Otherwise white text would sit on whitish
+ * ink — no contrast. The result is a more-saturated muted variant of
+ * the same color; white type stays readable on it. */
 function hexToTintDark(hex: string, alpha: number): string {
   const rgb = parseHex(hex);
   if (!rgb) return "";
-  // Mix gegen 28 (= #1c) statt 255 (= white).
+  // Mix against 28 (= #1c) instead of 255 (= white).
   const PAPER = 28;
   const mix = (c: number) => Math.round(PAPER + (c - PAPER) * alpha);
   return `rgb(${mix(rgb[0])}, ${mix(rgb[1])}, ${mix(rgb[2])})`;
@@ -82,9 +82,9 @@ export function installHighlight(
       colorByName.set(c.name.toUpperCase(), c.color);
     }
 
-    // Aktuelle Paper-Variante zur Apply-Zeit lesen. Bei jedem Toggle
-    // der darkPaper-Setting wird refresh() gerufen, daher reicht es,
-    // den Wert hier einmal pro Lauf zu lesen.
+    // Read the current paper variant at apply time. Every toggle
+    // of the darkPaper setting calls refresh(), so it's enough to
+    // read the value once per run here.
     const darkPaper =
       typeof document !== "undefined" &&
       document.documentElement.dataset.paper === "dark";

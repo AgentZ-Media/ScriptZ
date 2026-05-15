@@ -8,12 +8,12 @@ import MobileNav from "../components/MobileNav.astro";
 interface Props {
   title?: string;
   description?: string;
-  /** Wird im <title> dem Site-Namen vorangestellt. */
+  /** Prepended to the site name in <title>. */
   pageTitle?: string;
   /**
-   * Sprache der Seite. Default `de`. Legal-Seiten (Impressum,
-   * Datenschutz) bleiben bei `de`, weil das deutsche Recht das
-   * vorgibt - der Auto-Detect-Redirect ignoriert diese Pfade.
+   * Page language. Default `de`. Legal pages (Impressum,
+   * Datenschutz) stay on `de` because German law requires it -
+   * the auto-detect redirect ignores those paths.
    */
   lang?: Lang;
 }
@@ -32,11 +32,11 @@ const ogImage = `${site.url}/img/icon-large.png`;
 const ogLocale = t(lang, "meta.ogLocale");
 const htmlLang = lang === "en" ? "en" : "de";
 
-// Canonical und hreflang.
-// `build.format: "file"` haengt an Pfaden ein `.html` an - auf
-// `Astro.url.pathname` kann also `/impressum.html` ankommen statt
-// `/impressum`. Wir normalisieren hier einmal, damit alle Vergleiche
-// (isLegal, isHome, hreflang) das gleiche Schema sehen.
+// Canonical and hreflang.
+// `build.format: "file"` appends `.html` to paths - so
+// `Astro.url.pathname` may arrive as `/impressum.html` instead of
+// `/impressum`. We normalize once here so all comparisons (isLegal,
+// isHome, hreflang) see the same scheme.
 const rawPath = Astro.url.pathname;
 const currentPath = (() => {
   let p = rawPath.replace(/\.html$/, "").replace(/\/$/, "");
@@ -47,18 +47,19 @@ const currentPath = (() => {
 const isLegal = currentPath === "/impressum" || currentPath === "/datenschutz";
 const isHome = currentPath === "/" || currentPath === "/en";
 
-// hreflang-Pfade pro Sprache: Tab-Routen sind sprach-eigene Slugs
-// (`/quickmodus` <-> `/en/quick-mode`), Legal-Seiten existieren nur in
-// DE. `switchLangPath` deckt beide Faelle ab.
+// hreflang paths per language: tab routes have language-specific
+// slugs (`/quickmodus` <-> `/en/quick-mode`), legal pages exist only
+// in DE. `switchLangPath` covers both cases.
 const dePath = lang === "de" ? currentPath : switchLangPath(lang, "de", currentPath);
 const enPath = isLegal ? null : (lang === "en" ? currentPath : switchLangPath(lang, "en", currentPath));
 const deHref = new URL(dePath, site.url).toString();
 const enHref = enPath ? new URL(enPath, site.url).toString() : null;
 const canonical = lang === "en" ? (enHref ?? deHref) : deHref;
 
-// Structured Data (JSON-LD): hilft Suchmaschinen, ScriptZ als Software
-// und AgentZ Media als Publisher zu erkennen. `Organization` liegt auf
-// jeder Seite, `SoftwareApplication` nur auf den Home-Routen (`/`, `/en`).
+// Structured data (JSON-LD): helps search engines recognize ScriptZ
+// as software and AgentZ Media as publisher. `Organization` sits on
+// every page, `SoftwareApplication` only on the home routes
+// (`/`, `/en`).
 const orgLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -97,16 +98,16 @@ if (isHome) {
   };
 }
 
-// Soll diese Page den ClientRouter benutzen? Ja fuer alle Tab-Routen
-// (warum/quickmodus/no-ai/vergleich/download/ideen). Nein fuer Legal -
-// dort gibt es keine "Tab-Wechsel"-UX, ein Klick auf Impressum aus dem
-// Footer ist eine echte Page-Navigation, der Wiederaufbau ist OK.
+// Should this page use the ClientRouter? Yes for all tab routes
+// (warum/quickmodus/no-ai/vergleich/download/ideen). No for legal -
+// there's no "tab-switch" UX there; clicking Impressum from the
+// footer is a real page navigation, a rebuild is fine.
 const tabRouteKey = routeKeyFromPath(currentPath);
 const isTabRoute = tabRouteKey !== null;
 
-// Aktive Route fuer die MobileNav. Tab-Routen liefern ihren Key, Legal-
-// Seiten haben eigene Marker, alle anderen Pfade bleiben unmarkiert
-// (z.B. 404, kuenftige Sub-Pages).
+// Active route for the MobileNav. Tab routes deliver their key,
+// legal pages have their own markers, all other paths stay
+// unmarked (e.g. 404, future sub-pages).
 const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
   tabRouteKey ??
   (currentPath === "/impressum" ? "impressum"
@@ -129,9 +130,9 @@ const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
     <link rel="apple-touch-icon" href="/img/icon.png" />
     <link rel="canonical" href={canonical} />
 
-    <!-- hreflang: signalisiert Google die jeweils andere Sprachvariante.
-         `x-default` zeigt auf die deutsche Variante, weil das die Default-
-         Sprache der Site ist. -->
+    <!-- hreflang: tells Google the other language variant.
+         `x-default` points to the German variant because that's
+         the site's default language. -->
     <link rel="alternate" hreflang="de" href={deHref} />
     {enHref && <link rel="alternate" hreflang="en" href={enHref} />}
     <link rel="alternate" hreflang="x-default" href={deHref} />
@@ -157,22 +158,22 @@ const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
     <script is:inline type="application/ld+json" set:html={JSON.stringify(orgLd)} />
     {softwareLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(softwareLd)} />}
 
-    <!-- View Transitions / ClientRouter: macht die Tab-Routen-Wechsel
-         zum gefuehlten Tab-Switch statt Full-Reload. Chrome + Sprint-
-         Pille tragen `transition:persist`, deshalb bleiben sie beim
-         Swap gemountet. -->
+    <!-- View transitions / ClientRouter: turns tab-route changes
+         into a felt tab switch instead of a full reload. Chrome +
+         sprint pill carry `transition:persist`, so they stay
+         mounted across the swap. -->
     <ClientRouter fallback="swap" />
 
-    <!-- Plattform-Auto-Detect: laeuft synchron vor dem ersten Paint
-         und setzt `<html data-platform="windows|macos|linux">`. CSS-
-         Regeln im landing.css (`.mac-only` / `.win-only`) blenden die
-         passende Plattform-Variante ein. Default im Markup ist macOS,
-         deshalb muessen wir nur bei Windows/Linux umschalten - der
-         Mac-Pfad braucht kein Attribut.
-         Bevorzugt wird `navigator.userAgentData.platform` (Client Hints,
-         modern, expliziter String), fallback `navigator.userAgent`-Regex
-         (deckt aelteres Firefox + Safari ab). Bei Unsicherheit bleiben
-         wir bei macOS. -->
+    <!-- Platform auto-detect: runs synchronously before the first
+         paint and sets `<html data-platform="windows|macos|linux">`.
+         CSS rules in landing.css (`.mac-only` / `.win-only`) show
+         the matching platform variant. The markup default is macOS,
+         so we only need to switch on Windows/Linux - the Mac path
+         needs no attribute.
+         Prefers `navigator.userAgentData.platform` (Client Hints,
+         modern, explicit string), falls back to a
+         `navigator.userAgent` regex (covers older Firefox + Safari).
+         When unsure we stay on macOS. -->
     <script is:inline>
       (function () {
         try {
@@ -197,19 +198,19 @@ const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
       })();
     </script>
 
-    <!-- Sprach-Auto-Detect: laeuft bevor das Reveal-Script greift,
-         damit der Redirect noch vor dem ersten Paint passieren kann.
-         Regeln:
-           1. Wenn der Nutzer bereits eine Wahl getroffen hat
-              (localStorage["scriptz-lang"]), nie automatisch umleiten.
-           2. Auf Legal-Seiten nie umleiten - die existieren nur in DE.
-           3. Sonst: navigator.language anschauen. Beginnt sie mit "de",
-              passt die deutsche Seite, kein Redirect noetig. Sonst -
-              wenn wir auf "/" sind - einmalig nach "/en" umleiten.
-           4. Niemals von /en nach / zurueck-redirecten, selbst wenn die
-              Browser-Sprache "de" ist - der Nutzer koennte den Link
-              bewusst geteilt haben. Nur die explizite Toggle-Wahl
-              entscheidet dauerhaft. -->
+    <!-- Language auto-detect: runs before the reveal script so the
+         redirect can happen before the first paint.
+         Rules:
+           1. If the user already made a choice
+              (localStorage["scriptz-lang"]), never auto-redirect.
+           2. On legal pages never redirect - they only exist in DE.
+           3. Otherwise: look at navigator.language. If it starts
+              with "de", the German page fits, no redirect needed.
+              Otherwise - if we're on "/" - redirect once to "/en".
+           4. Never redirect from /en back to /, even if the browser
+              language is "de" - the user might have shared the link
+              deliberately. Only the explicit toggle choice decides
+              permanently. -->
     <script is:inline>
       (function() {
         try {
@@ -226,22 +227,24 @@ const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
     </script>
   </head>
   <body data-lang={lang} data-is-tab-route={isTabRoute ? "true" : "false"}>
-    <!-- Mobile-Navigation. Nur auf <= 768 px sichtbar (CSS-Toggle in
-         der Komponente). Sitzt VOR dem Slot, damit sie auf jeder Seite
-         ganz oben klebt - vor PageHero, vor App-Shell, vor Legal-Hero. -->
+    <!-- Mobile navigation. Visible only at <= 768 px (CSS toggle
+         in the component). Sits BEFORE the slot so it stays on top
+         on every page - before PageHero, before AppShell, before
+         the legal hero. -->
     <MobileNav lang={lang} activeRoute={mobileNavActive} currentPath={currentPath} />
 
     <slot />
 
-    <!-- ClientRouter-After-Swap-Handler:
-         1. Shell-Init neu ausfuehren (re-bindet Copy-Button, Sprint,
-            Plattform-CTA, Screenshot-Galerie). Funktion stammt aus
-            AppShell.astro und liegt global an `window.__scriptzShellInit`.
-         2. Nach oben scrollen, damit jeder Tab-Wechsel den User wieder
-            an den Page-Anfang setzt (inkl. Hero), wie ein klassischer
-            Page-Load.
-         3. Reveal-on-scroll Observer neu starten - die `.reveal`-Targets
-            sind frisch im DOM. -->
+    <!-- ClientRouter after-swap handler:
+         1. Re-run the shell init (re-binds copy button, sprint,
+            platform CTA, screenshot gallery). Function comes from
+            AppShell.astro and lives globally at
+            `window.__scriptzShellInit`.
+         2. Scroll to the top so every tab switch returns the user
+            to the page start (incl. hero), like a classic page
+            load.
+         3. Restart the reveal-on-scroll observer - the `.reveal`
+            targets are fresh in the DOM. -->
     <script is:inline>
       (function () {
         var scrollToPageTop = function () {
@@ -265,7 +268,7 @@ const mobileNavActive: Parameters<typeof MobileNav>[0]["activeRoute"] =
           document.querySelectorAll(".reveal").forEach(function (el) { observer.observe(el); });
         };
 
-        // Erstes Setup
+        // First setup
         initReveal();
 
         document.addEventListener("astro:after-swap", function () {

@@ -8,29 +8,29 @@ import { t, tPlural, getCurrentLocale } from "../../i18n";
 import "./MomentumStrip.css";
 
 export interface MomentumStripProps {
-  /** Zuletzt berührtes Skript - klickbar als „Weiterschreiben"-CTA. */
+  /** Most recently touched script - clickable as "continue writing" CTA. */
   lastScript: ScriptSummary | null;
   onContinue(script: ScriptSummary): void;
 }
 
-/** Ein-Zeiler unter der Begrüßung. Drei Slots:
+/** One-liner below the greeting. Three slots:
  *
- *    [Weiterschreiben: <Titel>  →]  [✶ N Tage]  [W heute / Ziel]  [Aktivität ↗]
+ *    [Continue writing: <title>  →]  [✶ N days]  [W today / goal]  [Activity ↗]
  *
- *  Die linke Pille ist ein echter „go write"-CTA und bleibt prominent,
- *  die mittleren Pills sind reine Awareness-Anzeiger, die rechte
- *  Aktion öffnet das ActivityModal. Spart laut Re-Design ~240px
- *  vertikal gegenüber drei großen Stat-Karten - die Skript-Liste
- *  steht damit direkt unter dem Strip. */
+ *  The left pill is a real "go write" CTA and stays prominent;
+ *  the middle pills are pure awareness indicators; the right
+ *  action opens the ActivityModal. Saves ~240px vertically per
+ *  the re-design compared to three big stat cards - the script list
+ *  therefore sits directly below the strip. */
 export function MomentumStrip(props: MomentumStripProps) {
   const stats = () => dailyStatsStore.stats();
   const goal = () => settingsStore.weeklyWordGoal();
   const wordsThisWeek = () => stats().wordsThisWeek;
   const goalMet = () => wordsThisWeek() >= goal();
   const streak = () => stats().streakDays;
-  /** Cast-Streifen wie im File-Browser: nach Dialog-Anteil sortiert,
-   *  harte Segmente. Fällt auf eine dezente Linie zurück, wenn das
-   *  Skript noch keinen Cast hat. */
+  /** Cast stripe like in the file browser: sorted by dialog share,
+   *  hard segments. Falls back to a discreet line when the
+   *  script has no cast yet. */
   const stripeBg = createMemo(
     () =>
       stripeBackground(props.lastScript?.characters ?? [], "to bottom") ??

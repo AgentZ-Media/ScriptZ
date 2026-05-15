@@ -1,12 +1,12 @@
 ---
 /**
- * HOME-Section - eigener Inhalt fuer `/` und `/en`. Statt den Warum-
- * Tab zu wiederholen, gibt's hier eine kurze Uebersicht: Screenshot-
- * Galerie, drei Feature-Teaser mit Links zu den Detail-Routen,
- * Vergleichs-Hinweis und ein Closing-Download-Block.
+ * HOME section - dedicated content for `/` and `/en`. Instead of
+ * repeating the Warum tab, here's a short overview: screenshot
+ * gallery, three feature teasers with links to the detail routes,
+ * comparison hint and a closing download block.
  *
- * Caption als H2, weil das Page-Hero auf dieser Route schon ein H1
- * traegt - sonst haette die Page zwei H1s.
+ * Caption as H2 because the page hero on this route already carries
+ * an H1 - otherwise the page would have two H1s.
  */
 import { routePath, t, type Lang } from "../../i18n";
 import { getLatestRelease, site } from "../../data/site";
@@ -21,7 +21,7 @@ const release = await getLatestRelease();
 
 <section class="v2-tab-content is-active v2-home" data-content="home" data-section-title={t(lang, "tab.home.title")}>
 
-  <!-- Screenshot-Galerie ------------------------------------------- -->
+  <!-- Screenshot gallery ------------------------------------------- -->
   <div class="v2-home-block">
     <h2 class="v2-home-h2">{t(lang, "home.gallery.h2")}</h2>
     <p class="v2-home-sub">{t(lang, "home.gallery.sub")}</p>
@@ -55,7 +55,7 @@ const release = await getLatestRelease();
     </div>
   </div>
 
-  <!-- Drei Feature-Teaser ------------------------------------------ -->
+  <!-- Three feature teasers ----------------------------------------- -->
   <div class="v2-home-block">
     <h2 class="v2-home-h2">{t(lang, "home.features.h2")}</h2>
     <div class="v2-home-grid">
@@ -77,7 +77,7 @@ const release = await getLatestRelease();
     </div>
   </div>
 
-  <!-- Vergleichs-Teaser -------------------------------------------- -->
+  <!-- Comparison teaser --------------------------------------------- -->
   <div class="v2-home-block v2-home-compare">
     <h2 class="v2-home-h2">{t(lang, "home.compare.h2")}</h2>
     <p class="v2-home-compare-body">{t(lang, "home.compare.body")}</p>
@@ -86,7 +86,7 @@ const release = await getLatestRelease();
     </a>
   </div>
 
-  <!-- Closing-Download-Block --------------------------------------- -->
+  <!-- Closing download block ---------------------------------------- -->
   <div class="v2-home-block v2-home-closing">
     <span class="v2-home-closing-eyebrow">{t(lang, "home.closing.eyebrow")}</span>
     <h2 class="v2-home-closing-h2">{t(lang, "home.closing.h2")}</h2>

@@ -1,9 +1,9 @@
 /**
- * i18n-Helfer für die Landing.
+ * i18n helpers for the landing.
  *
- * Anders als in der App ist die Sprache hier per URL-Pfad determiniert
- * ("/" = DE, "/en" = EN), nicht über einen Setting-Store. Jede `.astro`
- * bekommt `lang` als Prop und ruft `t(lang, key)`.
+ * Unlike the app, language is determined here by URL path ("/" = DE,
+ * "/en" = EN), not via a settings store. Each `.astro` receives
+ * `lang` as a prop and calls `t(lang, key)`.
  */
 import { de } from "./de";
 import { en } from "./en";
@@ -21,9 +21,9 @@ const catalogs: Record<Lang, Record<string, string>> = {
 export type StringKey = keyof typeof de;
 
 /**
- * Übersetzt einen Key in die gewählte Sprache. Fällt im Notfall auf
- * Deutsch zurück - wird aber durch den `Record<keyof typeof de, ...>`
- * in en.ts schon zur Build-Zeit verhindert.
+ * Translates a key to the chosen language. Falls back to German as
+ * a safety net - but the `Record<keyof typeof de, ...>` constraint
+ * in en.ts already prevents missing keys at build time.
  */
 export function t(lang: Lang, key: StringKey): string {
   const value = catalogs[lang]?.[key];
@@ -31,8 +31,8 @@ export function t(lang: Lang, key: StringKey): string {
 }
 
 /**
- * Wie `t`, ersetzt zusaetzlich `{placeholder}`-Slots im uebersetzten
- * String. Beispiel: `tFormat("de", "blog.publishedOn", { date: "13. Mai 2026" })`.
+ * Like `t`, but also replaces `{placeholder}` slots in the translated
+ * string. Example: `tFormat("de", "blog.publishedOn", { date: "13. Mai 2026" })`.
  */
 export function tFormat(
   lang: Lang,
@@ -47,9 +47,9 @@ export function tFormat(
 }
 
 /**
- * Pluralregel-Helfer: waehlt zwischen `<key>_one` und `<key>_other` und
- * ersetzt `{n}` mit dem Count. Englisch und Deutsch teilen die
- * Plural-Heuristik (n === 1 → one), deshalb reicht das einfache Schema.
+ * Plural-rule helper: picks between `<key>_one` and `<key>_other` and
+ * replaces `{n}` with the count. English and German share the plural
+ * heuristic (n === 1 → one), so the simple scheme is enough.
  */
 export function tPlural(
   lang: Lang,
@@ -63,11 +63,11 @@ export function tPlural(
 }
 
 /**
- * Inhaltliche Tab-Routen. Jede Sprache hat eigene Slugs, damit die URL
- * selbst keyword-relevant ist (DE "/keine-ki" statt "/no-ai", EN
- * "/en/compare" statt "/en/vergleich"). Die Tab-ID (`warum`,
- * `quickmodus`, ...) ist sprach-unabhaengig und entspricht den
- * `data-tab`-Attributen in der Chrome-Komponente.
+ * Content tab routes. Each language has its own slugs so the URL
+ * itself is keyword-relevant (DE "/keine-ki" instead of "/no-ai",
+ * EN "/en/compare" instead of "/en/vergleich"). The tab ID (`warum`,
+ * `quickmodus`, ...) is language-independent and matches the
+ * `data-tab` attributes in the chrome component.
  */
 export const ROUTES = {
   home: { de: "/", en: "/en" },
@@ -77,44 +77,44 @@ export const ROUTES = {
   vergleich: { de: "/vergleich", en: "/en/compare" },
   download: { de: "/download", en: "/en/download" },
   ideen: { de: "/ideen", en: "/en/ideas" },
-  // Blog: Index unter `/blog` bzw. `/en/blog`. Einzelne Beitraege
-  // (`/blog/<slug>`) sind dynamische Sub-Routen, die hier nicht als
-  // separater Key existieren - der Sprach-Toggle auf Post-Pages kommt
-  // ueber ein Override im BlogShell, nicht ueber `switchLangPath`.
+  // Blog: index at `/blog` and `/en/blog`. Individual posts
+  // (`/blog/<slug>`) are dynamic sub-routes that don't exist as a
+  // separate key here - the language toggle on post pages comes via
+  // an override in BlogShell, not via `switchLangPath`.
   blog: { de: "/blog", en: "/en/blog" },
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;
 
 /**
- * Pfad-Helfer fuer eine Tab-Route in der gewuenschten Sprache.
+ * Path helper for a tab route in the desired language.
  */
 export function routePath(lang: Lang, key: RouteKey): string {
   return ROUTES[key][lang];
 }
 
 /**
- * Pfad-Helfer: haengt das Sprach-Prefix an einen lokalen Pfad an, wenn
- * `en` aktiv ist. Fuer DE bleibt der Pfad wie er ist (DE ist Default).
+ * Path helper: appends the language prefix to a local path when
+ * `en` is active. For DE the path stays as-is (DE is the default).
  *
- * Beispiele:
+ * Examples:
  *   localePath("de", "/")           → "/"
  *   localePath("en", "/")           → "/en"
  *   localePath("de", "/impressum")  → "/impressum"
- *   localePath("en", "/impressum")  → "/impressum"  (Legal bleibt DE-only)
+ *   localePath("en", "/impressum")  → "/impressum"  (legal stays DE-only)
  */
 export function localePath(lang: Lang, path: string): string {
   if (lang === DEFAULT_LANG) return path;
-  // Nur die Landing-Seite hat eine EN-Variante. Legal-Seiten bleiben DE.
+  // Only the landing page has an EN variant. Legal pages stay DE.
   if (path === "/" || path === "") return "/en";
   return path;
 }
 
 /**
- * Pfad-zu-RouteKey-Lookup. Fuer einen gegebenen Pfad (z.B.
- * "/quickmodus" oder "/en/quick-mode") wird die zugehoerige Route-ID
- * gefunden. Gibt `null` zurueck, wenn der Pfad nicht zu einer
- * Tab-Route gehoert (Legal-Seiten u.ae.).
+ * Path-to-RouteKey lookup. For a given path (e.g. "/quickmodus" or
+ * "/en/quick-mode"), the corresponding route ID is found. Returns
+ * `null` if the path doesn't belong to a tab route (legal pages and
+ * the like).
  */
 export function routeKeyFromPath(path: string): RouteKey | null {
   const normalized = path.replace(/\.html$/, "").replace(/\/$/, "") || "/";
@@ -127,23 +127,23 @@ export function routeKeyFromPath(path: string): RouteKey | null {
 }
 
 /**
- * Gibt die "Schwester-URL" fuer einen Sprachwechsel zurueck. Wird vom
- * DE/EN-Toggle benutzt, um zwischen den Routen zu springen.
+ * Returns the "sister URL" for a language switch. Used by the DE/EN
+ * toggle to jump between routes.
  */
 export function switchLangPath(currentLang: Lang, targetLang: Lang, currentPath: string): string {
   const normalized = currentPath.replace(/\.html$/, "").replace(/\/$/, "") || "/";
-  // Legal-Pfade bleiben in beiden Sprachen DE - der Toggle bringt den
-  // Nutzer zur Landing in der gewuenschten Sprache zurueck.
+  // Legal paths stay DE in both languages - the toggle brings the
+  // user back to the landing in the desired language.
   const isLegal = normalized === "/impressum" || normalized === "/datenschutz";
   if (isLegal) {
     return targetLang === DEFAULT_LANG ? "/" : "/en";
   }
-  // Tab-Route gefunden? Dann der gespiegelten Sprach-URL folgen.
+  // Tab route found? Then follow the mirrored language URL.
   const key = routeKeyFromPath(normalized);
   if (key) {
     return ROUTES[key][targetLang];
   }
-  // Fallback: Sprach-Prefix tauschen wie frueher.
+  // Fallback: swap language prefix as before.
   if (targetLang === DEFAULT_LANG) {
     return normalized.replace(/^\/en\/?$/, "/").replace(/^\/en\//, "/");
   }

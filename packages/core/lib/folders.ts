@@ -3,7 +3,7 @@
 // TS port of src-tauri/src/commands/folders.rs (Migration Phase 4).
 // Schema is unchanged: `folders(id, name, created_at, updated_at)` plus the
 // `scripts.folder_id` FK. Deleting a folder relies on `ON DELETE SET NULL`
-// to surface its scripts in "Alle" rather than cascading the delete.
+// to surface its scripts in "All" rather than cascading the delete.
 //
 // Caveat (same as Phase 3): tauri-plugin-sql exposes no transaction API in
 // JS, so `moveScripts` issues N independent UPDATEs instead of wrapping
@@ -23,7 +23,7 @@ interface FolderRow {
   script_count: number;
 }
 
-/** Total count of live (non-archived) scripts. Drives the "Alle" chip in
+/** Total count of live (non-archived) scripts. Drives the "All" chip in
  *  the Browser, where summing per-folder counts would miss the
  *  ungrouped-script case. */
 export async function countLiveScripts(): Promise<number> {
@@ -98,7 +98,7 @@ export async function renameFolder(id: string, name: string): Promise<Folder> {
 }
 
 /** FK ON DELETE SET NULL takes care of orphaned scripts - they reappear
- *  in "Alle" without their folder_id. Scripts are never auto-deleted with
+ *  in "All" without their folder_id. Scripts are never auto-deleted with
  *  the folder; that would be confusing and there's no UNDO. */
 export async function deleteFolder(id: string): Promise<void> {
   const db = await getDb();

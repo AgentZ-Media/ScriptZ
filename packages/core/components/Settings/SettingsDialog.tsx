@@ -42,9 +42,9 @@ interface ShortcutGroup {
   items: Array<{ keys: string; desc: string }>;
 }
 
-// Shortcut-Anzeige plattform-aware: K() rendert "⌘N" auf macOS und
-// "Ctrl+N" auf Windows/Linux. Per-Call-Build damit Sprach-Wechsel die
-// Beschreibungen sofort aktualisiert.
+// Shortcut display is platform-aware: K() renders "⌘N" on macOS and
+// "Ctrl+N" on Windows/Linux. Per-call build so language switches
+// update the descriptions immediately.
 function shortcutGroups(): ShortcutGroup[] {
   return [
     {
@@ -112,7 +112,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
     try {
       setAppVersion(await getVersion());
     } catch {
-      /* dev-mode ohne Tauri */
+      /* dev mode without Tauri */
     }
   });
 

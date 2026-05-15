@@ -42,18 +42,18 @@ export default function App() {
   const [exportOpen, setExportOpen] = createSignal(false);
   const [ideaCaptureOpen, setIdeaCaptureOpen] = createSignal(false);
   const [onboardingOpen, setOnboardingOpen] = createSignal(false);
-  // Initial true: per Default startet ein Skript im Fokus-Modus (ruhiger
-  // Schreib-Modus, Toolbar + Cast-Rail aus). Wer das nicht will, deaktiviert
-  // den Default in den Einstellungen → Editor.
+  // Initial true: by default a script opens in focus mode (quiet writing
+  // mode, toolbar + cast rail off). Anyone who doesn't want that disables
+  // the default under Settings → Editor.
   const [focusMode, setFocusMode] = createSignal(true);
 
   const activeScriptId = (): string | null => tabsStore.activeScript()?.scriptId ?? null;
 
-  // Pro-Skript-Override fuer den Fokus-Modus. Wird beim manuellen Toggle
-  // (⇧⌘F, Toolbar-Button, Eye-Floating-Button) gesetzt und beim
-  // Tab-Wechsel vorrangig vor dem globalen Default verwendet. Cache in
-  // JS-Memory, damit Tab-Wechsel innerhalb der Session sync sind und
-  // nicht jedes Mal auf den IPC-Roundtrip warten muessen.
+  // Per-script override for focus mode. Set by the manual toggle
+  // (⇧⌘F, toolbar button, eye floating button) and used in preference
+  // over the global default when switching tabs. Cached in JS memory so
+  // that tab switches within the session are synchronous and don't have
+  // to wait on an IPC roundtrip every time.
   const FOCUS_KEY = (id: string) => `script.${id}.focus_mode`;
   const focusOverride = new Map<string, boolean>();
 
@@ -73,13 +73,13 @@ export default function App() {
     if (activeScriptId()) setExportOpen(true);
   };
 
-  /** Schnell-Erstellen: ⌘N und der "+"-Knopf in der Tab-Bar legen direkt
-   *  ein Skript an, ohne den NewScriptDialog zu öffnen - das spart einen
-   *  Klick und einen Tipp-Vorgang. Der "+ Neu"-Knopf im Browser-Header
-   *  behält den Modal (für die Ordner-Auswahl). Skripte ohne Titel
-   *  starten als "Unbenannt"; ScriptView zwingt in dem Fall die Toolbar
-   *  sichtbar, damit der User den Titel inline setzen kann statt 17
-   *  Skripte mit dem Default-Namen anzulegen. */
+  /** Quick-create: ⌘N and the "+" button in the tab bar create a
+   *  script directly, without opening the NewScriptDialog - that saves a
+   *  click and a typing step. The "+ New" button in the browser header
+   *  keeps the modal (for folder selection). Scripts without a title
+   *  start as "Untitled"; in that case ScriptView forces the toolbar
+   *  visible so the user can set the title inline instead of piling up
+   *  17 scripts with the default name. */
   const quickCreateScript = async () => {
     try {
       const created = await api.createScript({});
@@ -93,23 +93,23 @@ export default function App() {
 
   onMount(async () => {
     try {
-      // Die drei Boot-Schritte sind voneinander unabhängig:
-      // - settingsStore.load liest 6 settings-Rows (eigenes Promise.all)
-      // - ensureWelcomeContent prüft den Seed-Marker und legt ggf. das
-      //   Tutorial-Skript an
-      // - tabsStore.load liest die persistierten Tab-IDs und filtert sie
-      //   gegen die Skript-Liste
-      // Sequentiell waren das ~3× IPC-Roundtrip-Latenz; parallel halbiert
-      // sich die "schwarzer Bildschirm"-Zeit beim Start.
+      // The three boot steps are independent of each other:
+      // - settingsStore.load reads 6 settings rows (own Promise.all)
+      // - ensureWelcomeContent checks the seed marker and seeds the
+      //   tutorial script if needed
+      // - tabsStore.load reads the persisted tab IDs and filters them
+      //   against the script list
+      // Sequentially this was ~3× IPC roundtrip latency; in parallel it
+      // roughly halves the "black screen" time at startup.
       await Promise.all([
         settingsStore.load(),
         ensureWelcomeContent(),
         tabsStore.load(),
-        // Bestandsskripte (Sentinel aus Migration 005) einmalig
-        // nachziehen, damit die Browser-Übersicht sofort korrekte
-        // Spielzeiten zeigt - ohne diesen Backfill müsste der User
-        // jedes Skript einmal öffnen+speichern, bevor das Label
-        // erscheint. Idempotent, fehlertolerant - nicht startblockend.
+        // Backfill existing scripts (sentinel from migration 005) once,
+        // so the browser overview shows correct runtimes immediately -
+        // without this backfill the user would have to open+save every
+        // script once before the label appears. Idempotent and
+        // fault-tolerant - does not block startup.
         api.backfillRuntimeStats().catch((err) => {
           console.warn("[scriptz] runtime backfill skipped", err);
         }),
@@ -120,13 +120,13 @@ export default function App() {
     } finally {
       setBootReady(true);
     }
-    // Onboarding nur beim ersten Start. Nach setBootReady, damit das
-    // Overlay nicht über den Boot-Screen knallt.
+    // Onboarding only on first start. After setBootReady so the
+    // overlay doesn't smash over the boot screen.
     try {
       const done = await api.getAppState(ONBOARDING_KEY);
       if (!done) setOnboardingOpen(true);
     } catch {
-      /* nicht blockend */
+      /* non-blocking */
     }
   });
 
@@ -174,7 +174,7 @@ export default function App() {
     })();
   });
 
-  // Initial-Refresh der Schreibstatistik beim Boot.
+  // Initial refresh of the writing stats on boot.
   createEffect(() => {
     if (!bootReady()) return;
     dailyStatsBus.bump();
@@ -194,7 +194,7 @@ export default function App() {
         ev.preventDefault();
         const id = tabsStore.activeTabId();
         if (id) tabsStore.closeTab(id);
-        // Auf Home tut ⌘W bewusst nichts — Home ist nicht schließbar.
+        // On Home ⌘W intentionally does nothing — Home is not closable.
         return;
       }
       if (ev.key.toLowerCase() === "k" && !ev.shiftKey) {
@@ -213,8 +213,8 @@ export default function App() {
         return;
       }
       if (ev.key.toLowerCase() === "i" && !ev.shiftKey) {
-        // Im Fokus-Modus ist die Ideen-Inbox bewusst aus dem Weg -
-        // Quick-Capture greift dann auch nicht.
+        // In focus mode the ideas inbox is intentionally out of the way -
+        // quick-capture is disabled there too.
         if (focusMode()) {
           ev.preventDefault();
           return;
@@ -230,7 +230,7 @@ export default function App() {
         }
         return;
       }
-      // Fokus-Modus ⇧⌘F (nur sinnvoll im Skript-Tab; toggelt sonst still).
+      // Focus mode ⇧⌘F (only meaningful inside a script tab; toggles silently otherwise).
       if (ev.shiftKey && ev.key.toLowerCase() === "f") {
         ev.preventDefault();
         toggleFocusMode();
@@ -247,7 +247,7 @@ export default function App() {
         tabsStore.cycle(ev.shiftKey ? -1 : 1);
         return;
       }
-      // ⌘0 → Home, ⌘1..⌘9 → Skript-Tabs
+      // ⌘0 → Home, ⌘1..⌘9 → script tabs
       if (/^[0-9]$/.test(ev.key) && !ev.shiftKey && !ev.altKey) {
         const target = ev.target as HTMLElement | null;
         const isTextField =
@@ -264,21 +264,21 @@ export default function App() {
     onCleanup(() => window.removeEventListener("keydown", handler));
   });
 
-  // Beim Wechsel auf Home oder Ideen automatisch Fokus-Modus aus
-  // (sonst dimmt sich die Titlebar in einer Listenansicht unnötig).
+  // When switching to Home or Ideas, automatically turn focus mode off
+  // (otherwise the title bar dims unnecessarily in a list view).
   createEffect(() => {
     if ((tabsStore.isHome() || tabsStore.isIdeas()) && focusMode()) setFocusMode(false);
   });
 
-  // Im Skript-Tab den Fokus-Modus pro Tab-Wechsel neu setzen:
-  //  - Per-Skript-Override aus app_state (manuell vom User gesetzt)
-  //  - sonst Default: Settings-Wert (focusModeDefault)
-  //  - Override: bei "Unbenannt"-Skripten zwingend AUS, damit die
-  //    Toolbar mit dem Titel-Input sichtbar ist und der User nicht
-  //    eine Liste voller "Unbenannt"-Skripte ansammelt
-  // Manueller ⇧⌘F-Toggle persistiert per Skript (toggleFocusMode), damit
-  // ein einmaliges Aus/An nach dem naechsten Tab-Wechsel nicht wieder vom
-  // Default ueberschrieben wird.
+  // Inside a script tab, re-apply focus mode on every tab switch:
+  //  - per-script override from app_state (manually set by the user)
+  //  - otherwise default: settings value (focusModeDefault)
+  //  - override: for "Untitled" scripts forced OFF, so the toolbar
+  //    with the title input stays visible and the user doesn't pile
+  //    up a list of "Untitled" scripts
+  // The manual ⇧⌘F toggle persists per script (toggleFocusMode), so a
+  // one-off off/on doesn't get overwritten by the default again after
+  // the next tab switch.
   let lastSeenTabId: string | null = null;
   createEffect(() => {
     if (!settingsStore.loaded()) return;
@@ -319,18 +319,18 @@ export default function App() {
     })();
   });
 
-  // Fokus-Modus räumt eine laufende Quick-Capture mit weg.
+  // Focus mode also dismisses an open quick-capture.
   createEffect(() => {
     if (focusMode()) {
       setIdeaCaptureOpen(false);
     }
   });
 
-  // Schutz gegen Doppel-Klicks auf den "Neu"-Button direkt nach dem
-  // Schließen des Dialogs (per Backdrop-Click, ESC, oder erfolgreicher
-  // Erstellung). Ohne diesen Block konnte ein zweiter Klick den Dialog
-  // mit frischem leeren State wieder hochziehen, und ein noch wartender
-  // Submit hätte ein "Unbenannt"-Phantom-Skript angelegt.
+  // Guard against double-clicks on the "New" button right after the
+  // dialog closes (via backdrop click, ESC, or successful creation).
+  // Without this block, a second click could reopen the dialog with
+  // fresh empty state, and a still-pending submit would have created
+  // an "Untitled" phantom script.
   let lastNewScriptCloseAt = 0;
   const openNewScriptDialog = (folderId: string | null) => {
     if (newScriptOpen()) return;
@@ -347,7 +347,7 @@ export default function App() {
     closeNewScriptDialog();
   };
 
-  // ---- View-Transition: Tab-Wechsel & Home <-> Editor ----
+  // ---- View transition: tab switch & Home <-> Editor ----
   let appMainRef: HTMLElement | undefined;
   let viewFrameRef: HTMLDivElement | undefined;
   type ViewRoute = "home" | "ideas" | "script";
@@ -381,7 +381,7 @@ export default function App() {
         ? "forward"
         : "backward";
     } else {
-      // Home<->Ideas oder Ideas<->Skript: einfache horizontale Bewegung.
+      // Home<->Ideas or Ideas<->Script: simple horizontal movement.
       dir = "forward";
     }
     prevState = cur;
@@ -465,11 +465,11 @@ export default function App() {
             scriptTitle={activeScriptTitle()}
           />
         </Show>
-        {/* Quick-Capture (⌘I) bleibt überall greifbar, ausser im Fokus-
-            Modus - dort wird das Schreiben bewusst nicht durch das
-            Ideen-Sammeln unterbrochen. Die früheren IdeasDrawer/IdeasToggle
-            sind raus: der Glühbirnen-Tab in der TabBar liefert dieselbe
-            Liste mit einem Klick weniger Pseudo-Modal. */}
+        {/* Quick-capture (⌘I) stays reachable everywhere except in focus
+            mode - writing is deliberately not interrupted there by
+            idea capture. The former IdeasDrawer/IdeasToggle are gone:
+            the lightbulb tab in the TabBar provides the same list with
+            one less pseudo-modal click. */}
         <Show when={!focusMode()}>
           <IdeaQuickCapture
             open={ideaCaptureOpen()}

@@ -36,11 +36,11 @@ export interface DbConnection {
 
 // ===== Export pipeline =====
 //
-// Die PDF-/Plaintext-Generatoren leben jetzt komplett in core
-// (siehe ./exportPdf.ts und lex.ts::extractTeleprompterText) und
-// produzieren reine Bytes/Strings. Der PlatformAdapter kuemmert sich
-// nur noch ums Schreiben der Bytes - Desktop via plugin-fs, Web via
-// Blob-Download. Siehe `saveAs` weiter unten.
+// The PDF / plaintext generators now live entirely in core
+// (see ./exportPdf.ts and lex.ts::extractTeleprompterText) and
+// produce pure bytes / strings. The PlatformAdapter is only
+// responsible for writing the bytes - desktop via plugin-fs, web via
+// blob download. See `saveAs` further down.
 
 export interface ExportPdfDeps {
   title: string;
@@ -61,28 +61,28 @@ export interface SaveDialogOptions {
   filters?: SaveDialogFilter[];
 }
 
-// ===== Datei-Persistenz =====
+// ===== File persistence =====
 //
-// Schmale Abstraktion fuer "Datei rausschreiben" / "Datei lesen". Wird von
-// allen Export-Pfaden (PDF, Plaintext, .scriptz) genutzt. Desktop oeffnet
-// einen nativen Save/Open-Dialog und schreibt/liest via plugin-fs; Web
-// triggert Blob-Download bzw. zeigt `<input type="file">`.
+// Narrow abstraction for "write a file" / "read a file". Used by
+// all export paths (PDF, plaintext, .scriptz). Desktop opens
+// a native save/open dialog and writes/reads via plugin-fs; web
+// triggers a blob download or shows `<input type="file">`.
 
 export interface SaveAsOptions {
-  /** Vorgeschlagener Dateiname inkl. Endung. Wird bei Desktop in den
-   *  Save-Dialog vorbelegt, bei Web als `download`-Attribut gesetzt. */
+  /** Suggested filename incl. extension. Pre-filled into the save
+   *  dialog on desktop, set as the `download` attribute on web. */
   suggestedName: string;
-  /** MIME-Type fuer Web's Blob; auf Desktop irrelevant. */
+  /** MIME type for the web blob; irrelevant on desktop. */
   mimeType: string;
-  /** Optionale Dateitypen-Filter fuer den nativen Dialog. Web ignoriert. */
+  /** Optional file type filters for the native dialog. Web ignores. */
   filters?: SaveDialogFilter[];
 }
 
 export interface SaveAsResult {
-  /** True wenn der User den Save-Dialog (Desktop) abgebrochen hat. */
+  /** True when the user cancelled the save dialog (desktop). */
   cancelled: boolean;
-  /** Absoluter Pfad, an den geschrieben wurde - nur Desktop. Web setzt
-   *  null, weil der Browser keinen Pfad zurueckgibt. */
+  /** Absolute path written to - desktop only. Web sets
+   *  null because the browser doesn't return a path. */
   path: string | null;
 }
 
@@ -111,18 +111,18 @@ export interface PlatformAdapter {
   revealInFolder(path: string): Promise<void>;
 
   /** Native save dialog. Returns the chosen path or null if cancelled.
-   *  Niedriger-Level-API - wer Bytes schreiben will, nimmt `saveAs`. */
+   *  Lower-level API - if you want to write bytes, use `saveAs`. */
   saveDialog(opts: SaveDialogOptions): Promise<string | null>;
 
-  /** Schreibt die uebergebenen Bytes als Datei raus. Desktop oeffnet
-   *  einen Save-Dialog und schreibt via plugin-fs; Web triggert einen
-   *  Blob-Download (kein Save-Dialog im Browser). */
+  /** Writes the given bytes as a file. Desktop opens
+   *  a save dialog and writes via plugin-fs; web triggers a
+   *  blob download (no save dialog in the browser). */
   saveAs(opts: SaveAsOptions, bytes: Uint8Array): Promise<SaveAsResult>;
 
-  /** Liest eine vom User ausgewaehlte Datei. Desktop oeffnet Open-Dialog
-   *  + plugin-fs::readFile; Web zeigt `<input type="file">`. `accept` ist
-   *  die MIME-/Extension-Liste fuer den Filter (z.B. ".scriptz,application/x-scriptz+json").
-   *  Returns null wenn der User abbricht. */
+  /** Reads a file selected by the user. Desktop opens an open dialog
+   *  + plugin-fs::readFile; web shows `<input type="file">`. `accept` is
+   *  the MIME / extension list for the filter (e.g. ".scriptz,application/x-scriptz+json").
+   *  Returns null when the user cancels. */
   openFile(accept: string): Promise<OpenFileResult | null>;
 }
 
@@ -141,10 +141,10 @@ export function getPlatformAdapter(): PlatformAdapter {
   return adapter;
 }
 
-/** Write the host platform onto `<html data-platform="...">` so plattform-
- * spezifische CSS-Regeln (Trafficlight-Padding etc.) greifen koennen.
- * No-op in non-DOM environments. Hosts rufen das am Ende ihrer
- * platform.ts auf, nachdem `setPlatformAdapter()` durch ist. */
+/** Write the host platform onto `<html data-platform="...">` so platform-
+ * specific CSS rules (traffic-light padding etc.) can take effect.
+ * No-op in non-DOM environments. Hosts call this at the end of their
+ * platform.ts after `setPlatformAdapter()` has completed. */
 export function applyPlatformToDocument(): void {
   if (typeof document === "undefined" || !adapter) return;
   document.documentElement.dataset.platform = adapter.platform;

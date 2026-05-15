@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
 
-// Vom Vite-Build via `define` injectete Konstanten. Werden zur Build-
-// Zeit aus apps/desktop/package.json gelesen - siehe ../vite.config.ts.
+// Constants injected by the Vite build via `define`. Read at build
+// time from apps/desktop/package.json - see ../vite.config.ts.
 declare const __APP_VERSION__: string;

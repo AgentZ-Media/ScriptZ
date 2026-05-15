@@ -1,20 +1,20 @@
 ---
 /**
- * AppShell - das Schaufenster der App auf der Landing.
+ * AppShell - the app showcase on the landing.
  *
- * Enthaelt: Titlebar mit Tab-Bar (echte `<a>`-Links statt JS-Tabs),
- * Toolbar mit Pills + Download-Button, Footer, Sprint-Pille, sowie
- * das Inline-Script fuer Plattform-Detect, Copy-Button, Screenshot-
- * Galerie, Sprint-Fortschritt und Sprach-Toggle-Persistenz.
+ * Contains: titlebar with tab bar (real `<a>` links instead of JS
+ * tabs), toolbar with pills + download button, footer, sprint pill,
+ * and the inline script for platform detect, copy button, screenshot
+ * gallery, sprint progress and language-toggle persistence.
  *
- * Was hier NICHT drinsteht: der Hero (nur Home), das Section-Markup
- * pro Tab (kommt als `<slot/>` rein). So bleibt jede Page klein und
- * tragsam fuer eigenen Title/Meta.
+ * What is NOT in here: the hero (home only), the section markup per
+ * tab (comes in via `<slot/>`). That keeps each page small and able
+ * to carry its own title/meta.
  *
- * View-Transitions: das Chrome traegt `transition:persist`, damit es
- * beim Routen-Wechsel nicht neu gemountet wird. Aktiver-Tab- und
- * Toolbar-Title-Update passieren im `astro:after-swap`-Handler in
- * Base.astro, nicht hier.
+ * View transitions: the chrome carries `transition:persist` so it
+ * isn't re-mounted on route change. Active-tab and toolbar-title
+ * updates happen in the `astro:after-swap` handler in Base.astro,
+ * not here.
  */
 import { getLatestRelease, site } from "../data/site";
 import { routePath, switchLangPath, t, type Lang, type RouteKey } from "../i18n";
@@ -23,18 +23,18 @@ import "../styles/landing.css";
 
 interface Props {
   lang: Lang;
-  /** Welcher inhaltliche Tab gehoert zu dieser Page? Bestimmt
-   *  `is-active`-Klasse am Tab-Knopf und den Toolbar-Title. Bei
-   *  Blog-Beitraegen ist `activeTab` weiterhin `"blog"`, aber kein Tab
-   *  in der Tab-Bar - die Bar zeigt keine "is-active"-Klasse, weil
-   *  Blog dort nicht als Tab gerendert wird. */
+  /** Which content tab does this page belong to? Determines the
+   *  `is-active` class on the tab button and the toolbar title. For
+   *  blog posts `activeTab` is still `"blog"` but there is no tab in
+   *  the tab bar - the bar shows no "is-active" class, because blog
+   *  isn't rendered there as a tab. */
   activeTab: RouteKey;
-  /** Optional: ueberschreibt den Toolbar-Title. Blog-Post-Pages
-   *  geben hier den Post-Titel statt eines generischen Tab-Labels. */
+  /** Optional: overrides the toolbar title. Blog-post pages pass the
+   *  post title here instead of a generic tab label. */
   toolbarTitleOverride?: string;
-  /** Optional: ueberschreibt die Ziel-URL des Sprach-Toggles. Wird
-   *  fuer Blog-Posts genutzt, wo der Slug existieren kann oder nicht,
-   *  und die Page selbst diese Entscheidung treffen muss. */
+  /** Optional: overrides the target URL of the language toggle. Used
+   *  for blog posts, where the slug may or may not exist and the page
+   *  itself must make that decision. */
   switchLangHrefOverride?: string;
 }
 
@@ -45,10 +45,10 @@ const otherLang: Lang = lang === "de" ? "en" : "de";
 const currentRoutePath = routePath(lang, activeTab);
 const switchHref = switchLangHrefOverride ?? switchLangPath(lang, otherLang, currentRoutePath);
 
-// Toolbar-Title pro aktivem Tab. Download-Tab haengt zusaetzlich an
-// der Plattform, das passt das Inline-Script per data-Attribut an.
-// Blog laeuft hier ebenfalls durch, hat aber keinen eigenen Tab in der
-// Tab-Bar - der Title ist trotzdem sinnvoll, falls keine Override greift.
+// Toolbar title per active tab. The download tab additionally depends
+// on the platform; the inline script adjusts that via a data attribute.
+// Blog also passes through here but has no dedicated tab in the tab
+// bar - the title is still useful in case no override applies.
 const titleKeyMap: Record<RouteKey, Parameters<typeof t>[1]> = {
   home: "tab.home.long",
   warum: "tab.warum.long",
@@ -61,8 +61,8 @@ const titleKeyMap: Record<RouteKey, Parameters<typeof t>[1]> = {
 };
 const toolbarTitle = toolbarTitleOverride ?? t(lang, titleKeyMap[activeTab]);
 
-// Pfade pro Tab in der aktuellen Sprache, einmalig fertig gerechnet,
-// damit das Markup unten lesbar bleibt.
+// Paths per tab in the current language, computed once so the markup
+// below stays readable.
 const links = {
   home: routePath(lang, "home"),
   ideen: routePath(lang, "ideen"),
@@ -74,12 +74,12 @@ const links = {
   blog: routePath(lang, "blog"),
 };
 
-// Ideen-Liste fuer das Tab-Badge (Anzahl offener Ideen). Im Footer und
-// in der Sprint-Logik werden die genauen Eintraege nicht gebraucht -
-// nur im Ideen-Tab selbst, da rendert die IdeenSection sie eigenstaendig.
+// Ideas list for the tab badge (count of open ideas). In the footer
+// and sprint logic the exact entries aren't needed - only in the
+// ideas tab itself, where IdeenSection renders them independently.
 const openIdeasCount = 6;
 
-// JS-seitige Strings ans Inline-Script weiterreichen.
+// Pass JS-side strings down to the inline script.
 const jsStrings = {
   copy: t(lang, "install.copy"),
   copied: t(lang, "install.copied"),
@@ -91,11 +91,11 @@ const jsStrings = {
 
 <div class="v2-shell" data-theme="light">
 
-  <!-- Chrome (Titlebar + Toolbar) - wird bei jedem Routen-Wechsel
-       neu gerendert. KEIN `transition:persist`, sonst bleiben die
-       Tab-Labels in der Sprache der ersten Seite stehen, und der
-       Lang-Toggle wechselt seinen Aktiv-Pill nicht mit. View-
-       Transitions liefern den weichen Cross-Fade trotzdem.              -->
+  <!-- Chrome (titlebar + toolbar) - re-rendered on every route
+       change. NO `transition:persist`, otherwise the tab labels
+       stay in the first page's language and the language toggle
+       doesn't swap its active pill. View transitions still deliver
+       the soft cross-fade.                                              -->
   <div class="v2-chrome">
 
     <!-- TAB-BAR -->
@@ -212,16 +212,16 @@ const jsStrings = {
 
   </div><!-- /v2-chrome -->
 
-  <!-- PAPER (Section-Content + Footer) - wechselt pro Route. -->
+  <!-- PAPER (section content + footer) - swaps per route. -->
   <main class="v2-paper" id="paper">
     <slot />
 
-    <!-- Footer - eine Komponente fuer alle Shells (siehe SiteFooter.astro) -->
+    <!-- Footer - one component for all shells (see SiteFooter.astro) -->
     <SiteFooter lang={lang} />
   </main>
 
-  <!-- SPRINT-PILLE - rendert pro Route neu (Wortzahl ist eh
-       page-spezifisch, und das Label muss bei Sprachwechsel mit). -->
+  <!-- SPRINT PILL - re-renders per route (word count is page-
+       specific anyway, and the label has to follow language switches). -->
   <div
     class="v2-sprint"
     id="sprint"
@@ -248,15 +248,15 @@ const jsStrings = {
   </div>
 </div><!-- /v2-shell -->
 
-<!-- Plattform-CTA-Update + Sprint-Recount + Copy-Button + Sprach-
-     Toggle-Persistenz + Screenshot-Galerie. Laeuft beim ersten Load und
-     wird in Base.astro nach jedem ClientRouter-Swap erneut angestossen
-     (astro:page-load). Daher `is:inline` ohne `data-astro-rerun`. -->
+<!-- Platform CTA update + sprint recount + copy button + language
+     toggle persistence + screenshot gallery. Runs on first load and
+     is re-triggered in Base.astro after every ClientRouter swap
+     (astro:page-load). Hence `is:inline` without `data-astro-rerun`. -->
 <script is:inline define:vars={{ jsStrings }}>
-  // Globale Init-Funktion, damit Base.astro sie nach astro:page-load
-  // erneut aufrufen kann. Nutzt feste Symbole am window-Objekt.
+  // Global init function so Base.astro can call it again after
+  // astro:page-load. Uses fixed symbols on the window object.
   window.__scriptzShellInit = function () {
-    // ===== Plattform-CTA-Update ===================================
+    // ===== Platform CTA update ====================================
     var platform = document.documentElement.getAttribute('data-platform') || 'macos';
     var isWin = platform === 'windows';
 
@@ -278,11 +278,11 @@ const jsStrings = {
       dlTab.setAttribute('data-title', (isWin ? tWin : tMac) || dlTab.getAttribute('data-title'));
     }
 
-    // ===== Screenshot-Galerie =====================================
+    // ===== Screenshot gallery =====================================
     var shotTabs = document.querySelectorAll('.v2-shot-tab');
     var shots = document.querySelectorAll('.v2-shot');
     shotTabs.forEach(function (tab) {
-      // Idempotent: alten Listener entfernen, neuen registrieren
+      // Idempotent: remove the old listener, register a new one
       if (tab.__handler) tab.removeEventListener('click', tab.__handler);
       var handler = function () {
         var id = tab.getAttribute('data-shot');
@@ -299,7 +299,7 @@ const jsStrings = {
       tab.addEventListener('click', handler);
     });
 
-    // ===== Copy-Button im Install-Hinweis =========================
+    // ===== Copy button in the install hint ========================
     document.querySelectorAll('.v2-install-copy').forEach(function (btn) {
       if (btn.__handler) btn.removeEventListener('click', btn.__handler);
       var handler = async function () {
@@ -321,7 +321,7 @@ const jsStrings = {
       btn.addEventListener('click', handler);
     });
 
-    // ===== Sprint-Pille: Wortzahl-Recount =========================
+    // ===== Sprint pill: word-count recount ========================
     var sprintEl = document.getElementById('sprint');
     var sprintTxt = document.querySelector('.v2-sprint-txt');
     var sprintRing = document.querySelector('.v2-sprint-progress');
@@ -336,7 +336,7 @@ const jsStrings = {
       var words = text ? text.split(/\s+/).length : 0;
       sprintTxt.dataset.total = String(words);
 
-      // Alten Scroll-Listener am window entfernen, falls vorhanden
+      // Remove the old scroll listener from window if present
       if (window.__sprintScrollHandler) {
         window.removeEventListener('scroll', window.__sprintScrollHandler);
       }
@@ -360,7 +360,7 @@ const jsStrings = {
       window.addEventListener('scroll', updateProgress, { passive: true });
     }
 
-    // ===== Sprach-Toggle: Auswahl persistieren ====================
+    // ===== Language toggle: persist selection =====================
     document.querySelectorAll('[data-lang-set]').forEach(function (el) {
       if (el.__handler) el.removeEventListener('click', el.__handler);
       var handler = function () {
@@ -374,7 +374,7 @@ const jsStrings = {
     });
   };
 
-  // Erstes Aufrufen beim klassischen Seitenaufbau. Bei ClientRouter-
-  // Navigation triggert Base.astro die Funktion neu via astro:page-load.
+  // First call on classic page load. On ClientRouter navigation,
+  // Base.astro re-triggers this function via astro:page-load.
   window.__scriptzShellInit();
 </script>

@@ -4,10 +4,10 @@ import { t } from "../../i18n";
 
 export const SCRIPT_DRAG_MIME = "application/x-scriptz-script-id";
 
-// UUIDv4: Version-Bit in der dritten Gruppe == "4", Variant-Bit in
-// der vierten == 8/9/a/b. Strenger als ein generisches UUID-Match,
-// damit ein fremder Drag-Source mit beliebig geformter ID nicht
-// durchrutscht. Das App-weite Invariant "alle IDs sind UUIDv4".
+// UUIDv4: version bit in the third group == "4", variant bit in
+// the fourth == 8/9/a/b. Stricter than a generic UUID match,
+// so a foreign drag source with an arbitrarily shaped ID doesn't
+// slip through. The app-wide invariant is "all IDs are UUIDv4".
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -49,9 +49,10 @@ export function FolderChips(props: FolderChipsProps) {
           )}
         </For>
       </div>
-      {/* "+ Ordner" liegt bewusst außerhalb des role="tablist", weil
-          es kein Tab ist (würde sonst die ARIA-Tabs-Pattern-Semantik
-          brechen - Tablist enthält ausschließlich role="tab"). */}
+      {/* "+ Folder" is intentionally placed outside role="tablist"
+          because it isn't a tab (placing it inside would break the
+          ARIA tabs-pattern semantics - tablist must only contain
+          role="tab"). */}
       <button
         class="folder-chips-new"
         onClick={() => props.onCreateFolder()}
@@ -103,18 +104,18 @@ function Chip(props: ChipProps) {
         if (e.dataTransfer?.types.includes(SCRIPT_DRAG_MIME)) {
           e.preventDefault();
           if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-          // Belt-and-suspenders: dragover feuert kontinuierlich, solange
-          // der Cursor über dem Chip (oder einem Kind) ist. Falls dragleave
-          // beim Hinüberwandern auf ein Kind-Element den Highlight gekippt
-          // hat, holen wir ihn hier zuverlässig zurück.
+          // Belt-and-suspenders: dragover fires continuously while
+          // the cursor is over the chip (or a child). If dragleave
+          // flipped the highlight off while moving onto a child element,
+          // we reliably bring it back here.
           if (!over()) setOver(true);
         }
       }}
       onDragLeave={(e) => {
-        // dragleave feuert auch, wenn der Cursor nur auf ein Kind-Element
-        // wechselt. Echtes Verlassen erkennen wir daran, dass relatedTarget
-        // außerhalb des Chips liegt (oder null ist, z.B. beim Verlassen
-        // des Fensters).
+        // dragleave also fires when the cursor only moves onto a child
+        // element. We detect a real leave via relatedTarget being
+        // outside the chip (or null, e.g. when leaving
+        // the window).
         const next = e.relatedTarget as Node | null;
         if (next && (e.currentTarget as Node).contains(next)) return;
         setOver(false);
@@ -122,10 +123,10 @@ function Chip(props: ChipProps) {
       onDrop={(e) => {
         const id = e.dataTransfer?.getData(SCRIPT_DRAG_MIME);
         setOver(false);
-        // ID-Format prüfen, bevor wir sie an die move-API geben.
-        // Verhindert, dass ein fremder Drag-Source mit demselben MIME
-        // garbage durchschiebt - die API würde es zwar nur als
-        // "not found" ablehnen, aber der Toast wäre verwirrend.
+        // Check the ID format before passing it to the move API.
+        // Prevents a foreign drag source with the same MIME from
+        // pushing garbage through - the API would only reject it as
+        // "not found", but the toast would be confusing.
         if (!id || !UUID_RE.test(id)) return;
         e.preventDefault();
         props.onDropScript(id);

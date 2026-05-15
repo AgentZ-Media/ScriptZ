@@ -1,19 +1,19 @@
-// Web-Implementierung von @scriptz/core's PlatformAdapter.
+// Web implementation of @scriptz/core's PlatformAdapter.
 //
-// Spiegelbild zu apps/desktop/src/lib/platform.ts, aber ohne jegliche
-// @tauri-apps/*-Importe. Wird einmal beim App-Start aus main.tsx
-// importiert; registriert sich via setPlatformAdapter() bevor irgendein
-// core-Modul auf das Slot zugreift.
+// Mirror of apps/desktop/src/lib/platform.ts, but without any
+// @tauri-apps/* imports. Imported once at app start from main.tsx;
+// registers itself via setPlatformAdapter() before any core module
+// accesses the slot.
 //
-// getDb() wirft hier bewusst - die Web-App registriert einen eigenen
-// StorageAdapter (apps/web/src/adapters/indexeddb.ts), der die SQL-Schicht
-// vollständig ersetzt. getDb() darf entsprechend nie aufgerufen werden.
-// Falls doch, ist das ein Hinweis darauf, dass irgendwo im core noch ein
-// direkter DB-Aufruf statt eines Adapter-Calls erfolgt.
+// getDb() throws here on purpose - the web app registers its own
+// StorageAdapter (apps/web/src/adapters/indexeddb.ts) that fully
+// replaces the SQL layer. getDb() must therefore never be called.
+// If it is, that's a hint that somewhere in core a direct DB call is
+// still happening instead of an adapter call.
 //
-// Seit Phase 2F: saveAs (Blob-Download) und openFile (<input type="file">)
-// liefern die Datei-Persistenz. Export-Dialog kann damit PDF + Plaintext +
-// .scriptz im Web rausschreiben, ohne dass Pfade modelliert werden.
+// Since Phase 2F: saveAs (blob download) and openFile (<input type="file">)
+// provide file persistence. The export dialog can thus write PDF + plaintext
+// + .scriptz in the web app without paths having to be modeled.
 
 import {
   applyPlatformToDocument,
@@ -26,9 +26,9 @@ import {
 } from "@scriptz/core/lib/platform";
 
 function detectPlatform(): Platform {
-  // userAgentData ist die zukunftssichere Variante (Chromium-only,
-  // 2025+). Wenn nicht verfügbar: aus userAgent ableiten - dort ist
-  // der Plattform-String stabil seit Jahren.
+  // userAgentData is the future-proof variant (Chromium-only, 2025+).
+  // If not available: derive from userAgent - the platform string has
+  // been stable there for years.
   const uaData = (
     navigator as Navigator & {
       userAgentData?: { platform?: string };
@@ -40,10 +40,10 @@ function detectPlatform(): Platform {
   return "linux";
 }
 
-// Blob-Download via <a download>. Browser fragt - je nach Setting -
-// den User noch nach dem Speicherort (Chrome/Edge mit "ask where to
-// save"-Einstellung, Safari per Default). Den endgültigen Pfad sehen
-// wir nicht - deshalb path: null in SaveAsResult.
+// Blob download via <a download>. Depending on the setting, the browser
+// will ask the user where to save (Chrome/Edge with "ask where to save",
+// Safari by default). We don't see the final path - hence path: null
+// in SaveAsResult.
 function blobDownload(name: string, mimeType: string, bytes: Uint8Array): void {
   const blob = new Blob([bytes], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -51,22 +51,22 @@ function blobDownload(name: string, mimeType: string, bytes: Uint8Array): void {
     const a = document.createElement("a");
     a.href = url;
     a.download = name;
-    // Manche Browser brauchen den Anker im DOM, damit click() triggert.
+    // Some browsers need the anchor in the DOM for click() to trigger.
     document.body.appendChild(a);
     a.click();
     a.remove();
   } finally {
-    // Mit Delay, damit der Download-Stream nicht abreisst, bevor der
-    // Browser die Bytes wirklich gesnapshottet hat. Der Browser hält
-    // die Blob-Referenz parallel selbst.
+    // With a delay so the download stream doesn't break before the
+    // browser has really snapshotted the bytes. The browser holds the
+    // blob reference itself in parallel.
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 }
 
-// File-Open via versteckten <input type="file">. Cancel-Detection
-// über window-focus: `change` feuert nur bei tatsächlicher Auswahl,
-// nicht bei Abbruch des Dialogs. Wir warten 250 ms nach focus zurück,
-// und falls bis dahin kein change kam, lösen wir mit null auf.
+// File open via a hidden <input type="file">. Cancel detection via
+// window focus: `change` only fires on an actual selection, not on
+// dialog cancellation. We wait 250ms after focus returns, and if no
+// change has come in by then we resolve with null.
 function inputFileOpen(accept: string): Promise<OpenFileResult | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
@@ -118,30 +118,29 @@ const webAdapter: PlatformAdapter = {
     );
   },
   async getVersion() {
-    // Auto-synchron mit apps/desktop/package.json - vite.config.ts liest
-    // den Wert dort zum Build-Zeitpunkt und injectet ihn als
-    // __APP_VERSION__. Settings rendert "ScriptZ · v{appVersion()}", und
-    // die soll auf Web und Desktop identisch sein - jede Tag-Push-Release
-    // zieht die Web-Anzeige damit ohne Extra-Aufwand mit.
+    // Auto-synced with apps/desktop/package.json - vite.config.ts reads
+    // the value there at build time and injects it as __APP_VERSION__.
+    // Settings renders "ScriptZ · v{appVersion()}", and that should be
+    // identical on web and desktop - every tag-push release thereby
+    // updates the web display without extra effort.
     return __APP_VERSION__;
   },
   async openUrl(url) {
     window.open(url, "_blank", "noopener,noreferrer");
   },
   async revealInFolder() {
-    // Im Browser gibt es kein Finder-Reveal. No-op, damit Aufrufer
-    // (z.B. nach einem Export) nicht abbricht.
+    // No Finder-style reveal in the browser. No-op so callers
+    // (e.g. after an export) don't break.
   },
   async saveDialog() {
-    // Kein nativer Save-Dialog im Browser. Wer Bytes schreiben will,
-    // nimmt saveAs - das löst per Blob-Download aus.
+    // No native save dialog in the browser. Whoever wants to write
+    // bytes uses saveAs - that triggers a blob download.
     return null;
   },
   async saveAs(opts: SaveAsOptions, bytes: Uint8Array): Promise<SaveAsResult> {
     blobDownload(opts.suggestedName, opts.mimeType, bytes);
-    // Browser entscheidet, wo die Datei landet (oft Downloads/-Ordner).
-    // cancelled bleibt false - wir können den Download nicht synchron
-    // abbrechen.
+    // The browser decides where the file ends up (often Downloads/).
+    // cancelled stays false - we can't cancel the download synchronously.
     return { cancelled: false, path: null };
   },
   openFile: inputFileOpen,
@@ -150,11 +149,11 @@ const webAdapter: PlatformAdapter = {
 setPlatformAdapter(webAdapter);
 applyPlatformToDocument();
 
-// Markiere die Browser-Shell explizit. Das `data-platform`-Attribut bleibt
-// auf dem echten OS (damit Mac-User im Browser weiter ⌘-Labels sehen und
-// `isMac()` korrekt funktioniert), aber `data-shell="web"` schaltet die
-// macOS-Trafficlight-Padding in tokens.css ab - im Browser gibt's keine
-// Trafficlights, also auch keinen Spacer dafür.
+// Mark the browser shell explicitly. The `data-platform` attribute stays
+// on the real OS (so Mac users in the browser keep seeing ⌘ labels and
+// `isMac()` works correctly), but `data-shell="web"` disables the macOS
+// trafficlight padding in tokens.css - no trafficlights in the browser,
+// so no spacer for them either.
 if (typeof document !== "undefined") {
   document.documentElement.dataset.shell = "web";
 }

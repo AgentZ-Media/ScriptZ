@@ -50,7 +50,7 @@
   --ink-700: #15110d;
   --ink-900: #0d0a07;
 
-  /* ---- Charakter-Palette (Highlighting-Feature, bleibt farbig) ---- */
+  /* ---- Character palette (highlighting feature, stays colored) ---- */
   --char-1: #e0791f;
   --char-2: #3a8ed4;
   --char-3: #7a4ad4;
@@ -130,24 +130,24 @@
   );
 }
 
-/* macOS-spezifisch: Platz fuer die Trafficlight-Knoepfe oben links.
-   Web-Shells (apps/web) setzen `data-shell="web"` zusaetzlich, damit
-   ein Mac-User im Browser keinen leeren Spacer sieht - dort gibt es
-   schlicht keine Trafficlights. Keyboard-Anzeige (⌘ vs Ctrl) bleibt
-   davon unberuehrt, die haengt am `data-platform`. */
+/* macOS-specific: room for the traffic-light buttons in the top left.
+   Web shells (apps/web) additionally set `data-shell="web"` so a
+   Mac user in the browser doesn't see an empty spacer - there simply
+   are no traffic lights there. Keyboard display (⌘ vs Ctrl) stays
+   unaffected; that hangs off `data-platform`. */
 [data-platform="macos"]:not([data-shell="web"]) {
   --titlebar-traffic-width: 78px;
 }
 
 /* ============================================================
-   Light theme — warmes Cremeweiss als App-Bg, weisses Papier-Sheet
-   im Vordergrund (v3-Re-Design).
+   Light theme — warm creamy white as the app bg, white paper sheet
+   in the foreground (v3 re-design).
    ============================================================ */
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Surfaces - App-Bg leicht warm, Karten/Sheets reines Weiss. */
+  /* Surfaces - app bg slightly warm, cards / sheets pure white. */
   --bg:         #f5f3ee;
   --bg-elev-1: #ffffff;
   --bg-elev-2: #f6f6f5;
@@ -160,8 +160,8 @@
   --fg-muted:  #5b554c;
   --fg-subtle: #8a8276;
   --fg-disabled: #c0bcb3;
-  /* v3-Aliases - dieselben Werte wie die fg-Skala, aber unter den
-     Namen die das Re-Design verwendet. */
+  /* v3 aliases - same values as the fg scale, but under the
+     names the re-design uses. */
   --text:        #1c1814;
   --text-2:      #3a342c;
   --text-subtle: #6b6258;
@@ -172,7 +172,7 @@
   --border-strong: rgba(28, 24, 20, 0.18);
   --border-focus:  var(--fg);
 
-  /* Paper - das eigentliche Skript-Sheet */
+  /* Paper - the actual script sheet */
   --paper-bg:        #ffffff;
   --paper-fg:       #1c1814;
   --paper-fg-muted: rgba(28, 24, 20, 0.65);
@@ -216,14 +216,14 @@
 
   --highlight-mark: rgba(28, 24, 20, 0.18);
 
-  /* Focus-Ring + Paper-Selection — monochrom. */
+  /* Focus ring + paper selection — monochrome. */
   --ring-brand:        rgba(28, 24, 20, 0.12);
   --ring-brand-strong: rgba(28, 24, 20, 0.4);
   --selection-paper:   rgba(28, 24, 20, 0.14);
   --char-tint-default: rgba(28, 24, 20, 0.08);
   --page-break-line:   rgba(28, 24, 20, 0.18);
 
-  /* Primary-Button: Tinten-Schwarz mit weisser Schrift. */
+  /* Primary button: ink black with white type. */
   --primary-bg:        #1c1814;
   --primary-fg:        #ffffff;
   --primary-border:    rgba(0, 0, 0, 0.0);
@@ -231,8 +231,8 @@
 }
 
 /* ============================================================
-   Dark theme — Mittel-dunkles Grau (~#222), nicht Schwarz.
-   Akzent ist warmes Off-White, harmoniert mit der Tinten-Schrift.
+   Dark theme — medium-dark grey (~#222), not black.
+   Accent is warm off-white, harmonizes with the ink type.
    ============================================================ */
 [data-theme="dark"] {
   color-scheme: dark;
@@ -241,9 +241,9 @@
   --bg-elev-1: #2a2a2a;
   --bg-elev-2: #1c1c1c;
   --bg-elev-3: #181818;
-  /* Im Dark-Mode bleibt das Skript-Sheet hell (siehe --paper-bg);
-     Cards / Drawer brauchen aber eine Surface-Variante, die zum
-     dunklen App-Bg passt. */
+  /* In dark mode the script sheet stays light (see --paper-bg);
+     cards / drawer need a surface variant that fits the
+     dark app bg. */
   --paper:     #2a2a2a;
   --paper-2:   #242424;
 
@@ -260,8 +260,8 @@
   --border-strong: rgba(255, 255, 255, 0.16);
   --border-focus:  var(--fg);
 
-  /* Paper bleibt hell — auch im Dark-Mode wirkt das Skript wie ein
-     beleuchtetes Blatt. */
+  /* Paper stays light — even in dark mode the script feels like an
+     illuminated sheet. */
   --paper-bg:        #f6f6f5;
   --paper-fg:       #1c1814;
   --paper-fg-muted: rgba(28, 24, 20, 0.65);
@@ -311,15 +311,15 @@
   --char-tint-default: rgba(28, 24, 20, 0.12);
   --page-break-line:   rgba(255, 255, 255, 0.16);
 
-  /* Primary-Button im Dark: helles Off-White auf dunklem Grund,
-     fuehrt das monochrome Schema fort. */
+  /* Primary button in dark: light off-white on dark ground,
+     continues the monochrome scheme. */
   --primary-bg:        #ececec;
   --primary-fg:        #1c1814;
   --primary-border:    rgba(0, 0, 0, 0.0);
   --primary-bg-hover:  #ffffff;
 
-  /* Brand-Tokens im Dark fuer Selektoren wie `color: var(--brand-700)` —
-     mappen auf helles Off-White, sodass Akzente lesbar bleiben. */
+  /* Brand tokens in dark for selectors like `color: var(--brand-700)` —
+     map to light off-white so accents stay readable. */
   --brand-50:  #2a2a2a;
   --brand-100: #333333;
   --brand-200: #4a4a4a;
@@ -330,9 +330,9 @@
   --brand-700: #ececec;
   --brand-800: #ffffff;
   --brand-soft: #333333;
-  /* v3-Aliases im Dark: gespiegelte Helligkeit. Headings und
-     Pille-Werte (color: var(--ink-700)) müssen im Dark-Mode hell
-     bleiben, sonst verschwinden sie auf dem dunklen Bg. */
+  /* v3 aliases in dark: mirrored brightness. Headings and
+     pill values (color: var(--ink-700)) must stay light in dark mode,
+     otherwise they disappear on the dark bg. */
   --ink-50:  #2a2a2a;
   --ink-100: #333333;
   --ink-200: #4a4a4a;
@@ -344,23 +344,22 @@
   --ink-900: #ffffff;
 }
 
-/* "auto" wird in settings.ts per matchMedia zu "dark" oder "light"
-   aufgelöst, bevor data-theme aufs <html> geschrieben wird. Es gibt
-   daher hier kein eigenes auto-Token-Set - das hatte sich in der
-   Vergangenheit als fragil erwiesen (unvollständige Kopien des
-   Dark-Blocks, sichtbar als Doppel-Schatten und Hairlines im Auto-
-   Dark-Modus). */
+/* "auto" is resolved in settings.ts via matchMedia to "dark" or "light"
+   before data-theme is written onto <html>. There is therefore
+   no separate auto token set here - that proved fragile in the
+   past (incomplete copies of the dark block, visible as double
+   shadows and hairlines in auto-dark mode). */
 
 /* ============================================================
-   Dark-Paper-Variante - nur Skript-Sheet-Tokens überschreiben.
-   Greift ausschließlich, wenn das aufgelöste Theme dark ist UND
-   die User-Einstellung darkPaper aktiv ist (siehe settings.ts).
-   Touched bewusst nur Paper-/Selection-/Highlight-Tokens, damit
-   App-Chrome (Tab-Bar, Toolbar, Settings) gleich bleibt.
+   Dark paper variant - only overrides script-sheet tokens.
+   Only applies when the resolved theme is dark AND
+   the user setting darkPaper is active (see settings.ts).
+   Deliberately touches only paper / selection / highlight tokens so
+   the app chrome (tab bar, toolbar, settings) stays the same.
    ============================================================ */
 [data-theme="dark"][data-paper="dark"] {
-  /* Sheet leicht heller als --bg (#222) - sonst verschwindet die
-     Sheet-Kante komplett und die Seite wirkt grenzenlos. */
+  /* Sheet slightly brighter than --bg (#222) - otherwise the
+     sheet edge disappears completely and the page feels boundless. */
   --paper-bg:        #1c1c1c;
   --paper-fg:        #ececec;
   --paper-fg-muted:  rgba(255, 255, 255, 0.65);
@@ -370,9 +369,9 @@
   --page-break-line: rgba(255, 255, 255, 0.18);
   --highlight-mark:  rgba(255, 255, 255, 0.20);
 
-  /* Sheet-Schatten flacher - der starke Light-Sheet-Schatten würde
-     auf dunklem Bg eine schwere Vignette erzeugen, die das ohnehin
-     dunkle Sheet noch tiefer in den Bg drückt. */
+  /* Sheet shadow flatter - the strong light-sheet shadow would
+     create a heavy vignette on a dark bg, pushing the already
+     dark sheet even deeper into the bg. */
   --shadow-paper:
     0 1px 4px rgba(0, 0, 0, 0.45),
     0 12px 32px rgba(0, 0, 0, 0.35),

@@ -1,8 +1,8 @@
-// Sanity tests for the plattform-aware keyboard helpers.
+// Sanity tests for the platform-aware keyboard helpers.
 //
-// formatHotkey() / K() / isModKey() lesen die aktive Platform aus dem
-// PlatformAdapter via getPlatform(). Damit die Tests deterministisch
-// laufen, registrieren wir vor jedem Block einen Stub-Adapter.
+// formatHotkey() / K() / isModKey() read the active platform from the
+// PlatformAdapter via getPlatform(). For the tests to run deterministically,
+// we register a stub adapter before each block.
 
 import { afterEach, beforeEach, describe, it, expect } from "vitest";
 import {

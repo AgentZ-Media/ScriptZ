@@ -77,10 +77,10 @@ export function installParentheticalLive(editor: LexicalEditor): () => void {
           paren.insertAfter(trailingDialog);
         }
 
-        // Cursor stand am Anfang der Dialog-Zeile: alle Inhalte sind in den
-        // trailingDialog gewandert, der ursprüngliche Block ist jetzt leer und
-        // würde sonst als sichtbare Leerzeile zwischen Character und
-        // Parenthetical stehenbleiben.
+        // Cursor was at the start of the dialog line: all content has moved
+        // into trailingDialog; the original block is now empty and
+        // would otherwise remain as a visible blank line between the character and
+        // the parenthetical.
         if (block.getChildrenSize() === 0) {
           block.remove();
         }

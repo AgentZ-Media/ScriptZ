@@ -1,20 +1,20 @@
-// PDF-Generator - browser-taugliche Bytes-Erzeugung.
+// PDF generator - browser-compatible byte generation.
 //
-// Migration aus apps/desktop/src/lib/exportPdf.ts (Phase 2F): die reine
-// Layout-Logik plus pdf-lib + @pdf-lib/fontkit hat keine Tauri-Bindung
-// und laeuft im Browser identisch wie auf dem Desktop. Der Datei-
-// Schreib-Teil (mkdir + writeFile) wandert dafuer in den
-// Platform-Adapter (siehe ./platform.ts::saveAs).
+// Migration from apps/desktop/src/lib/exportPdf.ts (phase 2F): the pure
+// layout logic plus pdf-lib + @pdf-lib/fontkit has no Tauri binding
+// and runs identically in the browser and on desktop. The file
+// writing part (mkdir + writeFile) moves to the
+// platform adapter (see ./platform.ts::saveAs).
 //
-// Layout-Konventionen: A4-Geometrie, iA Writer Quattro S TTF/11pt,
-// Tint-Band-Highlighting (Arc-Studio-Style). Byte-identisch zum
-// fruehen Rust-Code (Phase 7d-Migration). Aenderungen an der Geometrie
-// muessen mit dem Editor-Look abgestimmt werden, sonst weicht Export
-// und Preview ab.
+// Layout conventions: A4 geometry, iA Writer Quattro S TTF/11pt,
+// tint-band highlighting (Arc Studio style). Byte-identical to the
+// early Rust code (phase 7d migration). Changes to the geometry
+// must be aligned with the editor look, otherwise the export
+// and preview diverge.
 //
-// Schriften: Sowohl Desktop als auch Web hosten die TTFs unter
-// /fonts/iAWriterQuattroS-*.ttf in ihrem jeweiligen public/-Verzeichnis,
-// damit `fetch("/fonts/...")` zur Laufzeit ohne Pfad-Indirektion klappt.
+// Fonts: both desktop and web host the TTFs at
+// /fonts/iAWriterQuattroS-*.ttf in their respective public/ directory,
+// so `fetch("/fonts/...")` works at runtime without path indirection.
 
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -22,7 +22,7 @@ import { extractBlocks, type ExtractedBlock } from "./lex";
 import type { ExportPdfDeps } from "./platform";
 import { t } from "../i18n";
 
-// ---- Geometrie (mm) - 1:1 wie Rust src-tauri/src/commands/export.rs ----
+// ---- Geometry (mm) - 1:1 like Rust src-tauri/src/commands/export.rs ----
 const A4_W_MM = 210.0;
 const A4_H_MM = 297.0;
 const MARGIN_TOP_MM = 25.0;
@@ -34,12 +34,12 @@ const LINE_HEIGHT_MM = 6.2;
 const PARA_GAP_MM = 1.6;
 const CHAR_W_MM = 2.3; // duospaced glyph advance at 11pt
 
-// Tint-Band-Geometrie (Arc-Studio-Style per-line band).
-// Werte angeglichen an die CSS-Pille im Editor (`padding: 1px 4px`,
-// `border-radius: 3px`): horizontal etwa 4 px Padding, vertikal so,
-// dass die Cap-Hoehe der Glyphen voll umschlossen ist. PDF-Baseline
-// sitzt am unteren Glyph-Rand - deshalb braucht's nach oben deutlich
-// mehr Versatz als nach unten, sonst gucken die Buchstaben oben raus.
+// Tint-band geometry (Arc Studio style per-line band).
+// Values aligned with the CSS pill in the editor (`padding: 1px 4px`,
+// `border-radius: 3px`): horizontally about 4 px padding, vertically such
+// that the cap height of the glyphs is fully enclosed. PDF baseline
+// sits at the lower glyph edge - so we need significantly more
+// offset on top than on the bottom, otherwise the letters poke out at the top.
 const TINT_PAD_X_MM = 1.1;
 const TINT_TOP_OFFSET_MM = 3.6;
 const TINT_BOTTOM_OFFSET_MM = 1.4;
@@ -90,8 +90,8 @@ class Layout {
   doc: PDFDocument;
   fonts: Fonts;
   page: PDFPage;
-  // y in mm, top-down - genauso wie das Rust-Struct-Feld. Konvertiert
-  // zu pt beim Zeichnen. PDF-Ursprung ist bottom-left, also y_pt = mm(y_mm).
+  // y in mm, top-down - exactly like the Rust struct field. Converted
+  // to pt when drawing. PDF origin is bottom-left, so y_pt = mm(y_mm).
   y_mm: number;
 
   constructor(doc: PDFDocument, fonts: Fonts) {
@@ -134,12 +134,12 @@ class Layout {
 
     for (const line of lines) {
       this.ensureSpace(LINE_HEIGHT_MM);
-      // Echte Glyph-Breite aus der eingebetteten Schrift - iA Quattro ist
-      // duospaced, d.h. `i`/`l`/`.` sind schmaler als `m`. Ohne diesen
-      // Schritt waere die Tint-Pille eine grobe Approximation (chars * 2.3 mm)
-      // und enden nicht da, wo das Wort optisch endet. Wrap nutzt weiter
-      // den Char-Count, damit sich vorhandene Zeilenbrueche nicht
-      // verschieben - hier wird nur Alignment + Tint-Breite praezisiert.
+      // Real glyph width from the embedded font - iA Quattro is
+      // duospaced, i.e. `i`/`l`/`.` are narrower than `m`. Without this
+      // step the tint pill would be a rough approximation (chars * 2.3 mm)
+      // and not end where the word visually ends. Wrap still uses
+      // the char count so existing line breaks don't
+      // shift - here we only refine alignment + tint width.
       const lineWMm = font.widthOfTextAtSize(line, FONT_SIZE_PT) / MM_TO_PT;
       let xPos: number;
       if (align === "center") {
@@ -181,11 +181,11 @@ class Layout {
   }
 }
 
-// Rounded-Rect-SVG-Pfad fuer die Tint-Pille. SVG-Koordinaten sind
-// y-down; pdf-lib's drawSvgPath flippt das beim Rendern, daher zeichnen
-// wir hier "von oben nach unten" und uebergeben die obere Kante als
-// y-Position. Radius wird auf die halbe Breite/Hoehe geclampt, damit
-// kurze Pillen (z.B. ein einzelner Buchstabe) nicht kollabieren.
+// Rounded-rect SVG path for the tint pill. SVG coordinates are
+// y-down; pdf-lib's drawSvgPath flips them on render, so we draw
+// here "top to bottom" and pass the top edge as the
+// y position. Radius is clamped to half the width/height so
+// short pills (e.g. a single letter) don't collapse.
 function roundedRectPath(wPt: number, hPt: number, rPt: number): string {
   const r = Math.min(rPt, wPt / 2, hPt / 2);
   return (
@@ -203,15 +203,15 @@ function roundedRectPath(wPt: number, hPt: number, rPt: number): string {
 }
 
 function countChars(s: string): number {
-  // Zaehlt Unicode-Skalare, spiegelt Rust `chars().count()`.
+  // Counts Unicode scalars, mirrors Rust `chars().count()`.
   let n = 0;
   for (const _ of s) n++;
   return n;
 }
 
-// Spiegelt Rust `simple_wrap`: splittet an '\n', dann Whitespace-Wrap
-// per Char-Count. Leere Chunks geben eine leere Zeile aus; ein leerer
-// Input gibt trotzdem eine leere Zeile.
+// Mirrors Rust `simple_wrap`: splits at '\n', then whitespace wrap
+// by char count. Empty chunks emit an empty line; an empty
+// input still yields one empty line.
 function simpleWrap(text: string, width: number): string[] {
   const out: string[] = [];
   const chunks = text.split("\n");
@@ -238,13 +238,13 @@ function simpleWrap(text: string, width: number): string[] {
   return out;
 }
 
-// Hellt RGB-Hex Richtung Weiss auf um `(1 - alphaFactor)`. Spiegelt
+// Lightens RGB hex toward white by `(1 - alphaFactor)`. Mirrors
 // Rust `hex_to_rgb_tint(hex, 0.28)`.
 function hexToRgbTint(hex: string, alphaFactor: number): [number, number, number] {
-  // Neutrales Grau-Fallback fuer alle malformed Hex. Rust hatte hier zwei
-  // verschiedene Greys (240,240,240 vs 160,160,160) - hier zu einem
-  // zusammengefasst, weil beide Pfade in der Praxis tot sind (Charakter-
-  // farben kommen aus DEFAULT_PALETTE, immer well-formed).
+  // Neutral grey fallback for any malformed hex. Rust had two
+  // different greys here (240,240,240 vs 160,160,160) - merged into one
+  // here because both paths are dead in practice (character
+  // colors come from DEFAULT_PALETTE, always well-formed).
   const FALLBACK: [number, number, number] = [160, 160, 160];
   const s = hex.startsWith("#") ? hex.slice(1) : hex;
   if (s.length !== 6) return FALLBACK;
@@ -262,9 +262,9 @@ export interface BuildPdfBytesOptions {
   includeTitlePage: boolean;
 }
 
-/** Erzeugt die fertigen PDF-Bytes fuer ein Skript. Reine Pure-Function -
- *  Caller entscheidet, was mit den Bytes passiert (Desktop schreibt sie
- *  via plugin-fs, Web triggert Blob-Download). */
+/** Generates the finished PDF bytes for a script. Pure function -
+ *  caller decides what happens with the bytes (desktop writes them
+ *  via plugin-fs, web triggers a blob download). */
 export async function buildPdfBytes(
   deps: ExportPdfDeps,
   opts: BuildPdfBytesOptions,
@@ -323,9 +323,9 @@ export async function buildPdfBytes(
   for (let idx = 0; idx < blocks.length; idx++) {
     const b = blocks[idx];
 
-    // Widow/Orphan-Guard fuer Charakter-Speech: reserviere 4 Zeilen + 2
-    // Paragraph-Gaps, damit ein Character-Block nicht am Seitenende
-    // verwaist landet.
+    // Widow/orphan guard for character speech: reserve 4 lines + 2
+    // paragraph gaps so a character block doesn't end up orphaned
+    // at the page bottom.
     if (b.kind === "scriptz-character") {
       layout.ensureSpace(LINE_HEIGHT_MM * 4 + PARA_GAP_MM * 2);
     }
@@ -356,8 +356,8 @@ export async function buildPdfBytes(
         );
         break;
       case "scriptz-parenthetical":
-        // Der parentheticalLive-Plugin wickelt Text bereits in "( … )" -
-        // verbatim rendern, damit nicht doppelt geklammert wird.
+        // The parentheticalLive plugin already wraps text in "( … )" -
+        // render verbatim so it isn't doubly parenthesized.
         layout.writeLine(
           b.text,
           MARGIN_LEFT_MM + 35.0,

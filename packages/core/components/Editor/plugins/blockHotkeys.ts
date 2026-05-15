@@ -49,13 +49,13 @@ function findScriptzAncestor(node: LexicalNode | null): BaseScriptzNode | null {
 }
 
 /**
- * Wechselt den Block am Cursor zum angegebenen Typ. Wird sowohl von der
- * Editor-Toolbar (Klick auf Block-Pille) als auch vom ⌘1..⌘7-Hotkey
- * benutzt — eine gemeinsame Quelle der Wahrheit, damit Toolbar-Klick und
- * Hotkey identisch wirken (inkl. Caret-Platzierung am Block-Ende).
+ * Switches the block at the cursor to the given type. Used both by the
+ * editor toolbar (block-pill click) and by the ⌘1..⌘7 hotkey
+ * — one shared source of truth, so toolbar click and
+ * hotkey behave identically (incl. caret placement at the end of the block).
  *
- * Liefert true, wenn ein Block tatsächlich gewechselt wurde, sonst false
- * (kein Cursor in einem Scriptz-Block, oder Block ist bereits dieser Typ).
+ * Returns true when a block was actually switched, otherwise false
+ * (no cursor in a scriptz block, or the block is already of this type).
  */
 export function setBlockType(editor: LexicalEditor, target: BlockType): boolean {
   let didChange = false;

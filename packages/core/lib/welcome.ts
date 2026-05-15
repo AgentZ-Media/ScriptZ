@@ -10,10 +10,10 @@ export async function ensureWelcomeContent(): Promise<void> {
   if (seeded) return;
   const existing = await api.listScripts({ includeArchived: true, limit: 1 });
   if (existing.length === 0) {
-    // Sprache zum Seed-Zeitpunkt: settings.load() hat die Präferenz
-    // bereits aufgelöst (Auto -> navigator.language), bevor wir hier
-    // landen. Bei späterem Sprachwechsel bleibt das Tutorial-Skript so
-    // wie es ist - es ist ja User-Content, den der User editieren kann.
+    // Language at seed time: settings.load() has already resolved the
+    // preference (auto -> navigator.language) before we land here.
+    // On later language switch, the tutorial script stays as it is -
+    // it's user content that the user can edit.
     const content = getWelcomeContent(language());
     await api.createScript({
       title: content.title,

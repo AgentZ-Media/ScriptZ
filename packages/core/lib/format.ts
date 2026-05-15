@@ -1,11 +1,11 @@
-// Locale-aware Formatierung. Liest die aktuelle Sprache via i18n, daher
-// passen sich relative-time-Strings, Monats-/Wochentag-Namen, Plurale
-// und Datums-Layouts automatisch dem Sprach-Setting an. Re-evaluation
-// in Komponenten passiert, weil `t()` reaktiv die i18n-Language liest.
+// Locale-aware formatting. Reads the current language via i18n, so
+// relative-time strings, month / weekday names, plurals
+// and date layouts adapt automatically to the language setting. Re-evaluation
+// in components happens because `t()` reactively reads the i18n language.
 
 import { getCurrentLocale, t, tPlural } from "../i18n";
 
-/** Locale-aware relative time. Format passt sich der aktiven Sprache an. */
+/** Locale-aware relative time. Format adapts to the active language. */
 export function relativeTime(ms: number, now = Date.now()): string {
   const diff = Math.max(0, now - ms);
   const sec = diff / 1000;

@@ -1,31 +1,31 @@
-// Sprach-Schalter + Übersetzungs-API.
+// Language switch + translation API.
 //
-// Design: ein Solid-Signal `currentLanguage`, das von Komponenten reaktiv
-// gelesen wird. Setting "auto" wird beim Laden in eine konkrete Sprache
-// aufgelöst (navigator.language); der eigentliche Signal-Wert ist immer
-// "de" oder "en", damit t() nichts nochmal auflösen muss. Persistiert
-// wird die User-Wahl ("auto" | "de" | "en") in settings.ts.
+// Design: a Solid signal `currentLanguage` that components read
+// reactively. The setting "auto" is resolved into a concrete language
+// on load (navigator.language); the actual signal value is always
+// "de" or "en" so t() doesn't have to resolve again. Persisted
+// is the user choice ("auto" | "de" | "en") in settings.ts.
 //
-// Bewusst kein i18next/intl-messageformat: bei ~300 Keys und zwei
-// Sprachen ist eine handgeschriebene Implementierung deutlich kleiner
-// (kein Bundle-Overhead), typsicher (TS prüft jeden Key gegen den
-// kanonischen DE-Katalog) und ohne API-Indirektion sofort lesbar.
+// Deliberately no i18next/intl-messageformat: with ~300 keys and two
+// languages, a hand-written implementation is significantly smaller
+// (no bundle overhead), type-safe (TS checks every key against the
+// canonical DE catalog) and immediately readable without API indirection.
 
 import { createSignal } from "solid-js";
 import { de } from "./de";
 import { en } from "./en";
 
 export type Language = "de" | "en";
-/** User-sichtbare Sprach-Präferenz inkl. "auto" (folgt System). */
+/** User-visible language preference incl. "auto" (follows system). */
 export type LanguagePref = "auto" | Language;
 
 type Catalog = Record<keyof typeof de, string>;
 
 const CATALOGS: Record<Language, Catalog> = { de, en };
 
-/** Erkennt die System-Sprache via navigator.language. Fällt auf "de"
- *  zurück, weil die App primär deutschsprachig entwickelt wurde und
- *  alle bestehenden User Deutsch erwarten. */
+/** Detects the system language via navigator.language. Falls back to
+ *  "de" because the app was primarily developed in German and
+ *  all existing users expect German. */
 export function detectSystemLanguage(): Language {
   if (typeof navigator === "undefined") return "de";
   const raw = navigator.language || (navigator as { userLanguage?: string }).userLanguage;
@@ -33,7 +33,7 @@ export function detectSystemLanguage(): Language {
   return raw.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
-/** Löst die User-Präferenz in die konkrete Sprache auf. */
+/** Resolves the user preference to the concrete language. */
 export function resolveLanguage(pref: LanguagePref): Language {
   return pref === "auto" ? detectSystemLanguage() : pref;
 }
@@ -42,12 +42,12 @@ const [currentLanguage, setCurrentLanguageSignal] = createSignal<Language>(
   typeof navigator !== "undefined" ? detectSystemLanguage() : "de",
 );
 
-/** Reaktiver Reader. Komponenten, die hier subskribieren, rendern bei
- *  Sprach-Wechsel automatisch neu. */
+/** Reactive reader. Components that subscribe here automatically
+ *  re-render on language change. */
 export const language = currentLanguage;
 
-/** Setzt die aufgelöste Sprache. settings.ts ruft das nach jedem
- *  setLanguage()/load() auf. Idempotent. */
+/** Sets the resolved language. settings.ts calls this after every
+ *  setLanguage()/load(). Idempotent. */
 export function applyResolvedLanguage(lang: Language): void {
   setCurrentLanguageSignal(lang);
   if (typeof document !== "undefined") {
@@ -68,19 +68,19 @@ function interpolate(template: string, params: Params | undefined): string {
   });
 }
 
-/** Liest eine Übersetzung. Fällt auf den DE-Katalog zurück, falls die
- *  EN-Variante fehlen sollte (TS sollte das verhindern, aber die
- *  Defensive kostet uns nichts). */
+/** Reads a translation. Falls back to the DE catalog if the
+ *  EN variant should be missing (TS should prevent that, but the
+ *  defensive code costs us nothing). */
 export function t(key: TranslationKey, params?: Params): string {
   const cat = CATALOGS[currentLanguage()];
   const raw = cat[key] ?? (de as Catalog)[key] ?? key;
   return interpolate(raw, params);
 }
 
-/** Plural-Auswahl per Intl.PluralRules. Erwartet vorhandene `_one` /
- *  `_other`-Suffixe im Katalog (deutsche und englische Pluralregel hat
- *  beide Kategorien). `count` wird automatisch als {count}-Param
- *  interpoliert. */
+/** Plural selection via Intl.PluralRules. Expects existing `_one` /
+ *  `_other` suffixes in the catalog (German and English plural rules
+ *  both have these categories). `count` is automatically interpolated
+ *  as a {count} param. */
 export function tPlural(
   baseKey: string,
   count: number,
@@ -88,10 +88,10 @@ export function tPlural(
 ): string {
   const lang = currentLanguage();
   const rule = new Intl.PluralRules(getCurrentLocale()).select(count);
-  // count zuerst, damit eine vom Aufrufer mitgegebene formatierte
-  // Variante (z.B. {count: "1.234"} mit Tausendertrennzeichen) den
-  // numerischen Default überschreibt. Die Regel-Auswahl bleibt
-  // numerisch korrekt - die Anzeige darf hübscher sein.
+  // count first so a caller-supplied formatted
+  // variant (e.g. {count: "1,234"} with thousands separator) overrides
+  // the numeric default. The rule selection stays
+  // numerically correct - the display is allowed to be prettier.
   const fullParams: Params = { count, ...(params ?? {}) };
   const pluralKey = `${baseKey}_${rule}` as TranslationKey;
   const otherKey = `${baseKey}_other` as TranslationKey;
@@ -105,7 +105,7 @@ export function tPlural(
   return interpolate(raw, fullParams);
 }
 
-/** BCP-47-Locale für Intl.* APIs (toLocaleDateString, PluralRules, ...). */
+/** BCP-47 locale for Intl.* APIs (toLocaleDateString, PluralRules, ...). */
 export function getCurrentLocale(): string {
   return currentLanguage() === "de" ? "de-DE" : "en-US";
 }

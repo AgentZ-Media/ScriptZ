@@ -11,10 +11,10 @@ const [version, setVersion] = createSignal(0);
 export const scriptsBus = {
   version,
   bump() {
-    // Funktionaler Updater - siehe dailyStatsBus.ts für Details. `version()`
-    // hier zu lesen würde den Aufrufer (falls innerhalb einer Effect)
-    // auf das Versionssignal selbst subscriben und mit dem direkt
-    // folgenden Write eine Endlosrekursion auslösen.
+    // Functional updater - see dailyStatsBus.ts for details. Reading `version()`
+    // here would subscribe the caller (if inside an effect)
+    // to the version signal itself and trigger an infinite recursion with
+    // the immediately following write.
     setVersion((v) => v + 1);
   },
 };

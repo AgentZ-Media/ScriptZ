@@ -3,32 +3,32 @@
    38px tall, drag region. Hosts traffic-light gap, tab row, status strip.
    ========================================================================= */
 
-/* ── Titlebar: Maße eng aufeinander abgestimmt ──
-   Höhe 34 px (kompakt, NoteZ hatte 44 px für ihr breiteres Layout).
-   Drei Dinge müssen vertikal zueinander passen:
+/* ── Titlebar: tightly coordinated measurements ──
+   Height 34 px (compact, NoteZ used 44 px for its wider layout).
+   Three things must align vertically:
 
-     1. Trafficlight-Dots (12 px hoch) → mittig: y=11..23, Center y=17
-        - Wert lebt in `tauri.conf.json` (`trafficLightPosition.y: 11`).
-          Bewusst KEIN Runtime-Reposition aus Rust — NoteZ-Erkenntnis:
-          feste Conf-Werte halten Dev↔Build stabil, Tauri-API-Calls
-          driften zwischen Build-Modi.
-     2. Status-Strip (22 px hoch) → vertikal zentriert: y=6..28, Center y=17
-     3. Tabs (26 px hoch) → bottom-anchored für Chrome-Look:
-        Tab-Top y=8, Tab-Bottom y=34. Tab-Tops haben 8 px Abstand
-        zur Bar-Oberkante (kein "abgeschnitten"-Gefühl).
+     1. Traffic-light dots (12 px tall) → centered: y=11..23, center y=17
+        - Value lives in `tauri.conf.json` (`trafficLightPosition.y: 11`).
+          Deliberately NO runtime reposition from Rust — NoteZ lesson:
+          fixed conf values keep dev↔build stable; Tauri API calls
+          drift between build modes.
+     2. Status strip (22 px tall) → vertically centered: y=6..28, center y=17
+     3. Tabs (26 px tall) → bottom-anchored for Chrome look:
+        tab top y=8, tab bottom y=34. Tab tops have 8 px breathing room
+        to the bar top edge (no "cut off" feeling).
 
-   Spalte 1 (78 px) ist Spacer für die OS-Trafficlights, danach Tabs,
-   dann Status-Strip. */
+   Column 1 (78 px) is a spacer for the OS traffic lights, then tabs,
+   then status strip. */
 .titlebar {
   position: relative;
-  /* Über In-Content-Popovers (Charakter-Dropdown, Block-Dropdown,
-     Color-Popover, Browser-Kontextmenü - alle z=50..55), aber unter
-     Modal-Backdrop (z=100) und Toasts (z=200), damit sich die Tab-Bar
-     vom Editor-Inhalt trennt, beim Modal-Open aber wie gewohnt blurst. */
+  /* Above in-content popovers (character dropdown, block dropdown,
+     color popover, browser context menu - all z=50..55), but below
+     modal backdrop (z=100) and toasts (z=200), so the tab bar
+     separates from editor content while still blurring as usual on modal open. */
   z-index: 60;
   display: grid;
-  /* Erste Spalte ist Spacer fuer die macOS-Trafficlights (78 px) bzw.
-     0 auf Windows/Linux (siehe --titlebar-traffic-width in tokens.css). */
+  /* First column is a spacer for the macOS traffic lights (78 px) or
+     0 on Windows/Linux (see --titlebar-traffic-width in tokens.css). */
   grid-template-columns: var(--titlebar-traffic-width) 1fr auto auto;
   align-items: center;
   height: 34px;
@@ -43,17 +43,17 @@
   border-bottom-color: rgba(255, 255, 255, 0.10);
 }
 
-/* Spacer fuer die macOS-Trafficlights (78 px nativ, +12 px Atemluft).
-   Auf Windows/Linux wird --titlebar-traffic-width 0 und der Spacer
-   verschwindet (Fenster-Buttons sitzen dort rechts). */
+/* Spacer for the macOS traffic lights (78 px native, +12 px breathing room).
+   On Windows/Linux --titlebar-traffic-width becomes 0 and the spacer
+   disappears (window buttons sit on the right there). */
 .titlebar-traffic { width: var(--titlebar-traffic-width); height: 34px; }
 
-/* ----- Tab-Reihe ----- */
+/* ----- Tab row ----- */
 .tabs {
   display: flex;
   gap: 2px;
   align-items: flex-end;
-  align-self: end;     /* an die Unterkante der Titlebar — Chrome-Look */
+  align-self: end;     /* to the bottom edge of the titlebar — Chrome look */
   height: 34px;
   -webkit-app-region: no-drag;
   flex: 1;
@@ -63,7 +63,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   position: relative;
-  /* Sanftes Fade-out rechts wenn Tabs überlaufen */
+  /* Gentle fade-out on the right when tabs overflow */
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
 }
 .tabs::-webkit-scrollbar { display: none; }
@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 26px;        /* in 34 px Bar bottom-aligned → Top y=8 (8 px Atemluft) */
+  height: 26px;        /* bottom-aligned in 34 px bar → top y=8 (8 px breathing room) */
   padding: 0 8px 0 10px;
   border-radius: 7px 7px 0 0;
   font-family: var(--font-sans);
@@ -81,10 +81,10 @@
   background: transparent;
   border: 0;
   cursor: pointer;
-  /* Chrome-Logik: alle Skript-Tabs teilen sich die Breite gleichmäßig
-     (flex 1 1 0), wachsen bis 200 px, schrumpfen bis 120 px. Unter
-     120 px hat selbst ein abgekürzter Titel + ✕ keinen Platz mehr -
-     dann lieber horizontal scrollen lassen statt Titel ganz schlucken. */
+  /* Chrome logic: all script tabs share the width equally
+     (flex 1 1 0), grow up to 200 px, shrink down to 120 px. Below
+     120 px even a truncated title + ✕ has no room any more -
+     so we'd rather scroll horizontally than swallow the title entirely. */
   flex: 1 1 0;
   min-width: 120px;
   max-width: 200px;
@@ -108,16 +108,16 @@
     0 1px 0 var(--bg);
 }
 
-/* Dezente Trennstriche zwischen aufeinanderfolgenden Tabs.
-   Ohne diese Linie verschmelzen mehrere offene Skript-Tabs optisch
-   zu einem Streifen aus Doc-Icon + Titel - es ist nicht sofort
-   erkennbar, wo ein Tab endet und der nächste beginnt. Der Strich
-   sitzt im 2 px-Gap zwischen den Tabs (über `gap: 2px` der `.tabs`-
-   Flexbox), 14 px hoch + vertikal zentriert.
-   Versteckt, wenn:
-   - der Tab selbst aktiv ist (active hat schon eine eigene Border),
-   - sein direkter linker Nachbar aktiv ist (sonst stünde die Linie
-     direkt an der rechten Schulter des aktiven Tabs - doppelt). */
+/* Subtle separator lines between consecutive tabs.
+   Without this line, several open script tabs visually blur
+   into a strip of doc icon + title - it isn't immediately
+   clear where one tab ends and the next begins. The line
+   sits in the 2 px gap between tabs (via `gap: 2px` on the `.tabs`
+   flexbox), 14 px tall + vertically centered.
+   Hidden when:
+   - the tab itself is active (active already has its own border),
+   - its immediate left neighbor is active (otherwise the line would sit
+     right on the right shoulder of the active tab - doubled). */
 .tab + .tab::before {
   content: "";
   position: absolute;
@@ -147,7 +147,7 @@
   opacity: 0;
 }
 
-/* Home-Tab: 40 px fix, nur Icon, niemals flex. */
+/* Home tab: 40 px fixed, icon only, never flex. */
 .tab-home {
   flex: 0 0 auto;
   width: 40px;
@@ -164,7 +164,7 @@
 }
 .tab-home.is-active .tab-home-ic { color: var(--ink-700); }
 
-/* Ideen-Tab: wie Home fix, nur Icon (+ optionales Badge). */
+/* Ideas tab: fixed like home, icon only (+ optional badge). */
 .tab-ideas {
   flex: 0 0 auto;
   width: 40px;
@@ -181,10 +181,11 @@
   color: var(--ink-500);
 }
 .tab-ideas.is-active .tab-ideas-ic { color: var(--ink-700); }
-/* Badge mit Anzahl offener Ideen — bewusst in die obere rechte Ecke
-   des Tabs gerückt (nicht über das Icon zentriert), damit die Glühbirne
-   visuell als eigenes Element lesbar bleibt. Der weiße Outline-Ring
-   (box-shadow) trennt das Badge zusätzlich vom Tab-Hintergrund. */
+/* Badge with the number of open ideas — deliberately moved into the
+   top-right corner of the tab (not centered over the icon), so the
+   light bulb stays visually readable as its own element. The white
+   outline ring (box-shadow) additionally separates the badge from the
+   tab background. */
 .tab-ideas-badge {
   position: absolute;
   top: 2px;
@@ -221,10 +222,10 @@
   min-width: 0;
 }
 
-/* Close-Button ist immer rechts in der Zelle, unabhängig davon, ob der
-   Titel auf null Pixel kollabiert wäre. Der `margin-left: auto` greift
-   nur, wenn der Titel keinen Platz mehr ausspannt - in der Praxis
-   blockiert die min-width des Tabs (120 px) das aber sowieso. */
+/* Close button is always on the right of the cell, regardless of whether
+   the title would have collapsed to zero pixels. The `margin-left: auto`
+   only takes effect when the title no longer spreads out any space - in
+   practice the tab min-width (120 px) blocks that anyway. */
 .tab-x {
   display: inline-flex;
   align-items: center;
@@ -262,13 +263,13 @@
 }
 [data-theme="dark"] .tab-new:hover { background: rgba(255, 255, 255, 0.08); }
 
-/* ----- Schreib-Status-Strip rechts -----
-   Drei kleine Pills (Wörter heute / Streak / Saved) in einer Pille
-   eingefasst. Awareness-Anzeiger; klickbar nur über Mouseover-Tooltips. */
+/* ----- Writing status strip on the right -----
+   Three small pills (words today / streak / saved) enclosed in one pill.
+   Awareness indicator; clickable only via mouseover tooltips. */
 .status-strip {
   display: inline-flex;
   align-items: center;
-  align-self: center;  /* vertikal zentriert im Titlebar-Grid (Center y=17) */
+  align-self: center;  /* vertically centered in the titlebar grid (center y=17) */
   height: 22px;
   padding: 0 4px;
   background: rgba(28, 24, 20, 0.04);
@@ -320,12 +321,12 @@
   box-shadow: 0 0 0 2px rgba(79, 154, 108, 0.16);
 }
 
-/* ----- Globaler Zahnrad-Knopf ganz rechts ----- */
+/* ----- Global gear button on the far right ----- */
 .titlebar-gear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: center;  /* vertikal zentriert wie der Status-Strip */
+  align-self: center;  /* vertically centered like the status strip */
   width: 24px;
   height: 22px;
   margin-left: 6px;

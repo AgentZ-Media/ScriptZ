@@ -116,14 +116,15 @@ Nicht alles im Repo läuft in derselben Sprache. Die Regel ist nach
 | Landing `apps/landing/src/i18n/de.ts` | Deutsch | DE-Hälfte des bilingualen Landing-Katalogs |
 | Landing `apps/landing/src/i18n/en.ts` | Englisch | EN-Hälfte des bilingualen Landing-Katalogs |
 | Impressum + Datenschutz | Deutsch | Deutsches Recht, deutscher Anbieter |
-| **Code-Kommentare** (alle Apps) | **Deutsch** | Team schreibt intern auf Deutsch |
+| **Code-Kommentare** (alle Apps) | **Englisch** | Code-Kommentare laufen einheitlich auf Englisch - das gesamte Repo wurde umgestellt |
 | **Doku-Markdown** (CLAUDE.md, docs/*.md außer release-notes) | **Deutsch** | Interne Doku, deutsches Team |
 | **Commit-Messages, PR-Texte** | Deutsch | Interne Kommunikation |
 
 Faustregel: Was **auf GitHub als Schaufront** sichtbar ist (README,
-Release-Notes), läuft auf Englisch. Was **interne Doku oder
-Kommentare** ist, bleibt Deutsch. Die zweisprachigen i18n-Kataloge
-sind ein Sonderfall - siehe [`i18n.md`](.claude/rules/i18n.md).
+Release-Notes) **und Code-Kommentare** laufen auf Englisch. Was
+**interne Doku** ist (CLAUDE.md, docs/*.md, Commit-Messages), bleibt
+Deutsch. Die zweisprachigen i18n-Kataloge sind ein Sonderfall - siehe
+[`i18n.md`](.claude/rules/i18n.md).
 
 ### Stil
 
@@ -131,8 +132,8 @@ In **deutschen Texten** wird normaler Bindestrich verwendet, **kein
 Em-Dash**. Auch in von Claude generierten Texten.
 
 **Echte Umlaute, keine ASCII-Ersatzschreibung.** In allen
-deutschsprachigen Texten (Landing-DE, `i18n/de.ts`, Code-Kommentare,
-interne Doku) immer `ä`, `ö`, `ü`, `ß` statt `ae`, `oe`, `ue`, `ss`.
+deutschsprachigen Texten (Landing-DE, `i18n/de.ts`, interne Doku)
+immer `ä`, `ö`, `ü`, `ß` statt `ae`, `oe`, `ue`, `ss`.
 Auch wenn die Tastatur das gerade nicht hergibt - dann lieber kurz
 suchen als ein "haendisch" ins Repo schreiben.
 

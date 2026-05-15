@@ -122,9 +122,9 @@ function MenuRow(props: { item: ContextMenuItem; onChoose: () => void }) {
     if (x + MENU_W + 8 > window.innerWidth) {
       x = Math.max(8, rect.left - MENU_W + 2);
     }
-    // Vertikal clampen: wenn der Submenü unten am Viewport hinausgehen
-    // würde, hochziehen bis er reinpasst (gleiche Logik wie das Root-
-    // Menü). Sonst klebt der untere Eintrag unter der App-Kante.
+    // Clamp vertically: if the submenu would extend past the bottom of
+    // the viewport, pull it up until it fits (same logic as the root
+    // menu). Otherwise the bottom item sticks below the app edge.
     const subH = (props.item.children?.length ?? 0) * ITEM_H + 8;
     let y = rect.top;
     if (y + subH + 8 > window.innerHeight) {

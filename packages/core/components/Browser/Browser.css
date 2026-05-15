@@ -219,16 +219,16 @@
   flex-shrink: 0;
   transition: all var(--t-fast);
 }
-/* DnD-Robustheit: Kinder schlucken keine Drag-Events, dragleave/enter
-   feuern damit nur am Chip-Button selbst (sonst kippt der Highlight,
-   sobald der Cursor über Label oder Count wandert). */
+/* DnD robustness: children don't swallow drag events, so dragleave/enter
+   only fire on the chip button itself (otherwise the highlight flickers
+   the moment the cursor moves over label or count). */
 .folder-chip > * { pointer-events: none; }
 .folder-chip:hover {
   background: var(--hover);
   color: var(--text);
 }
-/* Echte Ordner setzen sich dezent vom "Alle"-Filter-Chip ab, damit
-   man sie als Sortier-Ziel (statt nur als Filter) erkennt. */
+/* Real folders set themselves subtly apart from the "All" filter chip so
+   they read as a sort target (rather than just a filter). */
 .folder-chip.is-folder {
   background: var(--paper);
   border-color: var(--border);
@@ -375,9 +375,7 @@
   height: 28px;
   border-radius: 2px;
   background: var(--ink-300);
-  transition: height var(--t-fast);
 }
-.row-v2:hover .row-stripe { height: 36px; }
 .row-stripe.row-stripe-empty {
   background: var(--border);
   opacity: 0.4;

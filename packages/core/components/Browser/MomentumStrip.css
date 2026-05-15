@@ -1,5 +1,5 @@
-/* Momentum-Strip - eine Zeile statt drei großer Karten.
-   Sitzt zwischen Greeting und Folder-Chips. */
+/* Momentum strip - one row instead of three large cards.
+   Sits between greeting and folder chips. */
 
 .mom-strip {
   display: flex;

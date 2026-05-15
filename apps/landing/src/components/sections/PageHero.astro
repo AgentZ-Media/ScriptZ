@@ -1,20 +1,19 @@
 ---
 /**
- * PageHero - der einheitliche Kopf jeder Tab-Route.
+ * PageHero - the unified header for every tab route.
  *
- * Zwei Varianten:
- * - `home`: groesseres Brand-Statement, Web-App-Hinweis und
- *   Install-Hilfe-Accordion. Nur auf `/` und `/en`.
- * - `compact`: tighter Spacing, kein Web-App-Hinweis, keine Install-
- *   Accordions. Fuer alle Sub-Routen.
+ * Two variants:
+ * - `home`: bigger brand statement, web-app hint and install-help
+ *   accordion. Only on `/` and `/en`.
+ * - `compact`: tighter spacing, no web-app hint, no install
+ *   accordions. For all sub-routes.
  *
- * H1-Inhalt kommt als Default-Slot rein, weil das Home-Hero einen
- * Keyword-Eyebrow + 2-zeiligen Tagline rendert, waehrend Sub-Routen
- * einen einzeiligen, keyword-richen Titel haben. Eyebrow und Subline
- * sind Strings.
+ * H1 content comes in as the default slot, because the home hero
+ * renders a keyword eyebrow + 2-line tagline, while sub-routes have
+ * a single-line, keyword-rich title. Eyebrow and subline are strings.
  *
- * Universell ist: Download-CTA + GitHub-Knopf, Fallback-Download-Link
- * ("Andere Plattform? Alle Downloads auf GitHub"), Version+Tracker-Meta.
+ * Universal: download CTA + GitHub button, fallback download link
+ * ("Other platform? All downloads on GitHub"), version + tracker meta.
  */
 import { getLatestRelease, site } from "../../data/site";
 import { t, type Lang } from "../../i18n";
@@ -22,12 +21,12 @@ import { t, type Lang } from "../../i18n";
 interface Props {
   lang: Lang;
   variant: "home" | "compact";
-  /** Kleine Uppercase-Zeile ueber dem H1 - keyword-relevant. Optional:
-   *  Auf der Home (`/`) lassen wir sie weg, weil die Keyword-Line
-   *  innerhalb des H1 schon den gleichen Job macht und drei gestapelte
-   *  Headings visuell zu viel sind. Sub-Routen tragen sie immer. */
+  /** Small uppercase line above the H1 - keyword-relevant. Optional:
+   *  on home (`/`) we drop it because the keyword line inside the H1
+   *  already does the same job and three stacked headings would be
+   *  visually too much. Sub-routes always carry it. */
   eyebrow?: string;
-  /** Paragraph unter dem H1. */
+  /** Paragraph below the H1. */
   subline: string;
 }
 

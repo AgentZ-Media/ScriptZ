@@ -3,10 +3,10 @@ import { api } from "../lib/api";
 import { dailyStatsBus } from "../lib/dailyStatsBus";
 import type { DailyStatsSummary } from "../lib/types";
 
-// Heatmap und Streak-Bar erwarten dailyWords mit fester Länge 365
-// (ein Eintrag pro Tag der letzten 12 Monate). Ein leerer Array würde
-// das Heatmap-Grid auf 0 Zellen reduzieren und beim Refetch wieder
-// "wachsen lassen" - kosmetisch unsauber, deshalb Fallback mit Nullen.
+// Heatmap and streak bar expect dailyWords with a fixed length of 365
+// (one entry per day for the last 12 months). An empty array would
+// reduce the heatmap grid to 0 cells and "grow it back" on refetch -
+// cosmetically unclean, hence the fallback with zeros.
 const EMPTY: DailyStatsSummary = {
   wordsToday: 0,
   wordsThisWeek: 0,
@@ -16,11 +16,11 @@ const EMPTY: DailyStatsSummary = {
   totalWords: 0,
 };
 
-// Globaler Resource-Slot. createResource lebt am Modul-Top-Level, damit
-// Subscribenten sich denselben Cache teilen - jede Komponente, die die
-// Statistik braucht, ruft `dailyStats()` auf, ohne den Roundtrip neu
-// auszulösen. Bei einem Bus-Bump (siehe lib/dailyStatsBus.ts) refetcht
-// der Resource transparent.
+// Global resource slot. createResource lives at module top level so
+// subscribers share the same cache - every component that needs the
+// statistics calls `dailyStats()` without triggering a new roundtrip.
+// On a bus bump (see lib/dailyStatsBus.ts) the resource refetches
+// transparently.
 const [stats] = createResource(
   () => dailyStatsBus.version(),
   async () => {
@@ -35,10 +35,10 @@ const [stats] = createResource(
 );
 
 export const dailyStatsStore = {
-  /** Aktuelle Statistik. Liefert `EMPTY` solange der erste Roundtrip
-   *  läuft - die UI zeigt einfach 0/0 statt zu blockieren. */
+  /** Current statistics. Returns `EMPTY` while the first roundtrip
+   *  is running - the UI just shows 0/0 instead of blocking. */
   stats,
-  /** Manueller Trigger - z. B. nach Re-Hydrate beim App-Start. */
+  /** Manual trigger - e.g. after re-hydrate on app start. */
   refresh() {
     dailyStatsBus.bump();
   },

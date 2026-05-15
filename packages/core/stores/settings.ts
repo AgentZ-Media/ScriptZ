@@ -14,53 +14,53 @@ const [theme, setTheme] = createSignal<Theme>("light");
 const [highlightingDefault, setHighlightingDefault] = createSignal<boolean>(false);
 const [updateCheckEnabled, setUpdateCheckEnabled] = createSignal<boolean>(true);
 const [hourlyUpdateCheck, setHourlyUpdateCheck] = createSignal<boolean>(true);
-// Fokus-Modus standardmäßig aktiv: Toolbar + Cast-Rail sind beim Öffnen
-// eines Skripts ausgeblendet, ⇧⌘F holt sie zurück. Default true (das ist
-// der ruhigere Schreib-Modus, den die meisten Nutzer bevorzugen).
+// Focus mode active by default: toolbar + cast rail are hidden when
+// opening a script, Shift+Cmd+F brings them back. Default true (this is
+// the quieter writing mode that most users prefer).
 const [focusModeDefault, setFocusModeDefault] = createSignal<boolean>(true);
 // Auto-flip quick mode on whenever a script has exactly two characters.
 // Per-script manual toggle still wins — once the writer overrides it on a
 // script, that decision sticks across character-count changes.
 const [quickModeAutoEnable, setQuickModeAutoEnable] = createSignal<boolean>(false);
-// Zähler-Badge am Ideen-Tab anzeigen (Anzahl offener Ideen). Wer eine
-// große Idee-Sammlung hat, mag die Zahl ggf. nicht ständig sehen.
+// Show counter badge on the Ideas tab (number of open ideas). Users with
+// a large ideas collection may not want to see the number all the time.
 const [showIdeasBadge, setShowIdeasBadge] = createSignal<boolean>(true);
-// Volle Dark-Immersion: Skript-Sheet auch im Dark-Mode dunkel statt hell.
-// Default off — die meisten User mögen den "beleuchtetes-Blatt"-Look, aber
-// für OLED-/Late-Night-Schreiben wird das Sheet als zu hell empfunden.
-// Greift nur, wenn das aufgelöste Theme tatsächlich "dark" ist (Light-
-// Mode ignoriert die Einstellung, im Auto-Mode hängt's am System).
+// Full dark immersion: script sheet also dark in dark mode instead of light.
+// Default off — most users like the "illuminated paper" look, but
+// for OLED / late-night writing the sheet is perceived as too bright.
+// Only applies when the resolved theme is actually "dark" (light
+// mode ignores the setting; in auto mode it depends on the system).
 const [darkPaper, setDarkPaper] = createSignal<boolean>(false);
-// Wochenziel in Wörtern. Default 1500 - kalibriert auf 7 Skripte à
-// ~200 Wörter (Short-Form-Schnitt) plus ein bisschen Puffer. Wird vom
-// Momentum-Strip auf der Home-Seite und vom Status-Strip in der Tab-
-// Bar gelesen. Wochen- statt Tagesgranularität, weil Creator selten
-// jeden Tag ein Skript schreiben - tägliche "0 / 250 W"-Counter
-// erzeugen Druck statt Motivation.
+// Weekly goal in words. Default 1500 - calibrated for 7 scripts at
+// ~200 words each (short-form average) plus a bit of headroom. Read by
+// the momentum strip on the home page and by the status strip in the tab
+// bar. Weekly instead of daily granularity, because creators rarely
+// write a script every day - daily "0 / 250 W" counters
+// create pressure rather than motivation.
 const WEEKLY_WORD_GOAL_DEFAULT = 1500;
 const WEEKLY_WORD_GOAL_MIN = 200;
 const WEEKLY_WORD_GOAL_MAX = 50000;
 const [weeklyWordGoal, setWeeklyWordGoal] = createSignal<number>(WEEKLY_WORD_GOAL_DEFAULT);
 
-// Wörter pro Minute für die Spielzeit-Schätzung in der Cast-Rail.
-// Default 210 ist auf TikTok-/Sketch-Tempo kalibriert (siehe EditorRail.tsx).
-// Klassische Drehbuch-Pace liegt bei 150, schnelles Reden bei ~250.
+// Words per minute for the runtime estimate in the cast rail.
+// Default 210 is calibrated for TikTok / sketch pace (see EditorRail.tsx).
+// Classic screenplay pace is around 150, fast speech around ~250.
 const DIALOG_WPM_DEFAULT = 210;
 const DIALOG_WPM_MIN = 80;
 const DIALOG_WPM_MAX = 400;
 const [dialogWpm, setDialogWpm] = createSignal<number>(DIALOG_WPM_DEFAULT);
 
-// Sprach-Präferenz "auto" | "de" | "en". "auto" folgt navigator.language.
-// Default "auto" - neue User landen sprachlich da, wo ihr System steht.
-// Die aufgelöste Sprache wird nicht hier persistiert, nur die User-Wahl;
-// das i18n-Modul resolved bei jedem Load erneut, sodass ein System-
-// Wechsel nicht in einer veralteten Cache-Sprache hängenbleibt.
+// Language preference "auto" | "de" | "en". "auto" follows navigator.language.
+// Default "auto" - new users land language-wise where their system is.
+// The resolved language is not persisted here, only the user's choice;
+// the i18n module resolves again on every load, so a system
+// switch doesn't get stuck on a stale cached language.
 const [language, setLanguagePref] = createSignal<LanguagePref>("auto");
 
 const [loaded, setLoaded] = createSignal(false);
 
-// matchMedia + aufgelöstes Theme - früh deklariert, damit settingsStore.resolvedTheme
-// in der Store-Definition unten ohne Forward-Reference funktioniert.
+// matchMedia + resolved theme - declared early so that settingsStore.resolvedTheme
+// works in the store definition below without a forward reference.
 const prefersDark =
   typeof window !== "undefined" && typeof window.matchMedia === "function"
     ? window.matchMedia("(prefers-color-scheme: dark)")
@@ -71,9 +71,9 @@ function resolveTheme(t: Theme): "dark" | "light" {
   return t;
 }
 
-// Reaktives "ist die App gerade dark?" - UI-Komponenten brauchen das,
-// um z.B. die darkPaper-Option zu (de-)aktivieren. Bleibt im Auto-
-// Modus auf dem aktuellen System-Stand (Listener weiter unten).
+// Reactive "is the app currently dark?" - UI components need this,
+// e.g. to (de)activate the darkPaper option. Stays on the current
+// system state in auto mode (listener further below).
 const [resolvedTheme, setResolvedTheme] = createSignal<"dark" | "light">(
   resolveTheme(theme()),
 );
@@ -97,8 +97,8 @@ export const settingsStore = {
   theme,
   setTheme: async (v: Theme) => {
     setTheme(v);
-    // dataset.theme wird vom createEffect unten gesetzt — kein redundantes
-    // Schreiben hier mehr.
+    // dataset.theme is set by the createEffect below — no redundant
+    // writing here anymore.
     await api.setSetting("theme", v);
   },
   highlightingDefault,
@@ -155,7 +155,7 @@ export const settingsStore = {
   DIALOG_WPM_MIN,
   DIALOG_WPM_MAX,
   DIALOG_WPM_DEFAULT,
-  /** Aktuelle User-Wahl "auto" | "de" | "en". */
+  /** Current user choice "auto" | "de" | "en". */
   language,
   setLanguage: async (v: LanguagePref) => {
     setLanguagePref(v);
@@ -186,16 +186,16 @@ export const settingsStore = {
     if (fmd) setFocusModeDefault(fmd === "1");
     if (sib) setShowIdeasBadge(sib === "1");
     if (dp) setDarkPaper(dp === "1");
-    // Sprache: persistierter Wert hat Vorrang, sonst Default "auto".
-    // Bestandsuser bekommen so ohne explizite Migration ihre System-
-    // Sprache (Auto-Detection beim ersten Resolve).
+    // Language: persisted value takes precedence, otherwise default "auto".
+    // Existing users thereby get their system language without an explicit
+    // migration (auto-detection on the first resolve).
     if (lang === "auto" || lang === "de" || lang === "en") {
       setLanguagePref(lang);
     }
     applyLanguage(language());
-    // Wochenziel: Vorrang neuer Key. Legacy-Migration aus dem alten
-    // Tagesziel ×7, falls noch kein Wochenziel persistiert wurde -
-    // dann bleibt der Setup-Aufwand für upgradende User bei Null.
+    // Weekly goal: new key takes precedence. Legacy migration from the old
+    // daily goal x7 if no weekly goal has been persisted yet -
+    // that keeps the setup effort for upgrading users at zero.
     if (wwg) {
       const parsed = Number(wwg);
       if (Number.isFinite(parsed)) setWeeklyWordGoal(clampGoal(parsed));
@@ -204,8 +204,8 @@ export const settingsStore = {
       if (Number.isFinite(parsed)) {
         const migrated = clampGoal(parsed * 7);
         setWeeklyWordGoal(migrated);
-        // Direkt auch persistieren, damit der Migrate nur einmal passiert
-        // (sonst würde der nächste Boot das Legacy-Feld erneut lesen).
+        // Persist immediately as well so the migrate happens only once
+        // (otherwise the next boot would read the legacy field again).
         void api.setSetting("weekly_word_goal", String(migrated));
       }
     }
@@ -217,26 +217,26 @@ export const settingsStore = {
   },
 };
 
-// Theme aufs Document anwenden. "auto" wird per matchMedia (oben
-// deklariert) zu "dark" oder "light" aufgelöst, damit das CSS nur
-// zwei Wahrheitsquellen kennt - sonst müsste jeder Dark-Token-Block
-// doppelt gepflegt werden (einmal für [data-theme="dark"], einmal
-// für @media + auto), was in der Vergangenheit zu unvollständigen
-// Auto-Blöcken und Stil-Layer-Bugs geführt hat.
+// Apply theme to the document. "auto" is resolved via matchMedia (declared
+// above) to "dark" or "light", so the CSS only knows
+// two sources of truth - otherwise every dark token block would have to
+// be maintained twice (once for [data-theme="dark"], once
+// for @media + auto), which in the past has led to incomplete
+// auto blocks and style-layer bugs.
 //
-// Solid trackt theme() als Dependency und feuert auf jeden Wechsel,
-// inkl. dem ersten Lese-Setzen am Ende von load().
+// Solid tracks theme() as a dependency and fires on every change,
+// including the first read/set at the end of load().
 //
-// Bevor `load()` durchgelaufen ist, schreiben wir nichts - sonst flickert
-// der Default ("light") kurz übers persistierte Theme, weil dieser
-// Effect schon beim Modul-Import einmal feuert.
-// data-paper folgt strikt dem **aufgelösten** Theme: nur wenn das Theme
-// (inkl. Auto-Resolution) tatsächlich dark ist, kommt data-paper="dark"
-// dran. Im Light-Mode wird das Attribut entfernt, damit die User-
-// Einstellung "darkPaper" hier keinen Effekt hat - das Sheet bleibt
-// hell. So funktioniert die Auto-Logik out of the box: User stellt
-// darkPaper einmal an, und das Sheet wird nur dann dunkel, wenn die
-// App gerade im Dark-Look ist.
+// Before `load()` has run, we don't write anything - otherwise
+// the default ("light") would briefly flicker over the persisted theme,
+// because this effect already fires once on module import.
+// data-paper strictly follows the **resolved** theme: only when the theme
+// (incl. auto resolution) is actually dark does data-paper="dark"
+// get set. In light mode the attribute is removed so the user
+// setting "darkPaper" has no effect here - the sheet stays
+// light. That way the auto logic works out of the box: user enables
+// darkPaper once, and the sheet only goes dark when the
+// app is currently in the dark look.
 function applyChrome() {
   const resolved = resolveTheme(theme());
   setResolvedTheme(resolved);
@@ -250,18 +250,18 @@ function applyChrome() {
 
 createEffect(() => {
   if (!loaded()) return;
-  // Tracking auf theme() und darkPaper() — beide triggern applyChrome.
+  // Track theme() and darkPaper() — both trigger applyChrome.
   theme();
   darkPaper();
   applyChrome();
 });
 
-// System-Wechsel live mitziehen, solange der User auf "auto" steht.
-// Ohne diesen Listener würde der Auto-Modus zwar beim App-Start korrekt
-// auflösen, aber nicht reagieren, wenn der User währenddessen das
-// System-Theme wechselt. applyChrome() macht auch das darkPaper-Attribut
-// in dem Moment richtig - bei System-Wechsel auf dark mit aktivem
-// darkPaper geht das Sheet automatisch mit dunkel.
+// Follow system changes live, as long as the user is on "auto".
+// Without this listener, auto mode would resolve correctly on app start,
+// but would not react if the user changed the system theme
+// during the session. applyChrome() also gets the darkPaper attribute
+// right at that moment - on a system switch to dark with active
+// darkPaper, the sheet automatically goes dark too.
 if (prefersDark) {
   prefersDark.addEventListener("change", () => {
     if (!loaded()) return;
@@ -269,9 +269,9 @@ if (prefersDark) {
   });
 }
 
-// Sprache: System-Sprach-Wechsel live mitziehen, solange der User auf
-// "auto" steht. Der `languagechange`-Event feuert bei Locale-Wechsel im
-// Browser/OS. Selten, aber kostet uns nichts.
+// Language: follow system language changes live, as long as the user
+// is on "auto". The `languagechange` event fires on locale change in
+// the browser/OS. Rare, but it costs us nothing.
 if (typeof window !== "undefined") {
   window.addEventListener("languagechange", () => {
     if (!loaded()) return;
@@ -279,10 +279,10 @@ if (typeof window !== "undefined") {
   });
 }
 
-// Falls ein anderer Modul-Import die UI braucht, bevor settings.load()
-// durch ist (z.B. WebDisclaimerBanner liest navigator-Sprache vor dem
-// Boot-Promise), die System-Sprache schon mal als Default einspielen.
-// settings.load() überschreibt das ggf. mit der persistierten Präferenz.
+// If another module import needs the UI before settings.load()
+// has finished (e.g. WebDisclaimerBanner reads navigator language before
+// the boot promise), seed the system language as the default.
+// settings.load() may then overwrite that with the persisted preference.
 if (typeof document !== "undefined") {
   applyResolvedLanguage(detectSystemLanguage());
 }

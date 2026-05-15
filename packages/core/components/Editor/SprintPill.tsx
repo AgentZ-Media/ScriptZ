@@ -7,10 +7,10 @@ const SPRINT_ROOT_CLASS = "sprint";
 const PRESETS = [5, 15, 25] as const;
 const DEFAULT_MIN = 15;
 
-/** Schreib-Sprint - kleiner Pomodoro-Timer unten rechts im Editor.
- *  Drei Presets (5/15/25 Min), Start/Pause/Reset. Lokaler State, kein
- *  Server-Roundtrip; Wortzunahme während des Sprints wird vom
- *  normalen Save-Pfad ohnehin ins daily_word_log eingerechnet. */
+/** Writing sprint - small pomodoro timer at the bottom right of the editor.
+ *  Three presets (5/15/25 min), start/pause/reset. Local state, no
+ *  server roundtrip; word growth during the sprint is recorded into
+ *  daily_word_log by the normal save path anyway. */
 export function SprintPill() {
   const [open, setOpen] = createSignal(false);
   const [running, setRunning] = createSignal(false);
@@ -23,7 +23,7 @@ export function SprintPill() {
       setSecondsLeft((s) => {
         if (s <= 1) {
           setRunning(false);
-          // Audio-Cue wäre nett, aber ohne Asset behalten wir es ruhig.
+          // An audio cue would be nice, but without an asset we keep it quiet.
           return 0;
         }
         return s - 1;
@@ -59,11 +59,11 @@ export function SprintPill() {
     return Math.max(0, Math.min(100, ((total - secondsLeft()) / total) * 100));
   };
 
-  // Outside-Click schließt das Panel. Capture-Phase, damit ein Klick auf
-  // die Pille selbst (toggle) sauber durchgeht ohne dass der Listener
-  // erst close-then-open feuert. Esc-Listener hängt am Window, damit er
-  // auch greift, wenn der Fokus auf der Pill-Button geblieben ist (das
-  // Panel selbst nimmt selten Fokus).
+  // Outside click closes the panel. Capture phase so a click on
+  // the pill itself (toggle) goes through cleanly without the listener
+  // firing close-then-open. Esc listener hangs on the window so it
+  // also fires when focus has stayed on the pill button (the
+  // panel itself rarely takes focus).
   createEffect(() => {
     if (!open()) return;
     const onDown = (ev: MouseEvent) => {

@@ -21,9 +21,9 @@ export function Modal(props: ModalProps) {
   let previousFocus: HTMLElement | null = null;
 
   /** Blur the active element (if it lives in the modal) before closing.
-   *  Number-/Text-Inputs commit their `change`-Event nur beim Blur — ohne
-   *  diesen Schritt geht eine Wert-Änderung verloren, wenn der User per
-   *  Backdrop-Klick oder Escape schließt, während ein Input fokussiert ist. */
+   *  Number / text inputs only commit their `change` event on blur — without
+   *  this step, a value change is lost when the user closes via
+   *  backdrop click or Escape while an input is focused. */
   const closeWithFlush = () => {
     const active = document.activeElement as HTMLElement | null;
     if (active && modalRef?.contains(active) && typeof active.blur === "function") {

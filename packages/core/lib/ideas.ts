@@ -1,13 +1,13 @@
-// Ideen-Inbox - eigenständige CRUD-Schicht.
+// Ideas inbox - standalone CRUD layer.
 //
-// Eine Idee ist ein leichtgewichtiger Container ("Worüber will ich
-// schreiben?") - kein Skript, kein Editor. Konvertieren wandelt sie
-// in ein neues Skript um, behält die Idee aber als „verwendet" mit
-// Verweis auf die Skript-ID. Löschen einer Idee greift den
-// dazugehörigen Skript-Inhalt nicht an; das Skript steht weiter im
-// Browser. Wird das Skript gelöscht, setzt der ON DELETE SET NULL FK
-// die script_id der Idee zurück - die Idee bleibt im „Verwendet"-Tab
-// stehen, nur ohne klickbaren Link.
+// An idea is a lightweight container ("What do I want to
+// write about?") - not a script, not an editor. Converting transforms it
+// into a new script but keeps the idea marked as "used" with
+// a reference to the script ID. Deleting an idea does not touch the
+// associated script content; the script stays in the
+// browser. If the script is deleted, the ON DELETE SET NULL FK resets
+// the idea's script_id - the idea stays in the "used" tab,
+// just without a clickable link.
 
 import { createScript } from "./scripts";
 import { getDb } from "./db";
@@ -96,14 +96,14 @@ export async function deleteIdea(id: string): Promise<void> {
   ideasBus.bump();
 }
 
-/** Wandelt eine Idee in ein neues Skript um. Die Idee bleibt erhalten
- *  und wird mit `used_at` + `script_id` markiert. Optional kann der
- *  Aufrufer einen Folder mitgeben. */
+/** Converts an idea into a new script. The idea is kept
+ *  and marked with `used_at` + `script_id`. The caller can optionally
+ *  pass a folder. */
 export async function convertIdeaToScript(input: {
   ideaId: string;
   folderId?: string | null;
-  /** Wenn true (default), wird die Notiz als erste Action in das neue
-   *  Skript übernommen. */
+  /** If true (default), the note is carried over as the first action
+   *  into the new script. */
   notesAsAction?: boolean;
 }): Promise<{ idea: Idea; script: ScriptSummary }> {
   const db = await getDb();
@@ -117,10 +117,10 @@ export async function convertIdeaToScript(input: {
     throw new Error(t("error.ideaAlreadyConverted"));
   }
 
-  // Schritt 1: Idee per CAS reservieren, BEVOR ein Skript angelegt
-  // wird. Plugin-sql kennt keine Transaktionen, also serialisieren wir
-  // konkurrierende Conversions über ein bedingtes UPDATE - nur einer
-  // gewinnt. Verlierer bekommen einen Error statt Duplikat-Skripten.
+  // Step 1: reserve the idea via CAS BEFORE creating a script.
+  // Plugin-sql has no transactions, so we serialize
+  // concurrent conversions via a conditional UPDATE - only one
+  // wins. Losers get an error instead of duplicate scripts.
   const claimedAt = Date.now();
   const claim = await db.execute(
     `UPDATE ideas SET used_at = $1 WHERE id = $2 AND used_at IS NULL`,
@@ -135,9 +135,9 @@ export async function convertIdeaToScript(input: {
     notes: notesAsAction ? ideaRow.notes : "",
   });
 
-  // Schritt 2: Skript anlegen. Schlägt das fehl, geben wir die
-  // Reservierung wieder frei, damit die Idee nicht für immer als
-  // "verwendet" ohne Link feststeckt.
+  // Step 2: create the script. If that fails, release the
+  // reservation so the idea doesn't stay stuck as
+  // "used" without a link forever.
   let script: ScriptSummary;
   try {
     script = await createScript(
@@ -153,20 +153,20 @@ export async function convertIdeaToScript(input: {
     throw err;
   }
 
-  // Schritt 3: script_id nachtragen. Falls dieser Update fehlschlägt,
-  // bleibt das Skript erhalten - die Idee zeigt im "Verwendet"-Tab
-  // einfach keinen Link (siehe Migration 003-Doku, ON DELETE SET NULL).
+  // Step 3: backfill script_id. If this update fails,
+  // the script is preserved - the idea just shows no link
+  // in the "used" tab (see migration 003 docs, ON DELETE SET NULL).
   try {
     await db.execute(
       `UPDATE ideas SET script_id = $1 WHERE id = $2`,
       [script.id, ideaRow.id],
     );
   } catch (err) {
-    console.warn("[scriptz] convertIdeaToScript: script_id-Backref fehlgeschlagen", err);
+    console.warn("[scriptz] convertIdeaToScript: script_id backref failed", err);
   }
 
-  // Bump beider Busse: das neue Skript taucht in der Browser-Liste
-  // auf, die Idee verschwindet aus „Offen" und erscheint in „Verwendet".
+  // Bump both buses: the new script appears in the browser list,
+  // the idea disappears from "open" and appears in "used".
   scriptsBus.bump();
   foldersBus.bump();
   ideasBus.bump();
@@ -179,10 +179,10 @@ export async function convertIdeaToScript(input: {
   return { idea: updatedIdea, script };
 }
 
-/** Erzeugt einen Lexical-State, der das neue Skript mit einem leeren
- *  Charakter-Block (Standard) ODER mit einem Action-Block startet,
- *  wenn die Idee Notizen liefert. Mirror der Welcome-Seed-Struktur,
- *  damit bestehende Plugins (allcaps, smartEnter etc.) funktionieren. */
+/** Generates a Lexical state that starts the new script with an empty
+ *  character block (default) OR with an action block when the
+ *  idea provides notes. Mirrors the welcome seed structure
+ *  so existing plugins (allcaps, smartEnter etc.) work. */
 function buildScriptSeed(opts: { notes: string }): string {
   const trimmed = opts.notes.trim();
   if (!trimmed) {

@@ -11,10 +11,9 @@ export interface ActivityModalProps {
   onClose(): void;
 }
 
-/** Detail-Modal für die Schreibstatistik. Wird vom Momentum-Strip in
- *  der Browser-Übersicht aufgerufen ("Aktivität ansehen ↗"). Zeigt
- *  drei Aggregat-Karten (Diese Woche, Streak, Insgesamt) plus die volle
- *  365-Tage-Heatmap. */
+/** Detail modal for writing stats. Triggered from the momentum strip in
+ *  the browser overview ("View activity ↗"). Shows three aggregate cards
+ *  (This week, Streak, Total) plus the full 365-day heatmap. */
 export function ActivityModal(props: ActivityModalProps) {
   const stats = () => dailyStatsStore.stats();
   const goal = () => settingsStore.weeklyWordGoal();

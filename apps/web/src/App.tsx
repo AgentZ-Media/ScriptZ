@@ -38,22 +38,21 @@ import { t } from "@scriptz/core/i18n";
 
 import "@scriptz/core/components/Common/Common.css";
 
-// Web-Variante von apps/desktop/src/App.tsx. Identische Komponentennutzung,
-// aber ohne Tauri-spezifisches Close-Handling (kein onCloseRequested).
-// Phase F traegt den Save-Flush via beforeunload/pagehide nach,
-// Phase H legt den WebDisclaimerBanner oben drauf.
+// Web variant of apps/desktop/src/App.tsx. Identical component usage,
+// but without Tauri-specific close handling (no onCloseRequested).
+// Phase F adds the save-flush via beforeunload/pagehide,
+// Phase H layers the WebDisclaimerBanner on top.
 export default function App() {
   const [bootReady, setBootReady] = createSignal(false);
   const [cmdkOpen, setCmdkOpen] = createSignal(false);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
   const [newScriptFolder, setNewScriptFolder] = createSignal<string | null>(null);
-  // Schutz gegen Doppel-Klicks auf den "Neu"-Button direkt nach dem
-  // Schließen des Dialogs (per Backdrop-Click, ESC, oder erfolgreicher
-  // Erstellung). Solid rendert das Modal asynchron - ohne diesen Block
-  // konnte ein zweiter Klick den Dialog mit frischem leeren State
-  // wieder hochziehen, und ein noch wartender Submit hätte ein leeres
-  // "Unbenannt" als Phantom-Skript angelegt.
+  // Guard against double clicks on the "New" button right after the
+  // dialog is closed (via backdrop click, ESC, or successful creation).
+  // Solid renders the modal asynchronously - without this block a second
+  // click could re-open the dialog with a fresh empty state, and a still
+  // pending submit would create an empty "Untitled" as a phantom script.
   let lastNewScriptCloseAt = 0;
   const openNewScriptDialog = (folderId: string | null) => {
     if (newScriptOpen()) return;
@@ -123,23 +122,23 @@ export default function App() {
       const done = await api.getAppState(ONBOARDING_KEY);
       if (!done) setOnboardingOpen(true);
     } catch {
-      /* nicht blockend */
+      /* non-blocking */
     }
   });
 
-  // Save-Flush beim Tab-Schliessen / Reload. Pendant zum
-  // onCloseRequested-Hook der Desktop-App. `beforeunload` feuert vor dem
-  // Unload (alle Hauptbrowser), `pagehide` ist iOS-Safari's Variante.
-  // flushAll(timeout) drainet die pending Editor-Saves + Tab-State -
-  // synchron heisst hier "innerhalb der ~2 s, die der Browser uns gibt".
-  // 100% Garantie gibt es nicht (z.B. wenn der User SOFORT Force-Quit
-  // macht), aber der Normalfall ist abgedeckt.
+  // Save-flush on tab close / reload. Counterpart to the desktop app's
+  // onCloseRequested hook. `beforeunload` fires before the unload (all
+  // major browsers), `pagehide` is iOS Safari's variant.
+  // flushAll(timeout) drains pending editor saves + tab state -
+  // "synchronous" here means "within the ~2s the browser gives us".
+  // No 100% guarantee (e.g. if the user IMMEDIATELY force-quits), but
+  // the normal case is covered.
   onMount(() => {
     const handler = () => {
-      // Wir starten den Flush, aber blockieren NICHT auf das Promise -
-      // moderne Browser ignorieren preventDefault auf beforeunload eh.
-      // Die in saveFlush registrierten Flusher haben Sync-Fast-Paths,
-      // wo es geht; Editor.tsx flusht direkt in IndexedDB.
+      // We kick off the flush but do NOT block on the promise -
+      // modern browsers ignore preventDefault on beforeunload anyway.
+      // The flushers registered in saveFlush have sync fast paths
+      // where possible; Editor.tsx flushes directly to IndexedDB.
       void flushAll(2000);
     };
     window.addEventListener("beforeunload", handler);
@@ -150,7 +149,7 @@ export default function App() {
     });
   });
 
-  // Skript-Liste -> Tabs versoehnen, identisch zum Desktop.
+  // Reconcile script list -> tabs, identical to desktop.
   createEffect(() => {
     scriptsBus.version();
     void (async () => {
@@ -295,7 +294,7 @@ export default function App() {
 
   const onCreatedScript = () => closeNewScriptDialog();
 
-  // ---- View-Transition: Tab-Wechsel & Home <-> Editor ----
+  // ---- View transition: tab switch & Home <-> Editor ----
   let appMainRef: HTMLElement | undefined;
   let viewFrameRef: HTMLDivElement | undefined;
   type ViewRoute = "home" | "ideas" | "script";

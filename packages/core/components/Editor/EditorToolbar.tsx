@@ -12,11 +12,11 @@ interface BlockDef {
   hint: string;
 }
 
-// Primärs sind die drei Block-Typen, die ein Solo-Talking-Head- oder
-// 2-Personen-Sketch-Skript praktisch immer braucht. Der Rest (Paren.,
-// Kamera, Caption, SFX) lebt hinter einem "+/..."-Aufklappknopf, damit
-// die Toolbar für die Zielgruppe (TikTok / Reels) nicht überladen
-// wirkt - per Tab-Picker und ⌘4..7 sind sie weiter direkt erreichbar.
+// Primaries are the three block types a solo talking-head or
+// 2-person sketch script practically always needs. The rest (paren.,
+// camera, caption, SFX) lives behind a "+/..." expand button so
+// the toolbar doesn't feel overloaded for the target audience
+// (TikTok / Reels) - they remain directly accessible via tab picker and ⌘4..7.
 function primaryBlocks(): BlockDef[] {
   return [
     { id: "scriptz-action",    label: t("block.action"),    hint: K("Mod+1") },
@@ -42,33 +42,33 @@ const SECONDARY_IDS: BlockType[] = [
 ];
 
 export interface EditorToolbarProps {
-  /** Aktueller Skript-Titel — als kontrollierter Inline-Input angezeigt. */
+  /** Current script title — shown as a controlled inline input. */
   title: string;
-  /** Wird aufgerufen wenn der Titel committed werden soll (Blur / Enter). */
+  /** Called when the title should be committed (blur / Enter). */
   onTitleCommit(next: string): void;
 
-  /** Zurück zur Übersicht (aktiviert Home-Tab). */
+  /** Back to the overview (activates the home tab). */
   onBack(): void;
 
-  /** Lexical-Editor-Instanz für Block-Wechsel; null bevor Editor mounted. */
+  /** Lexical editor instance for block switching; null before the editor mounts. */
   editor: LexicalEditor | null;
-  /** Aktueller Block-Typ unter dem Cursor (treibt is-active-State der
-   *  Block-Pillen). null = Cursor in keinem Scriptz-Block. */
+  /** Current block type under the cursor (drives the is-active state of
+   *  the block pills). null = cursor not in any scriptz block. */
   activeBlock: string | null;
 
-  /** Quick-Mode: aktiv? verfügbar? togglen */
+  /** Quick mode: active? available? toggle */
   quickModeOn(): boolean;
   quickModeAvailable(): boolean;
   onToggleQuickMode(): void;
 
-  /** Charakter-Highlighting: aktuell an? togglen */
+  /** Character highlighting: currently on? toggle */
   highlightOn(): boolean;
   onToggleHighlight(): void;
 
-  /** Fokus-Modus togglen (⇧⌘F) */
+  /** Toggle focus mode (⇧⌘F) */
   onToggleFocus(): void;
 
-  /** Export-Dialog öffnen (⌘E) */
+  /** Open the export dialog (⌘E) */
   onOpenExport(): void;
 }
 

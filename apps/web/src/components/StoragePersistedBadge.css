@@ -1,11 +1,11 @@
-/* Persistenz-Verweigerungs-Badge. Floatet unten links, dezent aber
-   nicht dismissable - im Gegensatz zum WebDisclaimerBanner. Soll
-   wahrnehmbar sein, ohne die UI zu dominieren. */
+/* Persistence-denied badge. Floats in the bottom left, subtle but
+   not dismissable - unlike the WebDisclaimerBanner. Should be
+   noticeable without dominating the UI. */
 .storage-persist-badge {
   position: fixed;
   bottom: 12px;
   left: 12px;
-  z-index: 90; /* unter Toasts (200) + Modals (100), über Editor-Chrome */
+  z-index: 90; /* below toasts (200) + modals (100), above editor chrome */
   display: inline-flex;
   align-items: center;
   gap: 6px;

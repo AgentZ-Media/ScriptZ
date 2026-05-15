@@ -1,13 +1,13 @@
-// Welcome/Tutorial-Skript pro Sprache. Wird einmalig beim ersten App-Start
-// vom welcome-Seeder als Skript-Inhalt + Titel persistiert (siehe
-// lib/welcome.ts). Sprache wird zum Seed-Zeitpunkt anhand der aktuellen
-// i18n-Sprache gewählt - ein späterer Sprachwechsel übersetzt den
-// schon vorhandenen Tutorial-Skripttext nicht nachträglich, weil das
-// bereits eigener User-Content ist (er kann den Text editieren).
+// Welcome/tutorial script per language. Persisted as script content +
+// title by the welcome seeder on the first app start (see
+// lib/welcome.ts). Language is chosen at seed time based on the current
+// i18n language - a later language switch does not translate the
+// already-existing tutorial script text retroactively, because that's
+// already user content (the user can edit the text).
 //
-// Hotkeys laufen durch K() / formatHotkey() aus lib/keys, damit
-// Windows-/Linux-User "Ctrl+N" statt "Cmd+N" sehen - andernfalls würde
-// das Tutorial dort falsche Anweisungen geben.
+// Hotkeys run through K() / formatHotkey() from lib/keys, so
+// Windows / Linux users see "Ctrl+N" instead of "Cmd+N" - otherwise
+// the tutorial would give wrong instructions there.
 
 import { K } from "../lib/keys";
 import type { Language } from "./index";

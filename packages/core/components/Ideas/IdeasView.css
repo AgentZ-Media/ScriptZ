@@ -1,8 +1,8 @@
 /* =========================================================================
-   Ideen-Vollseite (Tab Glühbirne).
-   Greeting · Capture · Filter-Bar · Liste.
-   Layout-Maße spiegeln den Browser, damit Home und Ideen sich gleich
-   zuhause anfühlen.
+   Ideas full page (light-bulb tab).
+   Greeting · capture · filter bar · list.
+   Layout measurements mirror the browser, so home and ideas feel
+   equally at home.
    ========================================================================= */
 
 .ideas-view {
@@ -297,7 +297,7 @@
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  /* zwei Zeilen reichen — Klick öffnet Edit für vollen Text */
+  /* two lines are enough — click opens edit for the full text */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

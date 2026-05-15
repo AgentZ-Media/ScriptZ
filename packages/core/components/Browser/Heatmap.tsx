@@ -3,24 +3,24 @@ import { t, tPlural, getCurrentLocale, language } from "../../i18n";
 import "./Heatmap.css";
 
 export interface HeatmapProps {
-  /** 365 Werte, älterster zuerst, heute zuletzt. Fehlende Tage = 0. */
+  /** 365 values, oldest first, today last. Missing days = 0. */
   dailyWords: number[];
 }
 
-/** GitHub-Style Activity-Heatmap, sepia-Rampe auf Papier. 53 Spalten
- *  à 7 Tage, älteste Spalte links, „heute" rechts unten. Tooltip pro
- *  Zelle zeigt das Datum + die Wortzahl. */
+/** GitHub-style activity heatmap, sepia ramp on paper. 53 columns
+ *  of 7 days each, oldest column on the left, "today" at the bottom right.
+ *  Tooltip per cell shows the date + word count. */
 export function Heatmap(props: HeatmapProps) {
-  // language() lesen, damit Sprach-Wechsel die Wochentag-/Monat-Labels
-  // sofort neu rendert (Memo trackt das Signal).
+  // Read language() so language switches re-render weekday / month labels
+  // immediately (memo tracks the signal).
   const grid = createMemo(() => buildGrid(props.dailyWords));
   const monthLabels = createMemo(() => {
     void language();
     return buildMonthLabels(grid());
   });
-  // Wochentag-Labels: nur jede zweite Spalte ist sichtbar (Mo/Mi/Fr/So),
-  // aria-Variante listet alle sieben für Screen-Reader, damit die Grid-
-  // Struktur lesbar bleibt.
+  // Weekday labels: only every other column is visible (Mon/Wed/Fri/Sun);
+  // the aria variant lists all seven for screen readers, so the grid
+  // structure stays readable.
   const dayLabelsVisible = createMemo(() => {
     void language();
     return [
@@ -108,15 +108,15 @@ function bucket(w: number): 0 | 1 | 2 | 3 | 4 {
   return 4;
 }
 
-/** Baut ein 53×7-Grid: erste Spalte enthält den ältesten Sonntag/Montag-
- *  beginnenden Wochenblock, letzte Spalte endet auf „heute". Fehlende
- *  Vor- und Nachpadding-Slots werden mit `null` aufgefüllt. */
+/** Builds a 53×7 grid: the first column contains the oldest Sunday/
+ *  Monday-starting week block; the last column ends on "today". Missing
+ *  leading and trailing padding slots are filled with `null`. */
 function buildGrid(daily: number[]): (Cell | null)[][] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = daily.length;
 
-  // Mo = 0, Di = 1, ... So = 6 (deutsche Konvention).
+  // Mon = 0, Tue = 1, ... Sun = 6 (German convention).
   const todayDow = (today.getDay() + 6) % 7;
 
   const padStart = (7 - ((days + (6 - todayDow)) % 7)) % 7;
@@ -143,11 +143,11 @@ function buildGrid(daily: number[]): (Cell | null)[][] {
 }
 
 function buildMonthLabels(weeks: (Cell | null)[][]): string[] {
-  // Pro Wochenspalte ein Label - aber nur einmal pro Monat. Wenn die
-  // Woche den 1. eines Monats enthält (auch mitten in der Woche, also
-  // wenn ein Monat z. B. an einem Donnerstag startet), nehmen wir
-  // diesen Monat - sonst zieht sich das Label um eine Spalte nach
-  // hinten und der echte Monatsanfang wäre unbeschriftet.
+  // One label per week column - but only once per month. If the
+  // week contains the 1st of a month (even mid-week, i.e.
+  // when a month starts e.g. on a Thursday), we take
+  // that month - otherwise the label drifts one column to the
+  // right and the real start of the month would be unlabeled.
   let lastMonth = -1;
   return weeks.map((week) => {
     const firstReal = week.find((c): c is Cell => c !== null);

@@ -8,11 +8,11 @@ import { t } from "../../i18n";
 import "./CommandBar.css";
 
 /**
- * FTS5 zentriert das Match in seinem Token-Fenster. Bei nowrap-Layout
- * fällt der hintere Teil — und damit oft das `<mark>` selbst — in die
- * Ellipsis. Wir kürzen den Text vor dem ersten `<mark>` auf ein
- * einzelnes Wort, damit der Treffer garantiert sichtbar am Anfang
- * steht; alles dahinter bleibt erhalten und wird ggf. rechts gekappt.
+ * FTS5 centers the match in its token window. With nowrap layout
+ * the trailing part — and often the `<mark>` itself — falls into the
+ * ellipsis. We shorten the text before the first `<mark>` to a
+ * single word so the hit is guaranteed to be visible at the start;
+ * everything after it is kept and may be clipped on the right.
  */
 function trimBeforeMark(s: string): string {
   const idx = s.indexOf("<mark>");

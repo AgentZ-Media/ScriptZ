@@ -1,29 +1,29 @@
 /**
- * Helfer rund um die Blog-Content-Collection.
+ * Helpers around the blog content collection.
  *
- * Astros `glob`-Loader liefert Entry-IDs der Form `<slug>/de` bzw.
- * `<slug>/en`. Hier liegen die Funktionen, die diese IDs in (slug,
- * lang) zerlegen, Posts pro Sprache holen und das Schwestern-Paar
- * (DE↔EN) fuer hreflang-Verlinkung finden.
+ * Astro's `glob` loader delivers entry IDs of the form `<slug>/de`
+ * and `<slug>/en`. The functions here split those IDs into (slug,
+ * lang), fetch posts per language, and find the sister pair
+ * (DE↔EN) for hreflang linking.
  */
 import { getCollection, type CollectionEntry } from "astro:content";
 import type { Lang } from "../i18n";
 
 export type BlogEntry = CollectionEntry<"blog">;
 
-/** Zerlegt eine Entry-ID `<slug>/<lang>` in ihre Bestandteile. */
+/** Splits an entry ID `<slug>/<lang>` into its parts. */
 export function parseEntryId(id: string): { slug: string; lang: Lang } | null {
   const m = id.match(/^(.+)\/(de|en)$/);
   if (!m) return null;
   return { slug: m[1], lang: m[2] as Lang };
 }
 
-/** Datum als ISO-String fuer JSON-LD / RSS / `<time datetime=...>`. */
+/** Date as ISO string for JSON-LD / RSS / `<time datetime=...>`. */
 export function isoDate(d: Date): string {
   return d.toISOString();
 }
 
-/** Lokalisierte Datums-Anzeige. DE: 13. Mai 2026, EN: May 13, 2026. */
+/** Localized date display. DE: 13. Mai 2026, EN: May 13, 2026. */
 export function formatDate(d: Date, lang: Lang): string {
   const locale = lang === "en" ? "en-US" : "de-DE";
   return d.toLocaleDateString(locale, {
@@ -33,10 +33,10 @@ export function formatDate(d: Date, lang: Lang): string {
   });
 }
 
-/** Reading-Time aus Body-Text. 200 WPM ist konservativ. Floor bei 1. */
+/** Reading time from body text. 200 WPM is conservative. Floor at 1. */
 export function readingTimeMinutes(body: string | undefined): number {
   if (!body) return 1;
-  // grobe Wortzaehlung: HTML/Markdown-Markup grob entfernen.
+  // rough word count: strip HTML/Markdown markup loosely.
   const stripped = body
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`[^`]*`/g, " ")
@@ -47,8 +47,8 @@ export function readingTimeMinutes(body: string | undefined): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-/** Alle Posts in einer Sprache, sortiert nach Datum (neueste zuerst).
- *  Drafts werden ausserhalb von `dev` weggefiltert. */
+/** All posts in a language, sorted by date (newest first).
+ *  Drafts are filtered out outside of `dev`. */
 export async function getPosts(lang: Lang): Promise<BlogEntry[]> {
   const all = await getCollection("blog");
   const filtered = all.filter((entry) => {
@@ -56,8 +56,8 @@ export async function getPosts(lang: Lang): Promise<BlogEntry[]> {
     if (!parsed) return false;
     if (parsed.lang !== lang) return false;
     if (entry.data.draft && !import.meta.env.DEV) return false;
-    // Underscore-Praefix = interne Beitraege (z.B. `_example/`). Erscheinen
-    // weder in Listen noch unter ihrer Slug-URL.
+    // Underscore prefix = internal posts (e.g. `_example/`). They appear
+    // neither in lists nor under their slug URL.
     if (parsed.slug.startsWith("_")) return false;
     return true;
   });
@@ -66,7 +66,7 @@ export async function getPosts(lang: Lang): Promise<BlogEntry[]> {
   );
 }
 
-/** Ein einzelner Post per Slug + Sprache. */
+/** A single post by slug + language. */
 export async function getPost(
   slug: string,
   lang: Lang,
@@ -78,7 +78,7 @@ export async function getPost(
   });
 }
 
-/** Existiert eine Uebersetzung dieses Posts in der anderen Sprache? */
+/** Does a translation of this post exist in the other language? */
 export async function hasTranslation(
   slug: string,
   otherLang: Lang,
@@ -87,12 +87,12 @@ export async function hasTranslation(
   return !!sister && !(sister.data.draft && !import.meta.env.DEV);
 }
 
-/** URL-Pfad fuer einen Post (sprachabhaengig). */
+/** URL path for a post (language-dependent). */
 export function postPath(slug: string, lang: Lang): string {
   return lang === "de" ? `/blog/${slug}` : `/en/blog/${slug}`;
 }
 
-/** URL-Pfad fuer die Blog-Uebersicht. */
+/** URL path for the blog index. */
 export function blogIndexPath(lang: Lang): string {
   return lang === "de" ? "/blog" : "/en/blog";
 }

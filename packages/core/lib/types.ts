@@ -3,11 +3,11 @@
 export interface ScriptCharacter {
   name: string;
   color: string;
-  /** Anteil der Dialog-Wörter dieses Charakters am Skript, 0..1.
-   *  Wird beim Save in `scripts.ts` über `dialogWordsByCharacter`
-   *  (in `lib/lex.ts`) befüllt. Optional, weil ältere Datenbank-
-   *  Einträge das Feld vor dem Upgrade noch nicht hatten - beim
-   *  nächsten Save wird es nachgezogen. */
+  /** Share of this character's dialog words in the script, 0..1.
+   *  Filled in during save in `scripts.ts` via `dialogWordsByCharacter`
+   *  (in `lib/lex.ts`). Optional, because older database
+   *  entries didn't have the field before the upgrade - it's
+   *  backfilled on the next save. */
   share?: number;
 }
 
@@ -26,15 +26,15 @@ export interface ScriptSummary {
   updated_at: number;
   archived_at: number | null;
   page_count: number;
-  /** Letzte berechnete Wortanzahl. -1 = Sentinel "noch nie gezählt"
-   *  (frisch angelegtes oder vor dem word-count-Backfill migriertes
-   *  Skript). Konsumenten sollten Negativwerte als 0 behandeln. */
+  /** Last calculated word count. -1 = sentinel "never counted"
+   *  (newly created or migrated before the word-count backfill).
+   *  Consumers should treat negative values as 0. */
   word_count: number;
-  /** Dialog-Wörter beim letzten Save - Eingang für die Spielzeit-Formel
-   *  in `lib/runtime.ts`. -1 = Sentinel "noch nie gemessen". */
+  /** Dialog words at the last save - input for the runtime formula
+   *  in `lib/runtime.ts`. -1 = sentinel "never measured". */
   dialog_word_count: number;
-  /** Anzahl Action-/Camera-Blöcke beim letzten Save - jeder Block
-   *  trägt einen 2s-Beat zur Spielzeit bei. -1 = Sentinel. */
+  /** Number of action/camera blocks at the last save - each block
+   *  contributes a 2s beat to the runtime. -1 = sentinel. */
   direction_block_count: number;
   characters: ScriptCharacter[];
   folder_id: string | null;
@@ -84,8 +84,8 @@ export type BlockType =
   | "scriptz-caption"
   | "scriptz-sfx";
 
-/** Eine Schreib-Idee aus dem Ideen-Drawer. `usedAt` markiert die
- *  Konvertierung in ein echtes Skript. */
+/** A writing idea from the ideas drawer. `usedAt` marks the
+ *  conversion into a real script. */
 export interface Idea {
   id: string;
   title: string;
@@ -95,25 +95,25 @@ export interface Idea {
   script_id: string | null;
 }
 
-/** Ein Eintrag im täglichen Wortprotokoll. `date` ist im lokalen
- *  YYYY-MM-DD-Format (kein Zeitzonen-Drift). */
+/** An entry in the daily word log. `date` is in local
+ *  YYYY-MM-DD format (no timezone drift). */
 export interface DailyWordEntry {
   date: string;
   words_added: number;
 }
 
-/** Aggregierte Schreibstatistik fürs Home-Strip + Activity-Modal. */
+/** Aggregated writing statistics for the home strip + activity modal. */
 export interface DailyStatsSummary {
-  /** Wörter, die heute (lokale Mitternacht bis jetzt) addiert wurden. */
+  /** Words added today (local midnight until now). */
   wordsToday: number;
-  /** Wörter seit Montag der laufenden ISO-Woche (Mo 00:00 bis jetzt). */
+  /** Words since Monday of the current ISO week (Mon 00:00 until now). */
   wordsThisWeek: number;
-  /** Anzahl aufeinanderfolgender Schreibtage, endet heute oder gestern. */
+  /** Number of consecutive writing days, ending today or yesterday. */
   streakDays: number;
-  /** 365-Tage-Verlauf, älterster zuerst, heute zuletzt. */
+  /** 365-day history, oldest first, today last. */
   dailyWords: number[];
-  /** Anzahl Tage in den letzten 365 mit > 0 geschriebenen Wörtern. */
+  /** Number of days in the last 365 with > 0 words written. */
   activeDays: number;
-  /** Summe Wörter im 365-Tage-Fenster. */
+  /** Sum of words in the 365-day window. */
   totalWords: number;
 }

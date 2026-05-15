@@ -1,27 +1,27 @@
-// Tägliche Wortprotokollierung - Speist Streak, Heatmap und Tagesziel.
+// Daily word logging - feeds streak, heatmap and daily goal.
 //
-// Drei Verbraucher:
-//   1. Status-Strip in der Titlebar (Wörter heute, Streak)
-//   2. Momentum-Strip in der Browser-Übersicht (Tagesziel-Fortschritt)
-//   3. Activity-Modal mit 365-Tage-Heatmap (GitHub-Style, sepia-Rampe)
+// Three consumers:
+//   1. Status strip in the titlebar (words today, streak)
+//   2. Momentum strip in the browser overview (daily goal progress)
+//   3. Activity modal with 365-day heatmap (GitHub style, sepia ramp)
 //
-// Schreibpfad: lib/scripts.ts ruft auf jedem Save `recordWordDelta(delta)`,
-// nachdem der Diff aus dem letzten gespeicherten Wortcount berechnet
-// wurde. Der Helper hier kümmert sich um das Datums-Bucket. Negative
-// Deltas (Löschungen) werden ignoriert - heute gilt als „heute neu
-// geschrieben", nicht als „Netto-Veränderung".
+// Write path: lib/scripts.ts calls `recordWordDelta(delta)` on every save,
+// after the diff against the last saved word count has been calculated.
+// The helper here handles the date bucket. Negative
+// deltas (deletions) are ignored - today counts as "newly written
+// today", not as "net change".
 //
-// Lesepfad: `loadStats()` holt die letzten 365 Tage in einem SELECT
-// und baut darauf Streak + Aggregat-Stats. Der Solid-Store
-// stores/dailyStats.ts cached das Ergebnis und invalidiert über den
-// dailyStatsBus, sobald ein Save Wörter eingetragen hat.
+// Read path: `loadStats()` fetches the last 365 days in one SELECT
+// and builds streak + aggregate stats on top. The Solid store
+// stores/dailyStats.ts caches the result and invalidates via the
+// dailyStatsBus as soon as a save has recorded words.
 
 import { extractBlocks } from "./lex";
 import { getDb } from "./db";
 import type { DailyStatsSummary, DailyWordEntry } from "./types";
 import { dailyStatsBus } from "./dailyStatsBus";
 
-/** ISO-ähnliches lokales Datum YYYY-MM-DD ohne UTC-Drift. */
+/** ISO-like local date YYYY-MM-DD without UTC drift. */
 export function localDateKey(d: Date = new Date()): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -29,9 +29,9 @@ export function localDateKey(d: Date = new Date()): string {
   return `${y}-${m}-${dd}`;
 }
 
-/** Wortanzahl eines Lexical-Skripts. Mirror der v3-Logik:
- *  Splitting an Whitespace, leere Tokens werden verworfen.
- *  Block-Typ ist egal - jeder Text-Block zählt. */
+/** Word count of a Lexical script. Mirrors the v3 logic:
+ *  splitting on whitespace, empty tokens are dropped.
+ *  Block type is irrelevant - every text block counts. */
 export function countWordsInContent(contentJson: string): number {
   const blocks = extractBlocks(contentJson);
   let total = 0;
@@ -43,10 +43,10 @@ export function countWordsInContent(contentJson: string): number {
   return total;
 }
 
-/** Trägt einen positiven Wortdelta ins heutige Bucket ein. Aufrufer
- *  müssen den Delta vorher gegen den letzten gespeicherten Wortcount
- *  bilden und negative Werte clampen. Nach erfolgreichem Schreiben
- *  bumpt der dailyStatsBus, damit Komponenten neu lesen. */
+/** Records a positive word delta into today's bucket. Callers
+ *  must compute the delta against the last saved word count and
+ *  clamp negative values. After a successful write the
+ *  dailyStatsBus bumps so components re-read. */
 export async function recordWordDelta(delta: number): Promise<void> {
   if (delta <= 0) return;
   const date = localDateKey();
@@ -60,8 +60,8 @@ export async function recordWordDelta(delta: number): Promise<void> {
   dailyStatsBus.bump();
 }
 
-/** Gibt die letzten N Tage zurück (älterster zuerst, heute zuletzt) als
- *  durchgehendes Array - fehlende Tage in der DB werden als 0 ergänzt. */
+/** Returns the last N days (oldest first, today last) as a
+ *  contiguous array - missing days in the DB are filled with 0. */
 export async function loadDailyWords(days = 365): Promise<DailyWordEntry[]> {
   const today = new Date();
   const start = new Date(today);
@@ -85,34 +85,34 @@ export async function loadDailyWords(days = 365): Promise<DailyWordEntry[]> {
 }
 
 function streakFromSeries(words: number[]): number {
-  // Konvention: Streak endet heute oder spätestens gestern. Heute mit 0
-  // Wörtern bricht den Streak NICHT - der Tag läuft noch. Erst sobald
-  // gestern auch 0 war, gilt der Streak als unterbrochen.
+  // Convention: streak ends today or at the latest yesterday. Today with 0
+  // words does NOT break the streak - the day is still in progress. Only once
+  // yesterday was also 0 is the streak considered broken.
   if (words.length === 0) return 0;
   const last = words.length - 1;
   let streak = 0;
-  // Falls heute leer ist, beginnen wir bei gestern.
+  // If today is empty, start at yesterday.
   let i = words[last] === 0 ? last - 1 : last;
   while (i >= 0 && words[i] > 0) {
     streak++;
     i--;
   }
-  // Heute (mit Wörtern) noch dazu addieren, sofern es schon zählt.
+  // Add today (with words) as well, if it already counts.
   if (words[last] > 0) {
-    // Wir sind oben bereits beim letzten Element gestartet, also
-    // bereits eingerechnet.
+    // We already started at the last element above, so
+    // it's already counted.
   }
   return streak;
 }
 
-/** Anzahl der Tage zwischen dem letzten Montag (inkl.) und heute (inkl.).
- *  Montag = 1. Sonntag = 7 (Wochenende zählt zur abgelaufenen Woche).
- *  Konvention deckt sich mit DE-Kalenderwoche (ISO-8601). */
+/** Number of days between the last Monday (incl.) and today (incl.).
+ *  Monday = 1. Sunday = 7 (weekend counts toward the elapsed week).
+ *  Convention matches ISO-8601 calendar week. */
 function daysSinceMondayInclusive(d: Date = new Date()): number {
-  // JavaScript: 0 = Sonntag, 1 = Montag, ..., 6 = Samstag.
-  // ISO: 1 = Montag, ..., 7 = Sonntag. Mapping: 0 → 7, sonst unverändert.
+  // JavaScript: 0 = Sunday, 1 = Monday, ..., 6 = Saturday.
+  // ISO: 1 = Monday, ..., 7 = Sunday. Mapping: 0 → 7, otherwise unchanged.
   const iso = d.getDay() === 0 ? 7 : d.getDay();
-  return iso; // Mo = 1 Tag (heute), So = 7 Tage (Mo..So)
+  return iso; // Mon = 1 day (today), Sun = 7 days (Mon..Sun)
 }
 
 export async function loadStats(): Promise<DailyStatsSummary> {

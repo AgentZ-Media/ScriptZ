@@ -2,15 +2,14 @@ import { Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { t } from "@scriptz/core/i18n";
 import "./DesktopOnlyGate.css";
 
-// 900 px ist die niedrigste Schwelle, ab der das Home-Layout (Greeting +
-// MomentumStrip + Folder-Chips + Sortbar) noch sauber nebeneinander
-// passt. Niedriger -> Sortbar wickelt um und sieht broken aus. Damit
-// erwischen wir:
-//  - iPad landscape (1024+) -> drin
-//  - iPad Pro 12.9" portrait (1024) -> drin
-//  - iPad 11"/10.9" landscape (1180/1194) -> drin
-//  - iPad mini portrait (744-768) -> Gate
-//  - Phones (375-430) -> Gate
+// 900px is the lowest threshold where the home layout (greeting +
+// MomentumStrip + folder chips + sortbar) still fits cleanly side by
+// side. Lower -> sortbar wraps and looks broken. With this we catch:
+//  - iPad landscape (1024+) -> in
+//  - iPad Pro 12.9" portrait (1024) -> in
+//  - iPad 11"/10.9" landscape (1180/1194) -> in
+//  - iPad mini portrait (744-768) -> gated
+//  - Phones (375-430) -> gated
 const MIN_DESKTOP_WIDTH = 900;
 
 function initialIsDesktop(): boolean {
@@ -35,9 +34,9 @@ export function DesktopOnlyGate(props: { children: JSX.Element }): JSX.Element {
   );
 }
 
-// Splittet einen Übersetzungstext am `{url}`-Platzhalter und rendert die
-// URL als <strong> zwischen den Textteilen - ohne den Übersetzungs-String
-// an HTML zu binden.
+// Splits a translation string at the `{url}` placeholder and renders
+// the URL as <strong> between the text parts - without binding the
+// translation string to HTML.
 function withUrl(template: string, url: string): JSX.Element {
   const parts = template.split("{url}");
   return (

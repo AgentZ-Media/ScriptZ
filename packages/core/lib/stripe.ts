@@ -1,35 +1,35 @@
-// Geteilte Streifen-Logik für die Cast-Akzentstreifen im File-Browser
-// (`ScriptRow`, `ScriptCard`) und im `MomentumStrip` „Weiterschreiben"-CTA.
-// Eine Quelle, damit alle Stellen identisch aussehen.
+// Shared stripe logic for the cast accent stripes in the file browser
+// (`ScriptRow`, `ScriptCard`) and in the `MomentumStrip` "Continue writing" CTA.
+// One source so all spots look identical.
 //
-// Eingabe ist die `characters`-Liste eines `ScriptSummary` - also der
-// per-Skript-Charakter-Cache aus `characters_meta`, der das Feld
-// `share` (Dialog-Anteil 0..1) seit der Save-Reconcile-Logik in
-// `scripts.ts` mitführt.
+// Input is the `characters` list of a `ScriptSummary` - i.e. the
+// per-script character cache from `characters_meta`, which carries
+// the `share` field (dialog share 0..1) since the save reconcile logic
+// in `scripts.ts`.
 
 import type { ScriptCharacter } from "./types";
 
 export interface StripeSegment {
   color: string;
-  /** Anteil in Prozent (0..100), nach Mindest-Sichtbarkeit umverteilt. */
+  /** Share in percent (0..100), redistributed after minimum visibility. */
   pct: number;
 }
 
-/** Baut die Segmente für den Akzent-Streifen aus den Charakteren des
- *  Skripts. Sortiert absteigend nach Dialog-Anteil; Charaktere ohne
- *  Dialog (`share === 0`) fliegen raus. Gibt `null` zurück, wenn das
- *  Skript keinen Cast hat (Aufrufer rendert dann den dezenten
- *  „leer"-Streifen).
+/** Builds the segments for the accent stripe from the characters of
+ *  the script. Sorted descending by dialog share; characters without
+ *  dialog (`share === 0`) are filtered out. Returns `null` if the
+ *  script has no cast (caller then renders the discreet
+ *  "empty" stripe).
  *
- *  Mindest-Anteil pro sichtbarem Segment ist 8%, sonst verschwinden
- *  kleine Sprecher in einer Pixel-Zeile. Über-Hänge werden den
- *  größeren Segmenten proportional abgezogen, sodass die Summe exakt
- *  100 bleibt.
+ *  Minimum share per visible segment is 8%, otherwise small speakers
+ *  disappear in a one-pixel row. Overhang is taken proportionally from
+ *  larger segments so the sum stays exactly
+ *  100.
  *
- *  Backwards-Compat: hat KEIN Charakter `share` gesetzt (alte DB-
- *  Einträge von vor dem Share-Upgrade), zeigen wir den ersten
- *  Charakter solid an. Sobald das Skript einmal gespeichert wird,
- *  füllt `reconcileCharsFromContent` `share` und der Streifen wird
+ *  Backwards-compat: if NO character has `share` set (old DB
+ *  entries from before the share upgrade), we show the first
+ *  character solid. Once the script is saved,
+ *  `reconcileCharsFromContent` fills `share` and the stripe becomes
  *  proportional. */
 export function buildStripeSegments(
   chars: ScriptCharacter[],
@@ -69,10 +69,10 @@ export function buildStripeSegments(
   return withShare.map((c, i) => ({ color: c.color, pct: raw[i] }));
 }
 
-/** Setzt eine `linear-gradient`-Stop-Liste mit harten Übergängen
- *  zusammen. Jede Farbe bekommt zwei Stops am gleichen Prozent-Punkt,
- *  also kein Blend. Den Vorspann (`to bottom`/`to right`) setzt der
- *  Aufrufer im CSS-String. */
+/** Assembles a `linear-gradient` stop list with hard transitions.
+ *  Each color gets two stops at the same percent point,
+ *  i.e. no blend. The prefix (`to bottom`/`to right`) is set by the
+ *  caller in the CSS string. */
 export function stripeGradientStops(segments: StripeSegment[]): string {
   const stops: string[] = [];
   let acc = 0;
@@ -84,9 +84,9 @@ export function stripeGradientStops(segments: StripeSegment[]): string {
   return stops.join(", ");
 }
 
-/** Convenience: baut den fertigen `linear-gradient(...)`-Wert für ein
- *  `style="background: …"`. Liefert `null` wenn kein Cast da ist -
- *  Aufrufer kann dann den Empty-State rendern. */
+/** Convenience: builds the finished `linear-gradient(...)` value for a
+ *  `style="background: …"`. Returns `null` when no cast is there -
+ *  the caller can then render the empty state. */
 export function stripeBackground(
   chars: ScriptCharacter[],
   direction: "to bottom" | "to right",

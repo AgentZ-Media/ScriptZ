@@ -1,13 +1,13 @@
-// Kanonischer Katalog. Deutsch ist die Referenz-Sprache - en.ts wird gegen
-// `keyof typeof de` typgeprueft, sodass TypeScript bei fehlenden oder
-// ueberzaehligen Keys laut wird.
+// Canonical catalog. German is the reference language - en.ts is
+// type-checked against `keyof typeof de`, so TypeScript complains
+// about missing or extra keys.
 //
-// Konventionen:
-//  - Flache Punkt-Namespaces ("browser.empty.title") statt verschachtelter
-//    Objekte. Macht TypeScript-Inferenz fuer t() trivial und das Suchen
-//    nach einer Stelle im Code einfach.
-//  - Platzhalter mit `{name}` (z.B. "Verschoben nach „{folder}"").
-//  - Pluralregeln per `_one`/`_other`-Suffix via Intl.PluralRules.
+// Conventions:
+//  - Flat dot namespaces ("browser.empty.title") instead of nested
+//    objects. Makes TypeScript inference for t() trivial and searching
+//    for a spot in the code easy.
+//  - Placeholders with `{name}` (e.g. "Moved to „{folder}"").
+//  - Plural rules via `_one`/`_other` suffix using Intl.PluralRules.
 
 export const de = {
   // ---------- common ----------
@@ -43,7 +43,7 @@ export const de = {
   "theme.darkSub": "Dunkles Grau - Papier bleibt hell.",
   "theme.autoSub": "Folgt deinem System-Theme.",
 
-  // ---------- units (mit Pluralen) ----------
+  // ---------- units (with plurals) ----------
   "units.scripts_one": "{count} Skript",
   "units.scripts_other": "{count} Skripte",
   "units.pages_one": "1 Seite",
@@ -87,7 +87,7 @@ export const de = {
   "month.short.10": "Nov",
   "month.short.11": "Dez",
 
-  // ---------- buckets in der Skript-Liste ----------
+  // ---------- buckets in the script list ----------
   "bucket.today": "Heute",
   "bucket.yesterday": "Gestern",
   "bucket.thisWeek": "Diese Woche",

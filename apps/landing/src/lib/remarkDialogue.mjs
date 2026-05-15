@@ -1,39 +1,39 @@
 /**
- * remarkDialogue - verwandelt Skript-Dialog-Blockquotes in semantische
- * HTML-Blocks, die der **gleichen** Skript-Optik folgen wie die
- * Landing-Sections (siehe WarumSection.astro + landing.css):
+ * remarkDialogue - turns script-dialog blockquotes into semantic
+ * HTML blocks that follow the **same** script look as the landing
+ * sections (see WarumSection.astro + landing.css):
  *
- *   .v2-block.v2-character     Name zentriert, uppercase, bold,
- *                              mit per-Zeile-Hintergrund pro Sprecher.
- *   .v2-block.v2-parenthetical 22% eingerueckt, kursiv, gedaempft.
- *   .v2-block.v2-dialog        16% eingerueckt, normal links, mit
- *                              gleichem Sprecher-Tint wie der Name.
+ *   .v2-block.v2-character     Name centered, uppercase, bold, with
+ *                              per-line background per speaker.
+ *   .v2-block.v2-parenthetical 22% indent, italic, muted.
+ *   .v2-block.v2-dialog        16% indent, normal left, with the
+ *                              same speaker tint as the name.
  *
- * Syntax (rein Markdown, keine MDX-Pflicht):
+ * Syntax (pure markdown, no MDX required):
  *
- *   > **TIMO:** Das hier ist Dialog.
- *   > *(zögernd)*
- *   > Und das hier ist die Fortsetzung.
+ *   > **TIMO:** This here is dialog.
+ *   > *(hesitating)*
+ *   > And this here is the continuation.
  *
- * Erkennt:
- *   - Charakter-Praefix als **fetter Name** + Doppelpunkt am Anfang
- *     der ersten Paragraphenzeile.
- *   - Inline-Parenthetical direkt nach dem Namen
- *     (`> **AXEL:** *(skeptisch)* Text...`).
- *   - Folgezeilen, die mit `(…)` *kursiv* anfangen → Parenthetical.
- *   - Reine `> Text`-Blockquotes ohne Charakter-Praefix bleiben
- *     unangetastet (rendern als editorial Zitat im Stylesheet).
+ * Recognizes:
+ *   - Character prefix as **bold name** + colon at the start of the
+ *     first paragraph line.
+ *   - Inline parenthetical right after the name
+ *     (`> **AXEL:** *(skeptical)* Text...`).
+ *   - Follow-up lines starting with `(…)` *italic* → parenthetical.
+ *   - Plain `> Text` blockquotes without a character prefix stay
+ *     untouched (render as editorial citation per the stylesheet).
  *
- * Tint pro Sprecher: Hash-zu-Hue, deterministisch. Wird per
- * `style="--bp-char-tint: hsl(...)"` ans Block-Element gehaengt - der
- * `.v2-t`-Span im Block nimmt das als Hintergrund auf. Spiegelt die
- * App-Logik (packages/core/lib/characterColors.ts), so dass derselbe
- * Charaktername hier wie dort dieselbe Farbe trifft.
+ * Tint per speaker: hash-to-hue, deterministic. Attached to the
+ * block element via `style="--bp-char-tint: hsl(...)"` - the
+ * `.v2-t` span in the block uses it as background. Mirrors the
+ * app logic (packages/core/lib/characterColors.ts) so the same
+ * character name hits the same color here as there.
  */
 
 import { visit } from "unist-util-visit";
 
-/** Stabiler 32-bit-Hash, deterministisch, klein gehalten. */
+/** Stable 32-bit hash, deterministic, kept small. */
 function hashString(s) {
   let h = 5381;
   for (let i = 0; i < s.length; i += 1) {
@@ -43,16 +43,15 @@ function hashString(s) {
 }
 
 /**
- * Liefert den Tint fuer einen Charakter-Namen.
+ * Returns the tint for a character name.
  *
- * Bekannte Brand-Charaktere (TIMO/AXEL) bekommen die hardcoded
- * Landing-Tints zurueck - so passt der Blog optisch 1:1 zur Startseite,
- * wenn dieselben Namen im Skript auftauchen.
+ * Known brand characters (TIMO/AXEL) get the hardcoded landing
+ * tints back - so the blog matches the home page visually 1:1
+ * when the same names appear in the script.
  *
- * Fuer alle anderen Namen wird ein Hue per Hash bestimmt, dann ueber
- * den goldenen Winkel rotiert. Dadurch landen Namen, deren Hashes
- * eng beieinander liegen, optisch weit auseinander - die Charaktere
- * sind so gut unterscheidbar.
+ * For all other names a hue is determined by hash, then rotated
+ * over the golden angle. This way names whose hashes are close
+ * end up visually far apart - characters are easy to distinguish.
  */
 const KNOWN_TINTS = {
   TIMO: "rgb(247, 222, 197)",
@@ -68,9 +67,9 @@ function tintForCharacter(name) {
   return `hsl(${hue} 75% 87%)`;
 }
 
-/** Holt alle Text-Kinder rekursiv als String. Wird nur fuer das
- *  Erkennen des `NAME:`-Praefix benoetigt - der eigentliche Body wird
- *  als HAST/HTML weitergegeben, damit Inline-Formate erhalten bleiben. */
+/** Collects all text children recursively as a string. Only needed
+ *  to detect the `NAME:` prefix - the actual body is passed on as
+ *  HAST/HTML so inline formats are preserved. */
 function flattenText(nodes) {
   let out = "";
   for (const node of nodes) {
@@ -85,8 +84,8 @@ function flattenText(nodes) {
   return out;
 }
 
-/** Serialisiert eine Liste von mdast-Children zu Inline-HTML. Bewusst
- *  klein - deckt nur, was im Dialog ueblich vorkommt (Text, em, strong,
+/** Serializes a list of mdast children to inline HTML. Deliberately
+ *  small - only covers what's usual in dialog (text, em, strong,
  *  inlineCode, link, break). */
 function inlineToHtml(nodes) {
   let out = "";
@@ -131,16 +130,16 @@ function escapeHtml(s) {
     .replace(/'/g, "&#39;");
 }
 
-/** Trennt den fuehrenden `**NAME:**` (mdast-Strong + Text) von der
- *  ersten Paragraph-Children-Liste. Gibt `{ name, restChildren }` oder
- *  `null` zurueck. */
+/** Splits the leading `**NAME:**` (mdast-strong + text) from the
+ *  first paragraph's children list. Returns `{ name, restChildren }`
+ *  or `null`. */
 function splitCharacterPrefix(children) {
   if (!children || children.length === 0) return null;
   const first = children[0];
   if (!first || first.type !== "strong") return null;
 
   const strongText = flattenText(first.children || []).trim();
-  // Erlaubt `**NAME**:` (Doppelpunkt ausserhalb) und `**NAME:**` (drin).
+  // Allows `**NAME**:` (colon outside) and `**NAME:**` (inside).
   let name = null;
   let consumedColon = false;
 
@@ -149,7 +148,7 @@ function splitCharacterPrefix(children) {
     name = strongText.slice(0, -1).trim();
     consumedColon = true;
   } else {
-    // Form 2: `**NAME**:` - Doppelpunkt steckt als Text-Node danach.
+    // Form 2: `**NAME**:` - colon sits as a text node afterwards.
     const second = children[1];
     if (second && second.type === "text" && second.value.startsWith(":")) {
       name = strongText.trim();
@@ -160,8 +159,8 @@ function splitCharacterPrefix(children) {
   if (!name || !consumedColon) return null;
   if (name.length === 0 || name.length > 40) return null;
 
-  // Rest-Children zusammenstellen: ab Index 1, ggf. Doppelpunkt aus dem
-  // ersten Text-Node abschneiden und fuehrendes Leerzeichen trimmen.
+  // Assemble rest-children: from index 1 onward, strip a leading
+  // colon from the first text node and trim leading whitespace.
   const rest = children.slice(1).map((n) => ({ ...n }));
   if (rest.length > 0 && rest[0].type === "text") {
     let v = rest[0].value;
@@ -172,9 +171,9 @@ function splitCharacterPrefix(children) {
   return { name, restChildren: rest };
 }
 
-/** Eine Paragraph-Children-Liste ist ein "Parenthetical", wenn sie aus
- *  einem einzigen Emphasis-Node besteht, dessen Text mit `(` anfaengt
- *  und mit `)` aufhoert. */
+/** A paragraph's children list is a "parenthetical" if it consists
+ *  of a single emphasis node whose text starts with `(` and ends
+ *  with `)`. */
 function isParenthetical(children) {
   if (!children || children.length !== 1) return false;
   const only = children[0];
@@ -192,16 +191,16 @@ export function remarkDialogue() {
 
       const firstParaChildren = paragraphs[0].children || [];
       const split = splitCharacterPrefix(firstParaChildren);
-      if (!split) return; // Nicht-Dialog → unangetastet (editorial Zitat).
+      if (!split) return; // Not dialog → untouched (editorial citation).
 
       const { name, restChildren } = split;
       const safeName = escapeHtml(name.toUpperCase());
       const tint = tintForCharacter(name);
       const tintAttr = ` style="--bp-char-tint: ${tint}"`;
 
-      // Inline-Parenthetical direkt nach dem Namen splitten.
-      // Deckt `**NAME:** *(zoegernd)* Text...`. Folgezeilen werden
-      // weiter unten paragraphenweise erkannt.
+      // Split inline parenthetical right after the name.
+      // Covers `**NAME:** *(hesitating)* Text...`. Follow-up lines
+      // are recognized paragraph-by-paragraph further below.
       let leftover = [...restChildren];
       while (leftover.length > 0 && leftover[0].type === "text" && leftover[0].value.trim() === "") {
         leftover = leftover.slice(1);
@@ -218,9 +217,9 @@ export function remarkDialogue() {
         }
       }
 
-      // Output: Reihe von Top-Level-Blocks im Landing-Skript-Stil.
-      // Reihenfolge: CHARACTER, optional PARENTHETICAL (inline), DIALOG,
-      // dann fuer jeden Folge-Paragraph: PARENTHETICAL oder DIALOG.
+      // Output: a series of top-level blocks in landing script style.
+      // Order: CHARACTER, optional PARENTHETICAL (inline), DIALOG,
+      // then for each follow-up paragraph: PARENTHETICAL or DIALOG.
       const out = [];
       out.push(
         `<p class="v2-block v2-character" data-speaker="${safeName}"${tintAttr}>` +
@@ -262,9 +261,9 @@ export function remarkDialogue() {
       }
 
       parent.children.splice(index, 1, { type: "html", value: out.join("") });
-      // Genau ein Knoten wurde ersetzt - naechster Besuch beim Folge-
-      // Knoten. Frueher stand hier `index + out.length`, was bei Dialogen
-      // mit mehreren Sub-Blocks Geschwister-Blockquotes uebersprungen hat.
+      // Exactly one node was replaced - next visit at the following
+      // node. Previously this was `index + out.length`, which skipped
+      // sibling blockquotes for dialogs with multiple sub-blocks.
       return [visit.SKIP, index + 1];
     });
   };

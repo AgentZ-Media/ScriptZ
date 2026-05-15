@@ -1,7 +1,7 @@
-/* Year-long activity heatmap - Sepia-Rampe auf Papier.
-   Adaptiert aus dem v3-Design (chats/chat2: GitHub-Look, aber ScriptZ-
-   Tinte statt GitHub-Grün). Verwendet --ink-700 + color-mix für die
-   fünf Buckets. */
+/* Year-long activity heatmap - sepia ramp on paper.
+   Adapted from the v3 design (chats/chat2: GitHub look, but ScriptZ
+   ink instead of GitHub green). Uses --ink-700 + color-mix for the
+   five buckets. */
 
 .hm {
   --hm-cell: 11px;

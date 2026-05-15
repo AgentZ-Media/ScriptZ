@@ -1,6 +1,6 @@
-/* Vollflaechige Sperrseite, wenn der Viewport zu schmal ist (Phone /
-   iPad-Portrait). Nutzt dieselben Tokens wie der Rest der App, damit
-   Hell/Dunkel ohne extra Logik mitwandert. */
+/* Full-screen block page when the viewport is too narrow (phone /
+   iPad portrait). Uses the same tokens as the rest of the app so
+   light/dark switches along without extra logic. */
 .desktop-gate {
   position: fixed;
   inset: 0;

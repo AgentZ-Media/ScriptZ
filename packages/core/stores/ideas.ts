@@ -3,8 +3,8 @@ import { api } from "../lib/api";
 import { ideasBus } from "../lib/ideasBus";
 import type { Idea, ScriptSummary } from "../lib/types";
 
-// Globaler Resource-Slot für die Ideen-Liste. Subscribers (Drawer,
-// Toggle-Counter, ggf. Quick-Capture) teilen sich denselben Cache.
+// Global resource slot for the ideas list. Subscribers (drawer,
+// toggle counter, possibly quick capture) share the same cache.
 const [ideas] = createResource(
   () => ideasBus.version(),
   async () => {

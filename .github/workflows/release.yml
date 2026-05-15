@@ -11,13 +11,12 @@ permissions:
 
 jobs:
   # ============================================================
-  # 1) Release-Notes vorbereiten
+  # 1) Prepare release notes
   # ============================================================
-  # Liest die per-Version-Changelog-Datei + den statischen Install-
-  # Footer und gibt sie als ein Output weiter, damit beide Build-Jobs
-  # denselben Body sehen. Bricht ab, wenn die Changelog-Datei fehlt -
-  # so kann kein Release versehentlich mit der vorherigen Beschreibung
-  # rausgehen.
+  # Reads the per-version changelog file + the static install footer
+  # and passes them as a single output so both build jobs see the same
+  # body. Aborts if the changelog file is missing - this way no release
+  # can accidentally ship with the previous description.
   prepare-notes:
     name: Prepare release notes
     runs-on: ubuntu-latest
@@ -49,12 +48,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   # ============================================================
-  # 2) macOS-Build (Apple Silicon)
+  # 2) macOS build (Apple Silicon)
   # ============================================================
-  # Laeuft zuerst und legt das GitHub-Release-Objekt an, inklusive
-  # erstem `latest.json` mit dem darwin-aarch64-Eintrag fuer den
-  # Auto-Updater. Pinned auf macos-26 (Tahoe) damit der SDK zu dem
-  # passt, was User mit Tahoe lokal sehen.
+  # Runs first and creates the GitHub release object, including the
+  # initial `latest.json` with the darwin-aarch64 entry for the
+  # auto-updater. Pinned to macos-26 (Tahoe) so the SDK matches what
+  # users running Tahoe see locally.
   build-macos:
     name: Build macOS (Apple Silicon)
     needs: prepare-notes
@@ -75,9 +74,9 @@ jobs:
           key: macos
 
       - name: Setup pnpm
-        # Version kommt aus packageManager in der Repo-Root-package.json,
-        # damit lokal und CI dieselbe pnpm-Version benutzen. Keine Angabe
-        # hier - sonst kollidieren beide Quellen (ERR_PNPM_BAD_PM_VERSION).
+        # Version comes from packageManager in the repo-root package.json,
+        # so local and CI use the same pnpm version. No value specified
+        # here - otherwise the two sources collide (ERR_PNPM_BAD_PM_VERSION).
         uses: pnpm/action-setup@v6
 
       - name: Setup Node
@@ -111,14 +110,14 @@ jobs:
           args: --target aarch64-apple-darwin
 
   # ============================================================
-  # 3) Windows-Build (x64 NSIS)
+  # 3) Windows build (x64 NSIS)
   # ============================================================
-  # Laeuft NACH dem macOS-Build, weil tauri-action das vorhandene
-  # `latest.json` im Release findet und den windows-x86_64-Eintrag
-  # in das bestehende Manifest mergt. Bei parallelem Lauf wuerden
-  # sich die beiden latest.json-Uploads gegenseitig ueberschreiben.
-  # Visual-Studio-Build-Tools + WebView2 sind auf windows-latest
-  # bereits vorinstalliert - kein extra Setup noetig.
+  # Runs AFTER the macOS build because tauri-action finds the existing
+  # `latest.json` in the release and merges the windows-x86_64 entry
+  # into the existing manifest. Running in parallel would cause the
+  # two latest.json uploads to overwrite each other.
+  # Visual Studio Build Tools + WebView2 are already preinstalled on
+  # windows-latest - no extra setup needed.
   build-windows:
     name: Build Windows (x64)
     needs: [prepare-notes, build-macos]
@@ -157,11 +156,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          # tagName referenziert den Release, den build-macos angelegt
-          # hat. tauri-action erkennt den existierenden Release am
-          # Tag-Name und appended Assets statt einen neuen anzulegen.
-          # `latest.json` wird dabei gemerged: der bestehende
-          # darwin-aarch64-Eintrag bleibt, windows-x86_64 wird ergaenzt.
+          # tagName references the release that build-macos created.
+          # tauri-action detects the existing release by tag name and
+          # appends assets instead of creating a new one. `latest.json`
+          # is merged: the existing darwin-aarch64 entry stays,
+          # windows-x86_64 is added alongside.
           tagName: ${{ github.ref_name }}
           releaseName: 'ScriptZ ${{ github.ref_name }}'
           releaseBody: ${{ needs.prepare-notes.outputs.body }}
@@ -171,14 +170,14 @@ jobs:
           args: --target x86_64-pc-windows-msvc
 
   # ============================================================
-  # 4) Vercel-Rebuild fuer die Landing
+  # 4) Vercel rebuild for the landing page
   # ============================================================
-  # Vercel reagiert nur auf Git-Push, nicht auf GitHub-Release-Events.
-  # Ohne diesen Schritt wuerde die Landing-Build die vorherige
-  # Version aus der Releases-API einbacken, weil der Push *vor* dem
-  # Release-Publish passiert. Laeuft erst, wenn beide Builds durch
-  # sind, damit die Landing die neuen Bundle-URLs (.dmg + .exe)
-  # sicher in der API findet.
+  # Vercel only reacts to git pushes, not to GitHub release events.
+  # Without this step the landing build would bake in the previous
+  # version from the Releases API, because the push happens *before*
+  # the release is published. Runs only after both builds finish so
+  # the landing reliably finds the new bundle URLs (.dmg + .exe)
+  # in the API.
   trigger-landing:
     name: Trigger Vercel rebuild
     needs: [build-macos, build-windows]

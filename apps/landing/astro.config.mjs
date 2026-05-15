@@ -10,23 +10,23 @@ export default defineConfig({
     format: "file",
   },
   markdown: {
-    // Skript-Optik: Blockquotes der Form `> **NAME:** Text` werden in
-    // semantische <Dialogue>-Blocks verwandelt. Klassische Quotes
-    // (ohne Charakter-Praefix) bleiben unangetastet und rendern als
-    // editorial Zitat im Stylesheet.
+    // Script look: blockquotes of the form `> **NAME:** Text` are
+    // transformed into semantic <Dialogue> blocks. Classic quotes
+    // (without character prefix) stay untouched and render as
+    // editorial citation per the stylesheet.
     remarkPlugins: [remarkDialogue],
     shikiConfig: {
-      // Heller Code-Block-Look, passt zum Brutalist-Light-Theme.
+      // Light code-block look, matches the brutalist-light theme.
       theme: "github-light",
     },
   },
   integrations: [
     mdx(),
-    // Erzeugt /sitemap-index.xml + /sitemap-0.xml. robots.txt verweist
-    // bereits darauf. Bewusst ohne i18n-Config: die EN-Variante existiert
-    // nur fuer ausgewaehlte Pfade - eine pauschale i18n-Mapping wuerde
-    // `/en/impressum` o.ae. erfinden. Hreflang-Annotationen liefert
-    // ohnehin schon `Base.astro` per <link>.
+    // Produces /sitemap-index.xml + /sitemap-0.xml. robots.txt already
+    // points there. Deliberately without i18n config: the EN variant
+    // only exists for selected paths - a blanket i18n mapping would
+    // invent `/en/impressum` and similar. Hreflang annotations are
+    // already provided by `Base.astro` via <link>.
     sitemap(),
   ],
 });

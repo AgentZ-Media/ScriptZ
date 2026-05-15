@@ -25,8 +25,8 @@ pnpm-debug.log*
 *.swp
 .tauri-build-stamp
 
-# Claude Code (lokales Tooling, kein Projekt-Artefakt)
+# Claude Code (local tooling, not a project artifact)
 .claude/*
-# Ausnahme: project-rules sind geteilt und gehören ins Repo
+# Exception: project rules are shared and belong in the repo
 !.claude/rules/
 !.claude/rules/**

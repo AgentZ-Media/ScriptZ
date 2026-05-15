@@ -124,10 +124,10 @@ export interface ListScriptsQuery {
 
 export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]> {
   const db = await getDb();
-  // Single round-trip: alle Spalten in einem SELECT statt N+1
-  // (vorher: erst SELECT id …, dann für jede Zeile ein eigenes SELECT
-  // via rowToSummary). Bei jedem Boot ging dadurch pro Skript ein
-  // Tauri-IPC-Hop drauf - bei 3 Skripten waren das 4 Calls statt 1.
+  // Single round-trip: all columns in one SELECT instead of N+1
+  // (previously: first SELECT id …, then a separate SELECT per row
+  // via rowToSummary). Every boot paid a Tauri IPC hop per script -
+  // 3 scripts meant 4 calls instead of 1.
   let sql = `SELECT ${SUMMARY_COLUMNS} FROM scripts WHERE 1=1`;
   const args: (string | number)[] = [];
   let p = 1;
@@ -205,13 +205,13 @@ export async function createScript(
     }
   }
 
-  // Initial-Wortcount des Seed-Inhalts. Wir wollen nicht, dass der
-  // erste echte Save den vollen Welcome-Text als „heute geschrieben"
-  // zählt; deshalb wird last_word_count direkt auf den Wortcount des
-  // Seeds gesetzt. Eine Idee-zu-Skript-Konvertierung mit Notiz-Action
-  // wird damit auch korrekt eingerechnet (die paar Notiz-Wörter
-  // zählen nicht als Schreib-Aktivität, weil sie nicht beim Save
-  // hinzukamen).
+  // Initial word count of the seed content. We don't want the
+  // first real save to count the full welcome text as "written today";
+  // therefore last_word_count is set directly to the word count of the
+  // seed. An idea-to-script conversion with notes-action
+  // is then also accounted for correctly (the few note words
+  // don't count as writing activity because they weren't added during
+  // the save).
   const initialWordCount = countWordsInContent(contentJson);
   const runtime = runtimeStatsFromContent(contentJson);
 
@@ -243,10 +243,10 @@ export async function duplicateScript(id: string): Promise<ScriptSummary> {
   const now = Date.now();
   const newTitle = `${src.title}${t("script.duplicateSuffix")}`;
   const charsJson = serializeCharsMeta(src.characters);
-  // Duplikat: last_word_count auf den aktuellen Wortcount der Quelle
-  // setzen, damit ein direktes Bearbeiten danach nur den Delta zählt
-  // (sonst würde die erste Speicherung den ganzen kopierten Text als
-  // „heute geschrieben" einrechnen).
+  // Duplicate: set last_word_count to the current word count of the source
+  // so a direct edit afterwards only counts the delta
+  // (otherwise the first save would count the whole copied text as
+  // "written today").
   const wc = countWordsInContent(src.content_json);
   const runtime = runtimeStatsFromContent(src.content_json);
   await db.execute(
@@ -322,11 +322,11 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
     );
   }
   if (input.contentJson !== undefined) {
-    // Compare-and-swap loop um Diff-on-Save: plugin-sql kennt keine
-    // Transaktionen, also sichern wir die Wort-Delta-Buchung über ein
-    // bedingtes UPDATE ab. Liest zwei parallele Saves denselben
-    // last_word_count, würde sonst beider delta in daily_word_log
-    // landen - der heutige Bucket ware dann doppelt gezählt.
+    // Compare-and-swap loop around diff-on-save: plugin-sql has no
+    // transactions, so we guard the word-delta bookkeeping via a
+    // conditional UPDATE. If two parallel saves read the same
+    // last_word_count, both deltas would otherwise land in daily_word_log
+    // and today's bucket would be double-counted.
     const newWordCount = countWordsInContent(input.contentJson);
     const runtime = runtimeStatsFromContent(input.contentJson);
     const records = await loadColorRecords();
@@ -356,10 +356,10 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
       }
       const charsJson = serializeCharsMeta(chars);
 
-      // last_word_count === -1 ist der Sentinel aus Migration 003 für
-      // Bestandsskripte: der erste Save nach dem Update normalisiert nur
-      // den Count, ohne den ganzen bisherigen Wortbestand als "heute
-      // geschrieben" zu buchen.
+      // last_word_count === -1 is the sentinel from migration 003 for
+      // existing scripts: the first save after the update only normalizes
+      // the count without booking the entire prior word total as "written
+      // today".
       const isFirstMeasurement = lastWordCount < 0;
       const candidateDelta = isFirstMeasurement ? 0 : newWordCount - lastWordCount;
 
@@ -383,11 +383,11 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
         delta = candidateDelta;
         break;
       }
-      // Retry-Limit als Notbremse: in der Praxis serialisiert der
-      // 250 ms-Debounce in Editor.tsx alle Saves desselben Skripts -
-      // ein Konflikt darf hier maximal einmal auftreten.
+      // Retry limit as emergency brake: in practice the
+      // 250 ms debounce in Editor.tsx serializes all saves of the same script -
+      // a conflict here should occur at most once.
       if (attempts >= 5) {
-        console.warn("[scriptz] CAS-Retry-Limit erreicht beim Save", input.id);
+        console.warn("[scriptz] CAS retry limit reached during save", input.id);
         break;
       }
     }
@@ -396,7 +396,7 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
       try {
         await recordWordDelta(delta);
       } catch (err) {
-        // Statistik-Schreibfehler dürfen den Save nicht killen.
+        // Statistics write errors must not kill the save.
         console.warn("[scriptz] daily word log update failed", err);
       }
     }
@@ -442,18 +442,17 @@ export async function purgeScript(id: string): Promise<void> {
   await deleteScriptFts(id);
 }
 
-/** Zieht `dialog_word_count` und `direction_block_count` für alle
- *  Skripte nach, die noch den Sentinel `-1` aus Migration 005 tragen.
- *  Wird einmal beim App-Start aufgerufen, damit die Übersicht
- *  Spielzeiten auch für unangefasste Bestandsskripte sofort korrekt
- *  zeigt - ohne Backfill würde das Label dort bis zum nächsten Save
- *  ausgeblendet bleiben.
+/** Backfills `dialog_word_count` and `direction_block_count` for all
+ *  scripts that still carry the sentinel `-1` from migration 005.
+ *  Called once on app start so the overview shows runtimes correctly for
+ *  untouched existing scripts immediately - without backfill the label
+ *  there would stay hidden until the next save.
  *
- *  Idempotent: Skripte, die schon einmal gespeichert wurden, kommen
- *  nicht mehr durch das WHERE-Filter und werden nicht angefasst.
- *  Lesefehler an einzelnen content_json-Blobs killen den ganzen
- *  Backfill nicht - die betroffene Reihe bleibt auf Sentinel und der
- *  nächste echte Save normalisiert sie. */
+ *  Idempotent: scripts that have already been saved no longer pass
+ *  the WHERE filter and are not touched.
+ *  Read errors on individual content_json blobs don't kill the entire
+ *  backfill - the affected row stays on the sentinel and the
+ *  next real save normalizes it. */
 export async function backfillRuntimeStats(): Promise<void> {
   const db = await getDb();
   const rows = await db.select<{ id: string; content_json: string }[]>(
@@ -478,11 +477,11 @@ export async function backfillRuntimeStats(): Promise<void> {
 
 export async function emptyTrash(): Promise<void> {
   const db = await getDb();
-  // FTS-Reihen müssen vor dem Skript-DELETE weg, weil die scripts_fts-
-  // Tabelle keinen FK-Cascade hat (FTS5 contentless table). Zwei
-  // Statements statt N+1: ein DELETE FROM scripts_fts (sub-query gegen
-  // scripts), ein DELETE FROM scripts. Bei 50 archivierten Skripten
-  // waren das vorher 100 Round-Trips, jetzt sind es 2.
+  // FTS rows must be removed before the script DELETE because the
+  // scripts_fts table has no FK cascade (FTS5 contentless table). Two
+  // statements instead of N+1: one DELETE FROM scripts_fts (sub-query
+  // against scripts), one DELETE FROM scripts. With 50 archived scripts
+  // that used to be 100 round-trips, now it's 2.
   await db.execute(
     "DELETE FROM scripts_fts WHERE script_id IN " +
       "(SELECT id FROM scripts WHERE archived_at IS NOT NULL)",
@@ -492,7 +491,7 @@ export async function emptyTrash(): Promise<void> {
 
 // ---------- internal helpers ----------
 
-/** Lexical state for a brand-new script: a single empty Charakter
+/** Lexical state for a brand-new script: a single empty character
  *  block. Mirrors the JSON Rust's `empty_lexical_state` builds. The
  *  exact byte-shape is irrelevant - Lexical re-serialises on the next
  *  save in its own key order. */
