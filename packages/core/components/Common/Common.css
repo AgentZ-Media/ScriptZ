@@ -124,3 +124,74 @@
   color: var(--fg-muted);
   font-size: var(--fs-13);
 }
+
+/* Boot-time recovery screen: blocking, full viewport. Shown when the
+   boot sequence (settings, welcome seed, tabs load) throws an
+   unrecoverable error - usually a SQLite open failure. */
+.boot-error-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--bg);
+  z-index: 9999;
+}
+.boot-error-inner {
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+}
+.boot-error-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 16px;
+  color: #d04141;
+}
+.boot-error-h1 {
+  font-size: var(--fs-20);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.boot-error-lede {
+  margin: 0 0 20px;
+  color: var(--fg-muted, #5b5b58);
+  font-size: var(--fs-14);
+  line-height: 1.55;
+}
+.boot-error-message {
+  display: inline-block;
+  margin: 0 0 20px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elev, rgba(0, 0, 0, 0.02));
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-12);
+  color: #d04141;
+  text-align: left;
+  max-width: 100%;
+  word-break: break-word;
+}
+.boot-error-actions {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.boot-error-details {
+  text-align: left;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-11);
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-elev, rgba(0, 0, 0, 0.04));
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  margin: 0 0 16px;
+}
+.boot-error-help {
+  margin: 0;
+  font-size: var(--fs-12);
+  color: var(--fg-muted, #5b5b58);
+}

@@ -2,6 +2,7 @@ import { For, Show } from "solid-js";
 import { tabsStore } from "../stores/tabs";
 import { dailyStatsStore } from "../stores/dailyStats";
 import { settingsStore } from "../stores/settings";
+import { saveStatusStore } from "../stores/saveStatus";
 import { ideasStore } from "../stores/ideas";
 import { K } from "../lib/keys";
 import { t, tPlural } from "../i18n";
@@ -119,27 +120,53 @@ function StatusStrip() {
   const wordsThisWeek = () => stats().wordsThisWeek;
   const streak = () => stats().streakDays;
   const goalMet = () => wordsThisWeek() >= goal();
+  const showStats = () => settingsStore.showWritingStats();
   return (
     <div class="status-strip" data-tauri-drag-region>
-      <span
-        class="status-cell"
-        title={t("status.weekWords.title", { goal: goal() })}
-      >
-        <strong classList={{ "is-met": goalMet() }}>{wordsThisWeek()}</strong>
-        <span class="status-cell-label">{t("status.weekWords.unit")}</span>
-      </span>
-      <span class="status-cell-divider" aria-hidden="true" />
-      <span class="status-cell" title={t("status.streak.title")}>
-        <span class="status-flame"><SparkleIcon /></span>
-        <strong>{streak()}</strong>
-        <span class="status-cell-label">{tPlural("units.days", streak())}</span>
-      </span>
-      <span class="status-cell-divider" aria-hidden="true" />
-      <span class="status-cell" title={t("status.saved.title")}>
-        <span class="status-dot status-dot-ok" aria-hidden="true" />
-        <span class="status-cell-label">{t("status.saved.label")}</span>
-      </span>
+      <Show when={showStats()}>
+        <span
+          class="status-cell"
+          title={t("status.weekWords.title", { goal: goal() })}
+        >
+          <strong classList={{ "is-met": goalMet() }}>{wordsThisWeek()}</strong>
+          <span class="status-cell-label">{t("status.weekWords.unit")}</span>
+        </span>
+        <span class="status-cell-divider" aria-hidden="true" />
+        <span class="status-cell" title={t("status.streak.title")}>
+          <span class="status-flame"><SparkleIcon /></span>
+          <strong>{streak()}</strong>
+          <span class="status-cell-label">{tPlural("units.days", streak())}</span>
+        </span>
+        <span class="status-cell-divider" aria-hidden="true" />
+      </Show>
+      <SaveStatusCell />
     </div>
+  );
+}
+
+function SaveStatusCell() {
+  const s = () => saveStatusStore.status();
+  const title = () =>
+    s() === "error" ? t("status.saveError.title")
+    : s() === "saving" ? t("status.saving.title")
+    : t("status.saved.title");
+  const label = () =>
+    s() === "error" ? t("status.saveError.label")
+    : s() === "saving" ? t("status.saving.label")
+    : t("status.saved.label");
+  return (
+    <span class="status-cell" title={title()}>
+      <span
+        class="status-dot"
+        classList={{
+          "status-dot-ok": s() === "idle",
+          "status-dot-saving": s() === "saving",
+          "status-dot-error": s() === "error",
+        }}
+        aria-hidden="true"
+      />
+      <span class="status-cell-label">{label()}</span>
+    </span>
   );
 }
 

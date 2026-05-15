@@ -1,7 +1,6 @@
 import { Show, createSignal, createMemo, createEffect, onMount, onCleanup, type JSX } from "solid-js";
 import { Portal } from "solid-js/web";
 import { settingsStore, type Theme } from "../../stores/settings";
-import { tabsStore } from "../../stores/tabs";
 import { api } from "../../lib/api";
 import { K } from "../../lib/keys";
 import { t, type LanguagePref } from "../../i18n";
@@ -12,7 +11,10 @@ export const ONBOARDING_KEY = "onboarding_completed_v1";
 export interface OnboardingDialogProps {
   open: boolean;
   onClose(): void;
-  onCreateFirstScript?(): void;
+  /** Called when the user finishes onboarding. The host app is
+   *  expected to open the welcome/tutorial script if it still exists,
+   *  and fall back to the browser otherwise. */
+  onFinish?(): void;
   /** When true: shows an additional note block in step 1
    *  explaining that this is the web test version and
    *  recommending the desktop app. Only the web app sets this. */
@@ -39,7 +41,7 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
 
   const next = () => {
     if (step() >= TOTAL_STEPS - 1) {
-      void completeAndClose();
+      void completeAndFinish();
       return;
     }
     setDir("forward");
@@ -61,24 +63,14 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
     props.onClose();
   };
 
-  const completeAndCreateScript = async () => {
+  const completeAndFinish = async () => {
     try {
       await api.setAppState(ONBOARDING_KEY, "1");
     } catch {
       /* non-fatal */
     }
     props.onClose();
-    props.onCreateFirstScript?.();
-  };
-
-  const completeAndOpenBrowser = async () => {
-    try {
-      await api.setAppState(ONBOARDING_KEY, "1");
-    } catch {
-      /* non-fatal */
-    }
-    tabsStore.openBrowser();
-    props.onClose();
+    props.onFinish?.();
   };
 
   const skip = () => void completeAndClose();
@@ -174,14 +166,9 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
                 <Show
                   when={!isFinalStep()}
                   fallback={
-                    <div class="ob-final-actions">
-                      <button type="button" class="btn" onClick={() => void completeAndOpenBrowser()}>
-                        {t("onboarding.toOverview")}
-                      </button>
-                      <button type="button" class="btn btn-primary ob-cta" onClick={() => void completeAndCreateScript()}>
-                        {t("onboarding.firstScript")}
-                      </button>
-                    </div>
+                    <button type="button" class="btn btn-primary ob-cta" onClick={() => void completeAndFinish()}>
+                      {t("onboarding.finish")}
+                    </button>
                   }
                 >
                   <button type="button" class="btn btn-primary ob-cta" onClick={next}>
@@ -347,29 +334,6 @@ function StepWriting() {
       </p>
 
       <div class="ob-fields">
-        <div class="ob-field">
-          <div class="ob-field-head">
-            <div class="ob-field-label">{t("onboarding.writing.weeklyGoal.label")}</div>
-            <div class="ob-field-help">
-              {t("onboarding.writing.weeklyGoal.help")}
-            </div>
-          </div>
-          <div class="ob-goal">
-            <input
-              type="number"
-              min={settingsStore.WEEKLY_WORD_GOAL_MIN}
-              max={settingsStore.WEEKLY_WORD_GOAL_MAX}
-              step={100}
-              value={settingsStore.weeklyWordGoal()}
-              onChange={(e) => {
-                const n = Number(e.currentTarget.value);
-                if (Number.isFinite(n)) void settingsStore.setWeeklyWordGoal(n);
-              }}
-            />
-            <span class="ob-goal-unit">{t("onboarding.writing.weeklyGoal.unit")}</span>
-          </div>
-        </div>
-
         <div class="ob-field">
           <div class="ob-field-head">
             <div class="ob-field-label">{t("onboarding.writing.focus.label")}</div>

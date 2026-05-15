@@ -15,7 +15,6 @@ import { settingsStore } from "../../stores/settings";
 import { pushToast } from "../../stores/toasts";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { SnapshotsDialog } from "./SnapshotsDialog";
-import { SprintPill } from "./SprintPill";
 import { EditorToolbar } from "./EditorToolbar";
 import { EditorRail } from "./EditorRail";
 import type { ScriptCharacter } from "../../lib/types";
@@ -385,8 +384,6 @@ export function ScriptView(props: ScriptViewProps) {
               onClose={() => setSnapshotsOpen(false)}
               scriptId={s().id}
             />
-
-            <SprintPill />
           </>
         )}
       </Show>

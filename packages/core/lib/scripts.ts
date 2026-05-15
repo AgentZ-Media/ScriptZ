@@ -387,7 +387,27 @@ export async function updateScript(input: UpdateScriptInput): Promise<ScriptSumm
       // 250 ms debounce in Editor.tsx serializes all saves of the same script -
       // a conflict here should occur at most once.
       if (attempts >= 5) {
-        console.warn("[scriptz] CAS retry limit reached during save", input.id);
+        // Fallback: write content unconditionally so the user's keystrokes
+        // are NEVER silently lost. We sacrifice the daily-stats delta
+        // (which assumes a known prior word count) to keep the body safe.
+        // The daily counter will self-correct on the next normal save.
+        console.warn("[scriptz] CAS retry limit reached, forcing unconditional save", input.id);
+        await db.execute(
+          `UPDATE scripts
+             SET content_json = $1, characters_meta = $2, updated_at = $3, last_word_count = $4,
+                 dialog_word_count = $5, direction_block_count = $6
+             WHERE id = $7`,
+          [
+            input.contentJson,
+            charsJson,
+            now,
+            newWordCount,
+            runtime.dialogWords,
+            runtime.directionBlocks,
+            input.id,
+          ],
+        );
+        delta = 0;
         break;
       }
     }
