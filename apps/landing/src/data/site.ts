@@ -24,7 +24,7 @@ export const site = {
   // Browser test editor (phase 2 H). Subdomain hosted Vercel-side.
   webAppUrl: "https://app.write-scriptz.com",
   // Fallback when the GitHub API is unreachable at build time.
-  fallbackVersion: "0.7.12",
+  fallbackVersion: "0.8.0",
   contactEmail: "kontakt@agent-z.de",
 } as const;
 
