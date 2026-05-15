@@ -647,12 +647,6 @@
   font-size: 13px;
   color: var(--text-subtle);
 }
-.ob-final-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
 /* Phase-H note block in step 1, only visible in the web version.
    Explains that this is the test variant and links to
    the desktop app. Feels like a note, not a warning. */

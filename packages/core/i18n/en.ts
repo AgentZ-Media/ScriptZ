@@ -132,6 +132,9 @@ export const en: Record<keyof typeof de, string> = {
   "browser.sort.label": "Sort · {value}",
   "browser.rowMore": "More actions",
   "browser.notes": "Note",
+  "browser.count.folderSegment": " · {folder}",
+  "browser.count.searchSegment": " · „{query}\"",
+  "browser.runtime.unavailable": "—",
 
   // ---------- folders ----------
   "folder.aria.tablist": "Folders",
@@ -232,6 +235,13 @@ export const en: Record<keyof typeof de, string> = {
   "momentum.weekUnit": "w week",
   "momentum.activity.link": "View activity",
   "momentum.activity.title": "Heatmap + streak + daily goal",
+
+  // ---------- editor (general) ----------
+  "editor.empty.hint": "Start typing · {tab} switches block type · {first}–{last} direct",
+
+  // ---------- validation errors (thrown from lib, surfaced as toasts) ----------
+  "folder.error.emptyName": "Folder name must not be empty",
+  "idea.error.emptyTitle": "Idea title must not be empty",
 
   // ---------- editor toolbar ----------
   "editor.toolbar.back": "Overview",
@@ -349,6 +359,8 @@ export const en: Record<keyof typeof de, string> = {
   "settings.ideasBadge.help": "Shows the number of open ideas as a small badge on the lightbulb tab. For very large idea collections you can disable the counter here.",
   "settings.ideasBadge.aria": "Show ideas counter in tab",
   "settings.editor.sub": "Writing behaviour.",
+  "settings.writingStats.label": "Show writing stats",
+  "settings.writingStats.help": "Reveals weekly goal, streak and activity heatmap - in the top tab strip and on the home screen. Off for a quieter surface.",
   "settings.weeklyGoal.label": "Weekly goal",
   "settings.weeklyGoal.help": "Words per week (since Monday). Shown in the top status bar and on the home screen. 1500 corresponds to roughly 7 scripts of 200 words each.",
   "settings.weeklyGoal.unit": "Words",
@@ -385,7 +397,9 @@ export const en: Record<keyof typeof de, string> = {
   "settings.about.version": "ScriptZ · v{version}",
   "settings.about.license": "License: MIT",
   "settings.about.developer": "Built by",
+  "settings.about.developer.linkText": "AgentZ",
   "settings.about.repository": "Repository",
+  "settings.about.repository.linkText": "github.com/AgentZ-Media/ScriptZ",
   "settings.about.onboarding.label": "Onboarding",
   "settings.about.onboarding.help": "Show the short app tour again.",
   "settings.about.onboarding.button": "Show again",
@@ -405,6 +419,7 @@ export const en: Record<keyof typeof de, string> = {
   "shortcut.tabByIndex": "Activate tab by index (0 = overview)",
   "shortcut.cycleTabs": "Cycle between tabs",
   "shortcut.blockPicker": "Open block-type picker",
+  "shortcut.key.tab": "Tab",
   "shortcut.blockAction": "Block type → Action",
   "shortcut.blockCharacter": "Block type → Character",
   "shortcut.blockDialog": "Block type → Dialog",
@@ -426,8 +441,7 @@ export const en: Record<keyof typeof de, string> = {
   "onboarding.skip": "Skip",
   "onboarding.back": "← Back",
   "onboarding.next": "Next",
-  "onboarding.toOverview": "To overview",
-  "onboarding.firstScript": "Write first script",
+  "onboarding.finish": "Let's go",
   "onboarding.appearance.eyebrow": "Step 1 of 2 · Appearance",
   "onboarding.appearance.h1": "Look the way you want.",
   "onboarding.appearance.lede": "Theme, language and character colors - all of it stays editable later in settings.",
@@ -439,16 +453,13 @@ export const en: Record<keyof typeof de, string> = {
   "onboarding.appearance.highlight.dialog1": "You're late.",
   "onboarding.appearance.highlight.dialog2": "I call it a dramatic entrance.",
   "onboarding.writing.eyebrow": "Step 2 of 2 · Writing",
-  "onboarding.writing.h1": "Two defaults to start with.",
-  "onboarding.writing.lede": "Both editable any time in settings. Just a good starting point.",
-  "onboarding.writing.weeklyGoal.label": "Weekly goal",
-  "onboarding.writing.weeklyGoal.help": "Words per week (since Monday). Shown in the top status bar and on the home screen. 1500 corresponds to roughly 7 scripts of 200 words each.",
-  "onboarding.writing.weeklyGoal.unit": "Words / week",
+  "onboarding.writing.h1": "One default to start with.",
+  "onboarding.writing.lede": "Editable any time in settings. Just a good starting point.",
   "onboarding.writing.focus.label": "Focus mode enabled by default",
   "onboarding.writing.focus.help": "When opening a script, toolbar and cast rail are hidden - just the paper. {hotkey} brings them back.",
   "onboarding.final.eyebrow": "Done.",
   "onboarding.final.h1": "Let's go.",
-  "onboarding.final.lede": "Setup is done. You can create your first script right away, or browse the overview first - it holds the short tutorial script that explains block types and hotkeys.",
+  "onboarding.final.lede": "Setup is done. We'll open a short tutorial script that explains block types and hotkeys live - keep typing right there or trash it once you feel comfortable.",
   "onboarding.final.hint.newScript": "creates a new script any time",
   "onboarding.final.hint.search": "finds any script via search",
   "onboarding.final.hint.idea": "captures an idea for later",
@@ -527,6 +538,11 @@ export const en: Record<keyof typeof de, string> = {
   "status.streak.title": "Consecutive writing days",
   "status.saved.title": "Stored locally, no account, no cloud",
   "status.saved.label": "Saved",
+  "status.saving.title": "Saving in progress",
+  "status.saving.label": "Saving…",
+  "status.saveError.title": "Last save attempt failed - will retry on the next keystroke",
+  "status.saveError.label": "Not saved",
+  "save.error.toast": "Script could not be saved: {message}",
 
   // ---------- update indicator ----------
   "updateIndicator.label.downloading": "Downloading update… {progress}%",
@@ -555,16 +571,6 @@ export const en: Record<keyof typeof de, string> = {
   "modal.close.aria": "Close",
   "modal.close.title": "Close",
 
-  // ---------- sprint pill ----------
-  "sprint.label": "Sprint",
-  "sprint.title.start": "Start writing sprint",
-  "sprint.title.running": "Sprint running",
-  "sprint.meta": "Writing sprint · no interruptions",
-  "sprint.minutes": "{n} min",
-  "sprint.start": "Start",
-  "sprint.pause": "Pause",
-  "sprint.reset": "Reset",
-
   // ---------- character / color picker ----------
   "charDropdown.colorAria": "Change color for {name}",
   "colorPicker.aria": "Color for {name}",
@@ -577,6 +583,12 @@ export const en: Record<keyof typeof de, string> = {
   "boot.failed": "Startup failed: {message}",
   "boot.loadingScript": "Loading script…",
   "boot.error": "Error: {message}",
+  "boot.error.title": "ScriptZ could not start",
+  "boot.error.lede": "The database file could not be opened. Your scripts are most likely safe - the file is still in the app data directory untouched. Please copy the error below and send it to us.",
+  "boot.error.retry": "Try again",
+  "boot.error.detailsShow": "Show details",
+  "boot.error.detailsHide": "Hide details",
+  "boot.error.help": "Tip: fully quit and restart the app. If that doesn't help, send us the error.",
 
   // ---------- thrown errors ----------
   "error.ideaAlreadyConverted": "Idea has already been converted.",

@@ -5,113 +5,31 @@ import {
   createEffect,
   onCleanup,
   onMount,
-  For,
   Show,
 } from "solid-js";
 import type { Folder, ScriptSummary } from "../../lib/types";
-import { stripeBackground } from "../../lib/stripe";
 import { api } from "../../lib/api";
-import { runtimeLabelFromStats } from "../../lib/runtime";
 import { tabsStore } from "../../stores/tabs";
-import { settingsStore } from "../../stores/settings";
 import { pushToast } from "../../stores/toasts";
 import { K } from "../../lib/keys";
-import {
-  relativeTime,
-  debounce,
-} from "../../lib/format";
-import { t, tPlural } from "../../i18n";
-
-/** Runtime label from the persisted input values - same formula
- *  as in the editor rail, rendered via `runtimeLabelFromStats`.
- *  Sentinel/empty scripts produce null so the caller can
- *  hide the field. */
-function runtimeLabelFor(script: ScriptSummary, wpm: number): string | null {
-  return runtimeLabelFromStats(
-    {
-      dialogWords: script.dialog_word_count,
-      directionBlocks: script.direction_block_count,
-    },
-    wpm,
-  );
-}
+import { debounce } from "../../lib/format";
+import { t } from "../../i18n";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { TrashView } from "./TrashView";
-import { Modal } from "../Common/Modal";
-import { ConfirmDialog } from "../Common/ConfirmDialog";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { foldersBus } from "../../lib/foldersBus";
-import { FolderChips, SCRIPT_DRAG_MIME } from "./FolderChips";
-import { MomentumStrip } from "./MomentumStrip";
+import { FolderChips } from "./FolderChips";
+import { BrowserHeader, type ViewMode } from "./BrowserHeader";
+import { BrowserList } from "./BrowserList";
+import { BrowserDialogs } from "./BrowserDialogs";
+import { SortPopover, type SortKey } from "./SortPopover";
 import "./Browser.css";
 
-/** Time-of-day-dependent greeting. Deliberately does NOT use a
- *  first name (no onboarding with name prompt). */
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5)  return t("greeting.lateNight");
-  if (h < 11) return t("greeting.morning");
-  if (h < 14) return t("greeting.noon");
-  if (h < 18) return t("greeting.day");
-  if (h < 22) return t("greeting.evening");
-  return t("greeting.lateHour");
-}
-
 type Region = "scripts" | "trash";
-type SortKey = "updated" | "created" | "title";
-type ViewMode = "grid" | "list";
 
 const VIEW_STATE_KEY = "browser.view_mode";
 const ACTIVE_FOLDER_STATE_KEY = "browser.active_folder";
 const PAGE_SIZE = 200;
-
-/** Time buckets for grouping the list — ported from the design
- *  (`bucket()` in `data.jsx`). */
-type BucketKey = "heute" | "gestern" | "diese-woche" | "diesen-monat" | "aelter";
-const BUCKET_ORDER: BucketKey[] = [
-  "heute",
-  "gestern",
-  "diese-woche",
-  "diesen-monat",
-  "aelter",
-];
-function bucketLabel(k: BucketKey): string {
-  switch (k) {
-    case "heute": return t("bucket.today");
-    case "gestern": return t("bucket.yesterday");
-    case "diese-woche": return t("bucket.thisWeek");
-    case "diesen-monat": return t("bucket.thisMonth");
-    case "aelter": return t("bucket.older");
-  }
-}
-
-function bucketOf(updatedAt: number): BucketKey {
-  // Calendar-day-based bucketing: compares two dates at
-  // local midnight so a script edited yesterday evening is
-  // actually shown under "Yesterday" this morning and doesn't
-  // only flip over after 24 hours.
-  const startOfDay = (ms: number) => {
-    const d = new Date(ms);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  };
-  const dayDiff = Math.floor(
-    (startOfDay(Date.now()) - startOfDay(updatedAt)) / 86_400_000,
-  );
-  if (dayDiff <= 0)  return "heute";
-  if (dayDiff === 1) return "gestern";
-  if (dayDiff < 7)   return "diese-woche";
-  if (dayDiff < 31)  return "diesen-monat";
-  return "aelter";
-}
-
-function sorts(): { id: SortKey; label: string }[] {
-  return [
-    { id: "updated", label: t("browser.sort.updated") },
-    { id: "created", label: t("browser.sort.created") },
-    { id: "title",   label: t("browser.sort.title") },
-  ];
-}
 
 export interface BrowserProps {
   /** Called with the currently active folder filter so the App-level
@@ -134,15 +52,17 @@ export interface BrowserProps {
  *      this month/older (no more "recent + older" split)
  *   7. List is the default — grid via toggle
  *
- * The old `browser-topbar` (ScriptZ brand + search + actions) is gone —
- * brand and status now live in the tab bar at the top.
+ * Composition: header, list/grid and the modal dialogs live in their
+ * own sibling files (`BrowserHeader`, `BrowserList`, `BrowserDialogs`).
+ * This file keeps the state, resources and action handlers and wires
+ * everything together.
  */
 export function Browser(props: BrowserProps = {}) {
   const [activeRegion, setActiveRegion] = createSignal<Region>("scripts");
   const [searchInput, setSearchInput] = createSignal("");
   const [debouncedSearch, setDebouncedSearch] = createSignal("");
   const [sort, setSort] = createSignal<SortKey>("updated");
-  const [viewMode, setViewMode] = createSignal<ViewMode>("list"); // Liste ist Default
+  const [viewMode, setViewMode] = createSignal<ViewMode>("list"); // List is default
   const [activeFolderId, setActiveFolderId] = createSignal<string | null>(null);
 
   const [contextMenu, setContextMenu] = createSignal<{
@@ -158,6 +78,8 @@ export function Browser(props: BrowserProps = {}) {
   const [folderCreateValue, setFolderCreateValue] = createSignal("");
   const [folderDeleteTarget, setFolderDeleteTarget] = createSignal<Folder | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = createSignal<{ x: number; y: number } | null>(null);
+  const [pendingMoveAfterCreate, setPendingMoveAfterCreate] =
+    createSignal<ScriptSummary | null>(null);
 
   // Restore persisted view mode + active folder.
   onMount(async () => {
@@ -186,7 +108,7 @@ export function Browser(props: BrowserProps = {}) {
   async function onImportScriptz() {
     try {
       const result = await api.importScriptz();
-      if (!result) return; // User hat abgebrochen
+      if (!result) return; // User cancelled
       scriptsBus.bump();
       foldersBus.bump();
       tabsStore.openScript(result.scriptId, result.title);
@@ -273,22 +195,6 @@ export function Browser(props: BrowserProps = {}) {
     const id = activeFolderId();
     if (!id) return null;
     return folders()?.find((f) => f.id === id)?.name ?? null;
-  });
-
-  /** Groups the list into time buckets. Only when sorted by `updated`;
-   *  one group for other sort orders. */
-  const groups = createMemo(() => {
-    const items = list();
-    if (sort() !== "updated" || isSearching()) {
-      return [{ key: "all" as const, label: null, items }];
-    }
-    const buckets: Record<BucketKey, ScriptSummary[]> = {
-      "heute": [], "gestern": [], "diese-woche": [], "diesen-monat": [], "aelter": [],
-    };
-    for (const s of items) buckets[bucketOf(s.updated_at)].push(s);
-    return BUCKET_ORDER
-      .map((k) => ({ key: k as string, label: bucketLabel(k), items: buckets[k] }))
-      .filter((g) => g.items.length > 0);
   });
 
   // ---- Row actions ----
@@ -432,9 +338,6 @@ export function Browser(props: BrowserProps = {}) {
     });
   }
 
-  const [pendingMoveAfterCreate, setPendingMoveAfterCreate] =
-    createSignal<ScriptSummary | null>(null);
-
   async function commitFolderCreate() {
     const v = folderCreateValue().trim();
     if (!v) {
@@ -529,93 +432,20 @@ export function Browser(props: BrowserProps = {}) {
   return (
     <div class="home">
       <Show when={activeRegion() === "scripts"}>
-        <div class="home-header">
-          <div class="home-greet">
-            <h1 class="home-greet-h">{greeting()}.</h1>
-            <p class="home-greet-sub">{t("greeting.sub")}</p>
-          </div>
-
-          <MomentumStrip
-            lastScript={list()[0] ?? null}
-            onContinue={(s) => openScript(s)}
-          />
-
-          <div class="home-header-row">
-            <label class="home-search">
-              <span class="home-search-ic" aria-hidden="true"><SearchIcon /></span>
-              <input
-                ref={searchInputRef}
-                type="search"
-                placeholder={t("browser.search.placeholder")}
-                value={searchInput()}
-                onInput={(e) => setSearchInput(e.currentTarget.value)}
-                spellcheck={false}
-                autocomplete="off"
-              />
-              <button
-                class="home-search-kbd"
-                title={t("browser.commands.title", { hotkey: K("Mod+K") })}
-                onClick={(e) => {
-                  e.preventDefault();
-                  props.onOpenCmdK?.();
-                }}
-              >
-                {K("Mod+K")}
-              </button>
-            </label>
-
-            <div class="viewseg" role="group" aria-label={t("browser.view")}>
-              <button
-                type="button"
-                classList={{ "is-on": viewMode() === "list" }}
-                onClick={() => setViewMode("list")}
-                title={t("browser.view.list")}
-                aria-label={t("browser.view.list")}
-              >
-                <ListIcon />
-              </button>
-              <button
-                type="button"
-                classList={{ "is-on": viewMode() === "grid" }}
-                onClick={() => setViewMode("grid")}
-                title={t("browser.view.grid")}
-                aria-label={t("browser.view.grid")}
-              >
-                <GridIcon />
-              </button>
-            </div>
-
-            <button
-              class="icon-btn"
-              onClick={onImportScriptz}
-              title={t("browser.import.title")}
-              aria-label={t("browser.import.aria")}
-              type="button"
-            >
-              <ImportIcon />
-            </button>
-
-            <button
-              class="icon-btn"
-              classList={{ "is-active": activeRegion() === "trash" }}
-              onClick={() => setActiveRegion((r) => (r === "trash" ? "scripts" : "trash"))}
-              title={t("browser.trash")}
-              aria-label={t("browser.trash")}
-              type="button"
-            >
-              <TrashIcon />
-            </button>
-
-            <button
-              class="btn btn-primary home-new"
-              onClick={() => openNewScript()}
-              type="button"
-            >
-              <span class="home-new-plus" aria-hidden="true">+</span>
-              <span>{t("browser.new")}</span>
-            </button>
-          </div>
-        </div>
+        <BrowserHeader
+          searchInput={searchInput()}
+          onSearchInput={setSearchInput}
+          searchInputRef={(el) => (searchInputRef = el)}
+          viewMode={viewMode()}
+          onViewMode={setViewMode}
+          isTrashActive={activeRegion() === "trash"}
+          onToggleTrash={() => setActiveRegion((r) => (r === "trash" ? "scripts" : "trash"))}
+          onImport={onImportScriptz}
+          onNewScript={openNewScript}
+          onOpenCmdK={props.onOpenCmdK}
+          lastScript={list()[0] ?? null}
+          onContinueScript={(s) => openScript(s)}
+        />
 
         <FolderChips
           folders={folders() ?? []}
@@ -662,117 +492,32 @@ export function Browser(props: BrowserProps = {}) {
             </div>
           </div>
         }>
-          <div class="home-sortbar">
-            <span class="home-count-line">
-              {tPlural("units.scripts", list().length)}
-              <Show when={activeFolderName()}> · {activeFolderName()}</Show>
-              <Show when={isSearching()}> · „{debouncedSearch()}"</Show>
-            </span>
-            <button
-              type="button"
-              class="home-sort"
-              onClick={(e) => {
-                const r = e.currentTarget.getBoundingClientRect();
-                setSortMenuOpen({ x: r.right - 200, y: r.bottom + 4 });
-              }}
-            >
-              <SortIcon />
-              <span>{t("browser.sort.label", { value: sorts().find((x) => x.id === sort())?.label ?? "" })}</span>
-              <ChevronDownIcon />
-            </button>
-          </div>
-
-          <div class="home-body">
-            <Show when={isEmptyFolder()} fallback={
-              <Show when={list().length > 0 || isSearching()}>
-                <Show when={list().length > 0} fallback={
-                  <div class="home-empty">
-                    <div class="home-empty-mark home-empty-mark-search"><SearchIcon /></div>
-                    <div class="home-empty-h">{t("browser.empty.search.title", { query: debouncedSearch() })}</div>
-                    <div class="home-empty-sub">
-                      {t("browser.empty.search.hint")}
-                    </div>
-                  </div>
-                }>
-                  <For each={groups()}>
-                    {(g) => (
-                      <section class="home-group">
-                        <Show when={g.label}>
-                          <div class="home-group-label">{g.label}</div>
-                        </Show>
-                        <Show when={viewMode() === "list"} fallback={
-                          <div class="home-cards">
-                            <For each={g.items}>
-                              {(s) => (
-                                <ScriptCard
-                                  script={s}
-                                  folderName={
-                                    folders()?.find((f) => f.id === s.folder_id)?.name ?? ""
-                                  }
-                                  onClick={() => openScript(s)}
-                                  onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    setContextMenu({
-                                      x: e.clientX, y: e.clientY,
-                                      items: ctxMenuItems(s),
-                                    });
-                                  }}
-                                />
-                              )}
-                            </For>
-                          </div>
-                        }>
-                          <div class="home-list">
-                            <For each={g.items}>
-                              {(s) => (
-                                <ScriptRow
-                                  script={s}
-                                  isContext={false}
-                                  onOpen={() => openScript(s)}
-                                  onMore={(e) => {
-                                    const r = e.currentTarget.getBoundingClientRect();
-                                    setContextMenu({
-                                      x: r.right - 240, y: r.bottom + 4,
-                                      items: ctxMenuItems(s),
-                                    });
-                                  }}
-                                  onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    setContextMenu({
-                                      x: e.clientX, y: e.clientY,
-                                      items: ctxMenuItems(s),
-                                    });
-                                  }}
-                                />
-                              )}
-                            </For>
-                          </div>
-                        </Show>
-                      </section>
-                    )}
-                  </For>
-
-                  <Show when={hasMore()}>
-                    <div class="home-loadmore-row">
-                      <button
-                        class="btn btn-ghost"
-                        onClick={() => setPageLimit((n) => n + PAGE_SIZE)}
-                      >
-                        {t("browser.loadMore", { n: PAGE_SIZE })}
-                      </button>
-                    </div>
-                  </Show>
-                </Show>
-              </Show>
-            }>
-              <div class="home-empty">
-                <div class="home-empty-h">{t("browser.empty.folder.title", { folder: activeFolderName() ?? "" })}</div>
-                <div class="home-empty-sub">
-                  {t("browser.empty.folder.hint")}
-                </div>
-              </div>
-            </Show>
-          </div>
+          <BrowserList
+            items={list()}
+            folders={folders() ?? []}
+            sort={sort()}
+            viewMode={viewMode()}
+            isSearching={isSearching()}
+            searchQuery={debouncedSearch()}
+            activeFolderName={activeFolderName()}
+            hasMore={hasMore()}
+            pageSize={PAGE_SIZE}
+            onLoadMore={() => setPageLimit((n) => n + PAGE_SIZE)}
+            onOpenSortMenu={(x, y) => setSortMenuOpen({ x, y })}
+            onOpenScript={(s) => openScript(s)}
+            onScriptContextMenu={(s, e) => setContextMenu({
+              x: e.clientX, y: e.clientY,
+              items: ctxMenuItems(s),
+            })}
+            onScriptMore={(s, e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setContextMenu({
+                x: r.right - 240, y: r.bottom + 4,
+                items: ctxMenuItems(s),
+              });
+            }}
+            isEmptyFolder={isEmptyFolder()}
+          />
         </Show>
       </Show>
 
@@ -808,426 +553,31 @@ export function Browser(props: BrowserProps = {}) {
         )}
       </Show>
 
-      <Modal
-        open={renameTarget() !== null}
-        onClose={() => setRenameTarget(null)}
-        title={t("script.renameTitle")}
-        footer={
-          <>
-            <button class="btn" onClick={() => setRenameTarget(null)}>
-              {t("common.cancel")}
-            </button>
-            <button
-              class="btn btn-primary"
-              onClick={commitRename}
-              disabled={renameValue().trim().length === 0}
-            >
-              {t("common.save")}
-            </button>
-          </>
-        }
-      >
-        <Show when={renameTarget()}>
-          {(target) => (
-            <div class="field">
-              <label>{t("script.titleLabel")}</label>
-              <input
-                type="text"
-                value={renameValue()}
-                autofocus
-                aria-invalid={renameValue().trim().length === 0}
-                aria-describedby={
-                  renameValue().trim().length === 0 ? "rename-empty-hint" : undefined
-                }
-                onInput={(e) => setRenameValue(e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void commitRename();
-                }}
-              />
-              <Show
-                when={renameValue().trim().length === 0}
-                fallback={
-                  <div class="muted small">
-                    {t("common.current", { value: target().title })}
-                  </div>
-                }
-              >
-                <div id="rename-empty-hint" class="field-hint field-hint-warn">
-                  {t("script.renameEmptyHint")}
-                </div>
-              </Show>
-            </div>
-          )}
-        </Show>
-      </Modal>
-
-      <Modal
-        open={folderCreateOpen()}
-        onClose={() => {
+      <BrowserDialogs
+        renameTarget={renameTarget()}
+        renameValue={renameValue()}
+        onRenameValue={setRenameValue}
+        onRenameClose={() => setRenameTarget(null)}
+        onRenameCommit={() => void commitRename()}
+        folderCreateOpen={folderCreateOpen()}
+        folderCreateValue={folderCreateValue()}
+        onFolderCreateValue={setFolderCreateValue}
+        onFolderCreateClose={() => {
           setFolderCreateOpen(false);
           setPendingMoveAfterCreate(null);
         }}
-        title={t("folder.createTitle")}
-        footer={
-          <>
-            <button class="btn" onClick={() => {
-              setFolderCreateOpen(false);
-              setPendingMoveAfterCreate(null);
-            }}>
-              {t("common.cancel")}
-            </button>
-            <button class="btn btn-primary" onClick={commitFolderCreate}>
-              {t("folder.createSubmit")}
-            </button>
-          </>
-        }
-      >
-        <div class="field">
-          <label>{t("common.name")}</label>
-          <input
-            type="text"
-            value={folderCreateValue()}
-            placeholder={t("folder.placeholder")}
-            autofocus
-            onInput={(e) => setFolderCreateValue(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void commitFolderCreate();
-            }}
-          />
-        </div>
-      </Modal>
-
-      <Modal
-        open={folderRenameTarget() !== null}
-        onClose={() => setFolderRenameTarget(null)}
-        title={t("folder.renameTitle")}
-        footer={
-          <>
-            <button class="btn" onClick={() => setFolderRenameTarget(null)}>
-              {t("common.cancel")}
-            </button>
-            <button class="btn btn-primary" onClick={commitFolderRename}>
-              {t("common.save")}
-            </button>
-          </>
-        }
-      >
-        <Show when={folderRenameTarget()}>
-          {(target) => (
-            <div class="field">
-              <label>{t("folder.renameLabel")}</label>
-              <input
-                type="text"
-                value={folderRenameValue()}
-                autofocus
-                onInput={(e) => setFolderRenameValue(e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void commitFolderRename();
-                }}
-              />
-              <div class="muted small">{t("common.current", { value: target().name })}</div>
-            </div>
-          )}
-        </Show>
-      </Modal>
-
-      <Show when={folderDeleteTarget()}>
-        {(target) => (
-          <ConfirmDialog
-            open={true}
-            title={t("folder.deleteTitle", { name: target().name })}
-            body={
-              target().script_count === 0
-                ? t("folder.deleteBody.empty")
-                : target().script_count === 1
-                ? t("folder.deleteBody.one")
-                : t("folder.deleteBody.many", { count: target().script_count })
-            }
-            confirmLabel={t("common.delete")}
-            danger
-            onCancel={() => setFolderDeleteTarget(null)}
-            onConfirm={() => void commitFolderDelete()}
-          />
-        )}
-      </Show>
+        onFolderCreateCommit={() => void commitFolderCreate()}
+        folderRenameTarget={folderRenameTarget()}
+        folderRenameValue={folderRenameValue()}
+        onFolderRenameValue={setFolderRenameValue}
+        onFolderRenameClose={() => setFolderRenameTarget(null)}
+        onFolderRenameCommit={() => void commitFolderRename()}
+        folderDeleteTarget={folderDeleteTarget()}
+        onFolderDeleteCancel={() => setFolderDeleteTarget(null)}
+        onFolderDeleteConfirm={() => void commitFolderDelete()}
+      />
     </div>
   );
 }
 
 export default Browser;
-
-/* ---------- Sort-Popover ---------- */
-
-function SortPopover(props: {
-  x: number; y: number;
-  current: SortKey;
-  onPick: (id: SortKey) => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div class="popover-scrim" onClick={() => props.onClose()} />
-      <div class="popover-menu" style={`left:${props.x}px;top:${props.y}px;`}>
-        <For each={sorts()}>
-          {(o) => (
-            <button
-              type="button"
-              class="popover-item"
-              onClick={() => props.onPick(o.id)}
-            >
-              <span class="popover-ic">
-                <Show when={props.current === o.id}><CheckIcon /></Show>
-              </span>
-              <span>{o.label}</span>
-            </button>
-          )}
-        </For>
-      </div>
-    </>
-  );
-}
-
-/* ---------- Script-Card (Grid) ---------- */
-
-interface ScriptCardProps {
-  script: ScriptSummary;
-  folderName: string;
-  onClick: () => void;
-  onContextMenu: (e: MouseEvent) => void;
-}
-function ScriptCard(props: ScriptCardProps) {
-  const bg = () => stripeBackground(props.script.characters, "to right");
-  const [dragging, setDragging] = createSignal(false);
-  return (
-    <article
-      class="card-v2"
-      classList={{ "is-dragging": dragging() }}
-      role="button"
-      draggable={true}
-      onDragStart={(e) => {
-        if (!e.dataTransfer) return;
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
-        e.dataTransfer.setData("text/plain", props.script.title);
-        setDragging(true);
-      }}
-      onDragEnd={() => setDragging(false)}
-      onClick={props.onClick}
-      onContextMenu={props.onContextMenu}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          props.onClick();
-        }
-      }}
-      tabIndex={0}
-      aria-label={props.script.title || t("common.untitled")}
-    >
-      <div
-        class="card-v2-strip"
-        classList={{ "is-empty": bg() === null }}
-        style={bg() ? `background: ${bg()};` : ""}
-        aria-hidden="true"
-      />
-      <div class="card-v2-body">
-        <div class="card-v2-head">
-          <div class="card-v2-folder">{props.folderName}</div>
-        </div>
-        <div class="card-v2-title">{props.script.title || t("common.untitled")}</div>
-        <div class="card-v2-meta-row">
-          <span class="card-v2-meta">
-            {relativeTime(props.script.updated_at)}
-            {(() => {
-              const rt = runtimeLabelFor(props.script, settingsStore.dialogWpm());
-              return rt ? ` · ${rt}` : "";
-            })()}
-          </span>
-          <span class="card-v2-cast">
-            <For each={props.script.characters.slice(0, 4)}>
-              {(c) => (
-                <span class="cast-dot" title={c.name} style={`background:${c.color};`} />
-              )}
-            </For>
-            <Show when={props.script.characters.length === 0}>
-              <span class="card-v2-meta-faint">{t("browser.notes")}</span>
-            </Show>
-          </span>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-/* ---------- Script-Row (List) ---------- */
-
-interface ScriptRowProps {
-  script: ScriptSummary;
-  isContext: boolean;
-  onOpen: () => void;
-  onMore: (e: MouseEvent & { currentTarget: HTMLElement }) => void;
-  onContextMenu: (e: MouseEvent) => void;
-}
-function ScriptRow(props: ScriptRowProps) {
-  const bg = () => stripeBackground(props.script.characters, "to bottom");
-  const [dragging, setDragging] = createSignal(false);
-  return (
-    <div
-      class="row-v2"
-      role="button"
-      classList={{ "is-context": props.isContext, "is-dragging": dragging() }}
-      draggable={true}
-      onDragStart={(e) => {
-        if (!e.dataTransfer) return;
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
-        e.dataTransfer.setData("text/plain", props.script.title);
-        setDragging(true);
-      }}
-      onDragEnd={() => setDragging(false)}
-      onClick={props.onOpen}
-      onContextMenu={props.onContextMenu}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          props.onOpen();
-        }
-      }}
-      aria-label={props.script.title || t("common.untitled")}
-    >
-      <div
-        class="row-stripe"
-        classList={{ "row-stripe-empty": bg() === null }}
-        style={bg() ? `background: ${bg()};` : ""}
-      />
-      <div class="row-v2-title">{props.script.title || t("common.untitled")}</div>
-      <div class="row-v2-chars">
-        <For each={props.script.characters.slice(0, 2)}>
-          {(c) => (
-            <span class="char-pill" style={`color:${c.color};--char-color:${c.color};`}>
-              {c.name}
-            </span>
-          )}
-        </For>
-        <Show when={props.script.characters.length > 2}>
-          <span class="row-v2-chars-more">
-            +{props.script.characters.length - 2}
-          </span>
-        </Show>
-      </div>
-      <div class="row-v2-meta">{relativeTime(props.script.updated_at)}</div>
-      <div class="row-v2-pages">
-        {(() => {
-          const rt = runtimeLabelFor(props.script, settingsStore.dialogWpm());
-          return rt ?? "—";
-        })()}
-      </div>
-      <button
-        class="row-v2-more"
-        aria-label={t("browser.rowMore")}
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onMore(e as MouseEvent & { currentTarget: HTMLElement });
-        }}
-      >
-        <MoreIcon />
-      </button>
-    </div>
-  );
-}
-
-/* ---------- Icons ---------- */
-
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-function TrashIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
-}
-function ImportIcon() {
-  // Download-Pfeil ins Tablett - signalisiert "Datei reinholen".
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-function ListIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="8" y1="6" x2="21" y2="6" />
-      <line x1="8" y1="12" x2="21" y2="12" />
-      <line x1="8" y1="18" x2="21" y2="18" />
-      <line x1="3" y1="6" x2="3.01" y2="6" />
-      <line x1="3" y1="12" x2="3.01" y2="12" />
-      <line x1="3" y1="18" x2="3.01" y2="18" />
-    </svg>
-  );
-}
-function GridIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="7" height="7" />
-      <rect x="14" y="3" width="7" height="7" />
-      <rect x="14" y="14" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" />
-    </svg>
-  );
-}
-function MoreIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="6" r="1" />
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="12" cy="18" r="1" />
-    </svg>
-  );
-}
-function SortIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="11 9 8 6 5 9" />
-      <polyline points="19 15 16 18 13 15" />
-      <line x1="8" y1="6" x2="8" y2="18" />
-      <line x1="16" y1="18" x2="16" y2="6" />
-    </svg>
-  );
-}
-function ChevronDownIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}

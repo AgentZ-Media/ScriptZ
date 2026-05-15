@@ -52,7 +52,7 @@ export async function createIdea(input: {
   notes?: string;
 }): Promise<Idea> {
   const title = input.title.trim();
-  if (!title) throw new Error("Idea title must not be empty");
+  if (!title) throw new Error(t("idea.error.emptyTitle"));
   const id = crypto.randomUUID();
   const now = Date.now();
   const db = await getDb();
@@ -74,9 +74,9 @@ export async function updateIdea(input: {
 }): Promise<Idea> {
   const db = await getDb();
   if (input.title !== undefined) {
-    const t = input.title.trim();
-    if (!t) throw new Error("Idea title must not be empty");
-    await db.execute(`UPDATE ideas SET title = $1 WHERE id = $2`, [t, input.id]);
+    const trimmed = input.title.trim();
+    if (!trimmed) throw new Error(t("idea.error.emptyTitle"));
+    await db.execute(`UPDATE ideas SET title = $1 WHERE id = $2`, [trimmed, input.id]);
   }
   if (input.notes !== undefined) {
     await db.execute(`UPDATE ideas SET notes = $1 WHERE id = $2`, [input.notes, input.id]);

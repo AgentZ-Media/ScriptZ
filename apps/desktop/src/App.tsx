@@ -24,9 +24,10 @@ import { SettingsDialog } from "@scriptz/core/components/Settings/SettingsDialog
 import { NewScriptDialog } from "@scriptz/core/components/Browser/NewScriptDialog";
 import { ExportDialog } from "@scriptz/core/components/Editor/ExportDialog";
 import ToastHost from "@scriptz/core/components/Common/ToastHost";
+import { BootErrorScreen } from "@scriptz/core/components/Common/BootErrorScreen";
 import { IdeaQuickCapture } from "@scriptz/core/components/Ideas/IdeaQuickCapture";
 import { IdeasView } from "@scriptz/core/components/Ideas/IdeasView";
-import { ensureWelcomeContent } from "@scriptz/core/lib/welcome";
+import { ensureWelcomeContent, getWelcomeScript } from "@scriptz/core/lib/welcome";
 import { flushAll } from "@scriptz/core/lib/saveFlush";
 import { OnboardingDialog, ONBOARDING_KEY } from "@scriptz/core/components/Onboarding/OnboardingDialog";
 import { t } from "@scriptz/core/i18n";
@@ -35,6 +36,7 @@ import "@scriptz/core/components/Common/Common.css";
 
 export default function App() {
   const [bootReady, setBootReady] = createSignal(false);
+  const [bootError, setBootError] = createSignal<Error | null>(null);
   const [cmdkOpen, setCmdkOpen] = createSignal(false);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [newScriptOpen, setNewScriptOpen] = createSignal(false);
@@ -91,6 +93,23 @@ export default function App() {
     }
   };
 
+  // Onboarding finish: open the welcome/tutorial script if it still
+  // exists. If the user already deleted it (or this is a re-run of the
+  // onboarding via Settings on an existing install), drop them on the
+  // browser overview instead of silently creating a new empty script.
+  const openWelcomeOrBrowser = async () => {
+    try {
+      const welcome = await getWelcomeScript();
+      if (welcome) {
+        tabsStore.openScript(welcome.id, welcome.title);
+        return;
+      }
+    } catch (err) {
+      console.warn("[scriptz] welcome resolution failed", err);
+    }
+    tabsStore.openBrowser();
+  };
+
   onMount(async () => {
     try {
       // The three boot steps are independent of each other:
@@ -114,11 +133,15 @@ export default function App() {
           console.warn("[scriptz] runtime backfill skipped", err);
         }),
       ]);
+      setBootReady(true);
     } catch (err) {
       console.error("[scriptz] boot failed", err);
-      pushToast(t("boot.failed", { message: (err as Error).message ?? String(err) }), "error");
-    } finally {
-      setBootReady(true);
+      // Hard stop: stash the error and let the render switch to the
+      // recovery screen. Falling through to the normal UI would land
+      // the user in a "scripts gone" panic, since every follow-up DB
+      // call would throw.
+      setBootError(err instanceof Error ? err : new Error(String(err)));
+      return;
     }
     // Onboarding only on first start. After setBootReady so the
     // overlay doesn't smash over the boot screen.
@@ -399,6 +422,15 @@ export default function App() {
         "is-focus": focusMode() && !tabsStore.isHome() && !tabsStore.isIdeas(),
       }}
     >
+      <Show
+        when={!bootError()}
+        fallback={
+          <BootErrorScreen
+            error={bootError()!}
+            onRetry={() => window.location.reload()}
+          />
+        }
+      >
       <Show when={bootReady()} fallback={<BootScreen />}>
         <TabBar
           onNewScript={() => void quickCreateScript()}
@@ -448,7 +480,7 @@ export default function App() {
         <OnboardingDialog
           open={onboardingOpen()}
           onClose={() => setOnboardingOpen(false)}
-          onCreateFirstScript={() => void quickCreateScript()}
+          onFinish={() => void openWelcomeOrBrowser()}
         />
         <Show when={newScriptOpen()}>
           <NewScriptDialog
@@ -477,6 +509,7 @@ export default function App() {
           />
         </Show>
         <ToastHost />
+      </Show>
       </Show>
     </div>
   );

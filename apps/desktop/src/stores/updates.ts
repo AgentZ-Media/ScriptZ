@@ -3,6 +3,7 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { settingsStore } from "@scriptz/core/stores/settings";
 import { setUpdatesStore, type UpdatesStore } from "@scriptz/core/lib/updates";
+import { flushAll } from "@scriptz/core/lib/saveFlush";
 
 export type UpdateStage =
   | "idle"
@@ -93,6 +94,16 @@ async function downloadAndInstall(): Promise<void> {
 }
 
 async function restart(): Promise<void> {
+  try {
+    // Drain pending writes (debounced auto-save, tab-state) before
+    // the relaunch tears the process down. Without this, the last
+    // ~250 ms of typing can be lost if the user clicks the update
+    // pill mid-edit. The window-close handler in App.tsx doesn't run
+    // here because `relaunch` restarts the process directly.
+    await flushAll(2000);
+  } catch (err) {
+    console.warn("[scriptz] flushAll before relaunch failed", err);
+  }
   try {
     await relaunch();
   } catch {

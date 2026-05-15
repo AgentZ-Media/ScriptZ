@@ -2,10 +2,7 @@ import { onCleanup, onMount, createEffect, createSignal } from "solid-js";
 import {
   createEditor,
   $getRoot,
-  $getSelection,
-  $isRangeSelection,
   type LexicalEditor,
-  type LexicalNode,
   type EditorThemeClasses,
 } from "lexical";
 import { registerHistory, createEmptyHistoryState } from "@lexical/history";
@@ -14,7 +11,6 @@ import {
   SCRIPTZ_NODES,
   BaseScriptzNode,
   $createScriptzCharacterNode,
-  $isScriptzCharacterNode,
 } from "./nodes";
 import { installSmartEnter } from "./plugins/smartEnter";
 import { installBlockDropdown } from "./plugins/blockDropdown";
@@ -26,12 +22,15 @@ import { installCharacterDropdown } from "./plugins/characterDropdown";
 import { installHighlight } from "./plugins/highlight";
 import { installColorPicker } from "./plugins/colorPicker";
 import { api } from "../../lib/api";
-import { scriptsBus } from "../../lib/scriptsBus";
-import { registerFlusher } from "../../lib/saveFlush";
 import { settingsStore } from "../../stores/settings";
-import { DEFAULT_PALETTE } from "../../lib/characterColors";
+import { K } from "../../lib/keys";
+import { t } from "../../i18n";
 import type { ScriptCharacter } from "../../lib/types";
 import { applyCursor, type CursorAddress } from "../../lib/scriptViewCache";
+import { createActiveBlockReporter } from "./activeBlockReporter";
+import { createCharacterReconcile } from "./characterReconcile";
+import { createPersistence } from "./persistence";
+import { installCanvasFocus } from "./canvasFocus";
 import "./Editor.css";
 
 export interface EditorProps {
@@ -67,14 +66,6 @@ export interface EditorProps {
 }
 
 const THEME: EditorThemeClasses = {};
-
-const SAVE_DEBOUNCE_MS = 250;
-const AUTO_SNAPSHOT_MS = 5 * 60 * 1000;
-// Used for character pills the user just typed in this session — the server
-// assigns a real palette color on save, but we never re-pull the script (that
-// caused contentEditable focus loss every 250ms during typing), so the dot
-// stays neutral until the next time the script is opened.
-const PENDING_CHAR_COLOR = "#9aa0a6";
 
 function seedEmptyState(editor: LexicalEditor) {
   editor.update(
@@ -149,9 +140,6 @@ export function Editor(props: EditorProps) {
         // but-present content_json with `{root:{children:[…empty…]}}`,
         // making recovery impossible.
         if (props.onParseError) {
-          // Tear down what's already wired up (rich-text + history were
-          // registered above) before bailing. The plugins below haven't
-          // been installed yet, so nothing else to undo.
           try { teardownHistory(); } catch { /* ignore */ }
           try { teardownRichText(); } catch { /* ignore */ }
           editor.setRootElement(null);
@@ -168,16 +156,11 @@ export function Editor(props: EditorProps) {
 
     // Word-style: when a script becomes the active editor, the writer
     // should be able to start typing immediately — no manual click into
-    // the contenteditable area required. We focus on the next frame so
-    // Lexical has finished its initial reconcile and the DOM target
-    // exists.
-    //
-    // If an `initialCursor` was provided (tab switch back to a
-    // previously open script), we place the cursor at the
-    // saved spot and focus WITHOUT `defaultSelection` -
-    // otherwise Lexical would overwrite the just-set selection back to
-    // rootEnd. Without a saved cursor the
-    // original behavior stands: to the end of the document.
+    // the contenteditable area required. If an `initialCursor` was
+    // provided (tab switch back to a previously open script), we place
+    // the cursor at the saved spot and focus WITHOUT `defaultSelection`
+    // — otherwise Lexical would overwrite the just-set selection back
+    // to rootEnd. Without a saved cursor: to the end of the document.
     const initialCursor = props.initialCursor ?? null;
     requestAnimationFrame(() => {
       try {
@@ -192,40 +175,7 @@ export function Editor(props: EditorProps) {
       }
     });
 
-    // Word-style: clicking anywhere on the surrounding paper canvas
-    // (margins, empty space below the last block) drops the caret at
-    // the end of the document, mirroring how a desktop word processor
-    // treats the page area as "more editor". We attach to the closest
-    // paper-canvas ancestor so the listener lives outside the
-    // contenteditable surface and doesn't fight the editor's own
-    // mousedown handling.
-    const canvas = rootRef.closest(".paper-canvas") as HTMLElement | null;
-    const onCanvasMousedown = (ev: MouseEvent) => {
-      const target = ev.target as HTMLElement | null;
-      if (!target) return;
-      // Click landed inside the editor — let Lexical place the caret
-      // at the actual click location.
-      if (target.closest(".editor-root")) return;
-      // Don't intercept controls (toggle pill, status strip, dropdowns,
-      // etc.) — the user clicked something else on purpose.
-      if (
-        target.closest("button") ||
-        target.closest("input") ||
-        target.closest("textarea") ||
-        target.closest(".scriptz-block-dropdown") ||
-        target.closest(".scriptz-character-dropdown") ||
-        target.closest(".script-status")
-      ) {
-        return;
-      }
-      ev.preventDefault();
-      try {
-        editor.focus(undefined, { defaultSelection: "rootEnd" });
-      } catch {
-        /* ignore */
-      }
-    };
-    canvas?.addEventListener("mousedown", onCanvasMousedown);
+    const teardownCanvasFocus = installCanvasFocus(rootRef, editor);
 
     const teardownSmartEnter = installSmartEnter(editor, {
       isQuickModeOn: () => !!props.quickModeEnabled?.(),
@@ -257,9 +207,6 @@ export function Editor(props: EditorProps) {
 
     // Recompute character tints when the user toggles the dark-paper option
     // or the resolved theme changes (auto + system switch).
-    // The tint formula depends on the paper mode (toward white vs toward
-    // dark), so all blocks have to be re-tinted. The first run
-    // is skipped, the plugin's initial pass already covers it.
     let firstPaperSync = true;
     createEffect(() => {
       settingsStore.darkPaper();
@@ -273,11 +220,24 @@ export function Editor(props: EditorProps) {
 
     // Cache of the app-wide character color records (override ?? default
     // from character_colors). Loaded once on mount and updated after
-    // every save with the server response. The sync reconcile
-    // path uses this so a recurring character (same
-    // name already tinted in another script) gets the right
-    // color immediately instead of only after the debounced DB roundtrip.
+    // every save with the server response. The sync reconcile path
+    // uses this so a recurring character (same name already tinted in
+    // another script) gets the right color immediately instead of only
+    // after the debounced DB roundtrip.
     const knownColors = new Map<string, string>();
+
+    // Character reconciliation (runs synchronously on every keystroke).
+    const charReconcile = createCharacterReconcile({
+      editor,
+      getKnownColors: () => knownColors,
+      getLiveCharacters: () => liveCharacters(),
+      setLiveCharacters,
+      onChange: (next) => {
+        props.onCharactersChange?.(next);
+        highlight.refresh();
+      },
+    });
+
     api
       .listCharacterColors()
       .then((records) => {
@@ -287,100 +247,17 @@ export function Editor(props: EditorProps) {
         }
         // If the editor already contained characters (seeded from props),
         // reconcile again now so the cache takes effect.
-        reconcileLiveCharactersSync();
+        charReconcile.reconcileLiveCharactersSync();
       })
       .catch(() => {
         /* without the cache, the palette fallback further down takes over */
       });
 
-    /** Pick a palette color that isn't already claimed in the
-     *  already-assembled list. Mirrors `pickPaletteInScript` from
-     *  characterColors.ts so the later server save (which knows the same
-     *  heuristic) lands on the same color and no
-     *  visible re-coloring happens. */
-    function pickFallbackColor(existing: ScriptCharacter[]): string {
-      const used = new Set<string>();
-      for (const c of existing) used.add(c.color);
-      for (const p of DEFAULT_PALETTE) {
-        if (!used.has(p)) return p;
-      }
-      return DEFAULT_PALETTE[0];
-    }
-
-    /** Synchronous walk through the editor state that adjusts `liveCharacters`
-     *  to the currently visible character blocks. Runs on
-     *  every Lexical update (not debounced) — otherwise the user would
-     *  have to wait for the 250 ms DB-save debounce before the tint
-     *  color stays on character / dialog. New names get
-     *  a color immediately (knownColors from DB cache, otherwise palette);
-     *  the later save canonicalizes that via the server response. */
-    function reconcileLiveCharactersSync(): boolean {
-      const seenNames: string[] = [];
-      const seenSet = new Set<string>();
-      editor.getEditorState().read(() => {
-        let editedCharKey: string | null = null;
-        const sel = $getSelection();
-        if ($isRangeSelection(sel)) {
-          let cur: LexicalNode | null = sel.anchor.getNode();
-          while (cur) {
-            if ($isScriptzCharacterNode(cur)) {
-              editedCharKey = cur.getKey();
-              break;
-            }
-            cur = cur.getParent();
-          }
-        }
-        const root = $getRoot();
-        for (const child of root.getChildren()) {
-          if (
-            $isScriptzCharacterNode(child) &&
-            child.getKey() !== editedCharKey
-          ) {
-            const name = child.getTextContent().trim().toUpperCase();
-            if (name && !seenSet.has(name)) {
-              seenSet.add(name);
-              seenNames.push(name);
-            }
-          }
-        }
-      });
-
-      const prev = liveCharacters();
-      const colorByPrev = new Map(prev.map((c) => [c.name.toUpperCase(), c.color]));
-      const next: ScriptCharacter[] = [];
-      for (const name of seenNames) {
-        const existing = colorByPrev.get(name);
-        if (existing && existing !== PENDING_CHAR_COLOR) {
-          next.push({ name, color: existing });
-          continue;
-        }
-        const known = knownColors.get(name);
-        if (known) {
-          next.push({ name, color: known });
-          continue;
-        }
-        next.push({ name, color: pickFallbackColor(next) });
-      }
-
-      const changed =
-        next.length !== prev.length ||
-        next.some(
-          (c, i) => c.name !== prev[i]?.name || c.color !== prev[i]?.color,
-        );
-      if (changed) {
-        setLiveCharacters(next);
-        props.onCharactersChange?.(next);
-        highlight.refresh();
-      }
-      return changed;
-    }
-
     // Pull external color updates (e.g. from the settings characters tab)
     // live into the running editor. ScriptView refetches on
-    // `scriptsBus.bump()` and passes the fresh `characters` as a prop
-    // — we merge ONLY colors into `liveCharacters` (no replace),
-    // so currently-typed, not-yet-saved names aren't
-    // overwritten. The first run is skipped because
+    // `scriptsBus.bump()` and passes the fresh `characters` as a prop —
+    // we merge ONLY colors (no replace), so currently-typed, not-yet-
+    // saved names aren't overwritten. The first run is skipped because
     // `liveCharacters` is already seeded from props.
     let firstCharacterSync = true;
     createEffect(() => {
@@ -389,274 +266,50 @@ export function Editor(props: EditorProps) {
         firstCharacterSync = false;
         return;
       }
-      const byName = new Map<string, string>();
-      for (const c of incoming) byName.set(c.name.toUpperCase(), c.color);
-      const current = liveCharacters();
-      let changed = false;
-      const merged = current.map((c) => {
-        const next = byName.get(c.name.toUpperCase());
-        if (next !== undefined && next !== c.color) {
-          changed = true;
-          return { ...c, color: next };
-        }
-        return c;
-      });
-      if (changed) {
-        setLiveCharacters(merged);
+      if (charReconcile.mergeExternalColors(incoming)) {
         highlight.refresh();
       }
     });
 
-    let saveTimer: ReturnType<typeof setTimeout> | null = null;
-    let dirtySinceSnapshot = false;
-
-    /** Heuristic: is `contentJson` an "empty" Lexical doc?
-     *  Used to detect when `persist()` tries to write empty state
-     *  over real content because of a race (editor torn down while a
-     *  debounced / onCleanup persist() is running). */
-    function isContentEffectivelyEmpty(json: string): boolean {
-      try {
-        const root = (JSON.parse(json) as { root?: { children?: unknown[] } })?.root;
-        if (!root || !Array.isArray(root.children) || root.children.length === 0) return true;
-        let totalText = 0;
-        const walk = (n: unknown): void => {
-          if (typeof n !== "object" || n === null) return;
-          const o = n as { type?: string; text?: string; children?: unknown[] };
-          if (o.type === "text" && typeof o.text === "string") totalText += o.text.length;
-          if (Array.isArray(o.children)) o.children.forEach(walk);
-        };
-        walk(root);
-        return totalText === 0;
-      } catch {
-        return true;
-      }
-    }
-
-    // Tracks the last content we successfully wrote to the DB. Used by the
-    // teardown-race guard below: if the editor state goes empty during an
-    // unmount/flush AND the last save had real content, that's a Lexical
-    // teardown reading the wrong state, not the user clearing the script.
-    let lastPersistedContent = props.initialContentJson ?? "";
-
-    const persist = async (fromTeardown = false) => {
-      let contentJson = "";
-
-      editor.getEditorState().read(() => {
-        const state = editor.getEditorState();
-        contentJson = JSON.stringify(state.toJSON());
-      });
-
-      // Note: the live character list is NO LONGER updated here
-      // — that runs synchronously in registerUpdateListener via
-      // `reconcileLiveCharactersSync()`. Otherwise the tint would have
-      // to wait for the 250 ms save debounce and stay grey while typing fast.
-
-      // Safety net against data loss: if the editor state looks empty NOW
-      // and the last successfully saved state had content, on a teardown
-      // that's a clear race symptom (editor was
-      // torn down while an onCleanup persist() was running). We block
-      // this only on teardown - otherwise a legitimate "fully clear
-      // the script" by the user would fail forever.
-      if (
-        fromTeardown &&
-        isContentEffectivelyEmpty(contentJson) &&
-        lastPersistedContent &&
-        !isContentEffectivelyEmpty(lastPersistedContent)
-      ) {
-        console.warn(
-          "[scriptz] persist() abgebrochen: Teardown-Flush mit leerem " +
-          "Editor-State, letzter gespeicherter Stand war nicht leer - " +
-          "vermutlich Unmount-Race. Keine Überschreibung.",
-        );
-        return;
-      }
-
-      props.onSavingChange?.(true);
-      try {
-        const summary = await api.updateScript({
-          id: props.scriptId,
-          contentJson,
-        });
-        lastPersistedContent = contentJson;
-        scriptsBus.bump();
-
-        // Re-walk the editor state (the user may have typed during the
-        // round-trip) and map each current name to the server-assigned
-        // palette color from the summary. If the server doesn't yet know
-        // a color for a name typed mid-flight, we keep
-        // the locally-chosen color from `liveCharacters` — the
-        // next save canonicalizes it. Previously the name landed on
-        // `PENDING_CHAR_COLOR` (grey), which would have reverted the
-        // sync fix.
-        const colorMap = new Map(
-          summary.characters.map((c) => [c.name.toUpperCase(), c.color]),
-        );
-        // Update the cache so a name retyped in a later script
-        // immediately gets the canonical color.
-        for (const c of summary.characters) {
-          knownColors.set(c.name.toUpperCase(), c.color);
-        }
-        const currentNames: string[] = [];
-        const currentSet = new Set<string>();
-        editor.getEditorState().read(() => {
-          let editedCharKey: string | null = null;
-          const sel = $getSelection();
-          if ($isRangeSelection(sel)) {
-            let cur: LexicalNode | null = sel.anchor.getNode();
-            while (cur) {
-              if ($isScriptzCharacterNode(cur)) {
-                editedCharKey = cur.getKey();
-                break;
-              }
-              cur = cur.getParent();
-            }
-          }
-          const root = $getRoot();
-          for (const child of root.getChildren()) {
-            if (
-              $isScriptzCharacterNode(child) &&
-              child.getKey() !== editedCharKey
-            ) {
-              const name = child.getTextContent().trim().toUpperCase();
-              if (name && !currentSet.has(name)) {
-                currentSet.add(name);
-                currentNames.push(name);
-              }
-            }
-          }
-        });
-        const before = liveCharacters();
-        const colorByPrev = new Map(
-          before.map((c) => [c.name.toUpperCase(), c.color]),
-        );
-        const merged: ScriptCharacter[] = currentNames.map((name) => ({
-          name,
-          color:
-            colorMap.get(name) ??
-            colorByPrev.get(name) ??
-            PENDING_CHAR_COLOR,
-        }));
-        const changed =
-          merged.length !== before.length ||
-          merged.some(
-            (c, i) => c.name !== before[i]?.name || c.color !== before[i]?.color,
-          );
-        if (changed) {
-          setLiveCharacters(merged);
-          props.onCharactersChange?.(merged);
-          highlight.refresh();
-        }
-      } catch (err) {
-        console.error("[scriptz] auto-save failed", err);
-      } finally {
-        props.onSavingChange?.(false);
-      }
-    };
-
-    // Track the active block type — both on selection changes (cursor
-    // moves via keyboard / click) and on content changes (e.g.
-    // ⌘1..⌘7 replaces the block type under the cursor).
-    let lastActiveBlock: string | null = null;
-    const reportActiveBlock = () => {
-      if (!props.onActiveBlockChange) return;
-      let kind: string | null = null;
-      editor.getEditorState().read(() => {
-        const sel = $getSelection();
-        if (!$isRangeSelection(sel)) return;
-        let cur: LexicalNode | null = sel.anchor.getNode();
-        while (cur) {
-          if (cur instanceof BaseScriptzNode) {
-            kind = cur.getBlockType();
-            break;
-          }
-          cur = cur.getParent();
-        }
-      });
-      if (kind !== lastActiveBlock) {
-        lastActiveBlock = kind;
-        props.onActiveBlockChange?.(kind);
-      }
-    };
-    // Initial value after mount.
-    requestAnimationFrame(reportActiveBlock);
-
-    /** Marks the editor root with `data-empty="1"` when the entire
-     *  script is empty (exactly one block, without text). CSS uses this
-     *  to render the ⌘ hint in the hostRef sibling. */
-    const updateEmptyMarker = () => {
-      if (!rootRef) return;
-      let isEmpty = true;
-      editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const children = root.getChildren();
-        if (children.length !== 1) {
-          isEmpty = false;
-          return;
-        }
-        if (children[0].getTextContent().trim().length > 0) {
-          isEmpty = false;
-        }
-      });
-      if (isEmpty) rootRef.setAttribute("data-empty", "1");
-      else rootRef.removeAttribute("data-empty");
-    };
-    requestAnimationFrame(updateEmptyMarker);
-
-    const teardownUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
-      // Selection tracking independent of the dirty state — the cursor can
-      // move without anything being typed.
-      reportActiveBlock();
-
-      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
-      dirtySinceSnapshot = true;
-      updateEmptyMarker();
-      // Reconcile the character list IMMEDIATELY (not only after save
-      // debounce) so the tint stays on character / dialog as soon as the
-      // user presses Enter after the name — even when typing without a pause.
-      reconcileLiveCharactersSync();
-      if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => {
-        saveTimer = null;
-        void persist();
-      }, SAVE_DEBOUNCE_MS);
+    // Persistence (debounced save, teardown-race guard, snapshot loop).
+    const persistence = createPersistence({
+      editor,
+      scriptId: props.scriptId,
+      initialContentJson: props.initialContentJson,
+      knownColors,
+      mergeAfterSave: (summary) => charReconcile.mergeAfterSave(summary),
+      onSavingChange: props.onSavingChange,
     });
 
-    // If a save is buffered when the window is closing or this editor is
-    // about to unmount (script switch, tab close), persist immediately
-    // instead of dropping the pending writes.
-    const flushPending = async (): Promise<void> => {
-      if (!saveTimer) return;
-      clearTimeout(saveTimer);
-      saveTimer = null;
-      try {
-        await persist(true);
-      } catch (err) {
-        console.warn("[scriptz] flushPending failed", err);
-      }
-    };
-    const unregisterFlusher = registerFlusher(flushPending);
+    // Active-block reporter (block pill highlight + empty marker).
+    const reporter = createActiveBlockReporter({
+      editor,
+      getRootEl: () => rootRef,
+      onActiveBlockChange: props.onActiveBlockChange,
+    });
+    requestAnimationFrame(reporter.reportActiveBlock);
+    requestAnimationFrame(reporter.updateEmptyMarker);
 
-    const snapshotTimer = setInterval(() => {
-      if (!dirtySinceSnapshot) return;
-      dirtySinceSnapshot = false;
-      void api.createSnapshot(props.scriptId, "auto").catch((err) => {
-        console.warn("[scriptz] snapshot failed", err);
-      });
-    }, AUTO_SNAPSHOT_MS);
+    const teardownUpdate = editor.registerUpdateListener(
+      ({ dirtyElements, dirtyLeaves }) => {
+        // Selection tracking independent of the dirty state — the cursor
+        // can move without anything being typed.
+        reporter.reportActiveBlock();
+
+        if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
+        reporter.updateEmptyMarker();
+        // Reconcile the character list IMMEDIATELY (not only after save
+        // debounce) so the tint stays on character / dialog as soon as
+        // the user presses Enter after the name — even when typing
+        // without a pause.
+        charReconcile.reconcileLiveCharactersSync();
+        persistence.scheduleSave();
+      },
+    );
 
     onCleanup(() => {
-      // Critical: flush any debounced save before tearing down so the
-      // last 250 ms of typing isn't lost when switching scripts, closing
-      // a tab, or unmounting on hot-reload. Fire-and-forget — the IPC
-      // continues independently of the editor instance.
-      if (saveTimer) {
-        clearTimeout(saveTimer);
-        saveTimer = null;
-        void persist(true);
-      }
-      unregisterFlusher();
-      canvas?.removeEventListener("mousedown", onCanvasMousedown);
-      clearInterval(snapshotTimer);
+      persistence.teardown();
+      teardownCanvasFocus();
       teardownUpdate();
       highlight.teardown();
       teardownCharDD();
@@ -692,9 +345,27 @@ export function Editor(props: EditorProps) {
           Lexical selection doesn't get stuck on a ::before
           pseudo-caret target. */}
       <div class="editor-empty-hint" aria-hidden="true">
-        Tippe los · <span class="kbd kbd-inline">Tab</span> wechselt den Block-Typ ·{" "}
-        <span class="kbd kbd-inline">⌘1</span>–<span class="kbd kbd-inline">⌘7</span>{" "}
-        direkt
+        {(() => {
+          // Slots {tab}, {first}, {last} get replaced by <kbd> chips so
+          // the platform-correct hotkey label (⌘ vs Ctrl) is rendered.
+          const re = /\{(tab|first|last)\}/g;
+          const raw = t("editor.empty.hint");
+          const out: (string | { slot: string })[] = [];
+          let last = 0;
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(raw)) !== null) {
+            if (m.index > last) out.push(raw.slice(last, m.index));
+            out.push({ slot: m[1] });
+            last = m.index + m[0].length;
+          }
+          if (last < raw.length) out.push(raw.slice(last));
+          return out.map((p) => {
+            if (typeof p === "string") return p;
+            if (p.slot === "tab") return <span class="kbd kbd-inline">{t("shortcut.key.tab")}</span>;
+            if (p.slot === "first") return <span class="kbd kbd-inline">{K("Mod+1")}</span>;
+            return <span class="kbd kbd-inline">{K("Mod+7")}</span>;
+          });
+        })()}
       </div>
     </div>
   );

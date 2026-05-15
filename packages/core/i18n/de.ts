@@ -138,6 +138,9 @@ export const de = {
   "browser.sort.label": "Sortieren · {value}",
   "browser.rowMore": "Mehr Aktionen",
   "browser.notes": "Notiz",
+  "browser.count.folderSegment": " · {folder}",
+  "browser.count.searchSegment": " · „{query}\"",
+  "browser.runtime.unavailable": "—",
 
   // ---------- folder operations ----------
   "folder.aria.tablist": "Ordner",
@@ -238,6 +241,13 @@ export const de = {
   "momentum.weekUnit": "W Woche",
   "momentum.activity.link": "Aktivität ansehen",
   "momentum.activity.title": "Heatmap + Streak + Tagesziel",
+
+  // ---------- editor (general) ----------
+  "editor.empty.hint": "Tippe los · {tab} wechselt den Block-Typ · {first}–{last} direkt",
+
+  // ---------- validation errors (thrown from lib, surfaced as toasts) ----------
+  "folder.error.emptyName": "Ordnername darf nicht leer sein",
+  "idea.error.emptyTitle": "Ideen-Titel darf nicht leer sein",
 
   // ---------- editor toolbar ----------
   "editor.toolbar.back": "Übersicht",
@@ -355,6 +365,8 @@ export const de = {
   "settings.ideasBadge.help": "Zeigt die Anzahl offener Ideen als kleines Badge oben am Glühbirnen-Tab. Bei sehr großen Idee-Sammlungen kannst du den Zähler hier abschalten.",
   "settings.ideasBadge.aria": "Ideen-Zähler im Tab anzeigen",
   "settings.editor.sub": "Verhalten beim Schreiben.",
+  "settings.writingStats.label": "Schreib-Statistiken anzeigen",
+  "settings.writingStats.help": "Blendet Wochenziel, Streak und Aktivitäts-Heatmap ein - oben in der Tab-Leiste und auf der Startseite. Aus für eine ruhigere Oberfläche.",
   "settings.weeklyGoal.label": "Wochenziel",
   "settings.weeklyGoal.help": "Anzahl Wörter pro Woche (seit Montag). Wird in der Statusleiste oben und auf der Startseite angezeigt. 1500 entspricht etwa 7 Skripten à 200 Wörter.",
   "settings.weeklyGoal.unit": "Wörter",
@@ -391,7 +403,9 @@ export const de = {
   "settings.about.version": "ScriptZ · v{version}",
   "settings.about.license": "Lizenz: MIT",
   "settings.about.developer": "Entwickelt von",
+  "settings.about.developer.linkText": "AgentZ",
   "settings.about.repository": "Repository",
+  "settings.about.repository.linkText": "github.com/AgentZ-Media/ScriptZ",
   "settings.about.onboarding.label": "Onboarding",
   "settings.about.onboarding.help": "Die Kurz-Tour zur App nochmal anzeigen.",
   "settings.about.onboarding.button": "Nochmal anzeigen",
@@ -411,6 +425,7 @@ export const de = {
   "shortcut.tabByIndex": "Tab per Index aktivieren (0 = Übersicht)",
   "shortcut.cycleTabs": "Zwischen Tabs wechseln",
   "shortcut.blockPicker": "Block-Typ-Picker öffnen",
+  "shortcut.key.tab": "Tab",
   "shortcut.blockAction": "Block-Typ → Action",
   "shortcut.blockCharacter": "Block-Typ → Charakter",
   "shortcut.blockDialog": "Block-Typ → Dialog",
@@ -432,8 +447,7 @@ export const de = {
   "onboarding.skip": "Überspringen",
   "onboarding.back": "← Zurück",
   "onboarding.next": "Weiter",
-  "onboarding.toOverview": "Zur Übersicht",
-  "onboarding.firstScript": "Erstes Skript schreiben",
+  "onboarding.finish": "Los geht's",
   "onboarding.appearance.eyebrow": "Schritt 1 von 2 · Erscheinungsbild",
   "onboarding.appearance.h1": "Sieh aus, wie du willst.",
   "onboarding.appearance.lede": "Theme, Sprache und Charakter-Farben - alles änderst du jederzeit später in den Einstellungen.",
@@ -445,16 +459,13 @@ export const de = {
   "onboarding.appearance.highlight.dialog1": "Du bist spät.",
   "onboarding.appearance.highlight.dialog2": "Ich nenn's dramatischen Auftritt.",
   "onboarding.writing.eyebrow": "Schritt 2 von 2 · Schreiben",
-  "onboarding.writing.h1": "Zwei Defaults zum Starten.",
-  "onboarding.writing.lede": "Beides änderst du jederzeit in den Einstellungen. Hier nur ein guter Start.",
-  "onboarding.writing.weeklyGoal.label": "Wochenziel",
-  "onboarding.writing.weeklyGoal.help": "Wörter pro Woche (seit Montag). Wird in der Statusleiste oben und auf der Startseite angezeigt. 1500 entspricht etwa 7 Skripten à 200 Wörter.",
-  "onboarding.writing.weeklyGoal.unit": "Wörter / Woche",
+  "onboarding.writing.h1": "Ein Default zum Starten.",
+  "onboarding.writing.lede": "Änderst du jederzeit in den Einstellungen. Hier nur ein guter Start.",
   "onboarding.writing.focus.label": "Fokus-Modus standardmäßig aktiv",
   "onboarding.writing.focus.help": "Beim Öffnen eines Skripts sind Toolbar und Cast-Leiste ausgeblendet - nur das Papier. {hotkey} holt sie zurück.",
   "onboarding.final.eyebrow": "Fertig.",
   "onboarding.final.h1": "Los geht's.",
-  "onboarding.final.lede": "Setup ist durch. Du kannst jetzt direkt dein erstes Skript anlegen, oder erst durch die Übersicht stöbern - dort liegt das kurze Tutorial-Skript, das die Block-Typen und Hotkeys erklärt.",
+  "onboarding.final.lede": "Setup ist durch. Wir öffnen dir gleich ein kurzes Tutorial-Skript, das die Block-Typen und Hotkeys live erklärt - du kannst dort sofort weiterschreiben oder es löschen, wenn du startklar bist.",
   "onboarding.final.hint.newScript": "legt jederzeit ein neues Skript an",
   "onboarding.final.hint.search": "findet jedes Skript per Suche",
   "onboarding.final.hint.idea": "merkt eine Idee für später",
@@ -533,6 +544,11 @@ export const de = {
   "status.streak.title": "Aufeinanderfolgende Schreibtage",
   "status.saved.title": "Lokal gespeichert, kein Konto, keine Cloud",
   "status.saved.label": "Gespeichert",
+  "status.saving.title": "Speichert gerade",
+  "status.saving.label": "Speichert…",
+  "status.saveError.title": "Letzter Speicherversuch ist fehlgeschlagen - wird beim nächsten Tippen erneut versucht",
+  "status.saveError.label": "Nicht gespeichert",
+  "save.error.toast": "Skript konnte nicht gespeichert werden: {message}",
 
   // ---------- update indicator (desktop only) ----------
   "updateIndicator.label.downloading": "Lade Update… {progress}%",
@@ -561,16 +577,6 @@ export const de = {
   "modal.close.aria": "Schließen",
   "modal.close.title": "Schließen",
 
-  // ---------- sprint pill ----------
-  "sprint.label": "Sprint",
-  "sprint.title.start": "Schreib-Sprint starten",
-  "sprint.title.running": "Sprint läuft",
-  "sprint.meta": "Schreib-Sprint · ohne Unterbrechung",
-  "sprint.minutes": "{n} Min",
-  "sprint.start": "Start",
-  "sprint.pause": "Pause",
-  "sprint.reset": "Reset",
-
   // ---------- character / color picker ----------
   "charDropdown.colorAria": "Farbe von {name} ändern",
   "colorPicker.aria": "Farbe für {name}",
@@ -583,6 +589,12 @@ export const de = {
   "boot.failed": "Start fehlgeschlagen: {message}",
   "boot.loadingScript": "Lade Skript…",
   "boot.error": "Fehler: {message}",
+  "boot.error.title": "ScriptZ konnte nicht starten",
+  "boot.error.lede": "Die Datenbank-Datei konnte nicht geöffnet werden. Deine Skripte sind vermutlich nicht verloren - die Datei liegt unverändert im App-Datenverzeichnis. Bitte den Fehler unten kopieren und an uns weiterleiten.",
+  "boot.error.retry": "Erneut versuchen",
+  "boot.error.detailsShow": "Details anzeigen",
+  "boot.error.detailsHide": "Details verbergen",
+  "boot.error.help": "Tipp: App komplett schließen und neu starten. Sollte das nicht helfen, melde uns den Fehler.",
 
   // ---------- thrown errors (user-facing) ----------
   "error.ideaAlreadyConverted": "Idee wurde bereits konvertiert.",

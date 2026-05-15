@@ -14,6 +14,7 @@
 
 import { getDb } from "./db";
 import type { Folder } from "./types";
+import { t } from "../i18n";
 
 interface FolderRow {
   id: string;
@@ -48,7 +49,7 @@ export async function listFolders(): Promise<Folder[]> {
 export async function createFolder(name: string): Promise<Folder> {
   const trimmed = name.trim();
   if (trimmed.length === 0) {
-    throw new Error("folder name must not be empty");
+    throw new Error(t("folder.error.emptyName"));
   }
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -69,7 +70,7 @@ export async function createFolder(name: string): Promise<Folder> {
 export async function renameFolder(id: string, name: string): Promise<Folder> {
   const trimmed = name.trim();
   if (trimmed.length === 0) {
-    throw new Error("folder name must not be empty");
+    throw new Error(t("folder.error.emptyName"));
   }
   const db = await getDb();
   const now = Date.now();

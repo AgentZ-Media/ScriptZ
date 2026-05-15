@@ -25,6 +25,12 @@ const [quickModeAutoEnable, setQuickModeAutoEnable] = createSignal<boolean>(fals
 // Show counter badge on the Ideas tab (number of open ideas). Users with
 // a large ideas collection may not want to see the number all the time.
 const [showIdeasBadge, setShowIdeasBadge] = createSignal<boolean>(true);
+// Show writing stats (weekly word goal, streak, daily activity heatmap,
+// momentum strip). Off by default — short-form sketch creators write
+// in idea spikes, not in daily streaks, so the productivity widgets
+// communicate the wrong tone for the audience this app is built for.
+// Users who want them can flip the switch in Settings.
+const [showWritingStats, setShowWritingStats] = createSignal<boolean>(false);
 // Full dark immersion: script sheet also dark in dark mode instead of light.
 // Default off — most users like the "illuminated paper" look, but
 // for OLED / late-night writing the sheet is perceived as too bright.
@@ -131,6 +137,11 @@ export const settingsStore = {
     setShowIdeasBadge(v);
     await api.setSetting("show_ideas_badge", v ? "1" : "0");
   },
+  showWritingStats,
+  setShowWritingStats: async (v: boolean) => {
+    setShowWritingStats(v);
+    await api.setSetting("show_writing_stats", v ? "1" : "0");
+  },
   darkPaper,
   setDarkPaper: async (v: boolean) => {
     setDarkPaper(v);
@@ -164,7 +175,7 @@ export const settingsStore = {
   },
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, dp, lang] = await Promise.all([
+    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, sws, dp, lang] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
@@ -175,6 +186,7 @@ export const settingsStore = {
       api.getSetting("dialog_wpm"),
       api.getSetting("focus_mode_default"),
       api.getSetting("show_ideas_badge"),
+      api.getSetting("show_writing_stats"),
       api.getSetting("dark_paper"),
       api.getSetting("language"),
     ]);
@@ -185,6 +197,7 @@ export const settingsStore = {
     if (qmae) setQuickModeAutoEnable(qmae === "1");
     if (fmd) setFocusModeDefault(fmd === "1");
     if (sib) setShowIdeasBadge(sib === "1");
+    if (sws) setShowWritingStats(sws === "1");
     if (dp) setDarkPaper(dp === "1");
     // Language: persisted value takes precedence, otherwise default "auto".
     // Existing users thereby get their system language without an explicit
