@@ -29,6 +29,7 @@ import { api } from "../../lib/api";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { registerFlusher } from "../../lib/saveFlush";
 import { settingsStore } from "../../stores/settings";
+import { DEFAULT_PALETTE } from "../../lib/characterColors";
 import type { ScriptCharacter } from "../../lib/types";
 import { applyCursor, type CursorAddress } from "../../lib/scriptViewCache";
 import "./Editor.css";
@@ -271,6 +272,110 @@ export function Editor(props: EditorProps) {
       highlight.refresh();
     });
 
+    // Cache der app-weiten Charakter-Farbeintraege (override ?? default
+    // aus character_colors). Wird einmal beim Mount geladen und nach
+    // jedem Save mit der Server-Antwort aktualisiert. Der Sync-Reconcile-
+    // Pfad nutzt das, damit ein wiederkehrender Charakter (gleicher
+    // Name in einem anderen Skript schon eingefaerbt) sofort die richtige
+    // Farbe bekommt, statt erst nach dem debounced DB-Roundtrip.
+    const knownColors = new Map<string, string>();
+    api
+      .listCharacterColors()
+      .then((records) => {
+        for (const r of records) {
+          const color = r.override_color ?? r.default_color;
+          if (color) knownColors.set(r.name.toUpperCase(), color);
+        }
+        // Falls der Editor bereits Charaktere enthielt (geseedet aus props),
+        // jetzt nochmal reconcilen, damit der Cache greift.
+        reconcileLiveCharactersSync();
+      })
+      .catch(() => {
+        /* ohne Cache greift weiter unten der Palette-Fallback */
+      });
+
+    /** Palette-Farbe waehlen, die in der bereits-zusammengestellten
+     *  Liste noch nicht belegt ist. Spiegelt `pickPaletteInScript` aus
+     *  characterColors.ts, damit der spaetere Server-Save (der genau
+     *  diese Heuristik kennt) auf dieselbe Farbe landet und kein
+     *  sichtbares Umfaerben passiert. */
+    function pickFallbackColor(existing: ScriptCharacter[]): string {
+      const used = new Set<string>();
+      for (const c of existing) used.add(c.color);
+      for (const p of DEFAULT_PALETTE) {
+        if (!used.has(p)) return p;
+      }
+      return DEFAULT_PALETTE[0];
+    }
+
+    /** Synchroner Walk durch den Editor-State, der `liveCharacters` an
+     *  die aktuell sichtbaren Character-Bloecke anpasst. Laeuft auf
+     *  jedem Lexical-Update (nicht debounced) — sonst muesste der User
+     *  auf den 250 ms Debounce des DB-Saves warten, bevor die Tint-
+     *  Farbe an Character/Dialog haengen bleibt. Neue Namen bekommen
+     *  sofort eine Farbe (knownColors aus DB-Cache, sonst Palette);
+     *  der spaetere Save kanonisiert das ggf. via Server-Antwort. */
+    function reconcileLiveCharactersSync(): boolean {
+      const seenNames: string[] = [];
+      const seenSet = new Set<string>();
+      editor.getEditorState().read(() => {
+        let editedCharKey: string | null = null;
+        const sel = $getSelection();
+        if ($isRangeSelection(sel)) {
+          let cur: LexicalNode | null = sel.anchor.getNode();
+          while (cur) {
+            if ($isScriptzCharacterNode(cur)) {
+              editedCharKey = cur.getKey();
+              break;
+            }
+            cur = cur.getParent();
+          }
+        }
+        const root = $getRoot();
+        for (const child of root.getChildren()) {
+          if (
+            $isScriptzCharacterNode(child) &&
+            child.getKey() !== editedCharKey
+          ) {
+            const name = child.getTextContent().trim().toUpperCase();
+            if (name && !seenSet.has(name)) {
+              seenSet.add(name);
+              seenNames.push(name);
+            }
+          }
+        }
+      });
+
+      const prev = liveCharacters();
+      const colorByPrev = new Map(prev.map((c) => [c.name.toUpperCase(), c.color]));
+      const next: ScriptCharacter[] = [];
+      for (const name of seenNames) {
+        const existing = colorByPrev.get(name);
+        if (existing && existing !== PENDING_CHAR_COLOR) {
+          next.push({ name, color: existing });
+          continue;
+        }
+        const known = knownColors.get(name);
+        if (known) {
+          next.push({ name, color: known });
+          continue;
+        }
+        next.push({ name, color: pickFallbackColor(next) });
+      }
+
+      const changed =
+        next.length !== prev.length ||
+        next.some(
+          (c, i) => c.name !== prev[i]?.name || c.color !== prev[i]?.color,
+        );
+      if (changed) {
+        setLiveCharacters(next);
+        props.onCharactersChange?.(next);
+        highlight.refresh();
+      }
+      return changed;
+    }
+
     // Externe Farb-Updates (z.B. aus dem Einstellungen-Charaktere-Tab) live
     // in den laufenden Editor ziehen. ScriptView refetcht beim
     // `scriptsBus.bump()` und reicht die frischen `characters` als Prop
@@ -336,60 +441,16 @@ export function Editor(props: EditorProps) {
 
     const persist = async (fromTeardown = false) => {
       let contentJson = "";
-      const seenNames: string[] = [];
-      const seenSet = new Set<string>();
 
       editor.getEditorState().read(() => {
         const state = editor.getEditorState();
         contentJson = JSON.stringify(state.toJSON());
-
-        // Identify the Character block the cursor is currently inside.
-        // We exclude its name from the live list so a half-typed name (e.g.
-        // "A" while reaching for "AXEL") doesn't show up as its own
-        // character entry in the autocomplete.
-        let editedCharKey: string | null = null;
-        const sel = $getSelection();
-        if ($isRangeSelection(sel)) {
-          let cur: LexicalNode | null = sel.anchor.getNode();
-          while (cur) {
-            if ($isScriptzCharacterNode(cur)) {
-              editedCharKey = cur.getKey();
-              break;
-            }
-            cur = cur.getParent();
-          }
-        }
-
-        const root = $getRoot();
-        for (const child of root.getChildren()) {
-          if (
-            $isScriptzCharacterNode(child) &&
-            child.getKey() !== editedCharKey
-          ) {
-            const name = child.getTextContent().trim().toUpperCase();
-            if (name && !seenSet.has(name)) {
-              seenSet.add(name);
-              seenNames.push(name);
-            }
-          }
-        }
       });
 
-      // Refresh the autocomplete list from the in-editor state (no script
-      // refetch — that was knocking contentEditable focus loose every 250ms).
-      const prev = liveCharacters();
-      const colorByName = new Map(prev.map((c) => [c.name.toUpperCase(), c.color]));
-      const next: ScriptCharacter[] = seenNames.map((name) => ({
-        name,
-        color: colorByName.get(name) ?? PENDING_CHAR_COLOR,
-      }));
-      const changed =
-        next.length !== prev.length ||
-        next.some((c, i) => c.name !== prev[i]?.name || c.color !== prev[i]?.color);
-      if (changed) {
-        setLiveCharacters(next);
-        props.onCharactersChange?.(next);
-      }
+      // Hinweis: Die live-Charakterliste wird NICHT mehr hier aktualisiert
+      // — das laeuft synchron im registerUpdateListener via
+      // `reconcileLiveCharactersSync()`. Sonst muesste der Tint auf den
+      // 250 ms Save-Debounce warten und blieb beim flotten Tippen grau.
 
       // Sicherheitsnetz gegen Datenverlust: wenn der Editor-State JETZT
       // leer aussieht und der letzte erfolgreich gespeicherte Stand Inhalt
@@ -422,12 +483,20 @@ export function Editor(props: EditorProps) {
 
         // Re-walk the editor state (the user may have typed during the
         // round-trip) and map each current name to the server-assigned
-        // palette color from the summary. Names typed mid-flight that the
-        // server hasn't seen yet stay on the placeholder color until the
-        // next save settles them.
+        // palette color from the summary. Wenn der Server fuer einen
+        // mid-flight getippten Namen noch keine Farbe kennt, behalten
+        // wir die lokal gewaehlte Farbe aus `liveCharacters` — der
+        // naechste Save kanonisiert das. Frueher landete der Name auf
+        // `PENDING_CHAR_COLOR` (grau), was den Sync-Fix wieder
+        // zurueckgedreht haette.
         const colorMap = new Map(
           summary.characters.map((c) => [c.name.toUpperCase(), c.color]),
         );
+        // Cache mitziehen, damit ein bei einem spaeteren Skript erneut
+        // getippter Name die kanonische Farbe sofort bekommt.
+        for (const c of summary.characters) {
+          knownColors.set(c.name.toUpperCase(), c.color);
+        }
         const currentNames: string[] = [];
         const currentSet = new Set<string>();
         editor.getEditorState().read(() => {
@@ -457,11 +526,17 @@ export function Editor(props: EditorProps) {
             }
           }
         });
+        const before = liveCharacters();
+        const colorByPrev = new Map(
+          before.map((c) => [c.name.toUpperCase(), c.color]),
+        );
         const merged: ScriptCharacter[] = currentNames.map((name) => ({
           name,
-          color: colorMap.get(name) ?? PENDING_CHAR_COLOR,
+          color:
+            colorMap.get(name) ??
+            colorByPrev.get(name) ??
+            PENDING_CHAR_COLOR,
         }));
-        const before = liveCharacters();
         const changed =
           merged.length !== before.length ||
           merged.some(
@@ -470,6 +545,7 @@ export function Editor(props: EditorProps) {
         if (changed) {
           setLiveCharacters(merged);
           props.onCharactersChange?.(merged);
+          highlight.refresh();
         }
       } catch (err) {
         console.error("[scriptz] auto-save failed", err);
@@ -535,6 +611,10 @@ export function Editor(props: EditorProps) {
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
       dirtySinceSnapshot = true;
       updateEmptyMarker();
+      // Charakterliste SOFORT abgleichen (nicht erst nach Save-Debounce),
+      // damit der Tint an Character/Dialog haengt, sobald der User Enter
+      // hinter dem Namen drueckt — auch wenn er ohne Pause weitertippt.
+      reconcileLiveCharactersSync();
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         saveTimer = null;
