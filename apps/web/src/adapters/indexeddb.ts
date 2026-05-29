@@ -100,6 +100,10 @@ interface IdeaRow {
   created_at: number;
   used_at: number | null;
   script_id: string | null;
+  // Shared with scripts (same folders table). Older rows predate this
+  // field, so reads coalesce undefined -> null. Not indexed: ideas are
+  // filtered in JS, so no version() bump is needed.
+  folder_id: string | null;
 }
 
 interface CharacterColorRow {
@@ -678,16 +682,23 @@ class IndexedDbStorage implements StorageAdapter {
   }
 
   async deleteFolder(id: string): Promise<void> {
-    return db.transaction("rw", db.folders, db.scripts, async () => {
+    return db.transaction("rw", db.folders, db.scripts, db.ideas, async () => {
       const f = await db.folders.get(id);
       if (!f) throw new Error(`not found: folder ${id}`);
       await db.folders.delete(id);
-      // ON DELETE SET NULL: keep the scripts, clear the folder_id.
-      const affected = await db.scripts
+      // ON DELETE SET NULL: keep the scripts + ideas, clear the folder_id.
+      // IndexedDB has no real FK, so we mirror the desktop cascade by hand.
+      const affectedScripts = await db.scripts
         .filter((s) => s.folder_id === id)
         .toArray();
-      for (const s of affected) {
+      for (const s of affectedScripts) {
         await db.scripts.update(s.id, { folder_id: null });
+      }
+      const affectedIdeas = await db.ideas
+        .filter((i) => i.folder_id === id)
+        .toArray();
+      for (const i of affectedIdeas) {
+        await db.ideas.update(i.id, { folder_id: null });
       }
     });
   }
@@ -1096,10 +1107,11 @@ class IndexedDbStorage implements StorageAdapter {
     return rows.map((r) => ({
       id: r.id, title: r.title, notes: r.notes ?? "",
       created_at: r.created_at, used_at: r.used_at, script_id: r.script_id,
+      folder_id: r.folder_id ?? null,
     }));
   }
 
-  async createIdea(input: { title: string; notes?: string }): Promise<Idea> {
+  async createIdea(input: { title: string; notes?: string; folderId?: string | null }): Promise<Idea> {
     ensurePersisted();
     const title = input.title.trim();
     if (!title) throw new Error("Idea title must not be empty");
@@ -1107,11 +1119,21 @@ class IndexedDbStorage implements StorageAdapter {
     const now = Date.now();
     const idea: Idea = {
       id, title, notes: input.notes ?? "", created_at: now,
-      used_at: null, script_id: null,
+      used_at: null, script_id: null, folder_id: input.folderId ?? null,
     };
     await db.ideas.put(idea);
     ideasBus.bump();
     return idea;
+  }
+
+  async moveIdea(ideaId: string, folderId: string | null): Promise<void> {
+    if (folderId !== null) {
+      const folder = await db.folders.get(folderId);
+      if (!folder) throw new Error(`not found: folder ${folderId}`);
+    }
+    const updated = await db.ideas.update(ideaId, { folder_id: folderId });
+    if (updated === 0) throw new Error(`not found: idea ${ideaId}`);
+    ideasBus.bump();
   }
 
   async updateIdea(input: { id: string; title?: string; notes?: string }): Promise<Idea> {
@@ -1129,6 +1151,7 @@ class IndexedDbStorage implements StorageAdapter {
     return {
       id: r.id, title: r.title, notes: r.notes ?? "",
       created_at: r.created_at, used_at: r.used_at, script_id: r.script_id,
+      folder_id: r.folder_id ?? null,
     };
   }
 
@@ -1156,12 +1179,16 @@ class IndexedDbStorage implements StorageAdapter {
 
     const notesAsAction = input.notesAsAction ?? true;
     const seed = buildScriptSeed({ notes: notesAsAction ? idea.notes : "" });
+    // The new script inherits the idea's folder unless the caller picks a
+    // different one - so a "Kunde X" idea converts into a "Kunde X" script.
+    const targetFolderId =
+      input.folderId !== undefined ? input.folderId : idea.folder_id ?? null;
     let script: ScriptSummary;
     try {
       script = await this.createScript({
         title: idea.title,
         initialContentJson: seed,
-        folderId: input.folderId ?? null,
+        folderId: targetFolderId,
       });
     } catch (err) {
       // Rollback: release the idea again.
@@ -1172,6 +1199,7 @@ class IndexedDbStorage implements StorageAdapter {
     const updatedIdea: Idea = {
       id: idea.id, title: idea.title, notes: idea.notes,
       created_at: idea.created_at, used_at: claimedAt, script_id: script.id,
+      folder_id: idea.folder_id ?? null,
     };
     scriptsBus.bump();
     foldersBus.bump();

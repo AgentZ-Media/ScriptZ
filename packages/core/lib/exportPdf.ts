@@ -18,7 +18,7 @@
 
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { extractBlocks, type ExtractedBlock } from "./lex";
+import { extractBlocks, type ExtractedBlock, type TextRun } from "./lex";
 import type { ExportPdfDeps } from "./platform";
 import { t } from "../i18n";
 
@@ -127,58 +127,191 @@ class Layout {
     bold: boolean,
     align: "left" | "center" | "right",
     tint: [number, number, number] | null,
+    runs?: TextRun[],
+    transform?: (s: string) => string,
   ) {
     const charsPerLine = Math.max(20, Math.trunc(widthMm / CHAR_W_MM));
-    const lines = simpleWrap(text, charsPerLine);
-    const font = this.fontFor(italic, bold);
+    const hasInlineFormat = !!runs && runs.some((r) => r.bold || r.italic || r.underline);
+
+    // Fast path: no inline format → render the plain text as before.
+    // Avoids the tokenizer's overhead for the 95% case where a block has
+    // a single uniform run.
+    if (!hasInlineFormat) {
+      const plain = transform ? transform(text) : text;
+      const lines = simpleWrap(plain, charsPerLine);
+      const font = this.fontFor(italic, bold);
+      for (const line of lines) {
+        this.ensureSpace(LINE_HEIGHT_MM);
+        const lineWMm = font.widthOfTextAtSize(line, FONT_SIZE_PT) / MM_TO_PT;
+        const xPos = alignX(xLeftMm, widthMm, lineWMm, align);
+
+        if (tint && line.trim().length > 0) {
+          this.drawTintPill(xPos, lineWMm, tint);
+        }
+        this.page.drawText(line, {
+          x: mm(xPos),
+          y: mm(this.y_mm),
+          font,
+          size: FONT_SIZE_PT,
+          color: rgb(0, 0, 0),
+        });
+        this.y_mm -= LINE_HEIGHT_MM;
+      }
+      this.y_mm -= PARA_GAP_MM;
+      return;
+    }
+
+    // Rich path: wrap runs, then render each line as a sequence of
+    // (font, text) pieces with the tint pill spanning the whole line.
+    const xformed = transform ? runs!.map((r) => ({ ...r, text: transform(r.text) })) : runs!;
+    const tokens = tokenize(xformed);
+    const lines = wrapTokens(tokens, charsPerLine);
 
     for (const line of lines) {
       this.ensureSpace(LINE_HEIGHT_MM);
-      // Real glyph width from the embedded font - iA Quattro is
-      // duospaced, i.e. `i`/`l`/`.` are narrower than `m`. Without this
-      // step the tint pill would be a rough approximation (chars * 2.3 mm)
-      // and not end where the word visually ends. Wrap still uses
-      // the char count so existing line breaks don't
-      // shift - here we only refine alignment + tint width.
-      const lineWMm = font.widthOfTextAtSize(line, FONT_SIZE_PT) / MM_TO_PT;
-      let xPos: number;
-      if (align === "center") {
-        xPos = xLeftMm + (widthMm - lineWMm) / 2.0;
-      } else if (align === "right") {
-        xPos = xLeftMm + widthMm - lineWMm;
-      } else {
-        xPos = xLeftMm;
+
+      // Total width: sum each piece using its own font (bold/italic glyphs
+      // are slightly wider, so summing under the base font would clip the tint).
+      let lineWMm = 0;
+      for (const piece of line) {
+        const f = this.fontFor(italic || piece.italic, bold || piece.bold);
+        lineWMm += f.widthOfTextAtSize(piece.text, FONT_SIZE_PT) / MM_TO_PT;
+      }
+      const trimmedLen = line.reduce((n, p) => n + p.text.length, 0);
+      const xPos = alignX(xLeftMm, widthMm, lineWMm, align);
+
+      if (tint && trimmedLen > 0 && line.some((p) => p.text.trim().length > 0)) {
+        this.drawTintPill(xPos, lineWMm, tint);
       }
 
-      if (tint && line.trim().length > 0) {
-        const rectX1 = xPos - TINT_PAD_X_MM;
-        const rectX2 = xPos + lineWMm + TINT_PAD_X_MM;
-        const rectTop = this.y_mm + TINT_TOP_OFFSET_MM;
-        const rectBottom = this.y_mm - TINT_BOTTOM_OFFSET_MM;
-        const [r, g, b] = tint;
-        const wPt = mm(rectX2 - rectX1);
-        const hPt = mm(rectTop - rectBottom);
-        const rPt = mm(TINT_RADIUS_MM);
-        this.page.drawSvgPath(roundedRectPath(wPt, hPt, rPt), {
-          x: mm(rectX1),
-          y: mm(rectTop),
-          color: rgb(r / 255, g / 255, b / 255),
-          borderWidth: 0,
+      let cx = xPos;
+      for (const piece of line) {
+        const f = this.fontFor(italic || piece.italic, bold || piece.bold);
+        const pieceWMm = f.widthOfTextAtSize(piece.text, FONT_SIZE_PT) / MM_TO_PT;
+        this.page.drawText(piece.text, {
+          x: mm(cx),
+          y: mm(this.y_mm),
+          font: f,
+          size: FONT_SIZE_PT,
+          color: rgb(0, 0, 0),
         });
+        cx += pieceWMm;
       }
-
-      this.page.drawText(line, {
-        x: mm(xPos),
-        y: mm(this.y_mm),
-        font,
-        size: FONT_SIZE_PT,
-        color: rgb(0, 0, 0),
-      });
 
       this.y_mm -= LINE_HEIGHT_MM;
     }
     this.y_mm -= PARA_GAP_MM;
   }
+
+  drawTintPill(xPos: number, lineWMm: number, tint: [number, number, number]) {
+    const rectX1 = xPos - TINT_PAD_X_MM;
+    const rectX2 = xPos + lineWMm + TINT_PAD_X_MM;
+    const rectTop = this.y_mm + TINT_TOP_OFFSET_MM;
+    const rectBottom = this.y_mm - TINT_BOTTOM_OFFSET_MM;
+    const [r, g, b] = tint;
+    const wPt = mm(rectX2 - rectX1);
+    const hPt = mm(rectTop - rectBottom);
+    const rPt = mm(TINT_RADIUS_MM);
+    this.page.drawSvgPath(roundedRectPath(wPt, hPt, rPt), {
+      x: mm(rectX1),
+      y: mm(rectTop),
+      color: rgb(r / 255, g / 255, b / 255),
+      borderWidth: 0,
+    });
+  }
+}
+
+function alignX(xLeftMm: number, widthMm: number, contentWMm: number, align: "left" | "center" | "right"): number {
+  if (align === "center") return xLeftMm + (widthMm - contentWMm) / 2.0;
+  if (align === "right") return xLeftMm + widthMm - contentWMm;
+  return xLeftMm;
+}
+
+interface Piece {
+  text: string;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+type Token =
+  | { kind: "word"; piece: Piece }
+  | { kind: "space"; piece: Piece }
+  | { kind: "newline" };
+
+/** Break runs into word / whitespace / newline tokens. Each word keeps the
+ *  formatting of its source run, which means a half-bolded word (rare —
+ *  inline format usually snaps to word boundaries) becomes two adjacent
+ *  word tokens that render seamlessly because there is no space between them. */
+function tokenize(runs: TextRun[]): Token[] {
+  const out: Token[] = [];
+  for (const r of runs) {
+    const lines = r.text.split("\n");
+    for (let li = 0; li < lines.length; li++) {
+      if (li > 0) out.push({ kind: "newline" });
+      const piece = (text: string): Piece => ({
+        text,
+        bold: r.bold,
+        italic: r.italic,
+        underline: r.underline,
+      });
+      const parts = lines[li].match(/\S+|\s+/g) ?? [];
+      for (const p of parts) {
+        const isSpace = /^\s+$/.test(p);
+        out.push({ kind: isSpace ? "space" : "word", piece: piece(p) });
+      }
+    }
+  }
+  return out;
+}
+
+/** Word-wrap tokens by char count (mirrors simpleWrap's width metric),
+ *  collapsing runs of whitespace to a single space — same rule the
+ *  existing simpleWrap uses, so wrap points stay aligned with the plain
+ *  text path. */
+function wrapTokens(tokens: Token[], width: number): Piece[][] {
+  const lines: Piece[][] = [];
+  let cur: Piece[] = [];
+  let curLen = 0;
+
+  const flush = () => {
+    while (cur.length > 0 && cur[cur.length - 1].text === " ") cur.pop();
+    lines.push(cur);
+    cur = [];
+    curLen = 0;
+  };
+
+  for (const tok of tokens) {
+    if (tok.kind === "newline") {
+      flush();
+      continue;
+    }
+    if (tok.kind === "space") {
+      // Collapse to one space and only emit when there's already content.
+      if (cur.length > 0 && curLen + 1 <= width) {
+        cur.push({ ...tok.piece, text: " " });
+        curLen += 1;
+      }
+      continue;
+    }
+    const w = countChars(tok.piece.text);
+    if (cur.length === 0) {
+      cur.push(tok.piece);
+      curLen = w;
+    } else if (curLen + w > width) {
+      flush();
+      cur.push(tok.piece);
+      curLen = w;
+    } else {
+      cur.push(tok.piece);
+      curLen += w;
+    }
+  }
+  if (cur.length > 0) {
+    flush();
+  } else if (lines.length === 0) {
+    lines.push([]);
+  }
+  return lines;
 }
 
 // Rounded-rect SVG path for the tint pill. SVG coordinates are
@@ -332,6 +465,7 @@ export async function buildPdfBytes(
 
     const tint = computeTint(blocks, idx, b, opts.includeHighlighting, charColor);
 
+    const upper = (s: string) => s.toUpperCase();
     switch (b.kind) {
       case "scriptz-character":
         layout.writeLine(
@@ -342,6 +476,8 @@ export async function buildPdfBytes(
           true,
           "center",
           tint,
+          b.runs,
+          upper,
         );
         break;
       case "scriptz-dialog":
@@ -353,6 +489,7 @@ export async function buildPdfBytes(
           false,
           "left",
           tint,
+          b.runs,
         );
         break;
       case "scriptz-parenthetical":
@@ -366,6 +503,7 @@ export async function buildPdfBytes(
           false,
           "left",
           tint,
+          b.runs,
         );
         break;
       case "scriptz-action":
@@ -377,6 +515,7 @@ export async function buildPdfBytes(
           false,
           "left",
           null,
+          b.runs,
         );
         break;
       case "scriptz-camera":
@@ -388,6 +527,8 @@ export async function buildPdfBytes(
           true,
           "right",
           null,
+          b.runs,
+          upper,
         );
         break;
       case "scriptz-caption":
@@ -399,6 +540,8 @@ export async function buildPdfBytes(
           true,
           "left",
           null,
+          b.runs,
+          upper,
         );
         break;
       case "scriptz-sfx":
@@ -410,6 +553,8 @@ export async function buildPdfBytes(
           false,
           "left",
           null,
+          b.runs,
+          upper,
         );
         break;
       default:
@@ -421,6 +566,7 @@ export async function buildPdfBytes(
           false,
           "left",
           null,
+          b.runs,
         );
     }
   }

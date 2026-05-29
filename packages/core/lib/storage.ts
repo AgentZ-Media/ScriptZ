@@ -63,6 +63,9 @@ export interface ListScriptsQuery {
 export interface CreateIdeaInput {
   title: string;
   notes?: string;
+  /** Optional target folder (shared with scripts). NULL/undefined =
+   *  no folder. */
+  folderId?: string | null;
 }
 
 export interface UpdateIdeaInput {
@@ -159,6 +162,9 @@ export interface StorageAdapter {
   createIdea(input: CreateIdeaInput): Promise<Idea>;
   updateIdea(input: UpdateIdeaInput): Promise<Idea>;
   deleteIdea(id: string): Promise<void>;
+  /** Moves an idea into a folder (or out of any folder when null).
+   *  Shares the same folders as scripts. */
+  moveIdea(ideaId: string, folderId: string | null): Promise<void>;
   convertIdeaToScript(
     input: ConvertIdeaInput,
   ): Promise<{ idea: Idea; script: ScriptSummary }>;

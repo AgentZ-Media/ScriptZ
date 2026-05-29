@@ -24,6 +24,7 @@ interface IdeaRow {
   created_at: number;
   used_at: number | null;
   script_id: string | null;
+  folder_id: string | null;
 }
 
 function rowToIdea(r: IdeaRow): Idea {
@@ -34,13 +35,14 @@ function rowToIdea(r: IdeaRow): Idea {
     created_at: r.created_at,
     used_at: r.used_at,
     script_id: r.script_id,
+    folder_id: r.folder_id,
   };
 }
 
 export async function listIdeas(): Promise<Idea[]> {
   const db = await getDb();
   const rows = await db.select<IdeaRow[]>(
-    `SELECT id, title, notes, created_at, used_at, script_id
+    `SELECT id, title, notes, created_at, used_at, script_id, folder_id
      FROM ideas
      ORDER BY created_at DESC`,
   );
@@ -50,20 +52,22 @@ export async function listIdeas(): Promise<Idea[]> {
 export async function createIdea(input: {
   title: string;
   notes?: string;
+  folderId?: string | null;
 }): Promise<Idea> {
   const title = input.title.trim();
   if (!title) throw new Error(t("idea.error.emptyTitle"));
   const id = crypto.randomUUID();
   const now = Date.now();
+  const folderId = input.folderId ?? null;
   const db = await getDb();
   await db.execute(
-    `INSERT INTO ideas (id, title, notes, created_at) VALUES ($1, $2, $3, $4)`,
-    [id, title, input.notes ?? "", now],
+    `INSERT INTO ideas (id, title, notes, created_at, folder_id) VALUES ($1, $2, $3, $4, $5)`,
+    [id, title, input.notes ?? "", now, folderId],
   );
   ideasBus.bump();
   return {
     id, title, notes: input.notes ?? "", created_at: now,
-    used_at: null, script_id: null,
+    used_at: null, script_id: null, folder_id: folderId,
   };
 }
 
@@ -82,7 +86,7 @@ export async function updateIdea(input: {
     await db.execute(`UPDATE ideas SET notes = $1 WHERE id = $2`, [input.notes, input.id]);
   }
   const rows = await db.select<IdeaRow[]>(
-    `SELECT id, title, notes, created_at, used_at, script_id FROM ideas WHERE id = $1`,
+    `SELECT id, title, notes, created_at, used_at, script_id, folder_id FROM ideas WHERE id = $1`,
     [input.id],
   );
   if (rows.length === 0) throw new Error(`not found: idea ${input.id}`);
@@ -93,6 +97,32 @@ export async function updateIdea(input: {
 export async function deleteIdea(id: string): Promise<void> {
   const db = await getDb();
   await db.execute(`DELETE FROM ideas WHERE id = $1`, [id]);
+  ideasBus.bump();
+}
+
+/** Moves an idea into a folder (or out of any folder when null). Shares
+ *  the folders table with scripts; mirrors folders.ts::moveScript. */
+export async function moveIdea(
+  ideaId: string,
+  folderId: string | null,
+): Promise<void> {
+  const db = await getDb();
+  if (folderId !== null) {
+    const exists = await db.select<{ n: number }[]>(
+      "SELECT COUNT(*) AS n FROM folders WHERE id = $1",
+      [folderId],
+    );
+    if ((exists[0]?.n ?? 0) === 0) {
+      throw new Error(`not found: folder ${folderId}`);
+    }
+  }
+  const res = await db.execute(
+    `UPDATE ideas SET folder_id = $1 WHERE id = $2`,
+    [folderId, ideaId],
+  );
+  if (res.rowsAffected === 0) {
+    throw new Error(`not found: idea ${ideaId}`);
+  }
   ideasBus.bump();
 }
 
@@ -108,11 +138,15 @@ export async function convertIdeaToScript(input: {
 }): Promise<{ idea: Idea; script: ScriptSummary }> {
   const db = await getDb();
   const rows = await db.select<IdeaRow[]>(
-    `SELECT id, title, notes, created_at, used_at, script_id FROM ideas WHERE id = $1`,
+    `SELECT id, title, notes, created_at, used_at, script_id, folder_id FROM ideas WHERE id = $1`,
     [input.ideaId],
   );
   if (rows.length === 0) throw new Error(`not found: idea ${input.ideaId}`);
   const ideaRow = rows[0];
+  // The new script inherits the idea's folder unless the caller picks a
+  // different one - so a "Kunde X" idea converts into a "Kunde X" script.
+  const targetFolderId =
+    input.folderId !== undefined ? input.folderId : ideaRow.folder_id;
   if (ideaRow.used_at !== null) {
     throw new Error(t("error.ideaAlreadyConverted"));
   }
@@ -143,7 +177,7 @@ export async function convertIdeaToScript(input: {
     script = await createScript(
       ideaRow.title,
       seedJson,
-      input.folderId ?? null,
+      targetFolderId,
     );
   } catch (err) {
     await db.execute(

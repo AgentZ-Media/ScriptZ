@@ -16,6 +16,9 @@ export function useIdeasFilters() {
   const [filter, setFilter] = createSignal<IdeasFilter>("open");
   const [sort, setSort] = createSignal<IdeasSort>("newest");
   const [query, setQuery] = createSignal("");
+  // null = all folders. Orthogonal to the open/used filter and the
+  // search; the three combine.
+  const [activeFolderId, setActiveFolderId] = createSignal<string | null>(null);
 
   const ideas = () => ideasStore.ideas() ?? [];
 
@@ -24,6 +27,36 @@ export function useIdeasFilters() {
     open: ideas().filter((i) => !i.used_at).length,
     used: ideas().filter((i) => i.used_at).length,
   }));
+
+  // The ideas matching the current status filter + search, but NOT the
+  // folder filter — this is the scope the folder chips count over, so a
+  // chip's number matches what selecting it would show.
+  const inStatusScope = createMemo(() => {
+    const f = filter();
+    const q = query().trim().toLowerCase();
+    return ideas().filter((i) => {
+      if (f === "open" && i.used_at) return false;
+      if (f === "used" && !i.used_at) return false;
+      if (q) {
+        const hay = (i.title + " " + i.notes).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  });
+
+  // Per-folder idea counts within the current status scope, keyed by
+  // folder id. Computed client-side from the in-memory list — no SQL.
+  const folderCounts = createMemo(() => {
+    const map = new Map<string, number>();
+    for (const i of inStatusScope()) {
+      if (i.folder_id) map.set(i.folder_id, (map.get(i.folder_id) ?? 0) + 1);
+    }
+    return map;
+  });
+
+  // "All" chip: every idea in the current status scope, any folder.
+  const folderAllCount = createMemo(() => inStatusScope().length);
 
   const [scriptIndex] = createResource(
     () => scriptsBus.version(),
@@ -39,17 +72,10 @@ export function useIdeasFilters() {
   );
 
   const filtered = createMemo(() => {
-    const f = filter();
-    const q = query().trim().toLowerCase();
-    const list = ideas().filter((i) => {
-      if (f === "open" && i.used_at) return false;
-      if (f === "used" && !i.used_at) return false;
-      if (q) {
-        const hay = (i.title + " " + i.notes).toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
+    const folderId = activeFolderId();
+    const list = inStatusScope().filter(
+      (i) => folderId === null || i.folder_id === folderId,
+    );
     const s = sort();
     list.sort((a, b) => {
       if (s === "title") return localeCompare(a.title, b.title);
@@ -63,7 +89,10 @@ export function useIdeasFilters() {
     filter, setFilter,
     sort, setSort,
     query, setQuery,
+    activeFolderId, setActiveFolderId,
     counts,
+    folderCounts,
+    folderAllCount,
     filtered,
     scriptIndex,
   };

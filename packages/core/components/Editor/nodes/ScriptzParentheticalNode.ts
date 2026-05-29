@@ -18,6 +18,9 @@ export class ScriptzParentheticalNode extends BaseScriptzNode {
   getType(): string {
     return ScriptzParentheticalNode.getType();
   }
+  hasTintHost(): boolean {
+    return true;
+  }
   static importJSON(serialized: SerializedScriptzNode): ScriptzParentheticalNode {
     const node = $createScriptzParentheticalNode();
     node.setFormat(serialized.format);

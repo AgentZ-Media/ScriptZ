@@ -124,6 +124,8 @@ export const en: Record<keyof typeof de, string> = {
   "browser.empty.search.hint": "Tip: search covers titles and characters.",
   "browser.empty.folder.title": "„{folder}\" is empty.",
   "browser.empty.folder.hint": "Drop scripts here or use right-click → „Move to folder\".",
+  "browser.canvas.newScript": "New script",
+  "browser.canvas.newFolder": "New folder",
   "browser.loadMore": "Load {n} more",
   "browser.backToOverview": "← Overview",
   "browser.sort.updated": "Modified",
@@ -470,6 +472,7 @@ export const en: Record<keyof typeof de, string> = {
   "ideas.capture.placeholder": "What are you writing next?",
   "ideas.capture.add": "Add",
   "ideas.capture.title": "Save (⏎)",
+  "ideas.capture.folder": "Folder",
   "ideas.search.placeholder": "Search ideas…",
   "ideas.search.clear": "Clear search",
   "ideas.filter.aria": "Idea filter",
@@ -496,6 +499,7 @@ export const en: Record<keyof typeof de, string> = {
   "ideas.card.convert": "Script →",
   "ideas.card.convert.title": "Turn idea into a script",
   "ideas.card.delete.title": "Delete idea",
+  "ideas.card.move.title": "Move to folder",
   "ideas.confirm.delete.title": "Delete idea?",
   "ideas.confirm.delete.body": "„{title}\" will be deleted permanently. Any linked script remains.",
   "ideas.toast.deleted": "„{title}\" deleted",
@@ -509,6 +513,8 @@ export const en: Record<keyof typeof de, string> = {
   "idea.quick.remember.title": "Remember idea",
   "idea.quick.toast.scriptCreated": "„{title}\" created",
   "idea.quick.toast.remembered": "Idea „{title}\" saved",
+  "idea.convert.title": "Create script from idea",
+  "idea.convert.summary": "Create „{title}\" as a new script",
 
   // ---------- command bar ----------
   "commandBar.aria": "Command palette",

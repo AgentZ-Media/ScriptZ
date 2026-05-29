@@ -1,6 +1,7 @@
 import {
   ElementNode,
   type EditorConfig,
+  type ElementDOMSlot,
   type LexicalNode,
   type SerializedElementNode,
   type Spread,
@@ -25,12 +26,35 @@ export abstract class BaseScriptzNode extends ElementNode {
     return (this.constructor as unknown as typeof BaseScriptzNode).getBlockType();
   }
 
+  /** When true, createDOM nests a `<span class="tint-host">` inside the
+   *  block and getDOMSlot routes Lexical's children into it. The inner
+   *  span becomes the single inline element that hosts the character
+   *  tint, so per-line text-hugging pills stay intact across bold /
+   *  italic runs (Lexical would otherwise emit a sibling `<strong>` per
+   *  bold run and the bg would split into separate pills). Used by
+   *  Dialog, Character and Parenthetical — the only tinted blocks. */
+  hasTintHost(): boolean {
+    return false;
+  }
+
   createDOM(_config: EditorConfig): HTMLElement {
     const type = this.getBlockType();
     const dom = document.createElement("div");
     dom.classList.add("block", `block-${type}`);
     dom.setAttribute("data-block-type", type);
+    if (this.hasTintHost()) {
+      const host = document.createElement("span");
+      host.className = "tint-host";
+      dom.appendChild(host);
+    }
     return dom;
+  }
+
+  getDOMSlot(element: HTMLElement): ElementDOMSlot<HTMLElement> {
+    const base = super.getDOMSlot(element);
+    if (!this.hasTintHost()) return base;
+    const host = element.querySelector<HTMLElement>(":scope > .tint-host");
+    return host ? base.withElement(host) : base;
   }
 
   updateDOM(_prev: this, _dom: HTMLElement, _config: EditorConfig): boolean {

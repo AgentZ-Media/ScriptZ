@@ -1,10 +1,14 @@
-import { Show, createSignal, createEffect } from "solid-js";
+import { Show, createSignal, createEffect, createMemo, createResource } from "solid-js";
 import { Portal } from "solid-js/web";
 import { api } from "../../lib/api";
 import { tabsStore } from "../../stores/tabs";
 import { pushToast } from "../../stores/toasts";
+import { foldersBus } from "../../lib/foldersBus";
 import { K } from "../../lib/keys";
 import { t } from "../../i18n";
+import { ConvertIdeaDialog } from "./ConvertIdeaDialog";
+import { FolderSelect, type FolderOption } from "./parts/FolderSelect";
+import type { Idea } from "../../lib/types";
 
 export interface IdeaQuickCaptureProps {
   open: boolean;
@@ -14,13 +18,27 @@ export interface IdeaQuickCaptureProps {
 export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
   const [val, setVal] = createSignal("");
   const [saving, setSaving] = createSignal(false);
+  const [folderId, setFolderId] = createSignal<string | null>(null);
+  const [pendingConvert, setPendingConvert] = createSignal<Idea | null>(null);
   let inputRef: HTMLInputElement | undefined;
+
+  const [folders] = createResource(
+    () => foldersBus.version(),
+    () => api.listFolders(),
+    { initialValue: [] },
+  );
+
+  const folderOptions = createMemo<FolderOption[]>(() => [
+    { id: null, name: t("newScript.folder.none") },
+    ...(folders() ?? []).map((f) => ({ id: f.id, name: f.name })),
+  ]);
 
   let lastOpen = false;
   createEffect(() => {
     const isOpen = props.open;
     if (isOpen && !lastOpen) {
       setVal("");
+      setFolderId(null);
       setSaving(false);
       setTimeout(() => inputRef?.focus(), 30);
     }
@@ -36,19 +54,34 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
     }
     setSaving(true);
     try {
-      const idea = await api.createIdea({ title: txt });
+      const idea = await api.createIdea({ title: txt, folderId: folderId() });
       if (convertToScript) {
-        const { script } = await api.convertIdeaToScript({ ideaId: idea.id });
-        tabsStore.openScript(script.id, script.title);
-        pushToast(t("idea.quick.toast.scriptCreated", { title: script.title }), "ok");
+        if ((folders() ?? []).length > 0) {
+          // Hand off to the folder picker; the quick-capture stays
+          // mounted underneath so the dialog opens on top.
+          setPendingConvert(idea);
+          return;
+        }
+        await convertInto(idea, null);
       } else {
         pushToast(t("idea.quick.toast.remembered", { title: idea.title }), "ok");
+        props.onClose();
       }
-      props.onClose();
     } catch (err) {
       pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function convertInto(idea: Idea, folderId: string | null) {
+    try {
+      const { script } = await api.convertIdeaToScript({ ideaId: idea.id, folderId });
+      tabsStore.openScript(script.id, script.title);
+      pushToast(t("idea.quick.toast.scriptCreated", { title: script.title }), "ok");
+      props.onClose();
+    } catch (err) {
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
     }
   }
 
@@ -83,6 +116,16 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
                 }
               }}
             />
+            <Show when={(folders() ?? []).length > 0}>
+              <div class="qcap-folder">
+                <span class="qcap-folder-label">{t("ideas.capture.folder")}</span>
+                <FolderSelect
+                  options={folderOptions()}
+                  value={folderId()}
+                  onChange={setFolderId}
+                />
+              </div>
+            </Show>
             <div class="qcap-foot">
               <button class="btn" onClick={props.onClose}>{t("common.cancel")}</button>
               <div style="flex:1" />
@@ -106,6 +149,24 @@ export function IdeaQuickCapture(props: IdeaQuickCaptureProps) {
           </div>
         </div>
       </Portal>
+      <Show when={pendingConvert()}>
+        {(idea) => (
+          <ConvertIdeaDialog
+            ideaTitle={idea().title}
+            defaultFolderId={idea().folder_id}
+            onCancel={() => {
+              setPendingConvert(null);
+              setSaving(false);
+              props.onClose();
+            }}
+            onConfirm={(folderId) => {
+              const target = idea();
+              setPendingConvert(null);
+              void convertInto(target, folderId);
+            }}
+          />
+        )}
+      </Show>
     </Show>
   );
 }

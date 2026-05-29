@@ -154,9 +154,17 @@
    `box-decoration-break: clone` so multi-line text gets per-line pills
    that hug the actual text — same look as the PDF output, not a full
    block-wide bar. */
-.editor-root[data-highlighting="on"] .block-scriptz-character > span[data-lexical-text],
-.editor-root[data-highlighting="on"] .block-scriptz-dialog > span[data-lexical-text],
-.editor-root[data-highlighting="on"] .block-scriptz-parenthetical > span[data-lexical-text] {
+/* Per-line text-hugging pills (Arc-style). The dialog/character/
+   parenthetical nodes wrap their children in an inner
+   `<span class="tint-host">` (see BaseScriptzNode.hasTintHost) — Lexical
+   appends every text run into this single inline element, so the bg +
+   padding + radius + box-decoration-break apply to one host that
+   contains the plain text *and* any inline `<strong>`/`<em>` runs.
+   Result: one continuous pill per visual line, including bolded /
+   italicised words, no seams, no margin tricks. */
+.editor-root[data-highlighting="on"] .block-scriptz-character .tint-host,
+.editor-root[data-highlighting="on"] .block-scriptz-dialog .tint-host,
+.editor-root[data-highlighting="on"] .block-scriptz-parenthetical .tint-host {
   background: var(--char-tint, var(--char-tint-default));
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;

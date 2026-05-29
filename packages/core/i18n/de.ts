@@ -130,6 +130,8 @@ export const de = {
   "browser.empty.search.hint": "Tipp: Suche schließt Titel und Charaktere ein.",
   "browser.empty.folder.title": "„{folder}\" ist leer.",
   "browser.empty.folder.hint": "Skripte hierher ziehen oder per Rechtsklick „In Ordner verschieben\" zuweisen.",
+  "browser.canvas.newScript": "Neues Skript",
+  "browser.canvas.newFolder": "Neuer Ordner",
   "browser.loadMore": "{n} weitere laden",
   "browser.backToOverview": "← Übersicht",
   "browser.sort.updated": "Geändert",
@@ -476,6 +478,7 @@ export const de = {
   "ideas.capture.placeholder": "Was schreibst du als Nächstes?",
   "ideas.capture.add": "Hinzufügen",
   "ideas.capture.title": "Speichern (⏎)",
+  "ideas.capture.folder": "Ordner",
   "ideas.search.placeholder": "In Ideen suchen…",
   "ideas.search.clear": "Suche zurücksetzen",
   "ideas.filter.aria": "Ideenfilter",
@@ -502,6 +505,7 @@ export const de = {
   "ideas.card.convert": "Skript →",
   "ideas.card.convert.title": "Aus Idee ein Skript machen",
   "ideas.card.delete.title": "Idee löschen",
+  "ideas.card.move.title": "In Ordner verschieben",
   "ideas.confirm.delete.title": "Idee löschen?",
   "ideas.confirm.delete.body": "„{title}\" wird endgültig gelöscht. Ein eventuell verknüpftes Skript bleibt bestehen.",
   "ideas.toast.deleted": "„{title}\" gelöscht",
@@ -515,6 +519,8 @@ export const de = {
   "idea.quick.remember.title": "Idee merken",
   "idea.quick.toast.scriptCreated": "„{title}\" angelegt",
   "idea.quick.toast.remembered": "Idee „{title}\" gemerkt",
+  "idea.convert.title": "Skript aus Idee anlegen",
+  "idea.convert.summary": "„{title}\" als neues Skript anlegen",
 
   // ---------- command bar ----------
   "commandBar.aria": "Befehlspalette",

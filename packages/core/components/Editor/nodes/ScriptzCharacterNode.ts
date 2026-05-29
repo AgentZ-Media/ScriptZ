@@ -46,6 +46,10 @@ export class ScriptzCharacterNode extends BaseScriptzNode {
     return super.createDOM(config);
   }
 
+  hasTintHost(): boolean {
+    return true;
+  }
+
   exportJSON(): SerializedScriptzCharacterNode {
     return {
       ...super.exportJSON(),

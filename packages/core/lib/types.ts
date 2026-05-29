@@ -85,7 +85,9 @@ export type BlockType =
   | "scriptz-sfx";
 
 /** A writing idea from the ideas drawer. `usedAt` marks the
- *  conversion into a real script. */
+ *  conversion into a real script. `folder_id` shares the same
+ *  folders as scripts (NULL = no folder), so a client/project
+ *  folder can hold both its ideas and its scripts. */
 export interface Idea {
   id: string;
   title: string;
@@ -93,6 +95,7 @@ export interface Idea {
   created_at: number;
   used_at: number | null;
   script_id: string | null;
+  folder_id: string | null;
 }
 
 /** An entry in the daily word log. `date` is in local

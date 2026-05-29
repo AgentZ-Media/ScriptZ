@@ -6,10 +6,29 @@
 // Mirrors src-tauri/src/lex.rs byte-for-byte during the Rust -> TS migration.
 // Both modules coexist until Phase 11 retires the Rust copy.
 
+/** A contiguous text fragment with uniform inline formatting.
+ *  Mirrors Lexical's per-TextNode `format` bitfield: bit 0 = bold,
+ *  bit 1 = italic, bit 3 = underline. Linebreaks are flattened into
+ *  `\n` inside `text`. */
+export interface TextRun {
+  text: string;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+
 export interface ExtractedBlock {
   kind: string;
   text: string;
+  /** Per-character formatting, preserved so the PDF can render bold/italic
+   *  spans inside a dialog without losing the character tint. Always present;
+   *  for unformatted text it contains a single run with all three flags false. */
+  runs: TextRun[];
 }
+
+const FORMAT_BOLD = 1;
+const FORMAT_ITALIC = 2;
+const FORMAT_UNDERLINE = 8;
 
 const SCRIPTZ_KINDS = new Set([
   "scriptz-action",
@@ -38,7 +57,9 @@ function walk(node: unknown, out: ExtractedBlock[]): void {
   if (!isObject(node)) return;
   const typ = node.type;
   if (typeof typ === "string" && SCRIPTZ_KINDS.has(typ)) {
-    out.push({ kind: typ, text: collectText(node) });
+    const runs = collectRuns(node);
+    const text = runs.map((r) => r.text).join("");
+    out.push({ kind: typ, text, runs: mergeRuns(runs) });
     return;
   }
   const children = node.children;
@@ -47,30 +68,56 @@ function walk(node: unknown, out: ExtractedBlock[]): void {
   }
 }
 
-function collectText(node: unknown): string {
-  const buf: string[] = [];
-  collectTextInto(node, buf);
-  return buf.join("");
+function collectRuns(node: unknown): TextRun[] {
+  const buf: TextRun[] = [];
+  collectRunsInto(node, buf);
+  if (buf.length === 0) buf.push({ text: "", bold: false, italic: false, underline: false });
+  return buf;
 }
 
-function collectTextInto(node: unknown, buf: string[]): void {
+function collectRunsInto(node: unknown, buf: TextRun[]): void {
   if (!isObject(node)) return;
   const t = node.type;
   if (typeof t === "string") {
     if (t === "linebreak") {
-      buf.push("\n");
+      buf.push({ text: "\n", bold: false, italic: false, underline: false });
       return;
     }
     if (t === "text") {
       const text = node.text;
-      if (typeof text === "string") buf.push(text);
+      if (typeof text === "string") {
+        const fmt = typeof node.format === "number" ? node.format : 0;
+        buf.push({
+          text,
+          bold: (fmt & FORMAT_BOLD) !== 0,
+          italic: (fmt & FORMAT_ITALIC) !== 0,
+          underline: (fmt & FORMAT_UNDERLINE) !== 0,
+        });
+      }
       return;
     }
   }
   const children = node.children;
   if (Array.isArray(children)) {
-    for (const child of children) collectTextInto(child, buf);
+    for (const child of children) collectRunsInto(child, buf);
   }
+}
+
+/** Coalesce adjacent runs with identical formatting so downstream code
+ *  doesn't draw a font switch for what is logically one span. */
+function mergeRuns(runs: TextRun[]): TextRun[] {
+  if (runs.length <= 1) return runs;
+  const out: TextRun[] = [{ ...runs[0] }];
+  for (let i = 1; i < runs.length; i++) {
+    const last = out[out.length - 1];
+    const cur = runs[i];
+    if (last.bold === cur.bold && last.italic === cur.italic && last.underline === cur.underline) {
+      last.text += cur.text;
+    } else {
+      out.push({ ...cur });
+    }
+  }
+  return out;
 }
 
 export function extractPlainText(contentJson: string): string {

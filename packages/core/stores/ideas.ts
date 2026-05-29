@@ -23,7 +23,7 @@ export const ideasStore = {
   refresh() {
     ideasBus.bump();
   },
-  createIdea(input: { title: string; notes?: string }): Promise<Idea> {
+  createIdea(input: { title: string; notes?: string; folderId?: string | null }): Promise<Idea> {
     return api.createIdea(input);
   },
   updateIdea(input: { id: string; title?: string; notes?: string }): Promise<Idea> {
@@ -31,6 +31,9 @@ export const ideasStore = {
   },
   deleteIdea(id: string): Promise<void> {
     return api.deleteIdea(id);
+  },
+  moveIdea(ideaId: string, folderId: string | null): Promise<void> {
+    return api.moveIdea(ideaId, folderId);
   },
   convertIdeaToScript(input: {
     ideaId: string;

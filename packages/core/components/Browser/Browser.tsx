@@ -64,6 +64,12 @@ export function Browser(props: BrowserProps = {}) {
   const [sort, setSort] = createSignal<SortKey>("updated");
   const [viewMode, setViewMode] = createSignal<ViewMode>("list"); // List is default
   const [activeFolderId, setActiveFolderId] = createSignal<string | null>(null);
+  // Gate persistence until onMount has read the persisted state.
+  // Without this the createEffects below fire synchronously on mount with
+  // the default values (list / null) and overwrite the persisted state
+  // before getAppState resolves — the next visit to the Browser then
+  // shows "All" instead of the last open folder.
+  const [hydrated, setHydrated] = createSignal(false);
 
   const [contextMenu, setContextMenu] = createSignal<{
     x: number;
@@ -91,12 +97,15 @@ export function Browser(props: BrowserProps = {}) {
       const f = await api.getAppState(ACTIVE_FOLDER_STATE_KEY);
       if (typeof f === "string" && f.length > 0) setActiveFolderId(f);
     } catch {}
+    setHydrated(true);
   });
   createEffect(() => {
+    if (!hydrated()) return;
     const v = viewMode();
     void api.setAppState(VIEW_STATE_KEY, v).catch(() => {});
   });
   createEffect(() => {
+    if (!hydrated()) return;
     const f = activeFolderId();
     void api.setAppState(ACTIVE_FOLDER_STATE_KEY, f ?? "").catch(() => {});
   });
@@ -429,8 +438,35 @@ export function Browser(props: BrowserProps = {}) {
     onCleanup(() => window.removeEventListener("keydown", handler));
   });
 
+  // Right-click on empty area of the overview → quick-create menu.
+  // Inner handlers (script rows, folder chips) call preventDefault first,
+  // so we only show the canvas menu when nothing else handled it.
+  function onHomeContextMenu(e: MouseEvent) {
+    if (e.defaultPrevented) return;
+    if (activeRegion() !== "scripts") return;
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: t("browser.canvas.newScript"),
+          onClick: () => openNewScript(),
+        },
+        {
+          label: t("browser.canvas.newFolder"),
+          onClick: () => {
+            setPendingMoveAfterCreate(null);
+            setFolderCreateValue("");
+            setFolderCreateOpen(true);
+          },
+        },
+      ],
+    });
+  }
+
   return (
-    <div class="home">
+    <div class="home" onContextMenu={onHomeContextMenu}>
       <Show when={activeRegion() === "scripts"}>
         <BrowserHeader
           searchInput={searchInput()}

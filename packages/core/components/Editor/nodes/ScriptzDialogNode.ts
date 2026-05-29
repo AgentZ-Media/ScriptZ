@@ -18,6 +18,9 @@ export class ScriptzDialogNode extends BaseScriptzNode {
   getType(): string {
     return ScriptzDialogNode.getType();
   }
+  hasTintHost(): boolean {
+    return true;
+  }
   static importJSON(serialized: SerializedScriptzNode): ScriptzDialogNode {
     const node = $createScriptzDialogNode();
     node.setFormat(serialized.format);

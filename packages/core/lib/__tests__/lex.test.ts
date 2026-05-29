@@ -37,14 +37,58 @@ describe("extractBlocks", () => {
       { kind: "scriptz-dialog", text: "Hallo Welt" },
     ]);
     expect(extractBlocks(json)).toEqual([
-      { kind: "scriptz-action", text: "Es regnet." },
-      { kind: "scriptz-character", text: "Max" },
-      { kind: "scriptz-dialog", text: "Hallo Welt" },
+      {
+        kind: "scriptz-action",
+        text: "Es regnet.",
+        runs: [{ text: "Es regnet.", bold: false, italic: false, underline: false }],
+      },
+      {
+        kind: "scriptz-character",
+        text: "Max",
+        runs: [{ text: "Max", bold: false, italic: false, underline: false }],
+      },
+      {
+        kind: "scriptz-dialog",
+        text: "Hallo Welt",
+        runs: [{ text: "Hallo Welt", bold: false, italic: false, underline: false }],
+      },
     ]);
   });
 
   it("returns [] for malformed JSON without throwing", () => {
     expect(extractBlocks("not json")).toEqual([]);
+  });
+
+  it("extracts per-run format bits from text nodes", () => {
+    const json = JSON.stringify({
+      root: {
+        children: [
+          {
+            type: "scriptz-dialog",
+            children: [
+              { type: "text", text: "plain " },
+              { type: "text", text: "bold", format: 1 },
+              { type: "text", text: " " },
+              { type: "text", text: "italic", format: 2 },
+              { type: "text", text: " end" },
+            ],
+          },
+        ],
+      },
+    });
+    expect(extractBlocks(json)).toEqual([
+      {
+        kind: "scriptz-dialog",
+        text: "plain bold italic end",
+        runs: [
+          { text: "plain ", bold: false, italic: false, underline: false },
+          { text: "bold", bold: true, italic: false, underline: false },
+          { text: " ", bold: false, italic: false, underline: false },
+          { text: "italic", bold: false, italic: true, underline: false },
+          { text: " end", bold: false, italic: false, underline: false },
+        ],
+      },
+    ]);
   });
 });
 

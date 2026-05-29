@@ -1,14 +1,17 @@
-import { Show, createSignal } from "solid-js";
+import { Show, createSignal, createMemo } from "solid-js";
 import { ideasStore } from "../../../stores/ideas";
 import { pushToast } from "../../../stores/toasts";
 import { relativeTime } from "../../../lib/format";
 import { t } from "../../../i18n";
-import type { Idea } from "../../../lib/types";
+import type { Folder, Idea } from "../../../lib/types";
 import { DocIcon, TrashIcon } from "./icons";
+import { FolderSelect, type FolderOption } from "./FolderSelect";
 
 export interface IdeaCardProps {
   idea: Idea;
   editing: boolean;
+  /** Shared folders (same as scripts) for the move control. */
+  folders: Folder[];
   onStartEdit(): void;
   onCancelEdit(): void;
   onConvert(): void;
@@ -21,6 +24,25 @@ export function IdeaCard(props: IdeaCardProps) {
   const [titleDraft, setTitleDraft] = createSignal(props.idea.title);
   const [notesDraft, setNotesDraft] = createSignal(props.idea.notes);
   const used = () => !!props.idea.used_at;
+
+  const folderOptions = createMemo<FolderOption[]>(() => [
+    { id: null, name: t("newScript.folder.none") },
+    ...props.folders.map((f) => ({ id: f.id, name: f.name })),
+  ]);
+
+  async function move(folderId: string | null) {
+    if (folderId === props.idea.folder_id) return;
+    try {
+      await ideasStore.moveIdea(props.idea.id, folderId);
+      const name =
+        folderId === null
+          ? t("newScript.folder.none")
+          : props.folders.find((f) => f.id === folderId)?.name ?? "";
+      pushToast(t("folder.toast.movedTo", { name }), "ok");
+    } catch (err) {
+      pushToast(t("common.errorPrefix", { message: (err as Error).message ?? String(err) }), "error");
+    }
+  }
 
   async function save() {
     const tx = titleDraft().trim();
@@ -115,6 +137,20 @@ export function IdeaCard(props: IdeaCardProps) {
               <Show when={used() && !props.linkedScriptTitle}>
                 <span class="idea-card-link is-stale" title={t("ideas.card.linked.staleTitle")}>
                   <DocIcon /> {t("ideas.card.linked.stale")}
+                </span>
+              </Show>
+              <Show when={props.folders.length > 0}>
+                <span
+                  class="idea-card-folder"
+                  title={t("ideas.card.move.title")}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <FolderSelect
+                    class="cselect-compact"
+                    options={folderOptions()}
+                    value={props.idea.folder_id}
+                    onChange={(id) => void move(id)}
+                  />
                 </span>
               </Show>
             </div>

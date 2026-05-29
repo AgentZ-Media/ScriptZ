@@ -12,6 +12,8 @@ const MIGRATION_004_WORD_COUNT_SENTINEL: &str =
     include_str!("../migrations/004_word_count_sentinel.sql");
 const MIGRATION_005_RUNTIME_STATS: &str =
     include_str!("../migrations/005_runtime_stats.sql");
+const MIGRATION_006_IDEA_FOLDERS: &str =
+    include_str!("../migrations/006_idea_folders.sql");
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,6 +46,12 @@ pub fn run() {
             version: 5,
             description: "runtime stats: dialog_word_count + direction_block_count",
             sql: MIGRATION_005_RUNTIME_STATS,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "ideas.folder_id: share folders with scripts",
+            sql: MIGRATION_006_IDEA_FOLDERS,
             kind: MigrationKind::Up,
         },
     ];

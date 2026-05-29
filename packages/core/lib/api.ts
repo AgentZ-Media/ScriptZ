@@ -38,6 +38,7 @@ import {
   createIdea as ideasCreate,
   deleteIdea as ideasDelete,
   listIdeas as ideasList,
+  moveIdea as ideasMove,
   updateIdea as ideasUpdate,
 } from "./ideas";
 import {
@@ -327,7 +328,7 @@ const sqlBackedAdapter: StorageAdapter = {
   async listIdeas(): Promise<Idea[]> {
     return ideasList();
   },
-  async createIdea(input: { title: string; notes?: string }): Promise<Idea> {
+  async createIdea(input: { title: string; notes?: string; folderId?: string | null }): Promise<Idea> {
     return ideasCreate(input);
   },
   async updateIdea(input: { id: string; title?: string; notes?: string }): Promise<Idea> {
@@ -335,6 +336,9 @@ const sqlBackedAdapter: StorageAdapter = {
   },
   async deleteIdea(id: string): Promise<void> {
     return ideasDelete(id);
+  },
+  async moveIdea(ideaId: string, folderId: string | null): Promise<void> {
+    return ideasMove(ideaId, folderId);
   },
   async convertIdeaToScript(input: {
     ideaId: string;
