@@ -42,6 +42,12 @@ export interface EditorProps {
   initialCursor?: CursorAddress | null;
   characters: ScriptCharacter[];
   highlighting?: boolean;
+  /** Read-only mode (e.g. a client portal): the script renders identically
+   *  but the editor is not editable, no autosave/persistence is wired, and
+   *  the mutating plugins (smart-enter, block hotkeys, colour picker, ...)
+   *  are not installed. Additive and defaulting to false, so the existing
+   *  desktop/web apps are completely unaffected. */
+  readOnly?: boolean;
   /** Quick-mode toggle — when on AND the script has exactly 2 characters,
    * pressing Enter at the end of a Dialog auto-inserts the OTHER character
    * + a fresh Dialog block, so two-hander dialogue flows without manual
@@ -100,6 +106,9 @@ export function Editor(props: EditorProps) {
   onMount(() => {
     if (!rootRef || !hostRef) return;
 
+    const readOnly = !!props.readOnly;
+    const noop = () => {};
+
     const editor = createEditor({
       namespace: "scriptz",
       nodes: SCRIPTZ_NODES as unknown as Array<typeof BaseScriptzNode>,
@@ -154,6 +163,9 @@ export function Editor(props: EditorProps) {
       seedEmptyState(editor);
     }
 
+    // Read-only (client portal): render the script but disable editing.
+    if (readOnly) editor.setEditable(false);
+
     // Word-style: when a script becomes the active editor, the writer
     // should be able to start typing immediately — no manual click into
     // the contenteditable area required. If an `initialCursor` was
@@ -162,48 +174,57 @@ export function Editor(props: EditorProps) {
     // — otherwise Lexical would overwrite the just-set selection back
     // to rootEnd. Without a saved cursor: to the end of the document.
     const initialCursor = props.initialCursor ?? null;
-    requestAnimationFrame(() => {
-      try {
-        if (initialCursor) {
-          applyCursor(editor, initialCursor);
-          editor.focus();
-        } else {
-          editor.focus(undefined, { defaultSelection: "rootEnd" });
+    if (!readOnly)
+      requestAnimationFrame(() => {
+        try {
+          if (initialCursor) {
+            applyCursor(editor, initialCursor);
+            editor.focus();
+          } else {
+            editor.focus(undefined, { defaultSelection: "rootEnd" });
+          }
+        } catch {
+          /* ignore — non-fatal if the editor was torn down meanwhile */
         }
-      } catch {
-        /* ignore — non-fatal if the editor was torn down meanwhile */
-      }
-    });
+      });
 
-    const teardownCanvasFocus = installCanvasFocus(rootRef, editor);
+    // In read-only mode the mutating/interactive plugins are skipped — only
+    // the highlight pass stays so character tints render as usual.
+    const teardownCanvasFocus = readOnly ? noop : installCanvasFocus(rootRef, editor);
 
-    const teardownSmartEnter = installSmartEnter(editor, {
-      isQuickModeOn: () => !!props.quickModeEnabled?.(),
-      getCharacters: () => liveCharacters(),
-    });
-    const teardownAllCaps = installAllCaps(editor);
-    const teardownParen = installParentheticalLive(editor);
-    const teardownInlineFmt = installInlineFormat(editor);
-    const teardownBlockHK = installBlockHotkeys(editor);
-    const teardownBlockDD = installBlockDropdown(editor, hostRef);
+    const teardownSmartEnter = readOnly
+      ? noop
+      : installSmartEnter(editor, {
+          isQuickModeOn: () => !!props.quickModeEnabled?.(),
+          getCharacters: () => liveCharacters(),
+        });
+    const teardownAllCaps = readOnly ? noop : installAllCaps(editor);
+    const teardownParen = readOnly ? noop : installParentheticalLive(editor);
+    const teardownInlineFmt = readOnly ? noop : installInlineFormat(editor);
+    const teardownBlockHK = readOnly ? noop : installBlockHotkeys(editor);
+    const teardownBlockDD = readOnly ? noop : installBlockDropdown(editor, hostRef);
     // Highlight first so we can pass its `refresh` to the colour picker —
     // the picker mutates `liveCharacters` outside any editor state change,
     // and without an explicit refresh the tint wouldn't repaint until the
     // next keystroke / selection change.
     const highlight = installHighlight(editor, () => liveCharacters());
-    const colorPicker = installColorPicker(editor, hostRef, () => ({
-      scriptId: props.scriptId,
-      getCharacters: () => liveCharacters(),
-      setCharacters: (next) => {
-        setLiveCharacters(next);
-        props.onCharactersChange?.(next);
-        highlight.refresh();
-      },
-    }));
-    const teardownCharDD = installCharacterDropdown(editor, hostRef, () => ({
-      scriptCharacters: () => liveCharacters(),
-      openColorPicker: colorPicker.openFor,
-    }));
+    const colorPicker = readOnly
+      ? { openFor: () => {}, teardown: noop }
+      : installColorPicker(editor, hostRef, () => ({
+          scriptId: props.scriptId,
+          getCharacters: () => liveCharacters(),
+          setCharacters: (next) => {
+            setLiveCharacters(next);
+            props.onCharactersChange?.(next);
+            highlight.refresh();
+          },
+        }));
+    const teardownCharDD = readOnly
+      ? noop
+      : installCharacterDropdown(editor, hostRef, () => ({
+          scriptCharacters: () => liveCharacters(),
+          openColorPicker: colorPicker.openFor,
+        }));
 
     // Recompute character tints when the user toggles the dark-paper option
     // or the resolved theme changes (auto + system switch).
@@ -272,14 +293,17 @@ export function Editor(props: EditorProps) {
     });
 
     // Persistence (debounced save, teardown-race guard, snapshot loop).
-    const persistence = createPersistence({
-      editor,
-      scriptId: props.scriptId,
-      initialContentJson: props.initialContentJson,
-      knownColors,
-      mergeAfterSave: (summary) => charReconcile.mergeAfterSave(summary),
-      onSavingChange: props.onSavingChange,
-    });
+    // Skipped entirely in read-only mode — nothing is ever written back.
+    const persistence = readOnly
+      ? null
+      : createPersistence({
+          editor,
+          scriptId: props.scriptId,
+          initialContentJson: props.initialContentJson,
+          knownColors,
+          mergeAfterSave: (summary) => charReconcile.mergeAfterSave(summary),
+          onSavingChange: props.onSavingChange,
+        });
 
     // Active-block reporter (block pill highlight + empty marker).
     const reporter = createActiveBlockReporter({
@@ -303,12 +327,12 @@ export function Editor(props: EditorProps) {
         // the user presses Enter after the name — even when typing
         // without a pause.
         charReconcile.reconcileLiveCharactersSync();
-        persistence.scheduleSave();
+        persistence?.scheduleSave();
       },
     );
 
     onCleanup(() => {
-      persistence.teardown();
+      persistence?.teardown();
       teardownCanvasFocus();
       teardownUpdate();
       highlight.teardown();
@@ -336,8 +360,8 @@ export function Editor(props: EditorProps) {
       <div
         ref={rootRef}
         class="editor-root"
-        contentEditable
-        spellcheck
+        contentEditable={!props.readOnly}
+        spellcheck={!props.readOnly}
         data-highlighting={props.highlighting ? "on" : "off"}
       />
       {/* Hotkey hint: only visible when the editor root carries
