@@ -777,13 +777,22 @@
 }
 
 /* ===== Multi-select mode (Studio handoff + multi-PDF) ===== */
+/* Same content-column constraints as the other Browser blocks (header,
+ * folder chips, sort bar) so the bar aligns instead of going full-bleed.
+ * The Ideas view already nests the bar inside its own constrained column. */
+.home-selbar {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
 .selbar {
   display: flex;
   align-items: center;
 }
 .selbar-idle {
   justify-content: flex-end;
-  padding: 0 var(--sp-1) var(--sp-2);
+  padding-bottom: var(--sp-2);
 }
 .selbar-active {
   justify-content: space-between;

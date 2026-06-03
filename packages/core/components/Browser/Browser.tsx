@@ -561,17 +561,19 @@ export function Browser(props: BrowserProps = {}) {
         />
 
         <Show when={!isWelcome()}>
-          <SelectionBar
-            active={selectMode()}
-            count={selectedCount()}
-            canEnter={list().length > 0}
-            onEnter={() => setSelectMode(true)}
-            onExit={exitSelect}
-            onSelectAll={selectAllVisible}
-            onClear={() => setSelectedIds(new Set<string>())}
-            onSend={() => setHandoffOpen(true)}
-            onExportPdf={() => void exportSelectedPdf()}
-          />
+          <div class="home-selbar">
+            <SelectionBar
+              active={selectMode()}
+              count={selectedCount()}
+              canEnter={list().length > 0}
+              onEnter={() => setSelectMode(true)}
+              onExit={exitSelect}
+              onSelectAll={selectAllVisible}
+              onClear={() => setSelectedIds(new Set<string>())}
+              onSend={() => setHandoffOpen(true)}
+              onExportPdf={() => void exportSelectedPdf()}
+            />
+          </div>
         </Show>
 
         <Show when={!isWelcome()} fallback={
