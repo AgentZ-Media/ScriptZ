@@ -93,35 +93,128 @@ export function ClientWorkspace() {
     then?.();
   };
 
-  // ---- new folder ----
+  // ---- create / edit folder ----
   const [folderOpen, setFolderOpen] = createSignal(false);
+  const [editFolderId, setEditFolderId] = createSignal<string | null>(null);
   const [fName, setFName] = createSignal("");
   const [fStart, setFStart] = createSignal("");
   const [fEnd, setFEnd] = createSignal("");
   const [fTarget, setFTarget] = createSignal("");
-  const createFolder = async () => {
+
+  const openNewFolder = () => {
+    setEditFolderId(null);
+    setFName("");
+    setFStart("");
+    setFEnd("");
+    setFTarget("");
+    setFolderOpen(true);
+  };
+  const openEditFolder = (f: {
+    id: string;
+    name: string;
+    startDate: string | null;
+    endDate: string | null;
+    targetCount: number | null;
+  }) => {
+    setEditFolderId(f.id);
+    setFName(f.name);
+    setFStart(f.startDate ?? "");
+    setFEnd(f.endDate ?? "");
+    setFTarget(f.targetCount != null ? String(f.targetCount) : "");
+    setFolderOpen(true);
+  };
+  const saveFolder = async () => {
     if (!fName().trim()) return;
     setBusy(true);
-    const id = await withToast(
-      () =>
-        convex.mutation(api.folders.create, {
-          clientId: clientId() as never,
-          name: fName().trim(),
-          startDate: fStart() || undefined,
-          endDate: fEnd() || undefined,
-          targetCount: fTarget() ? Number(fTarget()) : undefined,
-        }),
-      "Ordner angelegt",
+    const id = editFolderId();
+    if (id) {
+      const ok = await withToast(
+        () =>
+          convex.mutation(api.folders.update, {
+            folderId: id as never,
+            name: fName().trim(),
+            startDate: fStart() || null,
+            endDate: fEnd() || null,
+            targetCount: fTarget() ? Number(fTarget()) : null,
+          }),
+        "Ordner aktualisiert",
+      );
+      setBusy(false);
+      if (ok !== undefined) setFolderOpen(false);
+    } else {
+      const newId = await withToast(
+        () =>
+          convex.mutation(api.folders.create, {
+            clientId: clientId() as never,
+            name: fName().trim(),
+            startDate: fStart() || undefined,
+            endDate: fEnd() || undefined,
+            targetCount: fTarget() ? Number(fTarget()) : undefined,
+          }),
+        "Ordner angelegt",
+      );
+      setBusy(false);
+      if (newId) {
+        setFolderOpen(false);
+        setSp({ folder: newId });
+      }
+    }
+  };
+  const deleteFolder = async () => {
+    const id = editFolderId();
+    if (!id) return;
+    if (
+      !confirm(
+        'Diesen Ordner löschen? Enthaltene Ideen und Skripte bleiben erhalten und landen unter "Ohne Ordner".',
+      )
+    )
+      return;
+    setBusy(true);
+    const ok = await withToast(
+      () => convex.mutation(api.folders.remove, { folderId: id as never }),
+      "Ordner gelöscht",
     );
     setBusy(false);
-    if (id) {
+    if (ok !== undefined) {
       setFolderOpen(false);
-      setFName("");
-      setFStart("");
-      setFEnd("");
-      setFTarget("");
-      setSp({ folder: id });
+      if (folder() === id) setSp({ folder: undefined });
     }
+  };
+
+  // ---- move items between folders (agency) ----
+  type DragRef = { kind: "idea" | "script"; id: string; folderId: string | null };
+  const [dragItem, setDragItem] = createSignal<DragRef | null>(null);
+  const [overFolder, setOverFolder] = createSignal<string | null | undefined>(undefined);
+  const [menu, setMenu] = createSignal<{ x: number; y: number; item: DragRef } | null>(null);
+
+  const dropAllowed = (target: string | null) => {
+    const d = dragItem();
+    return isAgency() && !!d && (d.folderId ?? null) !== target;
+  };
+  const moveItem = async (it: DragRef, target: string | null) => {
+    if ((it.folderId ?? null) === target) return;
+    if (it.kind === "idea") {
+      await withToast(
+        () => convex.mutation(api.ideas.update, { ideaId: it.id as never, folderId: target as never }),
+        "Verschoben",
+      );
+    } else {
+      await withToast(
+        () => convex.mutation(api.scripts.updateMeta, { scriptId: it.id as never, folderId: target as never }),
+        "Verschoben",
+      );
+    }
+  };
+  const dropOnFolder = (e: DragEvent, target: string | null) => {
+    e.preventDefault();
+    const d = dragItem();
+    setDragItem(null);
+    setOverFolder(undefined);
+    if (d) void moveItem(d, target);
+  };
+  const openMenu = (e: MouseEvent, it: DragRef) => {
+    e.preventDefault();
+    setMenu({ x: e.clientX, y: e.clientY, item: it });
   };
 
   const exportApproved = () => {
@@ -175,44 +268,82 @@ export function ClientWorkspace() {
         <div class="workspace">
           <aside class="ws-side">
             <FolderButton label="Alle" active={folder() === "all"} onClick={() => setSp({ folder: undefined })} />
-            <Show when={folders.data()?.unfiled}>
+            <Show when={folders.data()?.unfiled || isAgency()}>
               <FolderButton
                 label="Ohne Ordner"
                 active={folder() === "unfiled"}
                 onClick={() => setSp({ folder: "unfiled" })}
+                dropOver={overFolder() === null && dropAllowed(null)}
+                onDragOver={(e) => {
+                  if (dropAllowed(null)) {
+                    e.preventDefault();
+                    setOverFolder(null);
+                  }
+                }}
+                onDragLeave={() => {
+                  if (overFolder() === null) setOverFolder(undefined);
+                }}
+                onDrop={(e) => dropOnFolder(e, null)}
               />
             </Show>
             <div class="ws-side-head">
               <span>Zeiträume</span>
               <Show when={isAgency()}>
-                <button class="btn btn-ghost btn-sm" onClick={() => setFolderOpen(true)}>
+                <button class="btn btn-ghost btn-sm" title="Neuer Zeitraum / Ordner" onClick={openNewFolder}>
                   +
                 </button>
               </Show>
             </div>
+            <Show when={isAgency() && (folders.data()?.folders.length ?? 0) === 0}>
+              <p class="ws-side-hint">Noch keine Ordner. Mit „+“ einen Zeitraum anlegen.</p>
+            </Show>
             <For each={folders.data()?.folders ?? []}>
               {(f) => (
-                <button
-                  class={`ws-folder ${folder() === f.id ? "is-active" : ""}`}
-                  onClick={() => setSp({ folder: f.id })}
+                <div
+                  class={`ws-folder-wrap ${folder() === f.id ? "is-active" : ""}`}
+                  classList={{ "is-drop": overFolder() === f.id && dropAllowed(f.id) }}
+                  onDragOver={(e) => {
+                    if (dropAllowed(f.id)) {
+                      e.preventDefault();
+                      setOverFolder(f.id);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (overFolder() === f.id) setOverFolder(undefined);
+                  }}
+                  onDrop={(e) => dropOnFolder(e, f.id)}
                 >
-                  <span class="ws-folder-name">{f.name}</span>
-                  <Show when={formatRange(f.startDate, f.endDate)}>
-                    <span class="ws-folder-range">{formatRange(f.startDate, f.endDate)}</span>
-                  </Show>
-                  <span class="ws-folder-progress">
-                    {f.approved}
-                    {f.targetCount ? ` / ${f.targetCount}` : ` / ${f.total}`} freigegeben
-                    <Show when={f.targetCount}>
-                      <span class="ws-progress-bar">
-                        <span
-                          class="ws-progress-fill"
-                          style={{ width: `${Math.min(100, Math.round((f.approved / (f.targetCount || 1)) * 100))}%` }}
-                        />
-                      </span>
+                  <button
+                    class={`ws-folder ${folder() === f.id ? "is-active" : ""}`}
+                    onClick={() => setSp({ folder: f.id })}
+                  >
+                    <span class="ws-folder-name">{f.name}</span>
+                    <Show when={formatRange(f.startDate, f.endDate)}>
+                      <span class="ws-folder-range">{formatRange(f.startDate, f.endDate)}</span>
                     </Show>
-                  </span>
-                </button>
+                    <span class="ws-folder-progress">
+                      {f.approved}
+                      {f.targetCount ? ` / ${f.targetCount}` : ` / ${f.total}`} freigegeben
+                      <Show when={f.targetCount}>
+                        <span class="ws-progress-bar">
+                          <span
+                            class="ws-progress-fill"
+                            style={{ width: `${Math.min(100, Math.round((f.approved / (f.targetCount || 1)) * 100))}%` }}
+                          />
+                        </span>
+                      </Show>
+                    </span>
+                  </button>
+                  <Show when={isAgency()}>
+                    <button
+                      class="ws-folder-edit"
+                      title="Ordner bearbeiten"
+                      onClick={() => openEditFolder(f)}
+                    >
+                      ⋯
+                    </button>
+                  </Show>
+                </div>
               )}
             </For>
           </aside>
@@ -245,7 +376,27 @@ export function ClientWorkspace() {
                 <ul class="item-list">
                   <For each={items()}>
                     {(it) => (
-                      <li class="item-row" onClick={() => openItem(it.kind, it.id)}>
+                      <li
+                        class="item-row"
+                        classList={{ "is-dragging": dragItem()?.id === it.id }}
+                        draggable={isAgency()}
+                        onClick={() => openItem(it.kind, it.id)}
+                        onContextMenu={(e) => {
+                          if (isAgency())
+                            openMenu(e, { kind: it.kind, id: it.id, folderId: it.folderId ?? null });
+                        }}
+                        onDragStart={(e) => {
+                          setDragItem({ kind: it.kind, id: it.id, folderId: it.folderId ?? null });
+                          if (e.dataTransfer) {
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", it.id);
+                          }
+                        }}
+                        onDragEnd={() => {
+                          setDragItem(null);
+                          setOverFolder(undefined);
+                        }}
+                      >
                         <span class={`item-kind item-kind-${it.kind}`}>
                           {it.kind === "idea" ? "Idee" : "Skript"}
                         </span>
@@ -292,8 +443,12 @@ export function ClientWorkspace() {
         </div>
       </Modal>
 
-      {/* New folder */}
-      <Modal open={folderOpen()} title="Neuer Zeitraum / Ordner" onClose={() => setFolderOpen(false)}>
+      {/* Create / edit folder */}
+      <Modal
+        open={folderOpen()}
+        title={editFolderId() ? "Ordner bearbeiten" : "Neuer Zeitraum / Ordner"}
+        onClose={() => setFolderOpen(false)}
+      >
         <label class="field">
           <span class="field-label">Name</span>
           <input class="input" value={fName()} onInput={(e) => setFName(e.currentTarget.value)} placeholder="z. B. August oder Q3-Dreh" autofocus />
@@ -313,22 +468,98 @@ export function ClientWorkspace() {
           </label>
         </div>
         <div class="modal-actions">
+          <Show when={editFolderId()}>
+            <button class="btn btn-danger" disabled={busy()} onClick={() => void deleteFolder()}>
+              Löschen
+            </button>
+          </Show>
+          <span class="spacer" />
           <button class="btn" onClick={() => setFolderOpen(false)}>
             Abbrechen
           </button>
-          <button class="btn btn-primary" disabled={busy() || !fName().trim()} onClick={() => void createFolder()}>
-            Anlegen
+          <button class="btn btn-primary" disabled={busy() || !fName().trim()} onClick={() => void saveFolder()}>
+            {editFolderId() ? "Speichern" : "Anlegen"}
           </button>
         </div>
       </Modal>
 
+      {/* Move-to-folder context menu (right-click on an item) */}
+      <Show when={menu()}>
+        {(m) => {
+          const targets = () =>
+            (folders.data()?.folders ?? []).filter((f) => f.id !== (m().item.folderId ?? null));
+          return (
+            <>
+              <div
+                class="ctx-backdrop"
+                onClick={() => setMenu(null)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setMenu(null);
+                }}
+              />
+              <div
+                class="ctx-menu"
+                style={{
+                  left: `${Math.min(m().x, window.innerWidth - 240)}px`,
+                  top: `${Math.min(m().y, window.innerHeight - 280)}px`,
+                }}
+              >
+                <div class="ctx-menu-label">Verschieben nach</div>
+                <Show when={(m().item.folderId ?? null) !== null}>
+                  <button
+                    class="ctx-menu-item"
+                    onClick={() => {
+                      void moveItem(m().item, null);
+                      setMenu(null);
+                    }}
+                  >
+                    Ohne Ordner
+                  </button>
+                </Show>
+                <For each={targets()}>
+                  {(f) => (
+                    <button
+                      class="ctx-menu-item"
+                      onClick={() => {
+                        void moveItem(m().item, f.id);
+                        setMenu(null);
+                      }}
+                    >
+                      {f.name}
+                    </button>
+                  )}
+                </For>
+                <Show when={targets().length === 0 && (m().item.folderId ?? null) === null}>
+                  <div class="ctx-menu-empty">Keine Ordner vorhanden</div>
+                </Show>
+              </div>
+            </>
+          );
+        }}
+      </Show>
     </main>
   );
 }
 
-function FolderButton(props: { label: string; active: boolean; onClick: () => void }) {
+function FolderButton(props: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  dropOver?: boolean;
+  onDragOver?: (e: DragEvent) => void;
+  onDragLeave?: (e: DragEvent) => void;
+  onDrop?: (e: DragEvent) => void;
+}) {
   return (
-    <button class={`ws-folder ws-folder-flat ${props.active ? "is-active" : ""}`} onClick={props.onClick}>
+    <button
+      class={`ws-folder ws-folder-flat ${props.active ? "is-active" : ""}`}
+      classList={{ "is-drop": !!props.dropOver }}
+      onClick={props.onClick}
+      onDragOver={props.onDragOver}
+      onDragLeave={props.onDragLeave}
+      onDrop={props.onDrop}
+    >
       <span class="ws-folder-name">{props.label}</span>
     </button>
   );
