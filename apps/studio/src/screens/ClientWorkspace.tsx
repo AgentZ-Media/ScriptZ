@@ -216,6 +216,21 @@ export function ClientWorkspace() {
     e.preventDefault();
     setMenu({ x: e.clientX, y: e.clientY, item: it });
   };
+  const deleteItem = async (it: DragRef) => {
+    const isIdea = it.kind === "idea";
+    if (!confirm(isIdea ? "Diese Idee löschen?" : "Dieses Skript löschen?")) return;
+    if (isIdea) {
+      await withToast(
+        () => convex.mutation(api.ideas.remove, { ideaId: it.id as never }),
+        "Idee gelöscht",
+      );
+    } else {
+      await withToast(
+        () => convex.mutation(api.scripts.remove, { scriptId: it.id as never }),
+        "Skript gelöscht",
+      );
+    }
+  };
 
   const exportApproved = () => {
     const ids = (scripts.data() ?? []).filter((s) => s.status === "approved").map((s) => s.id);
@@ -533,6 +548,17 @@ export function ClientWorkspace() {
                 <Show when={targets().length === 0 && (m().item.folderId ?? null) === null}>
                   <div class="ctx-menu-empty">Keine Ordner vorhanden</div>
                 </Show>
+                <div class="ctx-menu-sep" />
+                <button
+                  class="ctx-menu-item ctx-menu-danger"
+                  onClick={() => {
+                    const it = m().item;
+                    setMenu(null);
+                    void deleteItem(it);
+                  }}
+                >
+                  {m().item.kind === "idea" ? "Idee löschen" : "Skript löschen"}
+                </button>
               </div>
             </>
           );
