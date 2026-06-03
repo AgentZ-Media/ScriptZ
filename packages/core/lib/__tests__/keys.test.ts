@@ -15,6 +15,7 @@ import { K, formatHotkey, getPlatform, isMac, isModKey } from "../keys";
 function stubAdapter(platform: Platform): PlatformAdapter {
   return {
     platform,
+    supportsDirectoryWrite: false,
     getDb: () =>
       Promise.reject(new Error("no DB needed for these tests")),
     getVersion: () => Promise.resolve("0.0.0"),
@@ -23,6 +24,9 @@ function stubAdapter(platform: Platform): PlatformAdapter {
     saveDialog: () => Promise.resolve(null),
     saveAs: () => Promise.resolve({ cancelled: true, path: null }),
     openFile: () => Promise.resolve(null),
+    httpPostJson: () => Promise.resolve({ status: 0, ok: false, body: "" }),
+    pickDirectory: () => Promise.resolve(null),
+    writeFileTo: () => Promise.resolve(),
   };
 }
 

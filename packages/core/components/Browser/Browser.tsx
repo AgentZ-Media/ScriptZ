@@ -13,8 +13,11 @@ import { tabsStore } from "../../stores/tabs";
 import { pushToast } from "../../stores/toasts";
 import { K } from "../../lib/keys";
 import { debounce } from "../../lib/format";
-import { t } from "../../i18n";
+import { exportScriptsToPdf } from "../../lib/exportSelection";
+import { t, tPlural } from "../../i18n";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
+import { SelectionBar } from "./SelectionBar";
+import { HandoffDialog } from "./HandoffDialog";
 import { TrashView } from "./TrashView";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { foldersBus } from "../../lib/foldersBus";
@@ -87,6 +90,12 @@ export function Browser(props: BrowserProps = {}) {
   const [pendingMoveAfterCreate, setPendingMoveAfterCreate] =
     createSignal<ScriptSummary | null>(null);
 
+  // ---- Multi-select (Studio handoff + multi-PDF) ----
+  const [selectMode, setSelectMode] = createSignal(false);
+  const [selectedIds, setSelectedIds] = createSignal<Set<string>>(new Set());
+  const [handoffOpen, setHandoffOpen] = createSignal(false);
+  const selectedCount = createMemo(() => selectedIds().size);
+
   // Restore persisted view mode + active folder.
   onMount(async () => {
     try {
@@ -141,6 +150,16 @@ export function Browser(props: BrowserProps = {}) {
     void sort();
     void activeFolderId();
     setPageLimit(PAGE_SIZE);
+  });
+
+  // Leaving the current scope (folder switch, search, region change) drops any
+  // in-progress selection so the user never sends items from another context.
+  createEffect(() => {
+    void activeFolderId();
+    void debouncedSearch();
+    void activeRegion();
+    setSelectMode(false);
+    setSelectedIds(new Set<string>());
   });
 
   const queryKey = createMemo(() => ({
@@ -209,6 +228,45 @@ export function Browser(props: BrowserProps = {}) {
   // ---- Row actions ----
   function openScript(s: ScriptSummary, newTab = false) {
     tabsStore.openScript(s.id, s.title, { newTab });
+  }
+
+  // ---- Selection actions ----
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function selectAllVisible() {
+    setSelectedIds(new Set(list().map((s) => s.id)));
+  }
+  function exitSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set<string>());
+  }
+  async function exportSelectedPdf() {
+    const ids = [...selectedIds()];
+    if (ids.length === 0) {
+      pushToast(t("select.empty"), "info");
+      return;
+    }
+    try {
+      const res = await exportScriptsToPdf(ids, {
+        includeHighlighting: false,
+        includeTitlePage: true,
+      });
+      if (res.cancelled) return;
+      pushToast(tPlural("select.pdf.toast", res.count), "ok");
+    } catch (e) {
+      pushToast(t("select.pdf.failed", { message: (e as Error).message ?? String(e) }), "error");
+    }
+  }
+  function onHandoffSent() {
+    exitSelect();
+    scriptsBus.bump();
+    foldersBus.bump();
   }
 
   async function archive(s: ScriptSummary) {
@@ -502,6 +560,20 @@ export function Browser(props: BrowserProps = {}) {
           }}
         />
 
+        <Show when={!isWelcome()}>
+          <SelectionBar
+            active={selectMode()}
+            count={selectedCount()}
+            canEnter={list().length > 0}
+            onEnter={() => setSelectMode(true)}
+            onExit={exitSelect}
+            onSelectAll={selectAllVisible}
+            onClear={() => setSelectedIds(new Set<string>())}
+            onSend={() => setHandoffOpen(true)}
+            onExportPdf={() => void exportSelectedPdf()}
+          />
+        </Show>
+
         <Show when={!isWelcome()} fallback={
           <div class="home-welcome">
             <div class="home-empty-mark">z</div>
@@ -553,6 +625,9 @@ export function Browser(props: BrowserProps = {}) {
               });
             }}
             isEmptyFolder={isEmptyFolder()}
+            selectMode={selectMode()}
+            selectedIds={selectedIds()}
+            onToggleSelect={toggleSelect}
           />
         </Show>
       </Show>
@@ -611,6 +686,14 @@ export function Browser(props: BrowserProps = {}) {
         folderDeleteTarget={folderDeleteTarget()}
         onFolderDeleteCancel={() => setFolderDeleteTarget(null)}
         onFolderDeleteConfirm={() => void commitFolderDelete()}
+      />
+
+      <HandoffDialog
+        open={handoffOpen()}
+        scriptIds={[...selectedIds()]}
+        ideaIds={[]}
+        onClose={() => setHandoffOpen(false)}
+        onSent={onHandoffSent}
       />
     </div>
   );

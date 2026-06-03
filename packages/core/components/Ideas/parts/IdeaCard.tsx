@@ -18,6 +18,10 @@ export interface IdeaCardProps {
   onDelete(): void;
   onOpenScript(): void;
   linkedScriptTitle: string | null;
+  /** When true, a click toggles selection instead of opening the editor. */
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export function IdeaCard(props: IdeaCardProps) {
@@ -69,7 +73,11 @@ export function IdeaCard(props: IdeaCardProps) {
   return (
     <li
       class="idea-card"
-      classList={{ "is-used": used(), "is-editing": props.editing }}
+      classList={{
+        "is-used": used(),
+        "is-editing": props.editing,
+        "is-selected": props.selectMode && props.selected,
+      }}
     >
       <Show
         when={!props.editing}
@@ -108,10 +116,20 @@ export function IdeaCard(props: IdeaCardProps) {
           </div>
         }
       >
-        <div class="idea-card-row" onClick={startEdit}>
+        <div
+          class="idea-card-row"
+          onClick={() => (props.selectMode ? props.onToggleSelect?.() : startEdit())}
+        >
           <div class="idea-card-mark" aria-hidden="true">
-            <Show when={used()} fallback={<span class="idea-card-dot" />}>
-              <span class="idea-card-check">✓</span>
+            <Show
+              when={props.selectMode}
+              fallback={
+                <Show when={used()} fallback={<span class="idea-card-dot" />}>
+                  <span class="idea-card-check">✓</span>
+                </Show>
+              }
+            >
+              <span class="idea-sel-box" classList={{ "is-on": props.selected }}>✓</span>
             </Show>
           </div>
           <div class="idea-card-body">

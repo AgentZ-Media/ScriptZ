@@ -17,6 +17,7 @@
 import Database from "@tauri-apps/plugin-sql";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { mkdir, readFile, writeFile } from "@tauri-apps/plugin-fs";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
 import { platform as osPlatform } from "@tauri-apps/plugin-os";
@@ -24,6 +25,7 @@ import {
   applyPlatformToDocument,
   setPlatformAdapter,
   type DbConnection,
+  type HttpPostResult,
   type OpenFileResult,
   type Platform,
   type PlatformAdapter,
@@ -116,8 +118,49 @@ async function desktopOpenFile(accept: string): Promise<OpenFileResult | null> {
   return { name, bytes };
 }
 
+async function desktopPickDirectory(): Promise<string | null> {
+  const dir = await openDialog({ directory: true, multiple: false });
+  return typeof dir === "string" ? dir : null;
+}
+
+async function desktopWriteFileTo(path: string, bytes: Uint8Array): Promise<void> {
+  const parent = parentDir(path);
+  if (parent) {
+    try {
+      await mkdir(parent, { recursive: true });
+    } catch (err) {
+      if (!isAlreadyExistsError(err)) throw err;
+    }
+  }
+  await writeFile(path, bytes);
+}
+
+async function desktopHttpPostJson(
+  url: string,
+  token: string,
+  jsonBody: string,
+): Promise<HttpPostResult> {
+  try {
+    // tauri-plugin-http's fetch runs through Rust, so the webview CSP does
+    // not gate it - only the capability scope (https://**) does.
+    const res = await tauriFetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: jsonBody,
+    });
+    const body = await res.text();
+    return { status: res.status, ok: res.ok, body };
+  } catch {
+    return { status: 0, ok: false, body: "" };
+  }
+}
+
 const tauriAdapter: PlatformAdapter = {
   platform: detectPlatform(),
+  supportsDirectoryWrite: true,
   getDb: loadDesktopDb,
   getVersion: () => getVersion(),
   openUrl: (url) => openUrl(url),
@@ -128,6 +171,9 @@ const tauriAdapter: PlatformAdapter = {
   },
   saveAs: desktopSaveAs,
   openFile: desktopOpenFile,
+  httpPostJson: desktopHttpPostJson,
+  pickDirectory: desktopPickDirectory,
+  writeFileTo: desktopWriteFileTo,
 };
 
 setPlatformAdapter(tauriAdapter);

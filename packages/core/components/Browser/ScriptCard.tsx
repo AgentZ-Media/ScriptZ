@@ -22,37 +22,49 @@ export interface ScriptCardProps {
   folderName: string;
   onClick: () => void;
   onContextMenu: (e: MouseEvent) => void;
+  /** When true, a click toggles selection instead of opening the script. */
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 /** Grid view card — visual variant used when `viewMode === "grid"`. */
 export function ScriptCard(props: ScriptCardProps) {
   const bg = () => stripeBackground(props.script.characters, "to right");
   const [dragging, setDragging] = createSignal(false);
+  const activate = () => (props.selectMode ? props.onToggleSelect?.() : props.onClick());
   return (
     <article
       class="card-v2"
-      classList={{ "is-dragging": dragging() }}
+      classList={{
+        "is-dragging": dragging(),
+        "is-selectable": props.selectMode,
+        "is-selected": props.selectMode && props.selected,
+      }}
       role="button"
-      draggable={true}
+      draggable={!props.selectMode}
       onDragStart={(e) => {
-        if (!e.dataTransfer) return;
+        if (props.selectMode || !e.dataTransfer) return;
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
         e.dataTransfer.setData("text/plain", props.script.title);
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
-      onClick={props.onClick}
+      onClick={activate}
       onContextMenu={props.onContextMenu}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          props.onClick();
+          activate();
         }
       }}
       tabIndex={0}
       aria-label={props.script.title || t("common.untitled")}
     >
+      <Show when={props.selectMode}>
+        <span class="sel-check" aria-hidden="true">✓</span>
+      </Show>
       <div
         class="card-v2-strip"
         classList={{ "is-empty": bg() === null }}

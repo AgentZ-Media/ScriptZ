@@ -21,6 +21,7 @@ import type * as scripts from "../scripts.js";
 import type * as search from "../search.js";
 import type * as seed from "../seed.js";
 import type * as status from "../status.js";
+import type * as transfer from "../transfer.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   search: typeof search;
   seed: typeof seed;
   status: typeof status;
+  transfer: typeof transfer;
   users: typeof users;
 }>;
 

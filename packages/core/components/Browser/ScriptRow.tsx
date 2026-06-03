@@ -24,37 +24,50 @@ export interface ScriptRowProps {
   onOpen: () => void;
   onMore: (e: MouseEvent & { currentTarget: HTMLElement }) => void;
   onContextMenu: (e: MouseEvent) => void;
+  /** When true, a click toggles selection instead of opening the script. */
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 /** List view row — visual variant used when `viewMode === "list"`. */
 export function ScriptRow(props: ScriptRowProps) {
   const bg = () => stripeBackground(props.script.characters, "to bottom");
   const [dragging, setDragging] = createSignal(false);
+  const activate = () => (props.selectMode ? props.onToggleSelect?.() : props.onOpen());
   return (
     <div
       class="row-v2"
       role="button"
-      classList={{ "is-context": props.isContext, "is-dragging": dragging() }}
-      draggable={true}
+      classList={{
+        "is-context": props.isContext,
+        "is-dragging": dragging(),
+        "is-selectable": props.selectMode,
+        "is-selected": props.selectMode && props.selected,
+      }}
+      draggable={!props.selectMode}
       onDragStart={(e) => {
-        if (!e.dataTransfer) return;
+        if (props.selectMode || !e.dataTransfer) return;
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData(SCRIPT_DRAG_MIME, props.script.id);
         e.dataTransfer.setData("text/plain", props.script.title);
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
-      onClick={props.onOpen}
+      onClick={activate}
       onContextMenu={props.onContextMenu}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          props.onOpen();
+          activate();
         }
       }}
       aria-label={props.script.title || t("common.untitled")}
     >
+      <Show when={props.selectMode}>
+        <span class="sel-check" aria-hidden="true">✓</span>
+      </Show>
       <div
         class="row-stripe"
         classList={{ "row-stripe-empty": bg() === null }}

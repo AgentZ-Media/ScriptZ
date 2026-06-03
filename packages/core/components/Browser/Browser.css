@@ -775,3 +775,73 @@
   font-size: 14px;
   line-height: 1;
 }
+
+/* ===== Multi-select mode (Studio handoff + multi-PDF) ===== */
+.selbar {
+  display: flex;
+  align-items: center;
+}
+.selbar-idle {
+  justify-content: flex-end;
+  padding: 0 var(--sp-1) var(--sp-2);
+}
+.selbar-active {
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-2);
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+}
+.selbar-count {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--fg);
+}
+.selbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* Selection checkbox, overlaid so it never disturbs the row/card grid. */
+.sel-check {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  color: transparent;
+  background: var(--bg);
+  pointer-events: none;
+}
+.row-v2 .sel-check {
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.card-v2 .sel-check {
+  left: 8px;
+  top: 8px;
+  z-index: 2;
+}
+.is-selected .sel-check {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #fff;
+}
+.row-v2.is-selectable {
+  padding-left: 38px;
+}
+.row-v2.is-selected,
+.card-v2.is-selected {
+  outline: 2px solid var(--brand-500);
+  outline-offset: -2px;
+}

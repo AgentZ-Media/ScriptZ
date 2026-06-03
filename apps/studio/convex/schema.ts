@@ -121,4 +121,19 @@ export default defineSchema({
     color: v.string(),
     updatedAt: v.number(),
   }).index("by_client_name", ["clientId", "name"]),
+
+  // Short-lived, single-use tokens for the offline-editor handoff. The agency
+  // generates one bound to a client (+ optional folder); the editor POSTs a
+  // bundle of scripts/ideas to the /transfer HTTP endpoint with the raw token
+  // as a Bearer credential. Only the SHA-256 hash is stored, so a DB leak does
+  // not expose usable tokens. See convex/transfer.ts + convex/http.ts.
+  transferTokens: defineTable({
+    clientId: v.id("clients"),
+    folderId: v.optional(v.id("folders")),
+    tokenHash: v.string(), // SHA-256 hex of the raw token
+    label: v.optional(v.string()), // human-readable target ("Client X / Q3")
+    createdBy: v.id("users"),
+    expiresAt: v.number(), // Date.now() + TTL
+    usedAt: v.optional(v.number()), // set once redeemed (single-use)
+  }).index("by_hash", ["tokenHash"]),
 });

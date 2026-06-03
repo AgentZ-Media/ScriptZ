@@ -66,6 +66,10 @@ export interface BrowserListProps {
   /** Renders the "empty folder" placeholder when there are no items
    *  in the currently selected user folder. */
   isEmptyFolder: boolean;
+  /** Multi-select mode: rows/cards toggle selection instead of opening. */
+  selectMode: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
 }
 
 /** Sort bar + script list/grid + load-more — rendered when the
@@ -147,6 +151,9 @@ export function BrowserList(props: BrowserListProps) {
                                 e.preventDefault();
                                 props.onScriptContextMenu(s, e);
                               }}
+                              selectMode={props.selectMode}
+                              selected={props.selectedIds.has(s.id)}
+                              onToggleSelect={() => props.onToggleSelect(s.id)}
                             />
                           )}
                         </For>
@@ -164,6 +171,9 @@ export function BrowserList(props: BrowserListProps) {
                                 e.preventDefault();
                                 props.onScriptContextMenu(s, e);
                               }}
+                              selectMode={props.selectMode}
+                              selected={props.selectedIds.has(s.id)}
+                              onToggleSelect={() => props.onToggleSelect(s.id)}
                             />
                           )}
                         </For>

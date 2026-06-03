@@ -11,6 +11,7 @@
 import {
   applyPlatformToDocument,
   setPlatformAdapter,
+  type HttpPostResult,
   type OpenFileResult,
   type Platform,
   type PlatformAdapter,
@@ -94,6 +95,7 @@ function inputFileOpen(accept: string): Promise<OpenFileResult | null> {
 
 const studioAdapter: PlatformAdapter = {
   platform: detectPlatform(),
+  supportsDirectoryWrite: false,
   async getDb() {
     throw new Error(
       "Studio-Build: getDb() ist nicht verfügbar. Der ConvexStorageAdapter " +
@@ -118,6 +120,29 @@ const studioAdapter: PlatformAdapter = {
     return { cancelled: false, path: null };
   },
   openFile: inputFileOpen,
+  async httpPostJson(url, token, jsonBody): Promise<HttpPostResult> {
+    // Studio is the receiver, not a sender, so this is unused in practice -
+    // implemented to satisfy the interface (and harmless if ever called).
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: jsonBody,
+      });
+      return { status: res.status, ok: res.ok, body: await res.text() };
+    } catch {
+      return { status: 0, ok: false, body: "" };
+    }
+  },
+  async pickDirectory() {
+    return null;
+  },
+  async writeFileTo() {
+    throw new Error("writeFileTo is not available in the Studio build");
+  },
 };
 
 setPlatformAdapter(studioAdapter);

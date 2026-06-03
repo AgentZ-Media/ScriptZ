@@ -18,6 +18,7 @@
 import {
   applyPlatformToDocument,
   setPlatformAdapter,
+  type HttpPostResult,
   type OpenFileResult,
   type Platform,
   type PlatformAdapter,
@@ -111,6 +112,7 @@ function inputFileOpen(accept: string): Promise<OpenFileResult | null> {
 
 const webAdapter: PlatformAdapter = {
   platform: detectPlatform(),
+  supportsDirectoryWrite: false,
   async getDb() {
     throw new Error(
       "Web-Build: getDb() ist nicht verfügbar. Der Storage-Adapter " +
@@ -144,6 +146,29 @@ const webAdapter: PlatformAdapter = {
     return { cancelled: false, path: null };
   },
   openFile: inputFileOpen,
+  async httpPostJson(url, token, jsonBody): Promise<HttpPostResult> {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: jsonBody,
+      });
+      const body = await res.text();
+      return { status: res.status, ok: res.ok, body };
+    } catch {
+      // Network error, CORS block, DNS failure - no response reached us.
+      return { status: 0, ok: false, body: "" };
+    }
+  },
+  async pickDirectory() {
+    return null; // No directory picker in the browser.
+  },
+  async writeFileTo() {
+    throw new Error("writeFileTo is not available in the web build");
+  },
 };
 
 setPlatformAdapter(webAdapter);

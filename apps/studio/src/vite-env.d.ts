@@ -7,6 +7,8 @@ declare const __APP_VERSION__: string;
 interface ImportMetaEnv {
   /** Convex deployment URL, written by `npx convex dev` into .env.local. */
   readonly VITE_CONVEX_URL: string;
+  /** Convex .site domain - hosts the Better Auth + /transfer HTTP routes. */
+  readonly VITE_CONVEX_SITE_URL: string;
 }
 
 interface ImportMeta {

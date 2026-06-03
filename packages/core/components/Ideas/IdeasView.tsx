@@ -1,4 +1,4 @@
-import { For, Show, createSignal, createResource } from "solid-js";
+import { For, Show, createSignal, createResource, createEffect } from "solid-js";
 import { ideasStore } from "../../stores/ideas";
 import { foldersBus } from "../../lib/foldersBus";
 import { tabsStore } from "../../stores/tabs";
@@ -15,6 +15,8 @@ import { ConvertIdeaDialog } from "./ConvertIdeaDialog";
 import { FolderChips } from "../Browser/FolderChips";
 import { BrowserDialogs } from "../Browser/BrowserDialogs";
 import { ScriptContextMenu } from "../Browser/ScriptContextMenu";
+import { SelectionBar } from "../Browser/SelectionBar";
+import { HandoffDialog } from "../Browser/HandoffDialog";
 import "./IdeasView.css";
 
 function sortOptions(): Array<{ id: IdeasSort; label: string }> {
@@ -40,6 +42,31 @@ export function IdeasView() {
   const [pendingDelete, setPendingDelete] = createSignal<Idea | null>(null);
   const [pendingConvert, setPendingConvert] = createSignal<Idea | null>(null);
   let captureRef: HTMLInputElement | undefined;
+
+  // ---- Multi-select (Studio handoff) ----
+  const [selectMode, setSelectMode] = createSignal(false);
+  const [selectedIds, setSelectedIds] = createSignal<Set<string>>(new Set());
+  const [handoffOpen, setHandoffOpen] = createSignal(false);
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function exitSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set<string>());
+  }
+  // Leaving the current scope drops the selection.
+  createEffect(() => {
+    void filter();
+    void query();
+    void activeFolderId();
+    setSelectMode(false);
+    setSelectedIds(new Set<string>());
+  });
 
   // Folder management state, mirrored from the Browser — folders are
   // shared between scripts and ideas, so they can be created / renamed /
@@ -253,6 +280,17 @@ export function IdeasView() {
           onDropScript={() => {}}
         />
 
+        <SelectionBar
+          active={selectMode()}
+          count={selectedIds().size}
+          canEnter={filtered().length > 0}
+          onEnter={() => setSelectMode(true)}
+          onExit={exitSelect}
+          onSelectAll={() => setSelectedIds(new Set(filtered().map((i) => i.id)))}
+          onClear={() => setSelectedIds(new Set<string>())}
+          onSend={() => setHandoffOpen(true)}
+        />
+
         <div class="ideas-view-bar">
           <div class="ideas-view-search">
             <span class="ideas-view-search-ic" aria-hidden="true">
@@ -346,6 +384,9 @@ export function IdeasView() {
                         ? scriptIndex().get(idea.script_id) ?? null
                         : null
                     }
+                    selectMode={selectMode()}
+                    selected={selectedIds().has(idea.id)}
+                    onToggleSelect={() => toggleSelect(idea.id)}
                   />
                 )}
               </For>
@@ -414,6 +455,17 @@ export function IdeasView() {
           />
         )}
       </Show>
+
+      <HandoffDialog
+        open={handoffOpen()}
+        scriptIds={[]}
+        ideaIds={[...selectedIds()]}
+        onClose={() => setHandoffOpen(false)}
+        onSent={() => {
+          exitSelect();
+          ideasStore.refresh();
+        }}
+      />
     </div>
   );
 }
