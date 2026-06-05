@@ -41,6 +41,7 @@ import {
 import { runtimeStatsFromContent } from "@scriptz/core/lib/runtime";
 import { dailyStatsBus } from "@scriptz/core/lib/dailyStatsBus";
 import { foldersBus } from "@scriptz/core/lib/foldersBus";
+import { INBOX_FOLDER_ID } from "@scriptz/core/lib/folders";
 import { localeCompare, t } from "@scriptz/core/i18n";
 import { ideasBus } from "@scriptz/core/lib/ideasBus";
 import { scriptsBus } from "@scriptz/core/lib/scriptsBus";
@@ -553,7 +554,10 @@ class IndexedDbStorage implements StorageAdapter {
       const needle = q.toLowerCase();
       list = list.filter((s) => s.title.toLowerCase().includes(needle));
     }
-    if (query.folderId !== undefined && query.folderId !== null) {
+    if (query.folderId === INBOX_FOLDER_ID) {
+      // Virtual "Inbox" folder: only ungrouped scripts.
+      list = list.filter((s) => s.folder_id === null);
+    } else if (query.folderId !== undefined && query.folderId !== null) {
       list = list.filter((s) => s.folder_id === query.folderId);
     }
     const sort = query.sort ?? "updated";

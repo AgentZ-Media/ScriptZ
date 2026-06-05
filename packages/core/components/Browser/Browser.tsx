@@ -21,6 +21,7 @@ import { HandoffDialog } from "./HandoffDialog";
 import { TrashView } from "./TrashView";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { foldersBus } from "../../lib/foldersBus";
+import { INBOX_FOLDER_ID } from "../../lib/folders";
 import { FolderChips } from "./FolderChips";
 import { BrowserHeader, type ViewMode } from "./BrowserHeader";
 import { BrowserList } from "./BrowserList";
@@ -120,7 +121,10 @@ export function Browser(props: BrowserProps = {}) {
   });
 
   function openNewScript() {
-    props.onNewScript?.(activeFolderId());
+    // In the virtual Inbox, a new script is simply ungrouped (folder = null),
+    // which lands it right back in the Inbox.
+    const fid = activeFolderId();
+    props.onNewScript?.(fid === INBOX_FOLDER_ID ? null : fid);
   }
 
   async function onImportScriptz() {
@@ -193,14 +197,27 @@ export function Browser(props: BrowserProps = {}) {
     initialValue: 0,
   });
 
-  // If the active folder was deleted → "All".
+  // Inbox = live scripts that sit in no folder. Each item is in exactly one
+  // folder or none, so allCount minus the sum of per-folder counts is the
+  // ungrouped remainder — no extra query needed.
+  const inboxCount = createMemo(() => {
+    const grouped = (folders() ?? []).reduce((n, f) => n + f.script_count, 0);
+    return Math.max(0, (allCount() ?? 0) - grouped);
+  });
+
+  // If the active folder was deleted → "All". The Inbox sentinel is not a
+  // real folder, so exempt it — but if folders are gone entirely (the Inbox
+  // chip is then hidden), fall back to "All".
   createEffect(() => {
     const id = activeFolderId();
+    if (!id || folders.loading) return;
     const list = folders() ?? [];
-    if (id && !folders.loading && list.length >= 0) {
-      if (!list.find((f) => f.id === id)) {
-        setActiveFolderId(null);
-      }
+    if (id === INBOX_FOLDER_ID) {
+      if (list.length === 0) setActiveFolderId(null);
+      return;
+    }
+    if (!list.find((f) => f.id === id)) {
+      setActiveFolderId(null);
     }
   });
 
@@ -222,6 +239,7 @@ export function Browser(props: BrowserProps = {}) {
   const activeFolderName = createMemo(() => {
     const id = activeFolderId();
     if (!id) return null;
+    if (id === INBOX_FOLDER_ID) return t("folder.inbox");
     return folders()?.find((f) => f.id === id)?.name ?? null;
   });
 
@@ -545,6 +563,7 @@ export function Browser(props: BrowserProps = {}) {
           folders={folders() ?? []}
           activeFolderId={activeFolderId()}
           allCount={allCount() ?? 0}
+          inboxCount={inboxCount()}
           onSelect={(id) => setActiveFolderId(id)}
           onCreateFolder={() => {
             setPendingMoveAfterCreate(null);

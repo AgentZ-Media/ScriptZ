@@ -1,5 +1,6 @@
 import { For, Show, createSignal } from "solid-js";
 import type { Folder } from "../../lib/types";
+import { INBOX_FOLDER_ID } from "../../lib/folders";
 import { t } from "../../i18n";
 
 export const SCRIPT_DRAG_MIME = "application/x-scriptz-script-id";
@@ -15,6 +16,10 @@ export interface FolderChipsProps {
   folders: Folder[];
   activeFolderId: string | null;
   allCount: number;
+  /** Count of ungrouped items, shown on the virtual "Inbox" chip. The chip
+   *  only appears once at least one folder exists (without folders every
+   *  item is ungrouped, so the chip would duplicate "All"). */
+  inboxCount: number;
   onSelect: (folderId: string | null) => void;
   onCreateFolder: () => void;
   onChipContextMenu: (folder: Folder, ev: MouseEvent) => void;
@@ -33,6 +38,16 @@ export function FolderChips(props: FolderChipsProps) {
           onDropScript={(id) => props.onDropScript(null, id)}
         />
         <Show when={props.folders.length > 0}>
+          <Chip
+            label={t("folder.inbox")}
+            title={t("folder.inbox.title")}
+            count={props.inboxCount}
+            isInbox
+            active={props.activeFolderId === INBOX_FOLDER_ID}
+            onClick={() => props.onSelect(INBOX_FOLDER_ID)}
+            // Dropping onto the Inbox removes the script from its folder.
+            onDropScript={(id) => props.onDropScript(null, id)}
+          />
           <span class="chip-divider" aria-hidden="true" />
         </Show>
         <For each={props.folders}>
@@ -70,6 +85,8 @@ interface ChipProps {
   count: number;
   active: boolean;
   isFolder?: boolean;
+  isInbox?: boolean;
+  title?: string;
   onClick: () => void;
   onContextMenu?: (e: MouseEvent) => void;
   onDropScript: (scriptId: string) => void;
@@ -84,7 +101,9 @@ function Chip(props: ChipProps) {
         "is-active": props.active,
         "is-drop-target": over(),
         "is-folder": !!props.isFolder,
+        "is-inbox": !!props.isInbox,
       }}
+      title={props.title}
       role="tab"
       aria-selected={props.active}
       onClick={() => props.onClick()}
@@ -140,6 +159,19 @@ function Chip(props: ChipProps) {
               stroke="currentColor"
               stroke-width="1.25"
               stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </Show>
+      <Show when={props.isInbox}>
+        <span class="folder-chip-icon" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M2 9.5 3.6 4.1c.13-.45.55-.76 1.02-.76h6.76c.47 0 .89.31 1.02.76L14 9.5M2 9.5V12c0 .69.56 1.25 1.25 1.25h9.5c.69 0 1.25-.56 1.25-1.25V9.5M2 9.5h3.25l.75 1.5h4l.75-1.5H14"
+              stroke="currentColor"
+              stroke-width="1.25"
+              stroke-linejoin="round"
+              stroke-linecap="round"
             />
           </svg>
         </span>

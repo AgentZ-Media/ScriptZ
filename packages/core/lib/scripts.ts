@@ -34,6 +34,7 @@ import {
 } from "./characterColors";
 import { countWordsInContent, recordWordDelta } from "./dailyWords";
 import { getDb } from "./db";
+import { INBOX_FOLDER_ID } from "./folders";
 import { deleteScriptFts, refreshFtsForScript } from "./fts";
 import { dialogWordsByCharacter, extractCharacterNames } from "./lex";
 import {
@@ -147,7 +148,10 @@ export async function listScripts(q: ListScriptsQuery): Promise<ScriptSummary[]>
     p++;
   }
 
-  if (q.folderId !== undefined && q.folderId !== null) {
+  if (q.folderId === INBOX_FOLDER_ID) {
+    // Virtual "Inbox" folder: only ungrouped scripts.
+    sql += " AND folder_id IS NULL";
+  } else if (q.folderId !== undefined && q.folderId !== null) {
     sql += ` AND folder_id = $${p}`;
     args.push(q.folderId);
     p++;

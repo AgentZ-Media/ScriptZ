@@ -143,6 +143,8 @@ export const en: Record<keyof typeof de, string> = {
   // ---------- folders ----------
   "folder.aria.tablist": "Folders",
   "folder.all": "All",
+  "folder.inbox": "Inbox",
+  "folder.inbox.title": "Not assigned to any folder yet",
   "folder.new": "New folder",
   "folder.newDots": "New folder…",
   "folder.newButton": "+ Folder",

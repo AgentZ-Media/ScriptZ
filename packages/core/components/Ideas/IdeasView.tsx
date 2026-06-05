@@ -1,6 +1,7 @@
 import { For, Show, createSignal, createResource, createEffect } from "solid-js";
 import { ideasStore } from "../../stores/ideas";
 import { foldersBus } from "../../lib/foldersBus";
+import { INBOX_FOLDER_ID } from "../../lib/folders";
 import { tabsStore } from "../../stores/tabs";
 import { pushToast } from "../../stores/toasts";
 import { api } from "../../lib/api";
@@ -33,7 +34,7 @@ export function IdeasView() {
     sort, setSort,
     query, setQuery,
     activeFolderId, setActiveFolderId,
-    counts, folderCounts, folderAllCount,
+    counts, folderCounts, folderAllCount, folderInboxCount,
     filtered, scriptIndex,
   } = useIdeasFilters();
 
@@ -88,6 +89,15 @@ export function IdeasView() {
     { initialValue: [] },
   );
 
+  // The Inbox chip is hidden when no folders exist; if it was the active
+  // selection at that point, fall back to "All".
+  createEffect(() => {
+    if (folders.loading) return;
+    if (activeFolderId() === INBOX_FOLDER_ID && (folders() ?? []).length === 0) {
+      setActiveFolderId(null);
+    }
+  });
+
   // Folders with idea counts injected into the count slot — the chips
   // show how many ideas (in the current status scope) live in each folder.
   const chipFolders = () =>
@@ -101,8 +111,13 @@ export function IdeasView() {
     if (!tx) return;
     try {
       // New ideas land in the currently selected folder — the active chip
-      // is the folder picker for inline capture.
-      await ideasStore.createIdea({ title: tx, folderId: activeFolderId() });
+      // is the folder picker for inline capture. In the virtual Inbox, a new
+      // idea is simply ungrouped (folder = null), landing back in the Inbox.
+      const fid = activeFolderId();
+      await ideasStore.createIdea({
+        title: tx,
+        folderId: fid === INBOX_FOLDER_ID ? null : fid,
+      });
       setDraft("");
       captureRef?.focus();
     } catch (err) {
@@ -271,6 +286,7 @@ export function IdeasView() {
           folders={chipFolders()}
           activeFolderId={activeFolderId()}
           allCount={folderAllCount()}
+          inboxCount={folderInboxCount()}
           onSelect={setActiveFolderId}
           onCreateFolder={() => {
             setFolderCreateValue("");

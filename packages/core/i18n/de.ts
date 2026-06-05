@@ -149,6 +149,8 @@ export const de = {
   // ---------- folder operations ----------
   "folder.aria.tablist": "Ordner",
   "folder.all": "Alle",
+  "folder.inbox": "Posteingang",
+  "folder.inbox.title": "Noch keinem Ordner zugeordnet",
   "folder.new": "Neuer Ordner",
   "folder.newDots": "Neuer Ordner…",
   "folder.newButton": "+ Ordner",

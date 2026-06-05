@@ -2,6 +2,7 @@ import { createMemo, createResource, createSignal } from "solid-js";
 import { api } from "../../../lib/api";
 import { ideasStore } from "../../../stores/ideas";
 import { scriptsBus } from "../../../lib/scriptsBus";
+import { INBOX_FOLDER_ID } from "../../../lib/folders";
 import { localeCompare } from "../../../i18n";
 
 export type IdeasFilter = "open" | "all" | "used";
@@ -58,6 +59,11 @@ export function useIdeasFilters() {
   // "All" chip: every idea in the current status scope, any folder.
   const folderAllCount = createMemo(() => inStatusScope().length);
 
+  // "Inbox" chip: ideas in the current status scope that sit in no folder.
+  const folderInboxCount = createMemo(
+    () => inStatusScope().filter((i) => !i.folder_id).length,
+  );
+
   const [scriptIndex] = createResource(
     () => scriptsBus.version(),
     async () => {
@@ -73,9 +79,11 @@ export function useIdeasFilters() {
 
   const filtered = createMemo(() => {
     const folderId = activeFolderId();
-    const list = inStatusScope().filter(
-      (i) => folderId === null || i.folder_id === folderId,
-    );
+    const list = inStatusScope().filter((i) => {
+      if (folderId === null) return true;
+      if (folderId === INBOX_FOLDER_ID) return !i.folder_id;
+      return i.folder_id === folderId;
+    });
     const s = sort();
     list.sort((a, b) => {
       if (s === "title") return localeCompare(a.title, b.title);
@@ -93,6 +101,7 @@ export function useIdeasFilters() {
     counts,
     folderCounts,
     folderAllCount,
+    folderInboxCount,
     filtered,
     scriptIndex,
   };
