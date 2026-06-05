@@ -358,15 +358,41 @@ export function ClientWorkspace() {
                       <span class="ws-folder-range">{formatRange(f.startDate, f.endDate)}</span>
                     </Show>
                     <span class="ws-folder-progress">
-                      {f.approved}
-                      {f.targetCount ? ` / ${f.targetCount}` : ` / ${f.total}`} freigegeben
-                      <Show when={f.targetCount}>
-                        <span class="ws-progress-bar">
-                          <span
-                            class="ws-progress-fill"
-                            style={{ width: `${Math.min(100, Math.round((f.approved / (f.targetCount || 1)) * 100))}%` }}
-                          />
+                      <Show
+                        when={isAgency()}
+                        fallback={
+                          <>
+                            {/* Client cares about what's approved, not what exists. */}
+                            <span>
+                              {f.approved}
+                              {f.targetCount ? ` / ${f.targetCount}` : ` / ${f.total}`} freigegeben
+                            </span>
+                            <Show when={f.targetCount}>
+                              <span class="ws-progress-bar">
+                                <span
+                                  class="ws-progress-fill"
+                                  style={{ width: `${Math.min(100, Math.round((f.approved / (f.targetCount || 1)) * 100))}%` }}
+                                />
+                              </span>
+                            </Show>
+                          </>
+                        }
+                      >
+                        {/* Agency tracks how much is created toward the target. */}
+                        <span>
+                          {f.total}
+                          {f.targetCount ? ` / ${f.targetCount}` : ""}{" "}
+                          {f.targetCount ? "erstellt" : f.total === 1 ? "Eintrag" : "Einträge"}
                         </span>
+                        <Show when={f.targetCount}>
+                          <span class="ws-progress-bar">
+                            <span
+                              class="ws-progress-fill"
+                              style={{ width: `${Math.min(100, Math.round((f.total / (f.targetCount || 1)) * 100))}%` }}
+                            />
+                          </span>
+                        </Show>
+                        <span class="ws-folder-sub">{f.approved} freigegeben</span>
                       </Show>
                     </span>
                   </button>

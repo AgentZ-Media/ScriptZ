@@ -581,6 +581,10 @@ body {
   flex-direction: column;
   gap: 0.25rem;
 }
+.ws-folder-sub {
+  font-size: 0.7rem;
+  color: var(--s-text-faint);
+}
 .ws-progress-bar {
   height: 4px;
   background: var(--s-surface-3);
