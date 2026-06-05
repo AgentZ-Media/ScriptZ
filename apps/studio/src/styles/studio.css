@@ -69,7 +69,11 @@ body {
 }
 
 .studio-root {
-  min-height: 100vh;
+  /* Core's global.css locks html/body/#root to height:100% + overflow:hidden
+     (the editor manages its own scroll). Studio is a normal document-flow
+     app, so it owns the page scroll itself instead of the clipped body. */
+  height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
