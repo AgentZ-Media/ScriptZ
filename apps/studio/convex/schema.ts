@@ -3,13 +3,15 @@ import { v } from "convex/values";
 
 // Shared status machine for ideas and scripts. The agency proposes
 // (draft -> in_review), the client decides (approved / rejected /
-// changes_requested). See docs/studio-spec.md section 7.
+// changes_requested), and the agency tracks production (approved ->
+// filmed). See docs/studio-spec.md section 7.
 export const itemStatus = v.union(
   v.literal("draft"), // agency-only, not visible to the client
   v.literal("in_review"), // submitted - client can see + decide
   v.literal("approved"),
   v.literal("rejected"),
   v.literal("changes_requested"), // bounced back to the agency
+  v.literal("filmed"), // approved item that has been shot
 );
 
 export default defineSchema({

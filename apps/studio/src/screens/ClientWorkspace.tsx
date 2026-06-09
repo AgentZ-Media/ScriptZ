@@ -234,7 +234,9 @@ export function ClientWorkspace() {
   };
 
   const exportApproved = () => {
-    const ids = (scripts.data() ?? []).filter((s) => s.status === "approved").map((s) => s.id);
+    const ids = (scripts.data() ?? [])
+      .filter((s) => s.status === "approved" || s.status === "filmed")
+      .map((s) => s.id);
     void exportScriptsBundle(ids, `${client.data()?.name ?? "Export"}.pdf`);
   };
 

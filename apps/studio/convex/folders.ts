@@ -32,7 +32,8 @@ export const listByClient = query({
       const inFolder = items.filter((i) => (i.folderId ?? null) === fid);
       return {
         total: inFolder.length,
-        approved: inFolder.filter((i) => i.status === "approved").length,
+        // Filmed items stay counted as approved so progress never regresses.
+        approved: inFolder.filter((i) => i.status === "approved" || i.status === "filmed").length,
         inReview: inFolder.filter((i) => i.status === "in_review").length,
       };
     };

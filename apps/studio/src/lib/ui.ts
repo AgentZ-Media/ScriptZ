@@ -40,7 +40,8 @@ export type ItemStatus =
   | "in_review"
   | "approved"
   | "rejected"
-  | "changes_requested";
+  | "changes_requested"
+  | "filmed";
 
 export function statusLabel(status: string): string {
   switch (status) {
@@ -54,6 +55,8 @@ export function statusLabel(status: string): string {
       return "Abgelehnt";
     case "changes_requested":
       return "Änderung erbeten";
+    case "filmed":
+      return "Gedreht";
     default:
       return status;
   }

@@ -224,6 +224,10 @@ body {
   background: var(--s-warn-soft);
   color: var(--s-warn);
 }
+.badge-filmed {
+  background: var(--s-accent-soft);
+  color: var(--s-accent);
+}
 .badge-role {
   background: var(--s-surface-3);
   color: var(--s-text-soft);

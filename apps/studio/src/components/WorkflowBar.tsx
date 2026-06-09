@@ -42,13 +42,15 @@ export function WorkflowBar(props: {
       () => setStatus(props.targetType, props.id, status, decisionNote),
       status === "approved"
         ? "Freigegeben"
-        : status === "rejected"
-          ? "Abgelehnt"
-          : status === "changes_requested"
-            ? "Änderung erbeten"
-            : status === "in_review"
-              ? "Zur Freigabe gestellt"
-              : "Aktualisiert",
+        : status === "filmed"
+          ? "Als gedreht markiert"
+          : status === "rejected"
+            ? "Abgelehnt"
+            : status === "changes_requested"
+              ? "Änderung erbeten"
+              : status === "in_review"
+                ? "Zur Freigabe gestellt"
+                : "Aktualisiert",
     );
     setBusy(false);
     if (ok !== undefined) {
@@ -68,7 +70,13 @@ export function WorkflowBar(props: {
     <>
       <Show when={props.isAgency}>
         <div class="row wrap">
-          <Show when={props.status !== "in_review"}>
+          <Show
+            when={
+              props.status !== "in_review" &&
+              props.status !== "approved" &&
+              props.status !== "filmed"
+            }
+          >
             <button class="btn btn-primary btn-sm" disabled={busy()} onClick={() => void act("in_review")}>
               Zur Freigabe stellen
             </button>
@@ -76,6 +84,16 @@ export function WorkflowBar(props: {
           <Show when={props.status === "in_review"}>
             <button class="btn btn-sm" disabled={busy()} onClick={() => void act("draft")}>
               Zurückziehen
+            </button>
+          </Show>
+          <Show when={props.status === "approved"}>
+            <button class="btn btn-primary btn-sm" disabled={busy()} onClick={() => void act("filmed")}>
+              Als gedreht markieren
+            </button>
+          </Show>
+          <Show when={props.status === "filmed"}>
+            <button class="btn btn-sm" disabled={busy()} onClick={() => void act("approved")}>
+              Gedreht zurücknehmen
             </button>
           </Show>
         </div>
