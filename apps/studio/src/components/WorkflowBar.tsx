@@ -1,7 +1,7 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { convex } from "../lib/convex";
 import { api } from "../../convex/_generated/api";
-import { withToast } from "../lib/ui";
+import { ITEM_STATUSES, statusLabel, withToast } from "../lib/ui";
 import { Modal } from "./ui";
 
 type TargetType = "idea" | "script";
@@ -69,33 +69,33 @@ export function WorkflowBar(props: {
   return (
     <>
       <Show when={props.isAgency}>
+        {/* The agency can override an item to any status directly. */}
         <div class="row wrap">
-          <Show
-            when={
-              props.status !== "in_review" &&
-              props.status !== "approved" &&
-              props.status !== "filmed"
-            }
-          >
-            <button class="btn btn-primary btn-sm" disabled={busy()} onClick={() => void act("in_review")}>
-              Zur Freigabe stellen
-            </button>
-          </Show>
-          <Show when={props.status === "in_review"}>
-            <button class="btn btn-sm" disabled={busy()} onClick={() => void act("draft")}>
-              Zurückziehen
-            </button>
-          </Show>
-          <Show when={props.status === "approved"}>
-            <button class="btn btn-primary btn-sm" disabled={busy()} onClick={() => void act("filmed")}>
-              Als gedreht markieren
-            </button>
-          </Show>
-          <Show when={props.status === "filmed"}>
-            <button class="btn btn-sm" disabled={busy()} onClick={() => void act("approved")}>
-              Gedreht zurücknehmen
-            </button>
-          </Show>
+          <span class="field-label workflow-set-label">Status setzen:</span>
+          <For each={ITEM_STATUSES.filter((s) => s !== props.status)}>
+            {(s) => (
+              <button
+                class={
+                  s === "rejected"
+                    ? "btn btn-danger btn-sm"
+                    : s === "approved" || s === "in_review"
+                      ? "btn btn-primary btn-sm"
+                      : "btn btn-sm"
+                }
+                disabled={busy()}
+                onClick={() => {
+                  if (s === "rejected" || s === "changes_requested") {
+                    setNote("");
+                    setNoteFor(s);
+                  } else {
+                    void act(s);
+                  }
+                }}
+              >
+                {statusLabel(s)}
+              </button>
+            )}
+          </For>
         </div>
       </Show>
 
@@ -133,7 +133,7 @@ export function WorkflowBar(props: {
         onClose={() => setNoteFor(null)}
       >
         <label class="field">
-          <span class="field-label">Begründung für die Agentur</span>
+          <span class="field-label">Begründung</span>
           <textarea
             class="textarea"
             value={note()}

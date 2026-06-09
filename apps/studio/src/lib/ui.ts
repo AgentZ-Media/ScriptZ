@@ -43,6 +43,16 @@ export type ItemStatus =
   | "changes_requested"
   | "filmed";
 
+/** Status order for the agency's manual override control. */
+export const ITEM_STATUSES: ItemStatus[] = [
+  "draft",
+  "in_review",
+  "approved",
+  "filmed",
+  "changes_requested",
+  "rejected",
+];
+
 export function statusLabel(status: string): string {
   switch (status) {
     case "draft":

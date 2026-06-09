@@ -228,6 +228,9 @@ body {
   background: var(--s-accent-soft);
   color: var(--s-accent);
 }
+.workflow-set-label {
+  align-self: center;
+}
 .badge-role {
   background: var(--s-surface-3);
   color: var(--s-text-soft);

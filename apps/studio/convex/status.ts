@@ -21,10 +21,11 @@ export const statusValidator = v.union(
 );
 
 /** Enforces who may move an item to which status.
- *  - Agency proposes: may set `draft` or `in_review` from any state
- *    (create, submit, pull back, resubmit after changes). Once the
- *    client has approved, the agency also tracks production: it may mark
- *    an `approved` item as `filmed`, or undo that back to `approved`.
+ *  - Agency has full manual control: it may override an item to ANY
+ *    status from ANY state (propose, submit, pull back, mark filmed, and
+ *    even set the client's decision states directly). A reason is still
+ *    required when setting `rejected` or `changes_requested`, so the note
+ *    stays meaningful no matter who set it.
  *  - Client decides: from `in_review` only, to approved / rejected /
  *    changes_requested. Rejection and change requests need a reason. */
 export function assertTransition(
@@ -34,12 +35,10 @@ export function assertTransition(
   decisionNote: string | undefined,
 ): void {
   if (role === "agency") {
-    if (to === "draft" || to === "in_review") return;
-    // Production tracking: only an approved item can become filmed, and
-    // filmed can be undone back to approved if it was marked by mistake.
-    if (to === "filmed" && from === "approved") return;
-    if (to === "approved" && from === "filmed") return;
-    throw new Error("Diese Entscheidung trifft der Kunde");
+    if ((to === "rejected" || to === "changes_requested") && !decisionNote?.trim()) {
+      throw new Error("Bitte eine kurze Begründung angeben");
+    }
+    return;
   }
   // client
   if (from !== "in_review") {
