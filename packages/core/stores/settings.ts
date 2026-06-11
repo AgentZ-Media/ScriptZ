@@ -56,6 +56,13 @@ const DIALOG_WPM_MIN = 80;
 const DIALOG_WPM_MAX = 400;
 const [dialogWpm, setDialogWpm] = createSignal<number>(DIALOG_WPM_DEFAULT);
 
+// Permanent ScriptZ Studio connect code ("scriptzk1_..."), pasted in the
+// settings. Empty string = not connected. While empty, the app shows no
+// Studio surface at all (no "Send to Studio" button) - most users don't
+// have a Studio. Validation happens in the settings UI via
+// lib/handoff.ts::parseConnectCode before this value is persisted.
+const [studioConnectCode, setStudioConnectCodeSignal] = createSignal<string>("");
+
 // Language preference "auto" | "de" | "en". "auto" follows navigator.language.
 // Default "auto" - new users land language-wise where their system is.
 // The resolved language is not persisted here, only the user's choice;
@@ -166,6 +173,12 @@ export const settingsStore = {
   DIALOG_WPM_MIN,
   DIALOG_WPM_MAX,
   DIALOG_WPM_DEFAULT,
+  studioConnectCode,
+  setStudioConnectCode: async (v: string) => {
+    const next = v.trim();
+    setStudioConnectCodeSignal(next);
+    await api.setSetting("studio_connect_code", next);
+  },
   /** Current user choice "auto" | "de" | "en". */
   language,
   setLanguage: async (v: LanguagePref) => {
@@ -175,7 +188,7 @@ export const settingsStore = {
   },
   loaded,
   async load() {
-    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, sws, dp, lang] = await Promise.all([
+    const [t, hd, uce, huc, qmae, wwg, dwgLegacy, wpm, fmd, sib, sws, dp, lang, scc] = await Promise.all([
       api.getSetting("theme"),
       api.getSetting("highlighting_default"),
       api.getSetting("update_check_enabled"),
@@ -189,6 +202,7 @@ export const settingsStore = {
       api.getSetting("show_writing_stats"),
       api.getSetting("dark_paper"),
       api.getSetting("language"),
+      api.getSetting("studio_connect_code"),
     ]);
     if (t === "dark" || t === "light" || t === "auto") setTheme(t);
     if (hd) setHighlightingDefault(hd === "1");
@@ -199,6 +213,7 @@ export const settingsStore = {
     if (sib) setShowIdeasBadge(sib === "1");
     if (sws) setShowWritingStats(sws === "1");
     if (dp) setDarkPaper(dp === "1");
+    if (scc) setStudioConnectCodeSignal(scc);
     // Language: persisted value takes precedence, otherwise default "auto".
     // Existing users thereby get their system language without an explicit
     // migration (auto-detection on the first resolve).

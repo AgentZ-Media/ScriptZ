@@ -137,6 +137,18 @@ const studioAdapter: PlatformAdapter = {
       return { status: 0, ok: false, body: "" };
     }
   },
+  async httpGetJson(url, token): Promise<HttpPostResult> {
+    // Unused in Studio (it is the receiver) - implemented for the interface.
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return { status: res.status, ok: res.ok, body: await res.text() };
+    } catch {
+      return { status: 0, ok: false, body: "" };
+    }
+  },
   async pickDirectory() {
     return null;
   },

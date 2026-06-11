@@ -4,19 +4,27 @@ import { api } from "../../lib/api";
 import { getUpdatesStore } from "../../lib/updates";
 import { t } from "../../i18n";
 import {
-  TypeIcon, EditIcon, PaletteIcon, KbdIcon, ShieldIcon, InfoIcon,
+  TypeIcon, EditIcon, PaletteIcon, KbdIcon, SendIcon, ShieldIcon, InfoIcon,
 } from "./sections/icons";
 import { SettingsAppearance } from "./sections/SettingsAppearance";
 import { SettingsEditor } from "./sections/SettingsEditor";
 import { SettingsCharacters } from "./sections/SettingsCharacters";
 import { SettingsShortcuts } from "./sections/SettingsShortcuts";
+import { SettingsStudio } from "./sections/SettingsStudio";
 import { SettingsUpdates } from "./sections/SettingsUpdates";
 import { SettingsAbout } from "./sections/SettingsAbout";
 import "./SettingsDialog.css";
 
 const updates = () => getUpdatesStore();
 
-type SectionId = "appearance" | "editor" | "characters" | "shortcuts" | "updates" | "about";
+type SectionId =
+  | "appearance"
+  | "editor"
+  | "characters"
+  | "shortcuts"
+  | "studio"
+  | "updates"
+  | "about";
 
 interface SectionDef {
   id: SectionId;
@@ -30,6 +38,7 @@ function allSections(): SectionDef[] {
     { id: "editor",     label: t("settings.section.editor"),     Icon: EditIcon },
     { id: "characters", label: t("settings.section.characters"), Icon: PaletteIcon },
     { id: "shortcuts",  label: t("settings.section.shortcuts"),  Icon: KbdIcon },
+    { id: "studio",     label: t("settings.section.studio"),     Icon: SendIcon },
     { id: "updates",    label: t("settings.section.updates"),    Icon: ShieldIcon },
     { id: "about",      label: t("settings.section.about"),      Icon: InfoIcon },
   ];
@@ -117,6 +126,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
           </Show>
           <Show when={section() === "shortcuts"}>
             <SettingsShortcuts />
+          </Show>
+          <Show when={section() === "studio"}>
+            <SettingsStudio />
           </Show>
           <Show when={section() === "updates"}>
             <SettingsUpdates />

@@ -124,18 +124,17 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_client_name", ["clientId", "name"]),
 
-  // Short-lived, single-use tokens for the offline-editor handoff. The agency
-  // generates one bound to a client (+ optional folder); the editor POSTs a
-  // bundle of scripts/ideas to the /transfer HTTP endpoint with the raw token
-  // as a Bearer credential. Only the SHA-256 hash is stored, so a DB leak does
-  // not expose usable tokens. See convex/transfer.ts + convex/http.ts.
-  transferTokens: defineTable({
-    clientId: v.id("clients"),
-    folderId: v.optional(v.id("folders")),
-    tokenHash: v.string(), // SHA-256 hex of the raw token
-    label: v.optional(v.string()), // human-readable target ("Client X / Q3")
+  // Permanent, revocable API keys for the offline-editor handoff. The agency
+  // generates one in the admin UI and pastes the wrapped connect code into the
+  // editor's settings; the editor authenticates /transfer and
+  // /transfer/targets with the raw key as a Bearer credential. Rotation
+  // revokes the predecessor, so exactly one key is active at a time. Only the
+  // SHA-256 hash is stored, so a DB leak does not expose usable keys. See
+  // convex/transfer.ts + convex/http.ts.
+  apiKeys: defineTable({
+    keyHash: v.string(), // SHA-256 hex of the raw key
     createdBy: v.id("users"),
-    expiresAt: v.number(), // Date.now() + TTL
-    usedAt: v.optional(v.number()), // set once redeemed (single-use)
-  }).index("by_hash", ["tokenHash"]),
+    createdAt: v.number(),
+    revokedAt: v.optional(v.number()), // set on rotate/revoke
+  }).index("by_hash", ["keyHash"]),
 });

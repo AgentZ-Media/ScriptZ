@@ -6,7 +6,6 @@ import { useStudio } from "../context";
 import { LoadingBlock, Empty, Modal, StatusBadge } from "../components/ui";
 import { withToast, relativeTime, formatRange } from "../lib/ui";
 import { exportScriptsBundle } from "../lib/exportBundle";
-import { ReceiveFromEditor } from "../components/ReceiveFromEditor";
 
 type FolderFilter = string; // "all" | "unfiled" | folderId
 
@@ -240,19 +239,6 @@ export function ClientWorkspace() {
     void exportScriptsBundle(ids, `${client.data()?.name ?? "Export"}.pdf`);
   };
 
-  // Target for the offline-editor handoff: the current folder (if a real one
-  // is selected) under this client. The label is shown in the editor.
-  const currentFolder = () => {
-    const f = folder();
-    if (f === "all" || f === "unfiled") return undefined;
-    return (folders.data()?.folders ?? []).find((x) => x.id === f);
-  };
-  const receiveLabel = () => {
-    const name = client.data()?.name ?? "Kunde";
-    const cf = currentFolder();
-    return cf ? `${name} / ${cf.name}` : name;
-  };
-
   return (
     <main class="page">
       <div class="crumbs" style="margin-bottom:1rem;">
@@ -276,13 +262,6 @@ export function ClientWorkspace() {
         <button class="btn" onClick={exportApproved} title="Freigegebene Skripte als PDF-Bündel">
           Export
         </button>
-        <Show when={isAgency()}>
-          <ReceiveFromEditor
-            clientId={clientId() as string}
-            folderId={currentFolder()?.id}
-            label={receiveLabel()}
-          />
-        </Show>
         <Show when={isAgency()}>
           <button
             class="btn btn-icon"

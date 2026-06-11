@@ -10,7 +10,9 @@ export interface SelectionBarProps {
   onExit: () => void;
   onSelectAll: () => void;
   onClear: () => void;
-  onSend: () => void;
+  /** Omit when no Studio connect code is configured - users without a
+   *  Studio must not see any Studio surface. */
+  onSend?: () => void;
   /** Only scripts can be PDF-exported; omit for the ideas surface. */
   onExportPdf?: () => void;
 }
@@ -46,9 +48,15 @@ export function SelectionBar(props: SelectionBarProps) {
               {t("select.action.pdf")}
             </button>
           </Show>
-          <button class="btn btn-primary" onClick={props.onSend} disabled={props.count === 0}>
-            {t("select.action.send")}
-          </button>
+          <Show when={props.onSend}>
+            <button
+              class="btn btn-primary"
+              onClick={() => props.onSend?.()}
+              disabled={props.count === 0}
+            >
+              {t("select.action.send")}
+            </button>
+          </Show>
           <button class="btn btn-ghost" onClick={props.onExit}>
             {t("select.exit")}
           </button>

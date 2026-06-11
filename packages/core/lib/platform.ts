@@ -93,11 +93,12 @@ export interface OpenFileResult {
 
 // ===== Outbound HTTP =====
 //
-// The Studio handoff POSTs a JSON bundle to a URL the user pastes at
-// runtime (learned from a pairing code - core never hardcodes a domain).
-// Desktop must route this through tauri-plugin-http: the webview CSP
-// `connect-src` would block a plain fetch() to an arbitrary host. Web uses
-// fetch() directly; the receiving endpoint sets the CORS headers.
+// The Studio handoff talks JSON to a URL the user configures at runtime
+// (learned from a connect code - core never hardcodes a domain): a GET for
+// the destination list, a POST for the bundle itself. Desktop must route
+// both through tauri-plugin-http: the webview CSP `connect-src` would block
+// a plain fetch() to an arbitrary host. Web uses fetch() directly; the
+// receiving endpoint sets the CORS headers.
 
 export interface HttpPostResult {
   /** HTTP status code (0 on a transport-level failure that produced no
@@ -156,6 +157,11 @@ export interface PlatformAdapter {
    *  (the endpoint must send CORS headers). Rejects only on a programming
    *  error; transport failures resolve with status 0. */
   httpPostJson(url: string, token: string, jsonBody: string): Promise<HttpPostResult>;
+
+  /** GETs `url` with a Bearer `token`, returning the status + raw body.
+   *  Same transport rules as `httpPostJson` (Tauri plugin vs. fetch, status 0
+   *  on transport failure). Used to load the Studio destination list. */
+  httpGetJson(url: string, token: string): Promise<HttpPostResult>;
 
   /** Opens a directory picker, returning the chosen absolute path or null
    *  (cancelled). Only meaningful when `supportsDirectoryWrite` is true. */
