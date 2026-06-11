@@ -23,10 +23,16 @@ export function EditorConnection() {
   const [confirmRevoke, setConfirmRevoke] = createSignal(false);
 
   const rotate = async () => {
+    // Validate the env BEFORE rotating: a rotation with no displayable code
+    // would burn the previous key for nothing.
+    const siteUrl = import.meta.env.VITE_CONVEX_SITE_URL;
+    if (!siteUrl) {
+      pushToast("VITE_CONVEX_SITE_URL fehlt - Build-Konfiguration prüfen", "error");
+      return;
+    }
     setBusy(true);
     try {
       const res = await convex.mutation(api.transfer.rotateKey, {});
-      const siteUrl = import.meta.env.VITE_CONVEX_SITE_URL;
       const payload = JSON.stringify({ u: siteUrl, k: res.rawKey });
       setCode(`scriptzk1_${toBase64Url(payload)}`);
     } catch (e) {

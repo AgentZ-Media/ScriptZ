@@ -19,6 +19,7 @@ import { ScriptContextMenu } from "../Browser/ScriptContextMenu";
 import { SelectionBar } from "../Browser/SelectionBar";
 import { HandoffDialog } from "../Browser/HandoffDialog";
 import { settingsStore } from "../../stores/settings";
+import { tryParseConnectCode } from "../../lib/handoff";
 import "./IdeasView.css";
 
 function sortOptions(): Array<{ id: IdeasSort; label: string }> {
@@ -49,8 +50,10 @@ export function IdeasView() {
   const [selectMode, setSelectMode] = createSignal(false);
   const [selectedIds, setSelectedIds] = createSignal<Set<string>>(new Set());
   const [handoffOpen, setHandoffOpen] = createSignal(false);
-  // No connect code -> no Studio surface anywhere (most users have none).
-  const studioConnected = () => settingsStore.studioConnectCode() !== "";
+  // No (parseable) connect code -> no Studio surface anywhere (most users
+  // have none, and a broken code must behave like none).
+  const studioConnected = () =>
+    tryParseConnectCode(settingsStore.studioConnectCode()) !== null;
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);

@@ -5,8 +5,8 @@ import { settingsStore } from "../../stores/settings";
 import { t, tPlural } from "../../i18n";
 import {
   fetchTargets,
-  parseConnectCode,
   sendHandoff,
+  tryParseConnectCode,
   type HandoffResult,
   type StudioConnection,
   type TransferClient,
@@ -34,21 +34,20 @@ export function HandoffDialog(props: HandoffDialogProps) {
   const [deleteAfter, setDeleteAfter] = createSignal(true);
   const [sending, setSending] = createSignal(false);
 
-  const connection = createMemo<StudioConnection | null>(() => {
-    const code = settingsStore.studioConnectCode();
-    if (!code) return null;
-    try {
-      return parseConnectCode(code);
-    } catch {
-      return null;
-    }
-  });
+  const connection = createMemo<StudioConnection | null>(() =>
+    tryParseConnectCode(settingsStore.studioConnectCode()),
+  );
 
   async function loadTargets() {
-    const conn = connection();
-    if (!conn) return;
     setClients(null);
     setLoadError(null);
+    const conn = connection();
+    if (!conn) {
+      // Callers gate on a parseable code, so this is a stored code that went
+      // bad afterwards - surface it instead of loading forever.
+      setLoadError(t("handoff.error.invalidKey"));
+      return;
+    }
     try {
       const list = await fetchTargets(conn);
       setClients(list);

@@ -83,6 +83,17 @@ export function parseConnectCode(raw: string): StudioConnection {
   return { baseUrl, key };
 }
 
+/** Like `parseConnectCode`, but returns null instead of throwing - for
+ *  "is Studio configured?" gates that don't need the error message. A code
+ *  that doesn't parse must gate exactly like no code at all. */
+export function tryParseConnectCode(raw: string): StudioConnection | null {
+  try {
+    return parseConnectCode(raw);
+  } catch {
+    return null;
+  }
+}
+
 /** The host shown to the user ("studio.example.com"). */
 export function connectionHost(conn: StudioConnection): string {
   try {

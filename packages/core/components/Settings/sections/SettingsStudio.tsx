@@ -7,6 +7,7 @@ import {
   connectionHost,
   fetchTargets,
   parseConnectCode,
+  tryParseConnectCode,
   type StudioConnection,
 } from "../../../lib/handoff";
 
@@ -19,17 +20,11 @@ export function SettingsStudio() {
   const [busy, setBusy] = createSignal(false);
   const [testResult, setTestResult] = createSignal<string | null>(null);
 
-  const connection = createMemo<StudioConnection | null>(() => {
-    const code = settingsStore.studioConnectCode();
-    if (!code) return null;
-    try {
-      return parseConnectCode(code);
-    } catch {
-      // A stored-but-broken code should never happen (we validate before
-      // saving), but render it as "not connected" instead of crashing.
-      return null;
-    }
-  });
+  // A stored-but-broken code should never happen (we validate before
+  // saving), but render it as "not connected" instead of crashing.
+  const connection = createMemo<StudioConnection | null>(() =>
+    tryParseConnectCode(settingsStore.studioConnectCode()),
+  );
 
   async function connect() {
     const raw = draft().trim();
