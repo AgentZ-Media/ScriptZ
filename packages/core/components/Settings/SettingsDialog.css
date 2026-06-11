@@ -215,6 +215,43 @@
   color: var(--text-faint);
 }
 
+/* ---- Studio-Verbindung ---- */
+.settings-studio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-studio-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+}
+.settings-studio-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 4px var(--ring-brand);
+  outline: none;
+}
+.settings-studio-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger, #c0392b);
+}
+.settings-studio-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.settings-studio-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ---- Update-Sektion: Aktion-Cluster rechts ---- */
 .settings-update-actions {
   display: inline-flex;

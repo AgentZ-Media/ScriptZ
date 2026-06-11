@@ -1,14 +1,15 @@
-import { Show, createEffect, createMemo, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { Modal } from "../Common/Modal";
 import { pushToast } from "../../stores/toasts";
+import { settingsStore } from "../../stores/settings";
 import { t, tPlural } from "../../i18n";
 import {
-  PairingCodeError,
-  parsePairingCode,
+  fetchTargets,
   sendHandoff,
-  targetHost,
+  tryParseConnectCode,
   type HandoffResult,
-  type PairingTarget,
+  type StudioConnection,
+  type TransferClient,
 } from "../../lib/handoff";
 import "./HandoffDialog.css";
 
@@ -22,29 +23,61 @@ export interface HandoffDialogProps {
   onSent: (result: HandoffResult) => void;
 }
 
+/** Destination picker + send. The connection comes from the stored connect
+ *  code (settings); the caller only opens this dialog when one is set. */
 export function HandoffDialog(props: HandoffDialogProps) {
-  const [code, setCode] = createSignal("");
+  const [clients, setClients] = createSignal<TransferClient[] | null>(null);
+  const [loadError, setLoadError] = createSignal<string | null>(null);
+  const [clientId, setClientId] = createSignal("");
+  // "" = the client's inbox (no folder).
+  const [folderId, setFolderId] = createSignal("");
   const [deleteAfter, setDeleteAfter] = createSignal(true);
   const [sending, setSending] = createSignal(false);
+
+  const connection = createMemo<StudioConnection | null>(() =>
+    tryParseConnectCode(settingsStore.studioConnectCode()),
+  );
+
+  async function loadTargets() {
+    setClients(null);
+    setLoadError(null);
+    const conn = connection();
+    if (!conn) {
+      // Callers gate on a parseable code, so this is a stored code that went
+      // bad afterwards - surface it instead of loading forever.
+      setLoadError(t("handoff.error.invalidKey"));
+      return;
+    }
+    try {
+      const list = await fetchTargets(conn);
+      setClients(list);
+      // Preselect a single client; with several, force an explicit choice.
+      setClientId(list.length === 1 ? list[0].id : "");
+      setFolderId("");
+    } catch (e) {
+      setLoadError((e as Error).message ?? String(e));
+    }
+  }
 
   let prevOpen = false;
   createEffect(() => {
     if (props.open && !prevOpen) {
-      setCode("");
       setDeleteAfter(true);
       setSending(false);
+      void loadTargets();
     }
     prevOpen = props.open;
   });
 
-  const parsed = createMemo<{ target: PairingTarget | null; error: string | null }>(() => {
-    const c = code().trim();
-    if (!c) return { target: null, error: null };
-    try {
-      return { target: parsePairingCode(c), error: null };
-    } catch (e) {
-      return { target: null, error: e instanceof PairingCodeError ? e.message : String(e) };
-    }
+  const selectedClient = createMemo(() =>
+    (clients() ?? []).find((c) => c.id === clientId()),
+  );
+
+  // Folder choice resets when the client changes - a folder id from client A
+  // must never leak into a transfer to client B.
+  createEffect(() => {
+    clientId();
+    setFolderId("");
   });
 
   const summary = createMemo(() => {
@@ -57,17 +90,19 @@ export function HandoffDialog(props: HandoffDialogProps) {
   const canSend = createMemo(
     () =>
       !sending() &&
-      parsed().target !== null &&
+      selectedClient() !== undefined &&
       props.scriptIds.length + props.ideaIds.length > 0,
   );
 
   async function onSend() {
-    const target = parsed().target;
-    if (!target || !canSend()) return;
+    const conn = connection();
+    const client = selectedClient();
+    if (!conn || !client || !canSend()) return;
     setSending(true);
     try {
       const res = await sendHandoff(
-        target,
+        conn,
+        { clientId: client.id, folderId: folderId() || null },
         { scriptIds: props.scriptIds, ideaIds: props.ideaIds },
         { deleteAfter: deleteAfter() },
       );
@@ -106,41 +141,60 @@ export function HandoffDialog(props: HandoffDialogProps) {
         <p class="handoff-intro">{t("handoff.intro")}</p>
         <p class="handoff-selection">{t("handoff.selection", { summary: summary() })}</p>
 
-        <label class="handoff-label" for="handoff-code">
-          {t("handoff.code.label")}
-        </label>
-        <input
-          id="handoff-code"
-          class="handoff-input"
-          value={code()}
-          onInput={(e) => setCode(e.currentTarget.value)}
-          placeholder={t("handoff.code.placeholder")}
-          spellcheck={false}
-          autocomplete="off"
-        />
-
-        <Show when={parsed().error}>
-          <p class="handoff-error">{parsed().error}</p>
+        <Show when={loadError()}>
+          <p class="handoff-error">{loadError()}</p>
+          <div>
+            <button class="btn" onClick={() => void loadTargets()}>
+              {t("handoff.retry")}
+            </button>
+          </div>
         </Show>
 
-        <Show
-          when={parsed().target}
-          fallback={
-            <Show when={!parsed().error}>
-              <p class="handoff-hint">{t("handoff.code.hint")}</p>
-            </Show>
-          }
-        >
-          {(target) => (
-            <p class="handoff-target">
-              {target().label
-                ? t("handoff.target.labeled", {
-                    host: targetHost(target()),
-                    label: target().label ?? "",
-                  })
-                : t("handoff.target", { host: targetHost(target()) })}
-            </p>
-          )}
+        <Show when={!loadError()}>
+          <Show when={clients()} fallback={<p class="handoff-hint">{t("handoff.loading")}</p>}>
+            {(list) => (
+              <Show
+                when={list().length > 0}
+                fallback={<p class="handoff-error">{t("handoff.error.noTargets")}</p>}
+              >
+                <label class="handoff-label" for="handoff-client">
+                  {t("handoff.client.label")}
+                </label>
+                <select
+                  id="handoff-client"
+                  class="handoff-input"
+                  value={clientId()}
+                  onChange={(e) => setClientId(e.currentTarget.value)}
+                >
+                  <option value="" disabled>
+                    {t("handoff.client.placeholder")}
+                  </option>
+                  <For each={list()}>{(c) => <option value={c.id}>{c.name}</option>}</For>
+                </select>
+
+                <Show when={selectedClient()}>
+                  {(client) => (
+                    <>
+                      <label class="handoff-label" for="handoff-folder">
+                        {t("handoff.folder.label")}
+                      </label>
+                      <select
+                        id="handoff-folder"
+                        class="handoff-input"
+                        value={folderId()}
+                        onChange={(e) => setFolderId(e.currentTarget.value)}
+                      >
+                        <option value="">{t("handoff.folder.none")}</option>
+                        <For each={client().folders}>
+                          {(f) => <option value={f.id}>{f.name}</option>}
+                        </For>
+                      </select>
+                    </>
+                  )}
+                </Show>
+              </Show>
+            )}
+          </Show>
         </Show>
 
         <label class="handoff-opt">

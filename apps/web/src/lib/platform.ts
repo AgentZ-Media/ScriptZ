@@ -163,6 +163,18 @@ const webAdapter: PlatformAdapter = {
       return { status: 0, ok: false, body: "" };
     }
   },
+  async httpGetJson(url, token): Promise<HttpPostResult> {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.text();
+      return { status: res.status, ok: res.ok, body };
+    } catch {
+      return { status: 0, ok: false, body: "" };
+    }
+  },
   async pickDirectory() {
     return null; // No directory picker in the browser.
   },

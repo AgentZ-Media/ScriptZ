@@ -158,6 +158,19 @@ async function desktopHttpPostJson(
   }
 }
 
+async function desktopHttpGetJson(url: string, token: string): Promise<HttpPostResult> {
+  try {
+    const res = await tauriFetch(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = await res.text();
+    return { status: res.status, ok: res.ok, body };
+  } catch {
+    return { status: 0, ok: false, body: "" };
+  }
+}
+
 const tauriAdapter: PlatformAdapter = {
   platform: detectPlatform(),
   supportsDirectoryWrite: true,
@@ -172,6 +185,7 @@ const tauriAdapter: PlatformAdapter = {
   saveAs: desktopSaveAs,
   openFile: desktopOpenFile,
   httpPostJson: desktopHttpPostJson,
+  httpGetJson: desktopHttpGetJson,
   pickDirectory: desktopPickDirectory,
   writeFileTo: desktopWriteFileTo,
 };

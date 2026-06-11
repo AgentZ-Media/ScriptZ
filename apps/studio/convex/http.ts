@@ -12,13 +12,15 @@ const http = httpRouter();
 // the .site auth domain) needs.
 authComponent.registerRoutes(http, createAuth, { cors: true });
 
-// --- Offline-editor handoff endpoint -------------------------------------
-// The editor (desktop/web) POSTs a ScriptzBundle here with a one-time token as
-// a Bearer credential. Authorization is the token itself (no cookies), so a
-// wildcard CORS origin is safe and lets ANY self-hosted editor instance send.
+// --- Offline-editor handoff endpoints -------------------------------------
+// The editor (desktop/web) authenticates with the permanent connect key as a
+// Bearer credential: GET /transfer/targets lists clients + folders for the
+// destination picker, POST /transfer imports a ScriptzBundle into the chosen
+// destination. Authorization is the key itself (no cookies), so a wildcard
+// CORS origin is safe and lets ANY self-hosted editor instance send.
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 };
@@ -30,19 +32,47 @@ function json(status: number, body: unknown): Response {
   });
 }
 
+function bearerKey(req: Request): string {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  return authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+}
+
+/** Auth failures are a 401, everything else a client-visible 400 with the raw
+ *  code - the editor maps both to translated toasts. */
+function errorResponse(err: unknown): Response {
+  const message = err instanceof Error ? err.message : "import_failed";
+  const status = message === "invalid_key" || message === "key_revoked" ? 401 : 400;
+  return json(status, { error: message });
+}
+
+const preflight = httpAction(
+  async () => new Response(null, { status: 204, headers: CORS_HEADERS }),
+);
+
+http.route({ path: "/transfer", method: "OPTIONS", handler: preflight });
+http.route({ path: "/transfer/targets", method: "OPTIONS", handler: preflight });
+
 http.route({
-  path: "/transfer",
-  method: "OPTIONS",
-  handler: httpAction(async () => new Response(null, { status: 204, headers: CORS_HEADERS })),
+  path: "/transfer/targets",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const key = bearerKey(req);
+    if (!key) return json(401, { error: "missing_key" });
+    try {
+      const result = await ctx.runQuery(internal.transfer.listTargetsForKey, { key });
+      return json(200, result);
+    } catch (err) {
+      return errorResponse(err);
+    }
+  }),
 });
 
 http.route({
   path: "/transfer",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (!token) return json(401, { error: "missing_token" });
+    const key = bearerKey(req);
+    if (!key) return json(401, { error: "missing_key" });
 
     let body: unknown;
     try {
@@ -55,6 +85,9 @@ http.route({
     }
     const b = body as Record<string, unknown>;
     if (b.format !== "scriptz-bundle") return json(400, { error: "invalid_bundle" });
+    if (typeof b.clientId !== "string" || !b.clientId) {
+      return json(400, { error: "invalid_target" });
+    }
     const scripts = Array.isArray(b.scripts) ? b.scripts : [];
     const ideas = Array.isArray(b.ideas) ? b.ideas : [];
     if (scripts.length === 0 && ideas.length === 0) {
@@ -62,8 +95,10 @@ http.route({
     }
 
     try {
-      const result = await ctx.runMutation(internal.transfer.redeemAndImport, {
-        token,
+      const result = await ctx.runMutation(internal.transfer.importWithKey, {
+        key,
+        clientId: b.clientId,
+        folderId: typeof b.folderId === "string" && b.folderId ? b.folderId : undefined,
         // The internalMutation's validators enforce the precise item shape;
         // a malformed item surfaces as a thrown error -> 400 below.
         scripts: scripts as never,
@@ -71,10 +106,7 @@ http.route({
       });
       return json(200, result);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "import_failed";
-      // Map the known token errors to a 400 (the editor maps them to a toast);
-      // everything else is also a client-visible 400 with the raw code.
-      return json(400, { error: message });
+      return errorResponse(err);
     }
   }),
 });

@@ -4,6 +4,7 @@ import { convex, createQuery } from "../lib/convex";
 import { api } from "../../convex/_generated/api";
 import { useStudio } from "../context";
 import { LoadingBlock, Empty, Modal } from "../components/ui";
+import { EditorConnection } from "../components/EditorConnection";
 import { withToast, formatDate } from "../lib/ui";
 
 export function Admin() {
@@ -123,6 +124,8 @@ export function Admin() {
             </ul>
           </Show>
         </Show>
+
+        <EditorConnection />
       </Show>
 
       {/* Provision */}

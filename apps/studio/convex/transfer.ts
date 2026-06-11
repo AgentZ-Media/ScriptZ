@@ -1,17 +1,19 @@
-import { mutation, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAgency, assertClientAccess } from "./rbac";
+import type { QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { requireAgency } from "./rbac";
 
-// Token time-to-live: a pairing code is valid for 15 minutes and a single
-// successful redemption. After that the editor must request a fresh code.
-const TOKEN_TTL_MS = 15 * 60 * 1000;
-// Hard cap on how many items one bundle may carry, so a single redemption
+// Hard cap on how many items one bundle may carry, so a single import
 // stays well within Convex's per-mutation write limits.
 const MAX_ITEMS = 100;
+// More keys than this never exist (rotation revokes the predecessor), but
+// bound the scan anyway so a runaway table can't blow up the query.
+const MAX_KEY_ROWS = 100;
 
 /** 32 bytes of CSPRNG entropy, base64url-encoded (no padding). This raw value
  *  is the Bearer credential; only its hash is persisted. */
-function generateToken(): string {
+function generateRawKey(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   let bin = "";
@@ -19,7 +21,7 @@ function generateToken(): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/** SHA-256 of the raw token as lowercase hex. Runs in the default Convex
+/** SHA-256 of the raw key as lowercase hex. Runs in the default Convex
  *  runtime (Web Crypto is available). */
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
@@ -29,32 +31,97 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-/** Agency creates a single-use handoff token bound to a client (+ optional
- *  folder). Returns the RAW token exactly once - it is never stored or
- *  retrievable again. The Studio UI wraps it into a `scriptz1_...` code. */
-export const createTransferToken = mutation({
-  args: {
-    clientId: v.id("clients"),
-    folderId: v.optional(v.id("folders")),
-    label: v.optional(v.string()),
+/** Resolves the Bearer key to its active apiKeys row. Throws the error codes
+ *  the editor maps to user-facing messages. */
+async function requireActiveKey(ctx: QueryCtx, rawKey: string): Promise<Doc<"apiKeys">> {
+  const hash = await sha256Hex(rawKey);
+  const row = await ctx.db
+    .query("apiKeys")
+    .withIndex("by_hash", (q) => q.eq("keyHash", hash))
+    .unique();
+  if (!row) throw new Error("invalid_key");
+  if (row.revokedAt) throw new Error("key_revoked");
+  return row;
+}
+
+/** The currently active key's metadata for the Studio admin UI - never the
+ *  key itself (only its hash is stored). Null when no active key exists. */
+export const keyStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAgency(ctx);
+    const rows = await ctx.db.query("apiKeys").order("desc").take(MAX_KEY_ROWS);
+    const active = rows.find((r) => !r.revokedAt);
+    if (!active) return null;
+    const creator = await ctx.db.get(active.createdBy);
+    return {
+      createdAt: active.createdAt,
+      createdByName: creator?.name ?? "?",
+    };
   },
-  handler: async (ctx, args) => {
+});
+
+/** Agency creates (or rotates) the editor connect key. Any previously active
+ *  key is revoked in the same transaction, so exactly one key works at a time.
+ *  Returns the RAW key exactly once - it is never stored or retrievable
+ *  again. The Studio UI wraps it into a `scriptzk1_...` connect code. */
+export const rotateKey = mutation({
+  args: {},
+  handler: async (ctx) => {
     const user = await requireAgency(ctx);
-    // requireAgency already grants all-client access, but assert explicitly so
-    // a non-existent / cross-tenant clientId is rejected consistently.
-    await assertClientAccess(ctx, args.clientId);
-    const rawToken = generateToken();
-    const tokenHash = await sha256Hex(rawToken);
-    const expiresAt = Date.now() + TOKEN_TTL_MS;
-    await ctx.db.insert("transferTokens", {
-      clientId: args.clientId,
-      folderId: args.folderId ?? undefined,
-      tokenHash,
-      label: args.label?.trim() || undefined,
+    const rows = await ctx.db.query("apiKeys").order("desc").take(MAX_KEY_ROWS);
+    const now = Date.now();
+    for (const row of rows) {
+      if (!row.revokedAt) await ctx.db.patch(row._id, { revokedAt: now });
+    }
+    const rawKey = generateRawKey();
+    await ctx.db.insert("apiKeys", {
+      keyHash: await sha256Hex(rawKey),
       createdBy: user._id,
-      expiresAt,
+      createdAt: now,
     });
-    return { rawToken, expiresAt };
+    return { rawKey, createdAt: now };
+  },
+});
+
+/** Agency kills the active key without a replacement. Editors with the old
+ *  connect code get "key revoked" until a new key is entered. */
+export const revokeKey = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireAgency(ctx);
+    const rows = await ctx.db.query("apiKeys").order("desc").take(MAX_KEY_ROWS);
+    const now = Date.now();
+    for (const row of rows) {
+      if (!row.revokedAt) await ctx.db.patch(row._id, { revokedAt: now });
+    }
+    return null;
+  },
+});
+
+/** Internal: the destination picker data for the editor's send dialog -
+ *  every client with its folders. Called only from the /transfer/targets
+ *  httpAction; auth is the connect key. */
+export const listTargetsForKey = internalQuery({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    await requireActiveKey(ctx, args.key);
+    const clients = await ctx.db.query("clients").collect();
+    clients.sort((a, b) => a.name.localeCompare(b.name, "de"));
+    const out = [];
+    for (const c of clients) {
+      const folders = await ctx.db
+        .query("folders")
+        .withIndex("by_client", (q) => q.eq("clientId", c._id))
+        .collect();
+      folders.sort((a, b) => a.name.localeCompare(b.name, "de"));
+      out.push({
+        id: c._id,
+        name: c.name,
+        folders: folders.map((f) => ({ id: f._id, name: f.name })),
+      });
+    }
+    return { clients: out };
   },
 });
 
@@ -83,13 +150,16 @@ const bundleIdea = v.object({
   createdAt: v.optional(v.string()),
 });
 
-/** Internal: validates + consumes a token and imports the bundle in ONE
- *  transaction. Either every item lands and the token is burned, or nothing
- *  changes. Called only from the /transfer httpAction (which has no db access).
- *  Returns the localIds the editor may now safely delete. */
-export const redeemAndImport = internalMutation({
+/** Internal: validates the key + destination and imports the bundle in ONE
+ *  transaction. The destination (client + optional folder) is chosen by the
+ *  editor per transfer - ids arrive as plain strings from HTTP and are
+ *  normalized here. Called only from the /transfer httpAction (which has no
+ *  db access). Returns the localIds the editor may now safely delete. */
+export const importWithKey = internalMutation({
   args: {
-    token: v.string(),
+    key: v.string(),
+    clientId: v.string(),
+    folderId: v.optional(v.string()),
     scripts: v.array(bundleScript),
     ideas: v.array(bundleIdea),
   },
@@ -97,26 +167,27 @@ export const redeemAndImport = internalMutation({
     if (args.scripts.length + args.ideas.length > MAX_ITEMS) {
       throw new Error("too_many_items");
     }
-    const hash = await sha256Hex(args.token);
-    const tok = await ctx.db
-      .query("transferTokens")
-      .withIndex("by_hash", (q) => q.eq("tokenHash", hash))
-      .unique();
-    if (!tok) throw new Error("invalid_token");
-    if (tok.usedAt) throw new Error("token_used");
-    if (tok.expiresAt < Date.now()) throw new Error("token_expired");
+    await requireActiveKey(ctx, args.key);
 
-    // Burn the token in the same transaction as the inserts: a partial failure
-    // rolls back the usedAt flag too, so a retry is safe.
-    await ctx.db.patch(tok._id, { usedAt: Date.now() });
+    const clientId = ctx.db.normalizeId("clients", args.clientId);
+    if (!clientId || !(await ctx.db.get(clientId))) throw new Error("invalid_target");
+
+    let folderId: Id<"folders"> | undefined = undefined;
+    if (args.folderId) {
+      const normalized = ctx.db.normalizeId("folders", args.folderId);
+      if (!normalized) throw new Error("invalid_target");
+      const folder = await ctx.db.get(normalized);
+      if (!folder || folder.clientId !== clientId) throw new Error("invalid_target");
+      folderId = normalized;
+    }
 
     const now = Date.now();
     const accepted: string[] = [];
 
     for (const s of args.scripts) {
       await ctx.db.insert("scripts", {
-        clientId: tok.clientId,
-        folderId: tok.folderId ?? undefined,
+        clientId,
+        folderId,
         title: s.title.trim() || "Unbenannt",
         // Schema stores contentJson as a string; the bundle ships it parsed.
         contentJson: JSON.stringify(s.contentJson),
@@ -141,8 +212,8 @@ export const redeemAndImport = internalMutation({
 
     for (const idea of args.ideas) {
       await ctx.db.insert("ideas", {
-        clientId: tok.clientId,
-        folderId: tok.folderId ?? undefined,
+        clientId,
+        folderId,
         title: idea.title.trim() || "Unbenannt",
         notes: idea.notes ?? "",
         status: "draft",

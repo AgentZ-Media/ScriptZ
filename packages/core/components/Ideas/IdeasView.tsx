@@ -18,6 +18,8 @@ import { BrowserDialogs } from "../Browser/BrowserDialogs";
 import { ScriptContextMenu } from "../Browser/ScriptContextMenu";
 import { SelectionBar } from "../Browser/SelectionBar";
 import { HandoffDialog } from "../Browser/HandoffDialog";
+import { settingsStore } from "../../stores/settings";
+import { tryParseConnectCode } from "../../lib/handoff";
 import "./IdeasView.css";
 
 function sortOptions(): Array<{ id: IdeasSort; label: string }> {
@@ -48,6 +50,10 @@ export function IdeasView() {
   const [selectMode, setSelectMode] = createSignal(false);
   const [selectedIds, setSelectedIds] = createSignal<Set<string>>(new Set());
   const [handoffOpen, setHandoffOpen] = createSignal(false);
+  // No (parseable) connect code -> no Studio surface anywhere (most users
+  // have none, and a broken code must behave like none).
+  const studioConnected = () =>
+    tryParseConnectCode(settingsStore.studioConnectCode()) !== null;
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -299,12 +305,14 @@ export function IdeasView() {
         <SelectionBar
           active={selectMode()}
           count={selectedIds().size}
-          canEnter={filtered().length > 0}
+          // Ideas multi-select exists solely for the Studio handoff, so the
+          // whole entry point disappears without a connect code.
+          canEnter={filtered().length > 0 && studioConnected()}
           onEnter={() => setSelectMode(true)}
           onExit={exitSelect}
           onSelectAll={() => setSelectedIds(new Set(filtered().map((i) => i.id)))}
           onClear={() => setSelectedIds(new Set<string>())}
-          onSend={() => setHandoffOpen(true)}
+          onSend={studioConnected() ? () => setHandoffOpen(true) : undefined}
         />
 
         <div class="ideas-view-bar">

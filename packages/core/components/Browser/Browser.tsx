@@ -18,6 +18,8 @@ import { t, tPlural } from "../../i18n";
 import { ScriptContextMenu, type ContextMenuItem } from "./ScriptContextMenu";
 import { SelectionBar } from "./SelectionBar";
 import { HandoffDialog } from "./HandoffDialog";
+import { settingsStore } from "../../stores/settings";
+import { tryParseConnectCode } from "../../lib/handoff";
 import { TrashView } from "./TrashView";
 import { scriptsBus } from "../../lib/scriptsBus";
 import { foldersBus } from "../../lib/foldersBus";
@@ -96,6 +98,11 @@ export function Browser(props: BrowserProps = {}) {
   const [selectedIds, setSelectedIds] = createSignal<Set<string>>(new Set());
   const [handoffOpen, setHandoffOpen] = createSignal(false);
   const selectedCount = createMemo(() => selectedIds().size);
+  // No (parseable) connect code -> no Studio surface anywhere (most users
+  // have none, and a broken code must behave like none).
+  const studioConnected = createMemo(
+    () => tryParseConnectCode(settingsStore.studioConnectCode()) !== null,
+  );
 
   // Restore persisted view mode + active folder.
   onMount(async () => {
@@ -589,7 +596,7 @@ export function Browser(props: BrowserProps = {}) {
               onExit={exitSelect}
               onSelectAll={selectAllVisible}
               onClear={() => setSelectedIds(new Set<string>())}
-              onSend={() => setHandoffOpen(true)}
+              onSend={studioConnected() ? () => setHandoffOpen(true) : undefined}
               onExportPdf={() => void exportSelectedPdf()}
             />
           </div>
